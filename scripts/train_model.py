@@ -1,5 +1,5 @@
 """
-MLB 棒球預測模型訓練腳本 (使用 MLB 官方 Stats API，完全合法、免費)
+MLB 棒球預測模型訓練腳本 (使用 MLB 官方 Stats API，結構正確版)
 """
 import requests
 import pandas as pd
@@ -10,7 +10,7 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================================
-# 輔助函數：呼叫 MLB Stats API
+# 輔助函數：呼叫 MLB Stats API（正確解析 splits 結構）
 # ============================================================
 BASE = "https://statsapi.mlb.com/api/v1"
 
@@ -24,55 +24,62 @@ def get_team_stats(year, group):
         "stats": "season",
         "group": group,
         "season": str(year),
-        "sportIds": 1,          # MLB
+        "sportIds": 1,
         "hydrate": "team"
     }
     r = requests.get(url, params=params)
     r.raise_for_status()
-    teams_data = r.json().get('stats', [])
+    data = r.json()
 
     rows = []
-    for item in teams_data:
-        # item 是 {'team': {...}, 'stats': [...]}
-        team_name = item['team']['name']
-        splits = item['stats']
-        # 取 season 且 statGroup 相符的那一筆
-        target = next((s for s in splits if s['type'] == 'season' and s['group'] == group), None)
-        if not target:
+    # stats 是一個 list，每個元素可能包含不同 type/group 的 splits
+    for entry in data.get('stats', []):
+        # 確認是我們要的群組和球季類型
+        if entry.get('group', {}).get('displayName') != group:
             continue
-        s = target['stats']
+        if entry.get('type', {}).get('displayName') != 'season':
+            continue
 
-        if group == 'hitting':
-            rows.append({
-                'Team': team_name,
-                'AVG': float(s.get('avg', 0)),
-                'OBP': float(s.get('obp', 0)),
-                'SLG': float(s.get('slg', 0)),
-                'OPS': float(s.get('ops', 0)),
-                'wOBA': float(s.get('woba', 0)) if s.get('woba') else np.nan,
-                'wRC+': float(s.get('wrcPlus', 0)) if s.get('wrcPlus') else np.nan,
-            })
-        else:  # pitching
-            ip = float(s.get('inningsPitched', 0))
-            k = float(s.get('strikeOuts', 0))
-            bb = float(s.get('baseOnBalls', 0))
-            hr = float(s.get('homeRuns', 0))
-            rows.append({
-                'Team': team_name,
-                'ERA': float(s.get('era', 0)),
-                'WHIP': float(s.get('whip', 0)),
-                'FIP': float(s.get('fip', 0)) if s.get('fip') else np.nan,
-                'K/9': round(k / ip * 9, 2) if ip > 0 else 0,
-                'BB/9': round(bb / ip * 9, 2) if ip > 0 else 0,
-                'HR/9': round(hr / ip * 9, 2) if ip > 0 else 0,
-            })
+        # 正確的數據在 splits 裡面
+        for split in entry.get('splits', []):
+            team_name = split['team']['name']
+            s = split['stat']
+
+            if group == 'hitting':
+                rows.append({
+                    'Team': team_name,
+                    'AVG': float(s.get('avg', 0)),
+                    'OBP': float(s.get('obp', 0)),
+                    'SLG': float(s.get('slg', 0)),
+                    'OPS': float(s.get('ops', 0)),
+                    'wOBA': float(s.get('woba', 0)) if s.get('woba') else np.nan,
+                    'wRC+': float(s.get('wrcPlus', 0)) if s.get('wrcPlus') else np.nan,
+                })
+            else:  # pitching
+                ip = float(s.get('inningsPitched', 0))
+                k = float(s.get('strikeOuts', 0))
+                bb = float(s.get('baseOnBalls', 0))
+                hr = float(s.get('homeRuns', 0))
+                rows.append({
+                    'Team': team_name,
+                    'ERA': float(s.get('era', 0)),
+                    'WHIP': float(s.get('whip', 0)),
+                    'FIP': float(s.get('fip', 0)) if s.get('fip') else np.nan,
+                    'K/9': round(k / ip * 9, 2) if ip > 0 else 0,
+                    'BB/9': round(bb / ip * 9, 2) if ip > 0 else 0,
+                    'HR/9': round(hr / ip * 9, 2) if ip > 0 else 0,
+                })
+
+    if not rows:
+        raise ValueError(f"找不到 {year} 年 {group} 數據 (可能賽季尚未開始)")
+
     return pd.DataFrame(rows)
 
 def get_standings(year):
-    """取得勝敗紀錄（也是用 MLB Stats API）"""
+    """取得戰績（MLB Stats API）"""
     url = f"{BASE}/standings"
     params = {
-        "leagueId": "103,104",  # AL + NL
+        "leagueId": "103,104",
         "season": str(year),
         "hydrate": "team"
     }
@@ -101,10 +108,8 @@ year = 2025
 try:
     bat = get_team_stats(year, 'hitting')
     pitch = get_team_stats(year, 'pitching')
-    if bat.empty and pitch.empty:
-        raise ValueError("2025 無數據")
-except:
-    print("⚠️ 2025 數據尚不可用，改用 2024 年數據")
+except Exception as e:
+    print(f"⚠️ {year} 年數據取得失敗 ({e})，改用 2024 年數據")
     year = 2024
     bat = get_team_stats(year, 'hitting')
     pitch = get_team_stats(year, 'pitching')
