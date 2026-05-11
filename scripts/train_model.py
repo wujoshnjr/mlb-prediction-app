@@ -1,9 +1,9 @@
 """
-MLB 棒球預測模型訓練腳本 (最終穩定版)
-使用 MLB 官方 Stats API，具備自動特徵選擇與錯誤提示
+MLB 棒球預測模型訓練腳本 (最終穩定版 + 自動建立 outputs)
 """
 import requests
 import sys
+import os
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
@@ -17,7 +17,6 @@ warnings.filterwarnings('ignore')
 BASE = "https://statsapi.mlb.com/api/v1"
 
 def get_team_stats(year, group):
-    """取得團隊打擊或投球數據，回傳 DataFrame"""
     url = f"{BASE}/teams/stats"
     params = {
         "stats": "season",
@@ -32,19 +31,15 @@ def get_team_stats(year, group):
 
     rows = []
     for entry in data.get('stats', []):
-        # 確認群組和類型
         if entry.get('group', {}).get('displayName') != group:
             continue
         if entry.get('type', {}).get('displayName') != 'season':
             continue
-
-        # 數據都在 splits 裡
         for split in entry.get('splits', []):
             team_name = split['team']['name']
             stat = split.get('stat', {})
             if not stat:
                 continue
-            # 將所有數值欄位都收進來（保留原始名稱）
             row = {'Team': team_name}
             for k, v in stat.items():
                 try:
@@ -55,11 +50,9 @@ def get_team_stats(year, group):
 
     if not rows:
         raise ValueError(f"⚠️ {year} 年 {group} 數據為空，可能賽季尚未開始")
-
     return pd.DataFrame(rows)
 
 def get_standings(year):
-    """取得戰績"""
     url = f"{BASE}/standings"
     params = {
         "leagueId": "103,104",
@@ -98,27 +91,20 @@ except Exception as e:
     pitch = get_team_stats(year, 'pitching')
 
 standings_records = get_standings(year)
-
 print(f"✅ 數據抓取完成：打擊 {bat.shape}，投球 {pitch.shape}")
-print(f"打擊欄位範例: {bat.columns.tolist()[:5]}")
-print(f"投球欄位範例: {pitch.columns.tolist()[:5]}")
 
 # ============================================================
-# 2. 特徵工程（自動選擇數值欄位）
+# 2. 特徵工程
 # ============================================================
 print("🔧 正在進行特徵工程...")
-# 合併打擊與投球
 df = bat.merge(pitch, on='Team', suffixes=('_bat', '_pitch'))
 
-# 自動挑選所有數值欄位，排除 Team 和可能產生的 id 欄位
 exclude = ['Team', 'Team_bat', 'Team_pitch']
 numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
 available_cols = [c for c in numeric_cols if c not in exclude]
 
 if len(available_cols) == 0:
-    print("❌ 沒有可用的數值特徵，程式終止")
-    print("打擊資料欄位:", bat.columns.tolist())
-    print("投球資料欄位:", pitch.columns.tolist())
+    print("❌ 沒有可用的數值特徵")
     sys.exit(1)
 
 df = df[['Team'] + available_cols].dropna()
@@ -133,7 +119,7 @@ df['is_strong'] = (df['WinPct'] > 0.500).astype(int)
 print(f"   強隊數量：{df['is_strong'].sum()}，弱隊數量：{len(df) - df['is_strong'].sum()}")
 
 if df.shape[0] < 5:
-    print("❌ 資料筆數不足，無法訓練模型")
+    print("❌ 資料筆數不足")
     sys.exit(1)
 
 # ============================================================
@@ -151,6 +137,9 @@ model.fit(X, y)
 # 5. 儲存模型與預測結果
 # ============================================================
 print("💾 正在儲存模型與預測結果...")
+# ➕ 自動建立 outputs 資料夾
+os.makedirs('outputs', exist_ok=True)
+
 joblib.dump(model, 'outputs/xgb_model.pkl')
 df['predicted_strong_prob'] = model.predict_proba(X)[:, 1]
 df['predicted_label'] = model.predict(X)
