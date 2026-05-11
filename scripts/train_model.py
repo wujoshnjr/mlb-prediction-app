@@ -1,33 +1,48 @@
 """
-MLB 棒球預測模型訓練腳本 (使用 MLB 官方 Stats API，完全合法)
+MLB 棒球預測模型訓練腳本 (使用 MLB 官方 Stats API，完全合法、免費)
 """
+import requests
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics import accuracy_score
 import joblib
-import statsapi
 import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================================
-# 0. 輔助函數：從 Stats API 取得團隊數據
+# 輔助函數：呼叫 MLB Stats API
 # ============================================================
-def get_team_batting_stats(year):
-    """取得全聯盟團隊打擊數據"""
-    data = statsapi.get('teams_stats', {'stats': 'season', 'group': 'hitting', 'season': str(year)})
+BASE = "https://statsapi.mlb.com/api/v1"
+
+def get_team_stats(year, group):
+    """
+    group: 'hitting' 或 'pitching'
+    回傳 DataFrame，包含所有球隊在該年度的傳統/進階數據
+    """
+    url = f"{BASE}/teams/stats"
+    params = {
+        "stats": "season",
+        "group": group,
+        "season": str(year),
+        "sportIds": 1,          # MLB
+        "hydrate": "team"
+    }
+    r = requests.get(url, params=params)
+    r.raise_for_status()
+    teams_data = r.json().get('stats', [])
+
     rows = []
-    for team_data in data['stats']:
-        # team_data 是 list，每個元素是一個 team 的 stats
-        for t in team_data:
-            team_name = t['team']['name']
-            stats = t['stats']
-            # 可能有多筆 split (e.g. 'total', 'home', 'away')，我們取 'total'
-            total_stats = [s for s in stats if s['type'] == 'season' and s['group'] == 'hitting']
-            if not total_stats:
-                continue
-            s = total_stats[0]['stats']
+    for item in teams_data:
+        # item 是 {'team': {...}, 'stats': [...]}
+        team_name = item['team']['name']
+        splits = item['stats']
+        # 取 season 且 statGroup 相符的那一筆
+        target = next((s for s in splits if s['type'] == 'season' and s['group'] == group), None)
+        if not target:
+            continue
+        s = target['stats']
+
+        if group == 'hitting':
             rows.append({
                 'Team': team_name,
                 'AVG': float(s.get('avg', 0)),
@@ -37,21 +52,7 @@ def get_team_batting_stats(year):
                 'wOBA': float(s.get('woba', 0)) if s.get('woba') else np.nan,
                 'wRC+': float(s.get('wrcPlus', 0)) if s.get('wrcPlus') else np.nan,
             })
-    return pd.DataFrame(rows)
-
-def get_team_pitching_stats(year):
-    """取得全聯盟團隊投球數據"""
-    data = statsapi.get('teams_stats', {'stats': 'season', 'group': 'pitching', 'season': str(year)})
-    rows = []
-    for team_data in data['stats']:
-        for t in team_data:
-            team_name = t['team']['name']
-            stats = t['stats']
-            total_stats = [s for s in stats if s['type'] == 'season' and s['group'] == 'pitching']
-            if not total_stats:
-                continue
-            s = total_stats[0]['stats']
-            # 計算 K/9, BB/9, HR/9
+        else:  # pitching
             ip = float(s.get('inningsPitched', 0))
             k = float(s.get('strikeOuts', 0))
             bb = float(s.get('baseOnBalls', 0))
@@ -68,20 +69,28 @@ def get_team_pitching_stats(year):
     return pd.DataFrame(rows)
 
 def get_standings(year):
-    """利用 statsapi 取得戰績"""
-    # statsapi.standings_data() 回傳 dict
-    st = statsapi.standings_data(season=year)
-    records = []
-    for league, divs in st.items():
-        for div, teams in divs.items():
-            for team in teams:
-                records.append({
-                    'Team': team['name'],
-                    'W': team['w'],
-                    'L': team['l'],
-                    'WinPct': team['w'] / (team['w'] + team['l']) if (team['w'] + team['l']) > 0 else 0.5
-                })
-    return records
+    """取得勝敗紀錄（也是用 MLB Stats API）"""
+    url = f"{BASE}/standings"
+    params = {
+        "leagueId": "103,104",  # AL + NL
+        "season": str(year),
+        "hydrate": "team"
+    }
+    r = requests.get(url, params=params)
+    r.raise_for_status()
+    records_list = []
+    for record in r.json().get('records', []):
+        for team_record in record.get('teamRecords', []):
+            t = team_record['team']
+            w = team_record['wins']
+            l = team_record['losses']
+            records_list.append({
+                'Team': t['name'],
+                'W': w,
+                'L': l,
+                'WinPct': w / (w + l) if (w + l) > 0 else 0.5
+            })
+    return records_list
 
 # ============================================================
 # 1. 資料蒐集
@@ -89,17 +98,16 @@ def get_standings(year):
 print("📡 正在從 MLB Stats API 抓取數據...")
 year = 2025
 
-# 先試著抓 2025，如果沒數據就降級到 2024
 try:
-    bat = get_team_batting_stats(year)
-    pitch = get_team_pitching_stats(year)
+    bat = get_team_stats(year, 'hitting')
+    pitch = get_team_stats(year, 'pitching')
     if bat.empty and pitch.empty:
         raise ValueError("2025 無數據")
 except:
     print("⚠️ 2025 數據尚不可用，改用 2024 年數據")
     year = 2024
-    bat = get_team_batting_stats(year)
-    pitch = get_team_pitching_stats(year)
+    bat = get_team_stats(year, 'hitting')
+    pitch = get_team_stats(year, 'pitching')
 
 standings_records = get_standings(year)
 
@@ -117,7 +125,6 @@ feature_cols = [
     'ERA_pitch', 'WHIP_pitch', 'FIP_pitch',
     'K/9_pitch', 'BB/9_pitch', 'HR/9_pitch'
 ]
-# 保留實際存在的欄位
 available_cols = [col for col in feature_cols if col in df.columns]
 df = df[['Team'] + available_cols].dropna()
 print(f"✅ 特徵工程完成，可用特徵數：{len(available_cols)}")
