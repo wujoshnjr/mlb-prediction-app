@@ -1,7 +1,9 @@
 """
-MLB 棒球預測模型訓練腳本 (使用 MLB 官方 Stats API，結構正確版)
+MLB 棒球預測模型訓練腳本 (最終穩定版)
+使用 MLB 官方 Stats API，具備自動特徵選擇與錯誤提示
 """
 import requests
+import sys
 import pandas as pd
 import numpy as np
 from xgboost import XGBClassifier
@@ -10,15 +12,12 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # ============================================================
-# 輔助函數：呼叫 MLB Stats API（正確解析 splits 結構）
+# 輔助函數：呼叫 MLB Stats API
 # ============================================================
 BASE = "https://statsapi.mlb.com/api/v1"
 
 def get_team_stats(year, group):
-    """
-    group: 'hitting' 或 'pitching'
-    回傳 DataFrame，包含所有球隊在該年度的傳統/進階數據
-    """
+    """取得團隊打擊或投球數據，回傳 DataFrame"""
     url = f"{BASE}/teams/stats"
     params = {
         "stats": "season",
@@ -32,51 +31,35 @@ def get_team_stats(year, group):
     data = r.json()
 
     rows = []
-    # stats 是一個 list，每個元素可能包含不同 type/group 的 splits
     for entry in data.get('stats', []):
-        # 確認是我們要的群組和球季類型
+        # 確認群組和類型
         if entry.get('group', {}).get('displayName') != group:
             continue
         if entry.get('type', {}).get('displayName') != 'season':
             continue
 
-        # 正確的數據在 splits 裡面
+        # 數據都在 splits 裡
         for split in entry.get('splits', []):
             team_name = split['team']['name']
-            s = split['stat']
-
-            if group == 'hitting':
-                rows.append({
-                    'Team': team_name,
-                    'AVG': float(s.get('avg', 0)),
-                    'OBP': float(s.get('obp', 0)),
-                    'SLG': float(s.get('slg', 0)),
-                    'OPS': float(s.get('ops', 0)),
-                    'wOBA': float(s.get('woba', 0)) if s.get('woba') else np.nan,
-                    'wRC+': float(s.get('wrcPlus', 0)) if s.get('wrcPlus') else np.nan,
-                })
-            else:  # pitching
-                ip = float(s.get('inningsPitched', 0))
-                k = float(s.get('strikeOuts', 0))
-                bb = float(s.get('baseOnBalls', 0))
-                hr = float(s.get('homeRuns', 0))
-                rows.append({
-                    'Team': team_name,
-                    'ERA': float(s.get('era', 0)),
-                    'WHIP': float(s.get('whip', 0)),
-                    'FIP': float(s.get('fip', 0)) if s.get('fip') else np.nan,
-                    'K/9': round(k / ip * 9, 2) if ip > 0 else 0,
-                    'BB/9': round(bb / ip * 9, 2) if ip > 0 else 0,
-                    'HR/9': round(hr / ip * 9, 2) if ip > 0 else 0,
-                })
+            stat = split.get('stat', {})
+            if not stat:
+                continue
+            # 將所有數值欄位都收進來（保留原始名稱）
+            row = {'Team': team_name}
+            for k, v in stat.items():
+                try:
+                    row[k] = float(v)
+                except (ValueError, TypeError):
+                    pass
+            rows.append(row)
 
     if not rows:
-        raise ValueError(f"找不到 {year} 年 {group} 數據 (可能賽季尚未開始)")
+        raise ValueError(f"⚠️ {year} 年 {group} 數據為空，可能賽季尚未開始")
 
     return pd.DataFrame(rows)
 
 def get_standings(year):
-    """取得戰績（MLB Stats API）"""
+    """取得戰績"""
     url = f"{BASE}/standings"
     params = {
         "leagueId": "103,104",
@@ -109,28 +92,35 @@ try:
     bat = get_team_stats(year, 'hitting')
     pitch = get_team_stats(year, 'pitching')
 except Exception as e:
-    print(f"⚠️ {year} 年數據取得失敗 ({e})，改用 2024 年數據")
+    print(f"⚠️ {year} 年數據取得失敗: {e}")
     year = 2024
     bat = get_team_stats(year, 'hitting')
     pitch = get_team_stats(year, 'pitching')
 
 standings_records = get_standings(year)
 
-print(f"✅ 數據抓取完成：打擊 {bat.shape[0]} 筆，投球 {pitch.shape[0]} 筆")
+print(f"✅ 數據抓取完成：打擊 {bat.shape}，投球 {pitch.shape}")
+print(f"打擊欄位範例: {bat.columns.tolist()[:5]}")
+print(f"投球欄位範例: {pitch.columns.tolist()[:5]}")
 
 # ============================================================
-# 2. 特徵工程
+# 2. 特徵工程（自動選擇數值欄位）
 # ============================================================
 print("🔧 正在進行特徵工程...")
+# 合併打擊與投球
 df = bat.merge(pitch, on='Team', suffixes=('_bat', '_pitch'))
 
-feature_cols = [
-    'AVG_bat', 'OBP_bat', 'SLG_bat', 'OPS_bat',
-    'wOBA_bat', 'wRC+_bat',
-    'ERA_pitch', 'WHIP_pitch', 'FIP_pitch',
-    'K/9_pitch', 'BB/9_pitch', 'HR/9_pitch'
-]
-available_cols = [col for col in feature_cols if col in df.columns]
+# 自動挑選所有數值欄位，排除 Team 和可能產生的 id 欄位
+exclude = ['Team', 'Team_bat', 'Team_pitch']
+numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+available_cols = [c for c in numeric_cols if c not in exclude]
+
+if len(available_cols) == 0:
+    print("❌ 沒有可用的數值特徵，程式終止")
+    print("打擊資料欄位:", bat.columns.tolist())
+    print("投球資料欄位:", pitch.columns.tolist())
+    sys.exit(1)
+
 df = df[['Team'] + available_cols].dropna()
 print(f"✅ 特徵工程完成，可用特徵數：{len(available_cols)}")
 
@@ -141,6 +131,10 @@ standings_df = pd.DataFrame(standings_records)
 df = df.merge(standings_df[['Team', 'WinPct']], on='Team', how='inner')
 df['is_strong'] = (df['WinPct'] > 0.500).astype(int)
 print(f"   強隊數量：{df['is_strong'].sum()}，弱隊數量：{len(df) - df['is_strong'].sum()}")
+
+if df.shape[0] < 5:
+    print("❌ 資料筆數不足，無法訓練模型")
+    sys.exit(1)
 
 # ============================================================
 # 4. 訓練模型
