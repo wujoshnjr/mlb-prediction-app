@@ -1,1 +1,37 @@
+name: Build and Deploy
 
+on:
+  schedule:
+    - cron: '0 4 * * *'   # 台灣時間每日中午 12:00
+  workflow_dispatch:        # 允許手動觸發
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install quarto-cli
+
+      - name: Run prediction model
+        run: python scripts/train_model.py
+
+      - name: Render Quarto report
+        run: quarto render report/index.qmd
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: report
+          force_orphan: true
