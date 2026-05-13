@@ -1,37 +1,28 @@
-name: Build and Deploy
+name: Hourly Fetch All Data Sources
 
 on:
   schedule:
-    - cron: '0 4 * * *'   # 台灣時間每日中午 12:00
-  workflow_dispatch:        # 允許手動觸發
-
-permissions:
-  contents: write
+    - cron: '0 * * * *'   # 每小时整点执行
+  workflow_dispatch:
 
 jobs:
-  build:
+  fetch:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
       - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run unified model fetch
         run: |
-          pip install -r requirements.txt
-          pip install quarto-cli
-
-      - name: Run prediction model
-        run: python scripts/train_model.py
-
-      - name: Render Quarto report
-        run: quarto render report/index.qmd
-
-      - name: Deploy to gh-pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: report
-          force_orphan: true
+          python -c "from model import UnifiedSportsModel; m = UnifiedSportsModel(); data = m.gather_all_data(); print('Fetch successful:', len(data))"
+        env:
+          BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
