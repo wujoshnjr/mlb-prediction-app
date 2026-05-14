@@ -1,31 +1,33 @@
-import os
+"""
+Web 服务入口，可通过 /run 端点触发数据抓取并返回结果
+"""
 import sys
-from fastapi import FastAPI
+import os
 
-app = FastAPI()
+# 将当前文件所在的目录（项目根目录）添加到 Python 路径
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from fastapi import FastAPI
+from model import UnifiedSportsModel
+
+app = FastAPI(title="Unified Sports Data Model")
+model = UnifiedSportsModel()
 
 @app.get("/")
-def diagnose():
-    # 当前工作目录
-    cwd = os.getcwd()
-    # 根目录文件列表
-    root_files = os.listdir(cwd)
-    # scripts 目录是否存在，里面有哪些文件
-    scripts_path = os.path.join(cwd, "scripts")
-    scripts_exists = os.path.exists(scripts_path)
-    scripts_files = os.listdir(scripts_path) if scripts_exists else []
-    # 检查 savant_client.py 是否存在
-    savant_path = os.path.join(scripts_path, "savant_client.py")
-    savant_exists = os.path.exists(savant_path)
-    # Python 路径
-    python_path = sys.path
+def read_root():
+    return {"message": "Unified Sports Model is running. Visit /run to trigger data fetch."}
 
-    return {
-        "cwd": cwd,
-        "root_files": root_files,
-        "scripts_exists": scripts_exists,
-        "scripts_files": scripts_files,
-        "savant_client_exists": savant_exists,
-        "python_path": python_path
+@app.get("/run")
+def run_all():
+    data = model.gather_all_data()
+    summary = {
+        "date": data["date"],
+        "mlb_games": len(data["mlb_statsapi"]),
+        "savant_records": len(data["savant_statcast"]),
+        "retrosheet_records": len(data["retrosheet"]),
+        "pybaseball_statcast_records": len(data["pybaseball_statcast"]),
+        "balldontlie_teams": len(data["balldontlie_teams"]),
+        "odds_records": len(data["odds_data"]),
+        "weather_hours": len(data["openmeteo_weather"])
     }
     return summary
