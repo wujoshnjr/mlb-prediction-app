@@ -1,10 +1,11 @@
 """
-Web 服务入口，可通过 /run 端点触发数据抓取并返回结果
+Web 服務入口，可透過 /run 端點觸發資料抓取並返回結果
 """
 import sys
 import os
+import traceback
 
-# 将当前文件所在的目录（项目根目录）添加到 Python 路径
+# 確保專案根目錄在 Python 路徑中
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
@@ -19,15 +20,23 @@ def read_root():
 
 @app.get("/run")
 def run_all():
-    data = model.gather_all_data()
-    summary = {
-        "date": data["date"],
-        "mlb_games": len(data["mlb_statsapi"]),
-        "savant_records": len(data["savant_statcast"]),
-        "retrosheet_records": len(data["retrosheet"]),
-        "pybaseball_statcast_records": len(data["pybaseball_statcast"]),
-        "balldontlie_teams": len(data["balldontlie_teams"]),
-        "odds_records": len(data["odds_data"]),
-        "weather_hours": len(data["openmeteo_weather"])
-    }
-    return summary
+    try:
+        data = model.gather_all_data()
+        summary = {
+            "date": data["date"],
+            "mlb_games": len(data["mlb_statsapi"]),
+            "savant_records": len(data["savant_statcast"]),
+            "retrosheet_records": len(data["retrosheet"]),
+            "pybaseball_statcast_records": len(data["pybaseball_statcast"]),
+            "balldontlie_teams": len(data["balldontlie_teams"]),
+            "odds_records": len(data["odds_data"]),
+            "weather_hours": len(data["openmeteo_weather"])
+        }
+        return summary
+    except Exception as e:
+        # 把完整的錯誤堆疊返回，方便診斷
+        error_msg = traceback.format_exc()
+        return {
+            "error": str(e),
+            "traceback": error_msg.split("\n")
+        }
