@@ -1,6 +1,3 @@
-"""
-Baseball Savant (Statcast) 客户端
-"""
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
@@ -38,5 +35,4 @@ def fetch_savant_statcast(date_str: str = None, errors: list = None) -> pd.DataF
         msg = f"Savant fetch error: {e}"
         if errors is not None:
             errors.append(msg)
-        print(msg)
         return pd.DataFrame()
