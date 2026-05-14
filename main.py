@@ -1,11 +1,7 @@
-"""
-Web 服務入口，可透過 /run 端點觸發資料抓取並返回結果
-"""
 import sys
 import os
 import traceback
 
-# 確保專案根目錄在 Python 路徑中
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
@@ -30,13 +26,9 @@ def run_all():
             "pybaseball_statcast_records": len(data["pybaseball_statcast"]),
             "balldontlie_teams": len(data["balldontlie_teams"]),
             "odds_records": len(data["odds_data"]),
-            "weather_hours": len(data["openmeteo_weather"])
+            "weather_hours": len(data["openmeteo_weather"]),
+            "errors": data.get("errors", [])
         }
         return summary
     except Exception as e:
-        # 把完整的錯誤堆疊返回，方便診斷
-        error_msg = traceback.format_exc()
-        return {
-            "error": str(e),
-            "traceback": error_msg.split("\n")
-        }
+        return {"error": str(e), "traceback": traceback.format_exc().split("\n")}
