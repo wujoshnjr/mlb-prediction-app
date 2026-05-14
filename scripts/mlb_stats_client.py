@@ -1,9 +1,9 @@
 """
 MLB Stats API 客户端
-使用 mlb-statsapi 包获取实时赛程与比分
+使用 statsapi 套件获取实时赛程与比分
 """
 import pandas as pd
-from mlb_statsapi import statsapi
+import statsapi
 
 def fetch_mlb_statsapi(date_str: str = None) -> pd.DataFrame:
     """
