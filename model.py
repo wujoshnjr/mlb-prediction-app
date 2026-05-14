@@ -1,12 +1,11 @@
 """
-UnifiedSportsModel - 整合所有数据源（稳健错误收集版）
+UnifiedSportsModel - 整合所有数据源（稳定版）
 """
 import os
 import json
 from datetime import datetime
 import pandas as pd
 
-# 导入所有数据抓取函数
 from scripts.mlb_stats_client import fetch_mlb_statsapi
 from scripts.savant_client import fetch_savant_statcast
 from scripts.retro_client import fetch_retrosheet
@@ -18,10 +17,6 @@ from scripts.odds_client import fetch_odds
 
 
 class UnifiedSportsModel:
-    """
-    整合 MLB Stats API、Baseball Savant、Retrosheet、
-    PyBaseball、Sportsipy、Open-Meteo、Balldontlie、Odds-API.io
-    """
     def __init__(self):
         self.ball_api_key = os.getenv("BALLDONTLIE_API_KEY")
         self.odds_api_key = os.getenv("ODDS_API_KEY")
@@ -30,20 +25,16 @@ class UnifiedSportsModel:
         if not date_str:
             date_str = datetime.now().strftime('%Y-%m-%d')
 
-        print(f"Starting data collection for {date_str}")
+        errors = []  # 所有错误信息
 
-        errors_list = []  # 收集所有错误信息
-
-        # 调用每个数据源，若函数支持 errors 参数则传入
-        # 使用 try/except 避免因参数不匹配而崩溃
-        mlb_stats = self._safe_fetch(fetch_mlb_statsapi, date_str, errors_list)
-        savant = self._safe_fetch(fetch_savant_statcast, date_str, errors_list)
-        retro = self._safe_fetch(fetch_retrosheet, date_str, errors_list)
-        pyb = self._safe_fetch(fetch_pybaseball, date_str, errors_list)
-        sportsipy = self._safe_fetch(fetch_sportsipy, date_str, errors_list)
-        openmeteo = self._safe_fetch(fetch_openmeteo, date_str, errors_list)
-        balldontlie = self._safe_fetch(fetch_balldontlie, self.ball_api_key, date_str, errors_list)
-        odds = self._safe_fetch(fetch_odds, self.odds_api_key, date_str, errors_list)
+        mlb_stats = fetch_mlb_statsapi(date_str, errors)
+        savant = fetch_savant_statcast(date_str, errors)
+        retro = fetch_retrosheet(date_str, errors)
+        pyb = fetch_pybaseball(date_str, errors)
+        sportsipy = fetch_sportsipy(date_str, errors)
+        openmeteo = fetch_openmeteo(date_str, errors)
+        balldontlie = fetch_balldontlie(self.ball_api_key, date_str, errors)
+        odds = fetch_odds(self.odds_api_key, date_str, errors)
 
         result = {
             'date': date_str,
@@ -58,7 +49,7 @@ class UnifiedSportsModel:
             'openmeteo_weather': openmeteo.to_dict(orient='records') if not openmeteo.empty else [],
             'balldontlie_teams': balldontlie.to_dict(orient='records') if not balldontlie.empty else [],
             'odds_data': odds.to_dict(orient='records') if not odds.empty else [],
-            'errors': errors_list
+            'errors': errors
         }
 
         # 保存报告
@@ -69,21 +60,3 @@ class UnifiedSportsModel:
             json.dump(result, f, indent=2, default=str)
 
         return result
-
-    def _safe_fetch(self, func, *args):
-        """
-        尝试调用 func(*args, errors=errors_list)，
-        若 func 不接受 errors 参数，则退回 func(*args)。
-        这样无论函数是否更新都能正常工作。
-        """
-        # 最后一个参数一定是 errors_list
-        if len(args) >= 1 and isinstance(args[-1], list):
-            normal_args = args[:-1]
-            errors_list = args[-1]
-            try:
-                return func(*normal_args, errors=errors_list)
-            except TypeError:
-                # 函数不支持 errors 关键字，用普通调用
-                return func(*normal_args)
-        else:
-            return func(*args)
