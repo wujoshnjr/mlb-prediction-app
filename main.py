@@ -1,6 +1,12 @@
 """
 Web 服务入口，可通过 /run 端点触发数据抓取并返回结果
 """
+import sys
+import os
+
+# 将当前文件所在的目录（项目根目录）添加到 Python 路径
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI
 from model import UnifiedSportsModel
 
@@ -14,7 +20,6 @@ def read_root():
 @app.get("/run")
 def run_all():
     data = model.gather_all_data()
-    # 返回简短摘要，避免响应过大
     summary = {
         "date": data["date"],
         "mlb_games": len(data["mlb_statsapi"]),
