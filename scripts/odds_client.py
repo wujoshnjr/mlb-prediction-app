@@ -1,22 +1,17 @@
-"""
-Odds-API.io 客户端（使用 requests 直接调用 REST API）
-"""
 import requests
 import pandas as pd
 import os
 
-def fetch_odds(api_key: str = None, date_str: str = None) -> pd.DataFrame:
-    """
-    获取 MLB 赛前赔率，返回 DataFrame
-    """
+def fetch_odds(api_key: str = None, date_str: str = None, errors: list = None) -> pd.DataFrame:
     if not api_key:
         api_key = os.getenv("ODDS_API_KEY")
     if not api_key:
-        print("Odds API key missing")
+        msg = "Odds API key missing"
+        if errors is not None:
+            errors.append(msg)
         return pd.DataFrame()
 
     try:
-        # 1. 获取体育列表，找到 MLB 的 key
         sports_url = "https://api.odds-api.io/v4/sports"
         headers = {"apikey": api_key}
         sports_resp = requests.get(sports_url, headers=headers, timeout=15)
@@ -30,21 +25,17 @@ def fetch_odds(api_key: str = None, date_str: str = None) -> pd.DataFrame:
                 break
 
         if not baseball_key:
-            print("MLB key not found in Odds API")
+            msg = "MLB key not found in Odds API"
+            if errors is not None:
+                errors.append(msg)
             return pd.DataFrame()
 
-        # 2. 获取赔率数据
         odds_url = f"https://api.odds-api.io/v4/sports/{baseball_key}/odds"
-        params = {
-            "regions": "us",
-            "markets": "h2h",       # 胜平负/单挑盘
-            "oddsFormat": "decimal"
-        }
+        params = {"regions": "us", "markets": "h2h", "oddsFormat": "decimal"}
         odds_resp = requests.get(odds_url, headers=headers, params=params, timeout=30)
         odds_resp.raise_for_status()
         odds_data = odds_resp.json()
 
-        # 3. 展开赔率数据为 DataFrame
         rows = []
         for game in odds_data.get("data", []):
             home_team = game.get("home_team")
@@ -63,5 +54,7 @@ def fetch_odds(api_key: str = None, date_str: str = None) -> pd.DataFrame:
                         })
         return pd.DataFrame(rows)
     except Exception as e:
-        print(f"Odds API fetch error: {e}")
+        msg = f"Odds API fetch error: {e}"
+        if errors is not None:
+            errors.append(msg)
         return pd.DataFrame()
