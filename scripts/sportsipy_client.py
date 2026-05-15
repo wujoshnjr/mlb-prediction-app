@@ -1,8 +1,19 @@
+"""
+球隊與球員數據客戶端（使用 pybaseball，延遲匯入）
+"""
 import pandas as pd
-from pybaseball import standings, batting_stats, playerid_lookup
 
 def fetch_sportsipy(date_str: str = None, errors: list = None) -> dict:
+    try:
+        from pybaseball import standings, batting_stats, playerid_lookup
+    except Exception as e:
+        msg = f"Sportsipy import error: {e}"
+        if errors is not None:
+            errors.append(msg)
+        return {'teams': pd.DataFrame(), 'player_example': {}}
+
     year = 2026
+
     # 球队战绩
     try:
         all_standings = standings(year)
