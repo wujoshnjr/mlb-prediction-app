@@ -1,5 +1,5 @@
 """
-UnifiedSportsModel - 整合所有数据源（稳定版）
+UnifiedSportsModel - 整合所有数据源（稳定版，所有函数统一接受 errors 参数）
 """
 import os
 import json
@@ -25,7 +25,7 @@ class UnifiedSportsModel:
         if not date_str:
             date_str = datetime.now().strftime('%Y-%m-%d')
 
-        errors = []  # 所有错误信息
+        errors = []
 
         mlb_stats = fetch_mlb_statsapi(date_str, errors)
         savant = fetch_savant_statcast(date_str, errors)
@@ -52,7 +52,6 @@ class UnifiedSportsModel:
             'errors': errors
         }
 
-        # 保存报告
         if os.path.isfile('report'):
             os.remove('report')
         os.makedirs('report', exist_ok=True)
