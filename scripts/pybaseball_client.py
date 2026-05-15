@@ -7,6 +7,11 @@ from datetime import datetime, timedelta
 def fetch_pybaseball(date_str: str = None, errors: list = None) -> dict:
     try:
         from pybaseball import statcast, batting_stats, pitching_stats
+        # 设置伪装头，避免 403
+        from pybaseball import cache
+        cache._HEADERS = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
     except Exception as e:
         msg = f"PyBaseball import error: {e}"
         if errors is not None:
