@@ -5,10 +5,10 @@ import requests
 
 # === 全局请求头伪装（启动时立刻执行） ===
 def initialize_requests():
-    # 设置默认的 User-Agent
-    requests.utils.default_user_agent = lambda _: (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    )
+    # 修正点：lambda 不要任何参数
+    requests.utils.default_user_agent = lambda: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    
+    # 给 requests 自身的全局 session 加上伪装头
     session = requests.Session()
     session.headers.update({
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -16,7 +16,8 @@ def initialize_requests():
         'Accept-Language': 'en-US,en;q=0.5',
         'Referer': 'https://www.fangraphs.com/',
     })
-    # 将全局请求替换为带有伪装的 session
+    # 让 requests.get / post 默认使用这个伪装好的 session（安全做法）
+    # 注意：session.get 是绑定方法，可以直接替换顶层函数
     requests.get = session.get
     requests.post = session.post
 
