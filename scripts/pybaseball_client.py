@@ -1,8 +1,18 @@
+"""
+PyBaseball 客户端（延迟导入，防止启动崩溃）
+"""
 import pandas as pd
-from pybaseball import statcast, batting_stats, pitching_stats
 from datetime import datetime, timedelta
 
 def fetch_pybaseball(date_str: str = None, errors: list = None) -> dict:
+    try:
+        from pybaseball import statcast, batting_stats, pitching_stats
+    except Exception as e:
+        msg = f"PyBaseball import error: {e}"
+        if errors is not None:
+            errors.append(msg)
+        return {'statcast_recent': pd.DataFrame(), 'batting_leaders': pd.DataFrame(), 'pitching_leaders': pd.DataFrame()}
+
     if not date_str:
         end_date = datetime.now()
         start_date = end_date - timedelta(days=7)
