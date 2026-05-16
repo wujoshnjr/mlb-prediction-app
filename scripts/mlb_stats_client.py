@@ -1,5 +1,5 @@
 """
-MLB Stats API 客户端（使用 requests）
+MLB Stats API 客户端（加固欄位解析）
 """
 import requests
 import pandas as pd
@@ -30,10 +30,12 @@ def fetch_mlb_statsapi(date_str: str = None, errors: list = None) -> pd.DataFram
     for date_info in data.get("dates", []):
         for game in date_info.get("games", []):
             teams = game.get("teams", {})
+            home = teams.get("home", {}).get("team", {})
+            away = teams.get("away", {}).get("team", {})
             games.append({
                 "game_id": game.get("gamePk"),
-                "home": teams.get("home", {}).get("team", {}).get("name", ""),
-                "away": teams.get("away", {}).get("team", {}).get("name", ""),
-                "status": game.get("status", {}).get("abstractGameState", "")
+                "home": home.get("name", "Unknown") if home else "Unknown",
+                "away": away.get("name", "Unknown") if away else "Unknown",
+                "status": game.get("status", {}).get("abstractGameState", "Unknown")
             })
     return pd.DataFrame(games)
