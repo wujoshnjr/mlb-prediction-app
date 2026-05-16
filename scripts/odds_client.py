@@ -1,5 +1,5 @@
 """
-Odds-API.io 客户端（直接调用 REST API）
+Odds-API.io 客户端（正確端點 + 博彩公司指定）
 """
 import requests
 import pandas as pd
@@ -9,24 +9,43 @@ def fetch_odds(api_key: str = None, date_str: str = None, errors: list = None) -
     if not api_key:
         api_key = os.getenv("ODDS_API_KEY")
     if not api_key:
-        msg = "Odds API key 缺失"
+        msg = "Odds API key missing"
         if errors is not None:
             errors.append(msg)
         return pd.DataFrame()
 
     try:
-        # 使用 The Odds API 的 v4 正式接口
-        odds_url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds"
+        # 使用正確的 odds-api.io 端點
+        sports_url = "https://api.odds-api.io/v4/sports"
+        headers = {"apikey": api_key}
+        sports_resp = requests.get(sports_url, headers=headers, timeout=15)
+        sports_resp.raise_for_status()
+        sports_data = sports_resp.json()
+
+        baseball_key = None
+        for sport in sports_data.get("data", []):
+            if sport.get("group") == "Baseball" and "MLB" in sport.get("title", ""):
+                baseball_key = sport["key"]
+                break
+
+        if not baseball_key:
+            msg = "MLB key not found in Odds API"
+            if errors is not None:
+                errors.append(msg)
+            return pd.DataFrame()
+
+        odds_url = f"https://api.odds-api.io/v4/sports/{baseball_key}/odds"
         params = {
-            "apiKey": api_key,
+            "apikey": api_key,        # 注意：odds-api.io 用 apikey 參數
             "regions": "us",
             "markets": "h2h",
-            "oddsFormat": "decimal"
+            "oddsFormat": "decimal",
+            "bookmakers": "bet365,draftkings"  # 可自行更換
         }
-        odds_resp = requests.get(odds_url, params=params, timeout=30)
+        odds_resp = requests.get(odds_url, headers=headers, params=params, timeout=30)
         
         if odds_resp.status_code == 401:
-            msg = "Odds API 401 未授权，请检查 API Key 是否正确（注意：必须以字母开头，不要有多余空格）"
+            msg = "Odds API 401 未授權，請檢查 API Key 是否正確（應以 oddsp- 開頭）"
             if errors is not None:
                 errors.append(msg)
             return pd.DataFrame()
@@ -35,7 +54,7 @@ def fetch_odds(api_key: str = None, date_str: str = None, errors: list = None) -
         odds_data = odds_resp.json()
 
         rows = []
-        for game in odds_data:
+        for game in odds_data.get("data", []):
             home_team = game.get("home_team")
             away_team = game.get("away_team")
             for bookmaker in game.get("bookmakers", []):
@@ -51,12 +70,12 @@ def fetch_odds(api_key: str = None, date_str: str = None, errors: list = None) -
                         })
         return pd.DataFrame(rows)
     except requests.exceptions.HTTPError as e:
-        msg = f"Odds API HTTP 错误: {e}"
+        msg = f"Odds API HTTP error: {e}"
         if errors is not None:
             errors.append(msg)
         return pd.DataFrame()
     except Exception as e:
-        msg = f"Odds API 抓取异常: {e}"
+        msg = f"Odds API fetch error: {e}"
         if errors is not None:
             errors.append(msg)
         return pd.DataFrame()
