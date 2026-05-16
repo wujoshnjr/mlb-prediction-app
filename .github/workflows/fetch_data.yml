@@ -2,11 +2,11 @@ name: Hourly Prediction Update
 
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *'   # 每小時整點執行
+  workflow_dispatch:       # 允許手動觸發
 
 permissions:
-  contents: write
+  contents: write          # 必須有寫入權限才能推送檔案
 
 jobs:
   predict:
