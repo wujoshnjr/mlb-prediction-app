@@ -1,3 +1,6 @@
+"""
+Baseball Savant (Statcast) 客户端
+"""
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
