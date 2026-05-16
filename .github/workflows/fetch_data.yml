@@ -1,16 +1,20 @@
-name: Hourly Fetch All Data Sources
+name: Hourly Prediction Update
 
 on:
   schedule:
-    - cron: '0 * * * *'   # 每小時整點執行
+    - cron: '0 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  fetch:
+  predict:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -20,9 +24,16 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run unified model fetch
-        run: |
-          python -c "from model import UnifiedSportsModel; m = UnifiedSportsModel(); data = m.gather_all_data(); print('Fetch successful:', len(data))"
+      - name: Run prediction
+        run: python prediction.py
         env:
           BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+
+      - name: Commit prediction report
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add report/prediction.json
+          git commit -m "Update prediction report [skip ci]" || echo "No changes"
+          git push
