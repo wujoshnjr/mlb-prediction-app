@@ -6,11 +6,6 @@ import pandas as pd
 def fetch_sportsipy(date_str: str = None, errors: list = None) -> dict:
     try:
         from pybaseball import standings, batting_stats, playerid_lookup
-        # 设置伪装头，避免 403
-        from pybaseball import cache
-        cache._HEADERS = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
     except Exception as e:
         msg = f"Sportsipy import error: {e}"
         if errors is not None:
@@ -39,7 +34,7 @@ def fetch_sportsipy(date_str: str = None, errors: list = None) -> dict:
             errors.append(msg)
         df_teams = pd.DataFrame()
 
-    # 球员示例
+    # 球员示例 (大谷翔平)
     player_info = {}
     try:
         player = playerid_lookup('ohtani', 'shohei')
