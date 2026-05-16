@@ -3,26 +3,35 @@ import os
 import traceback
 import requests
 
-# === 全局请求头伪装（启动时立刻执行） ===
+# === 终极全局请求头伪装 ===
 def initialize_requests():
-    # 修正点：lambda 不要任何参数
-    requests.utils.default_user_agent = lambda: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    
-    # 给 requests 自身的全局 session 加上伪装头
-    session = requests.Session()
-    session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Referer': 'https://www.fangraphs.com/',
-    })
-    # 让 requests.get / post 默认使用这个伪装好的 session（安全做法）
-    # 注意：session.get 是绑定方法，可以直接替换顶层函数
-    requests.get = session.get
-    requests.post = session.post
+    # 设置默认 User-Agent
+    requests.utils.default_user_agent = lambda: (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
+
+    # 保存原始 Session 类
+    OriginalSession = requests.Session
+
+    # 自定义 Session，自动添加伪装头
+    class CustomSession(OriginalSession):
+        def __init__(self):
+            super().__init__()
+            self.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Referer': 'https://www.fangraphs.com/',
+            })
+
+    # 替换全局 Session 类
+    requests.Session = CustomSession
+    # 同时替换 requests.get / post 使用的默认 session
+    requests.get = CustomSession().get
+    requests.post = CustomSession().post
 
 initialize_requests()
-# === 全局伪装结束 ===
+# === 伪装结束 ===
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
