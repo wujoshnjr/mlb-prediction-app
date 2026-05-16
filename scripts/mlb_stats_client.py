@@ -1,3 +1,6 @@
+"""
+MLB Stats API 客户端（使用 requests）
+"""
 import requests
 import pandas as pd
 
