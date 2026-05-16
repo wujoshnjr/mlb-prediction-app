@@ -1,5 +1,5 @@
 """
-Baseball Savant (Statcast) 客户端
+Baseball Savant (Statcast) 客户端（含錯誤記錄）
 """
 import requests
 import pandas as pd
