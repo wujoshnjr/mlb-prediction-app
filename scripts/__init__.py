@@ -1,1 +1,1 @@
-# scripts 包初始化文件
+# 初始化 scripts 包
