@@ -6,18 +6,18 @@ on:
   workflow_dispatch:       # 允許手動觸發
 
 permissions:
-  contents: write          # 必須有寫入權限才能推送檔案
+  contents: write          # 授權推送檔案回倉庫
 
 jobs:
   predict:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5          # ✅ 改用 v5（支援 Node.js 24）
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6       # ✅ 改用 v6（支援 Node.js 24）
         with:
           python-version: '3.10'
 
