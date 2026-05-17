@@ -2,11 +2,11 @@ name: Hourly Prediction Update
 
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *'      # 每小时整点执行
+  workflow_dispatch:          # 允许手动触发
 
 permissions:
-  contents: write
+  contents: write             # 必须，否则无法推送
 
 jobs:
   predict:
@@ -23,21 +23,19 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run prediction with full error output
-        run: |
-          python prediction.py
-          echo "Exit code: $?"
+      - name: Run prediction (generate report/prediction.json)
+        run: python prediction.py
         env:
           BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
 
       - name: Commit prediction report
-        if: always()
+        if: always()          # 即使上一步出错也继续，避免丢失日志
         run: |
           if [ -f report/prediction.json ]; then
             git config --global user.name "github-actions[bot]"
             git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git add report/prediction.json
+            git add -f report/prediction.json
             git commit -m "Update prediction report [skip ci]" || echo "No changes"
             git push
           else
