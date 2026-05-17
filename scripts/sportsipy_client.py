@@ -1,73 +1,61 @@
-"""
-球隊與球員數據客戶端（使用 pybaseball，強制偽裝請求頭修復 Fangraphs 403）
-"""
 import pandas as pd
-import requests as r
+import requests
 
-def fetch_sportsipy(date_str: str = None, errors: list = None) -> dict:
-    try:
-        from pybaseball import standings, batting_stats, playerid_lookup, cache
-        # 建立偽裝會話，徹底繞過 403
-        session = r.Session()
-        session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Referer': 'https://www.fangraphs.com/',
-        })
-        cache._SESSION = session
-    except Exception as e:
-        msg = f"Sportsipy import error: {e}"
-        if errors is not None:
-            errors.append(msg)
-        return {'teams': pd.DataFrame(), 'player_example': {}}
-
+def fetch_sportsipy(date_str=None, errors=None):
     year = 2026
-
-    # 球队战绩
     try:
-        all_standings = standings(year)
+        # 直接从 MLB Stats API 获取球队战绩
+        url = "https://statsapi.mlb.com/api/v1/standings"
+        params = {"leagueId": "103,104", "season": year}
+        resp = requests.get(url, params=params, timeout=15)
+        resp.raise_for_status()
+        standings_data = resp.json()
+
         team_list = []
-        for division_df in all_standings:
-            for _, row in division_df.iterrows():
+        for record in standings_data.get("records", []):
+            for team_record in record.get("teamRecords", []):
+                team = team_record.get("team", {})
                 team_list.append({
-                    'name': row.get('Tm'),
-                    'wins': row.get('W'),
-                    'losses': row.get('L'),
-                    'win_pct': row.get('W-L%'),
-                    'gb': row.get('GB'),
+                    "name": team.get("name"),
+                    "wins": team_record.get("wins"),
+                    "losses": team_record.get("losses"),
+                    "win_pct": team_record.get("winningPercentage"),
+                    "gb": team_record.get("gamesBack"),
                 })
         df_teams = pd.DataFrame(team_list)
     except Exception as e:
-        msg = f"Sportsipy teams error: {e}"
         if errors is not None:
-            errors.append(msg)
+            errors.append(f"Sportsipy teams error: {e}")
         df_teams = pd.DataFrame()
 
-    # 球员示例 (大谷翔平)
+    # 球员示例（大谷翔平）
     player_info = {}
     try:
-        player = playerid_lookup('ohtani', 'shohei')
-        if not player.empty:
-            mlb_id = player.iloc[0]['key_mlbam']
-            bat_stats = batting_stats(year, qual=1)
-            ohtani_stats = bat_stats[bat_stats['IDfg'] == mlb_id]
-            if not ohtani_stats.empty:
-                row = ohtani_stats.iloc[0]
+        player_url = "https://statsapi.mlb.com/api/v1/people"
+        player_params = {"search": "Shohei Ohtani"}
+        player_resp = requests.get(player_url, params=player_params, timeout=15)
+        player_resp.raise_for_status()
+        people = player_resp.json().get("people", [])
+        if people:
+            player_id = people[0].get("id")
+            stats_url = f"https://statsapi.mlb.com/api/v1/people/{player_id}/stats"
+            stats_params = {"stats": "season", "season": year, "gameType": "R"}
+            stats_resp = requests.get(stats_url, params=stats_params, timeout=15)
+            stats_resp.raise_for_status()
+            splits = stats_resp.json().get("stats", [])
+            if splits:
+                stat = splits[0].get("splits", [{}])[0].get("stat", {})
                 player_info = {
-                    'name': 'Shohei Ohtani',
-                    'home_runs': row.get('HR'),
-                    'avg': row.get('AVG'),
-                    'ops': row.get('OPS'),
+                    "name": people[0].get("fullName"),
+                    "home_runs": stat.get("homeRuns"),
+                    "avg": stat.get("avg"),
+                    "ops": stat.get("ops"),
                 }
             else:
-                player_info = {'name': 'Shohei Ohtani', 'note': 'stats not found'}
-        else:
-            player_info = {'error': 'Player not found'}
+                player_info = {"name": people[0].get("fullName"), "note": "stats not available"}
     except Exception as e:
-        msg = f"Sportsipy player error: {e}"
         if errors is not None:
-            errors.append(msg)
-        player_info = {'error': str(e)}
+            errors.append(f"Sportsipy player error: {e}")
+        player_info = {"error": str(e)}
 
-    return {'teams': df_teams, 'player_example': player_info}
+    return {"teams": df_teams, "player_example": player_info}
