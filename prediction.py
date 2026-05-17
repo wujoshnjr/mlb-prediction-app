@@ -73,19 +73,24 @@ def generate_predictions(elo_system=None):
 
     # ----- 赛程 -----
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
-    schedule_df = schedule_df[schedule_df['status'] == 'Preview']
+    # 放宽状态筛选，包含所有赛前状态
+    valid_status = ['Preview', 'Scheduled', 'Pre-Game', 'Warmup', 'Pre', 'Scheduled (Time TBD)']
+    schedule_df = schedule_df[schedule_df['status'].isin(valid_status)]
+    print(f"今日符合筛选条件的比赛数量: {len(schedule_df)}")
 
     predictions = []
     for _, game in schedule_df.iterrows():
         home = game.get('home', '')
         away = game.get('away', '')
         if not home or not away or home == 'Unknown' or away == 'Unknown':
+            print(f"跳过无效比赛: {home} vs {away}")
             continue
 
         # 基础胜率
         home_pct = teams_df[teams_df['name'] == home]['win_pct'].values
         away_pct = teams_df[teams_df['name'] == away]['win_pct'].values
         if len(home_pct) == 0 or len(away_pct) == 0:
+            print(f"跳过缺少胜率的比赛: {home} vs {away}")
             continue
         home_pct, away_pct = home_pct[0], away_pct[0]
 
