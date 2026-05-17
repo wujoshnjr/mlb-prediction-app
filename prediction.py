@@ -1,12 +1,25 @@
-"""
-MLB 混合预测引擎 v3.0
-整合 ELO、赔率、蒙特卡洛、凯利准则
-支持：胜分差、让分、大小分
-"""
-import os, json, traceback
+# ===== 终极全局伪装，必须在所有导入之前 =====
+import requests as _requests
+_session = _requests.Session()
+_session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+    'Referer': 'https://www.fangraphs.com/',
+})
+_requests.get = _session.get
+_requests.post = _session.post
+_requests.Session = lambda: _session
+# ===== 伪装结束 =====
+
+import os
+import json
+import traceback
 from datetime import datetime
 import pandas as pd
 import numpy as np
+
+# 导入数据抓取模型
 from model import UnifiedSportsModel
 
 # 尝试导入 ELO 和蒙特卡洛，失败则降级运行
@@ -19,16 +32,22 @@ try:
 except:
     MonteCarloSimulator = None
 
+
 def implied_prob(odds):
     """赔率转隐含概率（扣除 5% 抽水）"""
-    if odds is None or odds <= 1: return None
+    if odds is None or odds <= 1:
+        return None
     return 1 / (odds * 1.05)
 
+
 def kelly_criterion(win_prob, odds, fraction=0.25):
-    if win_prob is None or odds is None or odds <= 1: return 0
+    """半凯利准则"""
+    if win_prob is None or odds is None or odds <= 1:
+        return 0
     b = odds - 1
     f = win_prob - (1 - win_prob) / b
     return max(0, f * fraction)
+
 
 def generate_predictions(elo_system=None):
     print("开始抓取数据...")
@@ -51,16 +70,20 @@ def generate_predictions(elo_system=None):
     if teams_df.empty:
         teams_df = pd.DataFrame(columns=['name', 'wins', 'losses', 'win_pct'])
     if 'wins' in teams_df.columns and 'losses' in teams_df.columns:
-        teams_df['win_pct'] = pd.to_numeric(teams_df['wins'], errors='coerce') / (pd.to_numeric(teams_df['wins'], errors='coerce') + pd.to_numeric(teams_df['losses'], errors='coerce'))
+        teams_df['win_pct'] = pd.to_numeric(teams_df['wins'], errors='coerce') / (
+            pd.to_numeric(teams_df['wins'], errors='coerce') + pd.to_numeric(teams_df['losses'], errors='coerce')
+        )
     else:
         teams_df['win_pct'] = 0.5
+    teams_df['win_pct'] = teams_df['win_pct'].fillna(0.5)
 
     # ----- 赔率字典 -----
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     for _, row in odds_df.iterrows():
         key = (row.get('home_team'), row.get('away_team'))
-        if key not in odds_dict: odds_dict[key] = []
+        if key not in odds_dict:
+            odds_dict[key] = []
         odds_dict[key].append(row.get('odds'))
 
     # ----- 赛程 -----
@@ -77,7 +100,8 @@ def generate_predictions(elo_system=None):
         # 基础胜率
         home_pct = teams_df[teams_df['name'] == home]['win_pct'].values
         away_pct = teams_df[teams_df['name'] == away]['win_pct'].values
-        if len(home_pct) == 0 or len(away_pct) == 0: continue
+        if len(home_pct) == 0 or len(away_pct) == 0:
+            continue
         home_pct, away_pct = home_pct[0], away_pct[0]
 
         # ELO 预测
@@ -88,35 +112,60 @@ def generate_predictions(elo_system=None):
 
         # 赔率预测
         avg_odds = odds_dict.get((home, away), [])
-        home_odds = np.mean(avg_odds) if avg_odds else 2.0
+        home_odds = np.mean(avg_odds) if avg_odds else None
         market_prob = implied_prob(home_odds) if home_odds else 0.5
 
         # 集成预测（加权平均）
-        pred_home = home_pct * 0.25 + elo_prob * 0.35 + (market_prob or 0.5) * 0.40
+        # 如果某个因子缺失，自动重新分配权重
+        weights = {'pct': 0.25, 'elo': 0.35, 'market': 0.40}
+        if elo_system is None:
+            weights['elo'] = 0
+            weights['pct'] += 0.175
+            weights['market'] += 0.175
+        if market_prob is None or home_odds is None:
+            weights['market'] = 0
+            if elo_system is not None:
+                weights['elo'] += 0.20
+                weights['pct'] += 0.20
+            else:
+                weights['pct'] += 0.40
+
+        pred_home = home_pct * weights['pct'] + elo_prob * weights['elo'] + (market_prob or 0.5) * weights['market']
         pred_away = 1 - pred_home
+
+        # 凯利
+        kelly_ml = 0
+        kelly_ml_away = 0
+        if home_odds:
+            kelly_ml = kelly_criterion(pred_home, home_odds)
+            kelly_ml_away = kelly_criterion(pred_away, 1 / (1 - implied_prob(home_odds))
+                                            if implied_prob(home_odds) and implied_prob(home_odds) < 1 else None)
 
         # 蒙特卡洛模拟（如果有模块）
         sim = None
         if MonteCarloSimulator:
             try:
-                home_runs = teams_df[teams_df['name'] == home]['runs_scored'].values
-                away_runs = teams_df[teams_df['name'] == away]['runs_scored'].values
-                hr = float(home_runs[0]) if len(home_runs) > 0 else 4.5
-                ar = float(away_runs[0]) if len(away_runs) > 0 else 4.5
+                home_runs_col = teams_df[teams_df['name'] == home]['runs_scored'].values if 'runs_scored' in teams_df.columns else []
+                away_runs_col = teams_df[teams_df['name'] == away]['runs_scored'].values if 'runs_scored' in teams_df.columns else []
+                hr = float(home_runs_col[0]) if len(home_runs_col) > 0 else 4.5
+                ar = float(away_runs_col[0]) if len(away_runs_col) > 0 else 4.5
                 sim = MonteCarloSimulator(hr, ar, n_simulations=5000)
                 sim.simulate()
             except:
                 pass
 
         # 玩法推荐
-        ml_rec, spread_rec, total_rec = "PASS", "PASS", "PASS"
-        if home_odds:
-            kelly_ml = kelly_criterion(pred_home, home_odds)
-            kelly_away = kelly_criterion(pred_away, 1/(1-implied_prob(home_odds)) if implied_prob(home_odds) and implied_prob(home_odds)<1 else 2.0)
-            if kelly_ml > 0.05:
-                ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
-            elif kelly_away > 0.05:
-                ml_rec = f"Bet {away} ({pred_away:.1%}, {kelly_away:.1%} Kelly)"
+        ml_rec = "PASS"
+        if kelly_ml > 0.05:
+            ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
+        elif kelly_ml_away > 0.05:
+            ml_rec = f"Bet {away} ({pred_away:.1%}, {kelly_ml_away:.1%} Kelly)"
+
+        spread_rec = "PASS"
+        total_rec = "PASS"
+        home_cover = away_cover = over_prob = under_prob = None
+        total_mean = diff_mean = None
+        ci_diff = []
 
         if sim:
             home_cover, away_cover = sim.spread_prob(-1.5)
@@ -124,14 +173,20 @@ def generate_predictions(elo_system=None):
                 spread_rec = f"Bet {home} -1.5 ({home_cover:.1%} cover)"
             elif away_cover > 0.55:
                 spread_rec = f"Bet {away} +1.5 ({away_cover:.1%} cover)"
+
             over_prob, under_prob, _ = sim.total_prob(8.5)
             if over_prob > 0.55:
                 total_rec = f"Bet OVER 8.5 ({over_prob:.1%})"
             elif under_prob > 0.55:
                 total_rec = f"Bet UNDER 8.5 ({under_prob:.1%})"
 
+            total_mean = round(sim.results['total_runs'].mean(), 1)
+            diff_mean = round(sim.results['run_diff'].mean(), 1)
+            ci_diff = [round(x, 1) for x in sim.confidence_interval()]
+
         predictions.append({
-            "home_team": home, "away_team": away,
+            "home_team": home,
+            "away_team": away,
             "predicted_home_win_pct": round(pred_home, 3),
             "predicted_away_win_pct": round(pred_away, 3),
             "home_odds": home_odds,
@@ -140,21 +195,24 @@ def generate_predictions(elo_system=None):
             "moneyline_recommendation": ml_rec,
             "spread_recommendation": spread_rec,
             "total_recommendation": total_rec,
-            "simulated_total_mean": round(sim.results['total_runs'].mean(), 1) if sim else None,
-            "simulated_diff_mean": round(sim.results['run_diff'].mean(), 1) if sim else None,
-            "confidence_interval_diff": [round(x,1) for x in sim.confidence_interval()] if sim else [],
-            "over_prob": round(over_prob,3) if sim else None,
-            "under_prob": round(under_prob,3) if sim else None,
-            "home_cover_prob": round(home_cover,3) if sim else None,
-            "away_cover_prob": round(away_cover,3) if sim else None,
-            "kelly_fraction": round(kelly_ml,4) if home_odds else 0
+            "simulated_total_mean": total_mean,
+            "simulated_diff_mean": diff_mean,
+            "confidence_interval_diff": ci_diff,
+            "over_prob": round(over_prob, 3) if over_prob is not None else None,
+            "under_prob": round(under_prob, 3) if under_prob is not None else None,
+            "home_cover_prob": round(home_cover, 3) if home_cover is not None else None,
+            "away_cover_prob": round(away_cover, 3) if away_cover is not None else None,
+            "kelly_fraction": round(kelly_ml, 4)
         })
+
+    # 战力排名
+    power_rankings = teams_df.sort_values('win_pct', ascending=False).to_dict('records')
 
     # 输出
     output = {
         "generated_at": datetime.now().isoformat(),
-        "power_rankings": teams_df.sort_values('win_pct', ascending=False).to_dict('records'),
-        "elo_ratings": {k: round(v,1) for k,v in elo_system.elos.items()} if elo_system else {},
+        "power_rankings": power_rankings,
+        "elo_ratings": {k: round(v, 1) for k, v in elo_system.elos.items()} if elo_system else {},
         "today_predictions": predictions,
         "bet_summary": {
             "moneyline_bets": [p for p in predictions if p['moneyline_recommendation'] != 'PASS'],
@@ -169,6 +227,7 @@ def generate_predictions(elo_system=None):
         json.dump(output, f, indent=2, default=str)
     print("prediction.json 已生成")
     return output
+
 
 if __name__ == '__main__':
     try:
