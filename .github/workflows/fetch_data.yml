@@ -2,38 +2,63 @@ name: Hourly Prediction Update
 
 on:
   schedule:
-    - cron: '0 * * * *'   # 每小時整點執行
-  workflow_dispatch:       # 允許手動觸發
+    - cron: '0 * * * *'
+  workflow_dispatch:
 
 permissions:
-  contents: write          # 授權推送檔案回倉庫
+  contents: write
 
 jobs:
   predict:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5          # ✅ 改用 v5（支援 Node.js 24）
+      - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
-        uses: actions/setup-python@v6       # ✅ 改用 v6（支援 Node.js 24）
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run prediction
-        run: python prediction.py
+      - name: Run prediction (with error capture)
+        id: prediction
+        run: |
+          set +e
+          python prediction.py 2>&1 | tee prediction.log
+          EXIT_CODE=$?
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "::warning::prediction.py exited with code $EXIT_CODE"
+          fi
+          if [ -f report/prediction.json ]; then
+            echo "✅ prediction.json generated"
+          else
+            echo "::warning::prediction.json NOT generated"
+          fi
         env:
           BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
 
-      - name: Commit prediction report
+      - name: Show prediction log (if any)
+        if: always()
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add report/prediction.json
-          git commit -m "Update prediction report [skip ci]" || echo "No changes"
-          git push
+          if [ -f prediction.log ]; then
+            echo "=== prediction.py output ==="
+            cat prediction.log
+          fi
+
+      - name: Commit prediction report
+        if: always()
+        run: |
+          if [ -f report/prediction.json ]; then
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add report/prediction.json
+            git commit -m "Update prediction report [skip ci]" || echo "No changes to commit"
+            git push
+          else
+            echo "⚠️ Skipping commit: report/prediction.json not found"
+          fi
