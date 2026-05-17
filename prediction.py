@@ -1,17 +1,3 @@
-# ===== 终极全局伪装，必须在所有导入之前 =====
-import requests as _requests
-_session = _requests.Session()
-_session.headers.update({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'Referer': 'https://www.fangraphs.com/',
-})
-_requests.get = _session.get
-_requests.post = _session.post
-_requests.Session = lambda: _session
-# ===== 伪装结束 =====
-
 import os
 import json
 import traceback
@@ -19,7 +5,6 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
-# 导入数据抓取模型
 from model import UnifiedSportsModel
 
 # 尝试导入 ELO 和蒙特卡洛，失败则降级运行
@@ -116,7 +101,6 @@ def generate_predictions(elo_system=None):
         market_prob = implied_prob(home_odds) if home_odds else 0.5
 
         # 集成预测（加权平均）
-        # 如果某个因子缺失，自动重新分配权重
         weights = {'pct': 0.25, 'elo': 0.35, 'market': 0.40}
         if elo_system is None:
             weights['elo'] = 0
@@ -141,7 +125,7 @@ def generate_predictions(elo_system=None):
             kelly_ml_away = kelly_criterion(pred_away, 1 / (1 - implied_prob(home_odds))
                                             if implied_prob(home_odds) and implied_prob(home_odds) < 1 else None)
 
-        # 蒙特卡洛模拟（如果有模块）
+        # 蒙特卡洛模拟
         sim = None
         if MonteCarloSimulator:
             try:
@@ -208,7 +192,6 @@ def generate_predictions(elo_system=None):
     # 战力排名
     power_rankings = teams_df.sort_values('win_pct', ascending=False).to_dict('records')
 
-    # 输出
     output = {
         "generated_at": datetime.now().isoformat(),
         "power_rankings": power_rankings,
