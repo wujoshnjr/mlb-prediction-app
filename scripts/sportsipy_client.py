@@ -1,16 +1,21 @@
+"""
+球隊與球員數據客戶端（使用 pybaseball，強制偽裝請求頭修復 Fangraphs 403）
+"""
 import pandas as pd
+import requests as r
 
 def fetch_sportsipy(date_str: str = None, errors: list = None) -> dict:
     try:
         from pybaseball import standings, batting_stats, playerid_lookup, cache
-        import requests as r
-        s = r.Session()
-        s.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'text/html,application/xhtml+xml',
-            'Referer': 'https://www.fangraphs.com/'
+        # 建立偽裝會話，徹底繞過 403
+        session = r.Session()
+        session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Referer': 'https://www.fangraphs.com/',
         })
-        cache._SESSION = s
+        cache._SESSION = session
     except Exception as e:
         msg = f"Sportsipy import error: {e}"
         if errors is not None:
@@ -18,6 +23,8 @@ def fetch_sportsipy(date_str: str = None, errors: list = None) -> dict:
         return {'teams': pd.DataFrame(), 'player_example': {}}
 
     year = 2026
+
+    # 球队战绩
     try:
         all_standings = standings(year)
         team_list = []
@@ -37,6 +44,7 @@ def fetch_sportsipy(date_str: str = None, errors: list = None) -> dict:
             errors.append(msg)
         df_teams = pd.DataFrame()
 
+    # 球员示例 (大谷翔平)
     player_info = {}
     try:
         player = playerid_lookup('ohtani', 'shohei')
@@ -54,6 +62,8 @@ def fetch_sportsipy(date_str: str = None, errors: list = None) -> dict:
                 }
             else:
                 player_info = {'name': 'Shohei Ohtani', 'note': 'stats not found'}
+        else:
+            player_info = {'error': 'Player not found'}
     except Exception as e:
         msg = f"Sportsipy player error: {e}"
         if errors is not None:
