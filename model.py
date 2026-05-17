@@ -1,5 +1,5 @@
 """
-UnifiedSportsModel - 整合所有数据源（启动友善、错误收集）
+UnifiedSportsModel - 整合所有数据源（启动友善、自动清理 API Key）
 """
 import os
 import json
@@ -59,8 +59,11 @@ except Exception as e:
 
 class UnifiedSportsModel:
     def __init__(self):
-        self.ball_api_key = os.getenv("BALLDONTLIE_API_KEY")
-        self.odds_api_key = os.getenv("ODDS_API_KEY")
+        # 自動清理 Key 中的換行與空白
+        raw_ball = os.getenv("BALLDONTLIE_API_KEY", "") or ""
+        raw_odds = os.getenv("ODDS_API_KEY", "") or ""
+        self.ball_api_key = raw_ball.strip().replace("\n", "").replace("\r", "")
+        self.odds_api_key = raw_odds.strip().replace("\n", "").replace("\r", "")
 
     def gather_all_data(self, date_str: str = None) -> dict:
         if not date_str:
@@ -79,15 +82,14 @@ class UnifiedSportsModel:
         def safe_call(func, name, *args):
             if func is None:
                 errors.append(f"{name} module not loaded.")
-                return pd.DataFrame()
+                return pd.DataFrame() if name not in ("pybaseball", "sportsipy") else {}
             try:
                 res = func(*args)
                 return res
             except Exception as e:
                 errors.append(f"{name} fetch error: {e}")
-                return pd.DataFrame()
+                return pd.DataFrame() if name not in ("pybaseball", "sportsipy") else {}
 
-        # 逐一調用，並傳入 errors 列表（函數若支援 errors 參數則會記錄細節）
         mlb_stats = safe_call(fetch_mlb_statsapi, "mlb_statsapi", date_str, errors)
         savant = safe_call(fetch_savant_statcast, "savant_statcast", date_str, errors)
         retro = safe_call(fetch_retrosheet, "retrosheet", date_str, errors)
@@ -101,13 +103,16 @@ class UnifiedSportsModel:
         result['mlb_statsapi'] = mlb_stats.to_dict(orient='records') if not mlb_stats.empty else []
         result['savant_statcast'] = savant.to_dict(orient='records') if not savant.empty else []
         result['retrosheet'] = retro.to_dict(orient='records') if not retro.empty else []
+
         if isinstance(pyb, dict):
             result['pybaseball_statcast'] = pyb.get('statcast_recent', pd.DataFrame()).to_dict(orient='records') if not pyb.get('statcast_recent', pd.DataFrame()).empty else []
             result['pybaseball_batting'] = pyb.get('batting_leaders', pd.DataFrame()).to_dict(orient='records') if not pyb.get('batting_leaders', pd.DataFrame()).empty else []
             result['pybaseball_pitching'] = pyb.get('pitching_leaders', pd.DataFrame()).to_dict(orient='records') if not pyb.get('pitching_leaders', pd.DataFrame()).empty else []
+
         if isinstance(sportsipy, dict):
             result['sportsipy_teams'] = sportsipy.get('teams', pd.DataFrame()).to_dict(orient='records') if not sportsipy.get('teams', pd.DataFrame()).empty else []
             result['sportsipy_player'] = sportsipy.get('player_example', {})
+
         result['openmeteo_weather'] = openmeteo.to_dict(orient='records') if not openmeteo.empty else []
         result['balldontlie_teams'] = balldontlie.to_dict(orient='records') if not balldontlie.empty else []
         result['odds_data'] = odds.to_dict(orient='records') if not odds.empty else []
