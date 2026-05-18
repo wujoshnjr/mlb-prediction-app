@@ -46,12 +46,11 @@ HTML = """
         .rec-total { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 20px; font-weight: 600; display: inline-block; margin: 2px 0; }
         .no-rec { color: #64748b; }
         .elo-badge { background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 12px; font-size: 0.85rem; }
-        .value-positive { color: #16a34a; font-weight: bold; }
         .loading { text-align: center; padding: 40px; color: #64748b; }
         .error { color: #dc2626; background: #fee2e2; padding: 15px; border-radius: 8px; }
         .flex { display: flex; gap: 20px; flex-wrap: wrap; }
         .flex > div { flex: 1; min-width: 280px; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .nav-tab { padding: 10px 20px; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; color: #1e3c72; border: 2px solid #e0e7ff; }
         .nav-tab.active { background: #1e3c72; color: white; border-color: #1e3c72; }
         .tab-content { display: none; }
@@ -82,7 +81,7 @@ HTML = """
             <div class="card">
                 <h2>📅 今日對戰預測總覽</h2>
                 <table id="predictions-table">
-                    <thead><tr><th>主隊</th><th>客隊</th><th>預測主勝</th><th>預測客勝</th><th>主ELO</th><th>客ELO</th><th>勝負推薦</th><th>讓分推薦</th><th>大小推薦</th></tr></thead>
+                    <thead><tr><th>比賽時間</th><th>主隊</th><th>客隊</th><th>球場</th><th>預測主勝</th><th>預測客勝</th><th>勝負推薦</th><th>讓分推薦</th><th>大小推薦</th></tr></thead>
                     <tbody id="predictions-body"><tr><td colspan="9" class="loading">⏳ 加載中...</td></tr></tbody>
                 </table>
             </div>
@@ -119,15 +118,8 @@ HTML = """
                 <div class="card">
                     <h2>📊 球隊戰力排名</h2>
                     <table id="rankings-table">
-                        <thead><tr><th>#</th><th>球隊</th><th>勝-負</th><th>勝率</th><th>ELO</th></tr></thead>
-                        <tbody id="rankings-body"><tr><td colspan="5" class="loading">⏳ 加載中...</td></tr></tbody>
-                    </table>
-                </div>
-                <div class="card">
-                    <h2>📈 ELO 評分榜</h2>
-                    <table id="elo-table">
-                        <thead><tr><th>球隊</th><th>ELO 評分</th></tr></thead>
-                        <tbody id="elo-body"><tr><td colspan="2" class="loading">⏳ 加載中...</td></tr></tbody>
+                        <thead><tr><th>#</th><th>球隊</th><th>勝-負</th><th>勝率</th></tr></thead>
+                        <tbody id="rankings-body"><tr><td colspan="4" class="loading">⏳ 加載中...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -145,8 +137,10 @@ HTML = """
         function switchTab(tabId) {
             document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelector(`.nav-tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
-            document.getElementById(`tab-${tabId}`).classList.add('active');
+            const tabBtn = document.querySelector(`.nav-tab[onclick="switchTab('${tabId}')"]`);
+            if (tabBtn) tabBtn.classList.add('active');
+            const tabContent = document.getElementById(`tab-${tabId}`);
+            if (tabContent) tabContent.classList.add('active');
         }
         async function loadData() {
             const errorBox = document.getElementById('error-box');
@@ -159,28 +153,41 @@ HTML = """
                 errorBox.innerHTML = `<div class="error">⚠️ 數據加載失敗：${err.message}。請稍後刷新重試。</div>`;
             }
         }
+        function formatGameDate(isoString) {
+            if (!isoString) return '';
+            try {
+                const d = new Date(isoString);
+                return d.toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+            } catch { return isoString; }
+        }
         function renderAll(data) {
-            document.getElementById('update-time').innerText = '🕒 更新時間：' + data.generated_at;
-            const summaryBox = document.getElementById('summary-box');
+            document.getElementById('update-time').innerText = '🕒 更新時間：' + (data.generated_at ? new Date(data.generated_at).toLocaleString('zh-TW') : '未知');
+            
+            // 摘要
             const mlBets = data.bet_summary?.moneyline_bets?.length || 0;
             const spreadBets = data.bet_summary?.spread_bets?.length || 0;
             const totalBets = data.bet_summary?.total_bets?.length || 0;
             const totalGames = data.today_predictions?.length || 0;
-            summaryBox.innerHTML = `
+            document.getElementById('summary-box').innerHTML = `
                 <div class="summary-item"><div class="number">${totalGames}</div><div class="label">今日比賽</div></div>
                 <div class="summary-item"><div class="number">${mlBets}</div><div class="label">💰 勝負推薦</div></div>
                 <div class="summary-item"><div class="number">${spreadBets}</div><div class="label">🎯 讓分推薦</div></div>
                 <div class="summary-item"><div class="number">${totalBets}</div><div class="label">📏 大小推薦</div></div>
             `;
+
+            const preds = data.today_predictions || [];
+            
+            // 总览表格
             const predBody = document.getElementById('predictions-body');
-            if (data.today_predictions && data.today_predictions.length > 0) {
-                predBody.innerHTML = data.today_predictions.map(p => `
+            if (preds.length > 0) {
+                predBody.innerHTML = preds.map(p => `
                     <tr>
-                        <td><strong>${p.home_team}</strong></td><td>${p.away_team}</td>
-                        <td>${(p.predicted_home_win_pct*100).toFixed(1)}%</td>
-                        <td>${(p.predicted_away_win_pct*100).toFixed(1)}%</td>
-                        <td><span class="elo-badge">${p.elo_home?.toFixed(0) ?? '—'}</span></td>
-                        <td><span class="elo-badge">${p.elo_away?.toFixed(0) ?? '—'}</span></td>
+                        <td>${formatGameDate(p.game_date)}</td>
+                        <td><strong>${p.home_team || ''}</strong></td>
+                        <td>${p.away_team || ''}</td>
+                        <td>${p.venue || ''}</td>
+                        <td>${p.predicted_home_win_pct != null ? (p.predicted_home_win_pct*100).toFixed(1)+'%' : '-'}</td>
+                        <td>${p.predicted_away_win_pct != null ? (p.predicted_away_win_pct*100).toFixed(1)+'%' : '-'}</td>
                         <td>${p.moneyline_recommendation !== 'PASS' ? `<span class="recommendation">${p.moneyline_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
                         <td>${p.spread_recommendation !== 'PASS' ? `<span class="rec-spread">${p.spread_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
                         <td>${p.total_recommendation !== 'PASS' ? `<span class="rec-total">${p.total_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
@@ -189,7 +196,65 @@ HTML = """
             } else {
                 predBody.innerHTML = '<tr><td colspan="9">今日暫無比賽或數據</td></tr>';
             }
-            // 其他表格渲染类似，此处略过，完整代码已在之前提供
+
+            // 胜分盘
+            document.getElementById('moneyline-body').innerHTML = preds.map(p => `
+                <tr>
+                    <td>${p.home_team || ''} vs ${p.away_team || ''}</td>
+                    <td>${p.predicted_home_win_pct != null ? (p.predicted_home_win_pct*100).toFixed(1)+'%' : '-'}</td>
+                    <td>${p.home_odds != null ? p.home_odds.toFixed(2) : '-'}</td>
+                    <td>${p.kelly_fraction != null ? (p.kelly_fraction*100).toFixed(1)+'%' : '-'}</td>
+                    <td>${p.moneyline_recommendation !== 'PASS' ? `<span class="recommendation">${p.moneyline_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="5">無數據</td></tr>';
+
+            // 让分盘
+            document.getElementById('spread-body').innerHTML = preds.map(p => `
+                <tr>
+                    <td>${p.home_team || ''} vs ${p.away_team || ''}</td>
+                    <td>-1.5</td>
+                    <td>${p.home_cover_prob != null ? (p.home_cover_prob*100).toFixed(1)+'%' : '-'}</td>
+                    <td>${p.away_cover_prob != null ? (p.away_cover_prob*100).toFixed(1)+'%' : '-'}</td>
+                    <td>${p.spread_recommendation !== 'PASS' ? `<span class="rec-spread">${p.spread_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="5">無數據</td></tr>';
+
+            // 大小分盘
+            document.getElementById('total-body').innerHTML = preds.map(p => `
+                <tr>
+                    <td>${p.home_team || ''} vs ${p.away_team || ''}</td>
+                    <td>8.5</td>
+                    <td>${p.simulated_total_mean != null ? p.simulated_total_mean : '-'}</td>
+                    <td>${p.over_prob != null ? (p.over_prob*100).toFixed(1)+'%' : '-'}</td>
+                    <td>${p.under_prob != null ? (p.under_prob*100).toFixed(1)+'%' : '-'}</td>
+                    <td>${p.total_recommendation !== 'PASS' ? `<span class="rec-total">${p.total_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="6">無數據</td></tr>';
+
+            // 战力排名
+            const rankingsBody = document.getElementById('rankings-body');
+            if (data.power_rankings && data.power_rankings.length > 0) {
+                rankingsBody.innerHTML = data.power_rankings.map((t, i) => `
+                    <tr>
+                        <td>${i+1}</td>
+                        <td><strong>${t.name || ''}</strong></td>
+                        <td>${t.wins || 0}-${t.losses || 0}</td>
+                        <td>${t.win_pct != null ? (t.win_pct*100).toFixed(1)+'%' : '-'}</td>
+                    </tr>
+                `).join('');
+            } else {
+                rankingsBody.innerHTML = '<tr><td colspan="4">暫無球隊數據</td></tr>';
+            }
+
+            // 模拟详情
+            document.getElementById('sim-body').innerHTML = preds.map(p => `
+                <tr>
+                    <td>${p.home_team || ''} vs ${p.away_team || ''}</td>
+                    <td>${p.simulated_total_mean != null ? p.simulated_total_mean : '-'}</td>
+                    <td>${p.simulated_diff_mean != null ? p.simulated_diff_mean : '-'}</td>
+                    <td>${p.confidence_interval_diff && p.confidence_interval_diff.length === 2 ? '[' + p.confidence_interval_diff[0] + ', ' + p.confidence_interval_diff[1] + ']' : '-'}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="4">無模擬數據</td></tr>';
         }
         loadData();
     </script>
@@ -207,18 +272,14 @@ def get_predictions():
         with open("report/prediction.json", "r", encoding="utf-8") as f:
             data = json.load(f)
         return data
-    except FileNotFoundError:
-        pass
-    except Exception:
-        pass
-    if generate_predictions is not None:
-        try:
-            data = generate_predictions(elo_system) if elo_system else generate_predictions()
-            return data
-        except Exception as e:
-            return JSONResponse({"error": f"即時生成預測失敗: {str(e)}", "traceback": traceback.format_exc().split("\n")}, status_code=500)
-    else:
-        return JSONResponse({"error": "預測模塊未加載，且無本地數據。"}, status_code=503)
+    except:
+        if generate_predictions:
+            try:
+                data = generate_predictions(elo_system) if elo_system else generate_predictions()
+                return data
+            except Exception as e:
+                return JSONResponse({"error": str(e)}, status_code=500)
+        return JSONResponse({"error": "No data"}, status_code=503)
 
 @app.get("/run")
 def run_background():
@@ -227,10 +288,9 @@ def run_background():
             if generate_predictions:
                 generate_predictions(elo_system) if elo_system else generate_predictions()
         except Exception as e:
-            print(f"Background prediction error: {e}")
-    thread = threading.Thread(target=task)
-    thread.start()
-    return {"status": "started", "message": "預測生成已在後台啟動。"}
+            print(f"Background error: {e}")
+    threading.Thread(target=task).start()
+    return {"status": "started"}
 
 @app.get("/health")
 def health():
