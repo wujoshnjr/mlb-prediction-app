@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 import pandas as pd
 
-# 防禦性匯入：任何一個模組失敗都不影響主服務啟動
+# 防禦性匯入
 fetch_mlb_statsapi = None
 fetch_savant_statcast = None
 fetch_retrosheet = None
@@ -15,6 +15,8 @@ fetch_sportsipy = None
 fetch_openmeteo = None
 fetch_balldontlie = None
 fetch_odds = None
+fetch_probable_pitchers = None
+fetch_injuries = None
 
 try:
     from scripts.mlb_stats_client import fetch_mlb_statsapi
@@ -56,10 +58,19 @@ try:
 except Exception as e:
     print(f"Warning: Failed to import odds_client: {e}")
 
+try:
+    from scripts.pitcher_client import fetch_probable_pitchers
+except Exception as e:
+    print(f"Warning: Failed to import pitcher_client: {e}")
+
+try:
+    from scripts.injury_client import fetch_injuries
+except Exception as e:
+    print(f"Warning: Failed to import injury_client: {e}")
+
 
 class UnifiedSportsModel:
     def __init__(self):
-        # 自動清理 Key 中的換行與空白
         raw_ball = os.getenv("BALLDONTLIE_API_KEY", "") or ""
         raw_odds = os.getenv("ODDS_API_KEY", "") or ""
         self.ball_api_key = raw_ball.strip().replace("\n", "").replace("\r", "")
@@ -76,6 +87,7 @@ class UnifiedSportsModel:
             'pybaseball_statcast': [], 'pybaseball_batting': [], 'pybaseball_pitching': [],
             'sportsipy_teams': [], 'sportsipy_player': {},
             'openmeteo_weather': [], 'balldontlie_teams': [], 'odds_data': [],
+            'pitchers': [], 'injuries': [],
             'errors': errors
         }
 
@@ -98,26 +110,25 @@ class UnifiedSportsModel:
         openmeteo = safe_call(fetch_openmeteo, "openmeteo", date_str, errors)
         balldontlie = safe_call(fetch_balldontlie, "balldontlie", self.ball_api_key, date_str, errors)
         odds = safe_call(fetch_odds, "odds", self.odds_api_key, date_str, errors)
+        pitchers = safe_call(fetch_probable_pitchers, "pitchers", date_str, errors)
+        injuries = safe_call(fetch_injuries, "injuries", date_str, errors)
 
-        # 填充結果
         result['mlb_statsapi'] = mlb_stats.to_dict(orient='records') if not mlb_stats.empty else []
         result['savant_statcast'] = savant.to_dict(orient='records') if not savant.empty else []
         result['retrosheet'] = retro.to_dict(orient='records') if not retro.empty else []
-
         if isinstance(pyb, dict):
             result['pybaseball_statcast'] = pyb.get('statcast_recent', pd.DataFrame()).to_dict(orient='records') if not pyb.get('statcast_recent', pd.DataFrame()).empty else []
             result['pybaseball_batting'] = pyb.get('batting_leaders', pd.DataFrame()).to_dict(orient='records') if not pyb.get('batting_leaders', pd.DataFrame()).empty else []
             result['pybaseball_pitching'] = pyb.get('pitching_leaders', pd.DataFrame()).to_dict(orient='records') if not pyb.get('pitching_leaders', pd.DataFrame()).empty else []
-
         if isinstance(sportsipy, dict):
             result['sportsipy_teams'] = sportsipy.get('teams', pd.DataFrame()).to_dict(orient='records') if not sportsipy.get('teams', pd.DataFrame()).empty else []
             result['sportsipy_player'] = sportsipy.get('player_example', {})
-
         result['openmeteo_weather'] = openmeteo.to_dict(orient='records') if not openmeteo.empty else []
         result['balldontlie_teams'] = balldontlie.to_dict(orient='records') if not balldontlie.empty else []
         result['odds_data'] = odds.to_dict(orient='records') if not odds.empty else []
+        result['pitchers'] = pitchers.to_dict(orient='records') if not pitchers.empty else []
+        result['injuries'] = injuries.to_dict(orient='records') if not injuries.empty else []
 
-        # 保存報告
         if os.path.isfile('report'):
             os.remove('report')
         os.makedirs('report', exist_ok=True)
