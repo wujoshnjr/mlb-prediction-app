@@ -7,6 +7,7 @@ import numpy as np
 
 from model import UnifiedSportsModel
 
+# 尝试导入 ELO 和蒙特卡洛，失败则降级运行
 try:
     from scripts.elo import MLBElosystem
 except:
@@ -18,12 +19,14 @@ except:
 
 
 def implied_prob(odds):
+    """赔率转隐含概率（扣除 5% 抽水）"""
     if odds is None or odds <= 1:
         return None
     return 1 / (odds * 1.05)
 
 
 def kelly_criterion(win_prob, odds, fraction=0.25):
+    """半凯利准则"""
     if win_prob is None or odds is None or odds <= 1:
         return 0
     b = odds - 1
@@ -38,6 +41,7 @@ def generate_predictions(elo_system=None):
     date_str = datetime.now().strftime('%Y-%m-%d')
     errors = data.get('errors', [])
 
+    # ----- ELO 初始化 -----
     if elo_system is None:
         if MLBElosystem:
             elo_system = MLBElosystem()
@@ -46,7 +50,7 @@ def generate_predictions(elo_system=None):
             print("ELO 模块未安装，将使用基础预测")
             elo_system = None
 
-    # 球队战力
+    # ----- 球队战力 -----
     teams_df = pd.DataFrame(data.get('sportsipy_teams', []))
     if teams_df.empty:
         teams_df = pd.DataFrame(columns=['name', 'wins', 'losses', 'win_pct'])
@@ -57,8 +61,11 @@ def generate_predictions(elo_system=None):
     else:
         teams_df['win_pct'] = 0.5
     teams_df['win_pct'] = teams_df['win_pct'].fillna(0.5)
+    
+    # 打印球队名称用于调试
+    print(f"战力数据中的球队名称列表: {teams_df['name'].tolist()}")
 
-    # 赔率字典
+    # ----- 赔率字典 -----
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     for _, row in odds_df.iterrows():
@@ -67,27 +74,70 @@ def generate_predictions(elo_system=None):
             odds_dict[key] = []
         odds_dict[key].append(row.get('odds'))
 
-    # 赛程（不再过滤状态，显示所有比赛）
+    # ----- 赛程（不再过滤状态，显示所有比赛）-----
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
     print(f"当日比赛数量: {len(schedule_df)}")
 
-    # 投手数据字典
+    # ----- 投手数据字典 -----
     pitchers_df = pd.DataFrame(data.get('pitchers', []))
     pitcher_dict = {}
     if not pitchers_df.empty:
         for _, row in pitchers_df.iterrows():
             pitcher_dict[row['game_id']] = row
 
+    # ----- 队名映射：统一赛程中的队名与战力数据中的队名 -----
+    team_name_map = {
+        "Cleveland Guardians": "Guardians",
+        "Detroit Tigers": "Tigers",
+        "Tampa Bay Rays": "Rays",
+        "Baltimore Orioles": "Orioles",
+        "Philadelphia Phillies": "Phillies",
+        "Cincinnati Reds": "Reds",
+        "Miami Marlins": "Marlins",
+        "Atlanta Braves": "Braves",
+        "Washington Nationals": "Nationals",
+        "New York Mets": "Mets",
+        "New York Yankees": "Yankees",
+        "Toronto Blue Jays": "Blue Jays",
+        "Kansas City Royals": "Royals",
+        "Boston Red Sox": "Red Sox",
+        "Minnesota Twins": "Twins",
+        "Houston Astros": "Astros",
+        "Chicago Cubs": "Cubs",
+        "Milwaukee Brewers": "Brewers",
+        "Colorado Rockies": "Rockies",
+        "Texas Rangers": "Rangers",
+        "Los Angeles Angels": "Angels",
+        "Oakland Athletics": "Athletics",
+        "Athletics": "Athletics",
+        "San Diego Padres": "Padres",
+        "Los Angeles Dodgers": "Dodgers",
+        "Arizona Diamondbacks": "D-backs",
+        "San Francisco Giants": "Giants",
+        "Seattle Mariners": "Mariners",
+        "Chicago White Sox": "White Sox",
+        "Pittsburgh Pirates": "Pirates",
+        "St. Louis Cardinals": "Cardinals",
+    }
+
     predictions = []
     for _, game in schedule_df.iterrows():
         home = game.get('home_team', '')
         away = game.get('away_team', '')
+        
+        # 统一队名
+        home = team_name_map.get(home, home)
+        away = team_name_map.get(away, away)
+        
         if not home or not away or home == 'Unknown' or away == 'Unknown':
+            print(f"跳过无效比赛: {home} vs {away}")
             continue
 
+        # 基础胜率
         home_pct = teams_df[teams_df['name'] == home]['win_pct'].values
         away_pct = teams_df[teams_df['name'] == away]['win_pct'].values
         if len(home_pct) == 0 or len(away_pct) == 0:
+            print(f"跳过缺少胜率的比赛: {home} vs {away}")
             continue
         home_pct, away_pct = home_pct[0], away_pct[0]
 
@@ -134,7 +184,8 @@ def generate_predictions(elo_system=None):
         kelly_ml_away = 0
         if home_odds:
             kelly_ml = kelly_criterion(pred_home, home_odds)
-            kelly_ml_away = kelly_criterion(pred_away, 1 / (1 - implied_prob(home_odds)) if implied_prob(home_odds) and implied_prob(home_odds) < 1 else None)
+            kelly_ml_away = kelly_criterion(pred_away, 1 / (1 - implied_prob(home_odds))
+                                            if implied_prob(home_odds) and implied_prob(home_odds) < 1 else None)
 
         # 蒙特卡洛模拟
         sim = None
@@ -157,6 +208,7 @@ def generate_predictions(elo_system=None):
             except:
                 pass
 
+        # 推荐生成
         ml_rec = "PASS"
         if kelly_ml > 0.05:
             ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
@@ -199,6 +251,7 @@ def generate_predictions(elo_system=None):
             "kelly_fraction": round(kelly_ml, 4)
         })
 
+    # 战力排名
     power_rankings = teams_df.sort_values('win_pct', ascending=False).to_dict('records')
 
     output = {
@@ -218,6 +271,7 @@ def generate_predictions(elo_system=None):
     with open('report/prediction.json', 'w') as f:
         json.dump(output, f, indent=2, default=str)
     print("prediction.json 已生成")
+    print(f"共生成 {len(predictions)} 条预测")
     return output
 
 
