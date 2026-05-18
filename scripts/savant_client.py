@@ -1,6 +1,3 @@
-"""
-Baseball Savant (Statcast) 客户端（含錯誤記錄）
-"""
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
@@ -24,7 +21,6 @@ def fetch_savant_statcast(date_str: str = None, errors: list = None) -> pd.DataF
         "game_date_lt={}&hfFlag=&metric_1=&hfInn=&min_pitches=0&"
         "min_results=0&group_by=name&sort_col=pitches&player_event_sort=h_launch_speed&sort_order=desc&type=details"
     ).format(start_str, end_str)
-
     try:
         resp = requests.get(url, timeout=30)
         resp.raise_for_status()
@@ -35,7 +31,6 @@ def fetch_savant_statcast(date_str: str = None, errors: list = None) -> pd.DataF
         else:
             return df.head(1000)
     except Exception as e:
-        msg = f"Savant fetch error: {e}"
         if errors is not None:
-            errors.append(msg)
+            errors.append(f"Savant fetch error: {e}")
         return pd.DataFrame()
