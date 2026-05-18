@@ -17,16 +17,23 @@ try:
 except:
     MonteCarloSimulator = None
 
+# 尝试加载概率校准器（若存在）
+calibrator = None
+try:
+    import joblib
+    calibrator = joblib.load("data/calibrator.pkl")
+    print("概率校准器已加载")
+except:
+    print("未找到校准器，跳过概率校准")
+
 
 def implied_prob(odds):
-    """赔率转隐含概率（扣除 5% 抽水）"""
     if odds is None or odds <= 1:
         return None
     return 1 / (odds * 1.05)
 
 
 def kelly_criterion(win_prob, odds, fraction=0.25):
-    """半凯利准则"""
     if win_prob is None or odds is None or odds <= 1:
         return 0
     b = odds - 1
@@ -61,9 +68,6 @@ def generate_predictions(elo_system=None):
     else:
         teams_df['win_pct'] = 0.5
     teams_df['win_pct'] = teams_df['win_pct'].fillna(0.5)
-    
-    # 打印球队名称用于调试
-    print(f"战力数据中的球队名称列表: {teams_df['name'].tolist()}")
 
     # ----- 赔率字典 -----
     odds_df = pd.DataFrame(data.get('odds_data', []))
@@ -124,20 +128,18 @@ def generate_predictions(elo_system=None):
     for _, game in schedule_df.iterrows():
         home = game.get('home_team', '')
         away = game.get('away_team', '')
-        
+
         # 统一队名
         home = team_name_map.get(home, home)
         away = team_name_map.get(away, away)
-        
+
         if not home or not away or home == 'Unknown' or away == 'Unknown':
-            print(f"跳过无效比赛: {home} vs {away}")
             continue
 
         # 基础胜率
         home_pct = teams_df[teams_df['name'] == home]['win_pct'].values
         away_pct = teams_df[teams_df['name'] == away]['win_pct'].values
         if len(home_pct) == 0 or len(away_pct) == 0:
-            print(f"跳过缺少胜率的比赛: {home} vs {away}")
             continue
         home_pct, away_pct = home_pct[0], away_pct[0]
 
@@ -167,6 +169,17 @@ def generate_predictions(elo_system=None):
                 weights['pct'] += 0.40
 
         pred_home = home_pct * weights['pct'] + elo_prob * weights['elo'] + (market_prob or 0.5) * weights['market']
+
+        # ----- 概率校准 -----
+        if calibrator is not None:
+            try:
+                # calibrator.predict 期望输入 (n_samples, 1)
+                pred_home_calibrated = calibrator.predict(np.array([[pred_home]]))[0]
+                pred_home = float(pred_home_calibrated)
+                # 防止极端值
+                pred_home = min(0.95, max(0.05, pred_home))
+            except Exception as e:
+                print(f"校准失败，使用原始概率: {e}")
 
         # 投手调整
         pitcher_data = pitcher_dict.get(game.get('game_id'))
@@ -271,7 +284,6 @@ def generate_predictions(elo_system=None):
     with open('report/prediction.json', 'w') as f:
         json.dump(output, f, indent=2, default=str)
     print("prediction.json 已生成")
-    print(f"共生成 {len(predictions)} 条预测")
     return output
 
 
