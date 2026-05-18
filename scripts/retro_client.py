@@ -1,3 +1,6 @@
+"""
+Retrosheet 客户端（2026 赛季数据尚未发布）
+"""
 import requests
 import pandas as pd
 import zipfile
@@ -15,12 +18,10 @@ def fetch_retrosheet(date_str: str = None, errors: list = None) -> pd.DataFrame:
                 df = pd.read_csv(f, encoding='latin1')
         return df.head(500)
     except requests.exceptions.HTTPError as e:
-        msg = f"Retrosheet {season} 赛季数据尚未发布 (HTTP {e.response.status_code})。"
         if errors is not None:
-            errors.append(msg)
+            errors.append(f"Retrosheet {season} 赛季数据尚未发布 (HTTP {e.response.status_code})。")
         return pd.DataFrame()
     except Exception as e:
-        msg = f"Retrosheet 抓取异常: {e}"
         if errors is not None:
-            errors.append(msg)
+            errors.append(f"Retrosheet 抓取异常: {e}")
         return pd.DataFrame()
