@@ -1,71 +1,80 @@
 """
-Odds-API.io 客户端（需要 API Key）
+Odds-API.io 客户端 (v3)
+使用官方推荐的 Python SDK 来获取 MLB 的胜平负赔率
 """
-import requests
-import pandas as pd
 import os
+import pandas as pd
+from odds_api import OddsAPIClient
 
 def fetch_odds(api_key: str = None, date_str: str = None, errors: list = None) -> pd.DataFrame:
+    """
+    使用 SDK 从 Odds-API.io 获取 MLB 的胜平负赔率。
+    返回一个 Pandas DataFrame。
+    """
+    # 1. 安全地拿到 API 密钥
     if not api_key:
-        raw = os.getenv("ODDS_API_KEY", "") or ""
-        api_key = raw.strip().replace("\n", "").replace("\r", "")
+        api_key = os.getenv("ODDS_API_KEY", "")
     if not api_key:
+        if errors is not None:
+            errors.append("Odds API 密钥未找到。")
         return pd.DataFrame()
 
     try:
-        sports_url = "https://api.the-odds-api.com/v4/sports"
-        params = {"apiKey": api_key}
-        sports_resp = requests.get(sports_url, params=params, timeout=15)
-        sports_resp.raise_for_status()
-        sports_data = sports_resp.json()
-        if isinstance(sports_data, list):
-            sport_list = sports_data
-        else:
-            sport_list = sports_data.get("data", [])
-        baseball_key = None
-        for sport in sport_list:
-            if sport.get("group") == "Baseball" and "MLB" in sport.get("title", ""):
-                baseball_key = sport["key"]
-                break
-        if not baseball_key:
+        # 2. 建立 API 客户端
+        client = OddsAPIClient(api_key=api_key)
+
+        # 3. 获取 MLB 的赛事列表
+        events = client.get_events(sport="baseball", league="usa-mlb")
+        if not events:
+            if errors is not None:
+                errors.append("没有找到 MLB 赛事。")
+            client.close()
             return pd.DataFrame()
 
-        odds_url = f"https://api.the-odds-api.com/v4/sports/{baseball_key}/odds"
-        odds_params = {
-            "apiKey": api_key,
-            "regions": "us",
-            "markets": "h2h",
-            "oddsFormat": "decimal",
-            "bookmakers": "bet365,draftkings"
-        }
-        odds_resp = requests.get(odds_url, params=odds_params, timeout=30)
-        if odds_resp.status_code == 401:
-            if errors is not None:
-                errors.append("Odds API 401: API key invalid.")
+        # 4. 收集赛事 ID
+        event_ids = [event.get("id") for event in events if event.get("id")]
+        if not event_ids:
+            client.close()
             return pd.DataFrame()
-        odds_resp.raise_for_status()
-        odds_data = odds_resp.json()
-        if isinstance(odds_data, list):
-            games = odds_data
-        else:
-            games = odds_data.get("data", [])
-        rows = []
-        for game in games:
-            home_team = game.get("home_team")
-            away_team = game.get("away_team")
-            for bookmaker in game.get("bookmakers", []):
-                for market in bookmaker.get("markets", []):
-                    for outcome in market.get("outcomes", []):
-                        rows.append({
-                            "home_team": home_team,
-                            "away_team": away_team,
-                            "bookmaker": bookmaker.get("title"),
-                            "bet_type": market.get("key"),
-                            "team": outcome.get("name"),
-                            "odds": outcome.get("price")
-                        })
-        return pd.DataFrame(rows)
+
+        # 5. 获取这些赛事的赔率
+        odds_response = client.get_odds(
+            event_ids=event_ids,
+            bookmakers="bet365,draftkings",
+            markets="ML"
+        )
+
+        # 6. 解析数据
+        all_rows = []
+        if isinstance(odds_response, list):
+            for event_odds in odds_response:
+                home_team = event_odds.get("home", "Unknown")
+                away_team = event_odds.get("away", "Unknown")
+                bookmakers = event_odds.get("bookmakers", {})
+                
+                for bookmaker_name, markets in bookmakers.items():
+                    for market in markets:
+                        if market.get("name") == "ML":
+                            for odd_data in market.get("odds", []):
+                                all_rows.append({
+                                    "home_team": home_team,
+                                    "away_team": away_team,
+                                    "bookmaker": bookmaker_name,
+                                    "bet_type": "ML",
+                                    "team": "home", "odds": odd_data.get("home")
+                                })
+                                all_rows.append({
+                                    "home_team": home_team,
+                                    "away_team": away_team,
+                                    "bookmaker": bookmaker_name,
+                                    "bet_type": "ML",
+                                    "team": "away", "odds": odd_data.get("away")
+                                })
+
+        client.close()
+        return pd.DataFrame(all_rows)
+
     except Exception as e:
         if errors is not None:
-            errors.append(f"Odds API fetch error: {e}")
+            errors.append(f"获取赔率时发生错误: {e}")
         return pd.DataFrame()
