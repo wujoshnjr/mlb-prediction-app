@@ -1,3 +1,6 @@
+"""
+Odds-API.io 客户端（需要 API Key）
+"""
 import requests
 import pandas as pd
 import os
@@ -7,8 +10,6 @@ def fetch_odds(api_key: str = None, date_str: str = None, errors: list = None) -
         raw = os.getenv("ODDS_API_KEY", "") or ""
         api_key = raw.strip().replace("\n", "").replace("\r", "")
     if not api_key:
-        if errors is not None:
-            errors.append("Odds API key missing")
         return pd.DataFrame()
 
     try:
@@ -27,8 +28,6 @@ def fetch_odds(api_key: str = None, date_str: str = None, errors: list = None) -
                 baseball_key = sport["key"]
                 break
         if not baseball_key:
-            if errors is not None:
-                errors.append("MLB key not found in Odds API")
             return pd.DataFrame()
 
         odds_url = f"https://api.the-odds-api.com/v4/sports/{baseball_key}/odds"
