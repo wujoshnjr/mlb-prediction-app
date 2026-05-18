@@ -1,38 +1,37 @@
-import pandas as pd
 import requests
+import pandas as pd
+from datetime import datetime, timedelta
+from io import StringIO
 
-def fetch_sportsipy(date_str=None, errors=None):
-    year = 2026
-    # 球队战绩
+def fetch_savant_statcast(date_str: str = None, errors: list = None) -> pd.DataFrame:
+    if not date_str:
+        end_dt = datetime.now()
+        start_dt = end_dt - timedelta(days=7)
+        start_str = start_dt.strftime('%Y-%m-%d')
+        end_str = end_dt.strftime('%Y-%m-%d')
+    else:
+        start_str = date_str
+        end_str = date_str
+
+    url = (
+        "https://baseballsavant.mlb.com/statcast_search/csv?"
+        "all=true&hfPT=&hfAB=&hfBBT=&hfPR=&hfZ=&stadium=&hfBBL=&hfNewZones=&"
+        "hfGT=R%7C&hfC=&hfSea=2026%7C&hfSit=&player_type=pitcher&hfOuts=&opponent=&"
+        "pitcher_throws=&batter_stands=&hfSA=&game_date_gt={}&"
+        "game_date_lt={}&hfFlag=&metric_1=&hfInn=&min_pitches=0&"
+        "min_results=0&group_by=name&sort_col=pitches&player_event_sort=h_launch_speed&sort_order=desc&type=details"
+    ).format(start_str, end_str)
+
     try:
-        url = "https://statsapi.mlb.com/api/v1/standings"
-        params = {"leagueId": "103,104", "season": year}
-        resp = requests.get(url, params=params, timeout=15)
+        resp = requests.get(url, timeout=30)
         resp.raise_for_status()
-        data = resp.json()
-        team_list = []
-        for record in data.get("records", []):
-            for team_record in record.get("teamRecords", []):
-                team = team_record.get("team", {})
-                team_list.append({
-                    "name": team.get("name"),
-                    "wins": team_record.get("wins"),
-                    "losses": team_record.get("losses"),
-                    "win_pct": team_record.get("winningPercentage"),
-                    "gb": team_record.get("gamesBack"),
-                })
-        df_teams = pd.DataFrame(team_list)
+        df = pd.read_csv(StringIO(resp.text))
+        cols = ['pitch_type', 'release_speed', 'events', 'game_date']
+        if all(c in df.columns for c in cols):
+            return df[cols].head(1000)
+        else:
+            return df.head(1000)
     except Exception as e:
         if errors is not None:
-            errors.append(f"Sportsipy teams error: {e}")
-        df_teams = pd.DataFrame()
-
-    # 球员示例 (静态)
-    player_info = {
-        "name": "Shohei Ohtani",
-        "home_runs": None,
-        "avg": None,
-        "ops": None,
-        "note": "Player stats via Stats API temporarily disabled"
-    }
-    return {"teams": df_teams, "player_example": player_info}
+            errors.append(f"Savant fetch error: {e}")
+        return pd.DataFrame()
