@@ -1,5 +1,5 @@
 """
-BALLDONTLIE 客户端
+BALLDONTLIE 客户端（需要 API Key）
 """
 import requests
 import pandas as pd
@@ -9,11 +9,8 @@ def fetch_balldontlie(api_key: str = None, date_str: str = None, errors: list = 
     if not api_key:
         api_key = os.getenv("BALLDONTLIE_API_KEY")
     if not api_key:
-        msg = "Balldontlie API key missing"
-        if errors is not None:
-            errors.append(msg)
+        # 无需 API Key 时不报错，只返回空数据
         return pd.DataFrame()
-
     headers = {"Authorization": api_key}
     try:
         resp = requests.get("https://api.balldontlie.io/mlb/v1/teams", headers=headers, timeout=15)
@@ -21,7 +18,6 @@ def fetch_balldontlie(api_key: str = None, date_str: str = None, errors: list = 
         teams = resp.json().get('data', [])
         return pd.DataFrame(teams)[['id', 'name', 'division', 'league']]
     except Exception as e:
-        msg = f"Balldontlie fetch error: {e}"
         if errors is not None:
-            errors.append(msg)
+            errors.append(f"Balldontlie fetch error: {e}")
         return pd.DataFrame()
