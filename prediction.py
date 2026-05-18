@@ -74,8 +74,9 @@ def generate_predictions(elo_system=None):
     # ----- 赛程 -----
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
     # 放宽状态筛选，包含所有赛前状态
-    valid_status = ['Preview', 'Scheduled', 'Pre-Game', 'Warmup', 'Pre', 'Scheduled (Time TBD)']
-    schedule_df = schedule_df[schedule_df['status'].isin(valid_status)]
+    # 暫時取消狀態過濾，強制顯示所有比賽
+# valid_status = ['Preview', 'Scheduled', 'Pre-Game', 'Warmup', 'Pre', 'Scheduled (Time TBD)']
+# schedule_df = schedule_df[schedule_df['status'].isin(valid_status)]
     print(f"今日符合筛选条件的比赛数量: {len(schedule_df)}")
 
     predictions = []
