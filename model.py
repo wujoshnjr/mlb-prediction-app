@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 import pandas as pd
 
-# 防禦性匯入
+# 防禦性匯入：任何一個模組失敗都不影響主服務啟動
 fetch_mlb_statsapi = None
 fetch_savant_statcast = None
 fetch_retrosheet = None
@@ -18,6 +18,7 @@ fetch_odds = None
 fetch_probable_pitchers = None
 fetch_injuries = None
 
+# 依次尝试导入，任何一个失败都不会影响主服务启动
 try:
     from scripts.mlb_stats_client import fetch_mlb_statsapi
 except Exception as e:
@@ -71,6 +72,7 @@ except Exception as e:
 
 class UnifiedSportsModel:
     def __init__(self):
+        # 自動清理 Key 中的換行與空白
         raw_ball = os.getenv("BALLDONTLIE_API_KEY", "") or ""
         raw_odds = os.getenv("ODDS_API_KEY", "") or ""
         self.ball_api_key = raw_ball.strip().replace("\n", "").replace("\r", "")
@@ -129,6 +131,7 @@ class UnifiedSportsModel:
         result['pitchers'] = pitchers.to_dict(orient='records') if not pitchers.empty else []
         result['injuries'] = injuries.to_dict(orient='records') if not injuries.empty else []
 
+        # 保存報告
         if os.path.isfile('report'):
             os.remove('report')
         os.makedirs('report', exist_ok=True)
