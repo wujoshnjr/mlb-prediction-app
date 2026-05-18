@@ -1,8 +1,9 @@
 import pandas as pd
 import requests
+from io import StringIO
 
-def fetch_pybaseball(date_str=None, errors=None):
-    """直接从 Baseball Savant 抓取 Statcast 数据"""
+def fetch_pybaseball(date_str: str = None, errors: list = None) -> dict:
+    """从 Baseball Savant 及 MLB Stats API 获取 Statcast 和排行榜"""
     if not date_str:
         from datetime import datetime, timedelta
         end = datetime.now()
@@ -13,6 +14,7 @@ def fetch_pybaseball(date_str=None, errors=None):
         start_str = date_str
         end_str = date_str
 
+    # Statcast 数据
     try:
         url = (
             "https://baseballsavant.mlb.com/statcast_search/csv?"
@@ -24,73 +26,40 @@ def fetch_pybaseball(date_str=None, errors=None):
         ).format(start_str, end_str)
         resp = requests.get(url, timeout=30)
         resp.raise_for_status()
-        from io import StringIO
         df = pd.read_csv(StringIO(resp.text))
-        cols = ["pitch_type", "release_speed", "events", "game_date"]
-        if all(c in df.columns for c in cols):
-            sc = df[cols].head(100)
-        else:
-            sc = df.head(100)
+        sc = df.head(100)
+    except Exception as e:
+        if errors is not None:
+            errors.append(f"PyBaseball Statcast error: {e}")
+        sc = pd.DataFrame()
 
-        # 从 standings 拿球队数据（已经由 sportsipy 处理过，这里不再重复）
-        # 打击和投手排行榜改用 MLB Stats API
+    # 打击/投手排行榜 (MLB Stats API)
+    try:
         bat_url = "https://statsapi.mlb.com/api/v1/stats"
-        bat_params = {
-            "stats": "season",
-            "season": 2026,
-            "group": "hitting",
-            "gameType": "R",
-            "limit": 10,
-        }
+        bat_params = {"stats": "season", "season": 2026, "group": "hitting", "gameType": "R", "limit": 10}
         bat_resp = requests.get(bat_url, params=bat_params, timeout=15)
         bat_resp.raise_for_status()
         bat_splits = bat_resp.json().get("stats", [])
         bat_rows = []
-        if bat_splits:
-            for split in bat_splits[0].get("splits", []):
-                s = split.get("stat", {})
-                bat_rows.append({
-                    "name": split.get("player", {}).get("fullName"),
-                    "avg": s.get("avg"),
-                    "home_runs": s.get("homeRuns"),
-                    "ops": s.get("ops"),
-                })
+        for split in bat_splits[0].get("splits", []):
+            s = split.get("stat", {})
+            bat_rows.append({"name": split.get("player", {}).get("fullName"), "avg": s.get("avg"), "home_runs": s.get("homeRuns"), "ops": s.get("ops")})
         bat = pd.DataFrame(bat_rows)
+    except:
+        bat = pd.DataFrame()
 
+    try:
         pitch_url = "https://statsapi.mlb.com/api/v1/stats"
-        pitch_params = {
-            "stats": "season",
-            "season": 2026,
-            "group": "pitching",
-            "gameType": "R",
-            "limit": 10,
-        }
+        pitch_params = {"stats": "season", "season": 2026, "group": "pitching", "gameType": "R", "limit": 10}
         pitch_resp = requests.get(pitch_url, params=pitch_params, timeout=15)
         pitch_resp.raise_for_status()
         pitch_splits = pitch_resp.json().get("stats", [])
         pitch_rows = []
-        if pitch_splits:
-            for split in pitch_splits[0].get("splits", []):
-                s = split.get("stat", {})
-                pitch_rows.append({
-                    "name": split.get("player", {}).get("fullName"),
-                    "era": s.get("era"),
-                    "wins": s.get("wins"),
-                    "strikeouts": s.get("strikeOuts"),
-                })
+        for split in pitch_splits[0].get("splits", []):
+            s = split.get("stat", {})
+            pitch_rows.append({"name": split.get("player", {}).get("fullName"), "era": s.get("era"), "wins": s.get("wins"), "strikeouts": s.get("strikeOuts")})
         pitch = pd.DataFrame(pitch_rows)
+    except:
+        pitch = pd.DataFrame()
 
-        return {
-            "statcast_recent": sc,
-            "batting_leaders": bat,
-            "pitching_leaders": pitch,
-        }
-
-    except Exception as e:
-        if errors is not None:
-            errors.append(f"PyBaseball fetch error: {e}")
-        return {
-            "statcast_recent": pd.DataFrame(),
-            "batting_leaders": pd.DataFrame(),
-            "pitching_leaders": pd.DataFrame(),
-        }
+    return {"statcast_recent": sc, "batting_leaders": bat, "pitching_leaders": pitch}
