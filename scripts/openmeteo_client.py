@@ -1,6 +1,3 @@
-"""
-Open-Meteo 天氣客户端
-"""
 import requests
 import pandas as pd
 
@@ -22,7 +19,6 @@ def fetch_openmeteo(date_str: str = None, errors: list = None) -> pd.DataFrame:
             'precipitation': hourly.get('precipitation', [])
         })
     except Exception as e:
-        msg = f"Open-Meteo fetch error: {e}"
         if errors is not None:
-            errors.append(msg)
+            errors.append(f"Open-Meteo fetch error: {e}")
         return pd.DataFrame()
