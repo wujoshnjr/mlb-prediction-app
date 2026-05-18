@@ -1,22 +1,24 @@
 import requests
 import pandas as pd
-import os
 
-def fetch_balldontlie(api_key: str = None, date_str: str = None, errors: list = None) -> pd.DataFrame:
-    if not api_key:
-        api_key = os.getenv("BALLDONTLIE_API_KEY")
-    if not api_key:
-        msg = "Balldontlie API key missing"
-        if errors is not None:
-            errors.append(msg)
-        return pd.DataFrame()
-    headers = {"Authorization": api_key}
+def fetch_openmeteo(date_str: str = None, errors: list = None) -> pd.DataFrame:
+    url = (
+        "https://api.open-meteo.com/v1/forecast?"
+        "latitude=40.8296&longitude=-73.9262"
+        "&hourly=temperature_2m,precipitation"
+        "&forecast_days=1&timezone=America/New_York"
+    )
     try:
-        resp = requests.get("https://api.balldontlie.io/mlb/v1/teams", headers=headers, timeout=15)
+        resp = requests.get(url, timeout=15)
         resp.raise_for_status()
-        teams = resp.json().get('data', [])
-        return pd.DataFrame(teams)[['id', 'name', 'division', 'league']]
+        data = resp.json()
+        hourly = data.get('hourly', {})
+        return pd.DataFrame({
+            'time': hourly.get('time', []),
+            'temperature_2m': hourly.get('temperature_2m', []),
+            'precipitation': hourly.get('precipitation', [])
+        })
     except Exception as e:
         if errors is not None:
-            errors.append(f"Balldontlie fetch error: {e}")
+            errors.append(f"Open-Meteo fetch error: {e}")
         return pd.DataFrame()
