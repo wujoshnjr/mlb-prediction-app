@@ -1,9 +1,12 @@
+"""
+先发投手数据客户端
+"""
 import requests
 import pandas as pd
+from datetime import datetime
 
 def fetch_probable_pitchers(date_str: str = None, errors: list = None) -> pd.DataFrame:
     if date_str is None:
-        from datetime import datetime
         date_str = datetime.now().strftime('%Y-%m-%d')
 
     url = "https://statsapi.mlb.com/api/v1/schedule"
