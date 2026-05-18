@@ -1,6 +1,3 @@
-"""
-MLB Stats API 客户端（加固欄位解析）
-"""
 import requests
 import pandas as pd
 
@@ -15,17 +12,14 @@ def fetch_mlb_statsapi(date_str: str = None, errors: list = None) -> pd.DataFram
     }
     if date_str:
         params["date"] = date_str
-
     try:
         resp = requests.get(endpoint, params=params, timeout=15)
         resp.raise_for_status()
         data = resp.json()
     except Exception as e:
-        msg = f"MLB Stats API error: {e}"
         if errors is not None:
-            errors.append(msg)
+            errors.append(f"MLB Stats API error: {e}")
         return pd.DataFrame()
-
     games = []
     for date_info in data.get("dates", []):
         for game in date_info.get("games", []):
