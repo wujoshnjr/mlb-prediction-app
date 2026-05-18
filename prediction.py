@@ -71,27 +71,30 @@ def generate_predictions(elo_system=None):
             odds_dict[key] = []
         odds_dict[key].append(row.get('odds'))
 
-    # ----- 赛程 -----
+    # ----- 赛程（增强版：包含日期时间，不再过滤状态，显示所有比赛）-----
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
-    # 放宽状态筛选，包含所有赛前状态
-    # 暫時取消狀態過濾，強制顯示所有比賽
-# valid_status = ['Preview', 'Scheduled', 'Pre-Game', 'Warmup', 'Pre', 'Scheduled (Time TBD)']
-# schedule_df = schedule_df[schedule_df['status'].isin(valid_status)]
-    print(f"今日符合筛选条件的比赛数量: {len(schedule_df)}")
+    # 不再使用状态过滤，直接显示当天所有比赛（含 Preview, Live, Final）
+    # 这样可以确保无论 MLB API 返回什么状态，都能展示比赛列表
+    print(f"当日比赛数量: {len(schedule_df)}")
+
+    # 投手数据字典
+    pitchers_df = pd.DataFrame(data.get('pitchers', []))
+    pitcher_dict = {}
+    if not pitchers_df.empty:
+        for _, row in pitchers_df.iterrows():
+            pitcher_dict[row['game_id']] = row
 
     predictions = []
     for _, game in schedule_df.iterrows():
-        home = game.get('home', '')
-        away = game.get('away', '')
+        home = game.get('home_team', '')
+        away = game.get('away_team', '')
         if not home or not away or home == 'Unknown' or away == 'Unknown':
-            print(f"跳过无效比赛: {home} vs {away}")
             continue
 
         # 基础胜率
         home_pct = teams_df[teams_df['name'] == home]['win_pct'].values
         away_pct = teams_df[teams_df['name'] == away]['win_pct'].values
         if len(home_pct) == 0 or len(away_pct) == 0:
-            print(f"跳过缺少胜率的比赛: {home} vs {away}")
             continue
         home_pct, away_pct = home_pct[0], away_pct[0]
 
@@ -106,7 +109,7 @@ def generate_predictions(elo_system=None):
         home_odds = np.mean(avg_odds) if avg_odds else None
         market_prob = implied_prob(home_odds) if home_odds else 0.5
 
-        # 集成预测（加权平均）
+        # 集成权重
         weights = {'pct': 0.25, 'elo': 0.35, 'market': 0.40}
         if elo_system is None:
             weights['elo'] = 0
@@ -121,6 +124,16 @@ def generate_predictions(elo_system=None):
                 weights['pct'] += 0.40
 
         pred_home = home_pct * weights['pct'] + elo_prob * weights['elo'] + (market_prob or 0.5) * weights['market']
+
+        # 投手调整（如果投手数据可用）
+        pitcher_data = pitcher_dict.get(game.get('game_id'))
+        sp_adj = 0.0
+        if pitcher_data is not None:
+            home_era = float(pitcher_data.get('home_era') or 4.5)
+            away_era = float(pitcher_data.get('away_era') or 4.5)
+            era_diff = home_era - away_era
+            sp_adj = -0.07 * era_diff
+        pred_home = min(0.95, max(0.05, pred_home + sp_adj))
         pred_away = 1 - pred_home
 
         # 凯利
@@ -133,6 +146,9 @@ def generate_predictions(elo_system=None):
 
         # 蒙特卡洛模拟
         sim = None
+        home_cover = away_cover = over_prob = under_prob = None
+        total_mean = diff_mean = None
+        ci_diff = []
         if MonteCarloSimulator:
             try:
                 home_runs_col = teams_df[teams_df['name'] == home]['runs_scored'].values if 'runs_scored' in teams_df.columns else []
@@ -141,10 +157,15 @@ def generate_predictions(elo_system=None):
                 ar = float(away_runs_col[0]) if len(away_runs_col) > 0 else 4.5
                 sim = MonteCarloSimulator(hr, ar, n_simulations=5000)
                 sim.simulate()
+                home_cover, away_cover = sim.spread_prob(-1.5)
+                over_prob, under_prob, _ = sim.total_prob(8.5)
+                total_mean = round(sim.results['total_runs'].mean(), 1)
+                diff_mean = round(sim.results['run_diff'].mean(), 1)
+                ci_diff = [round(x, 1) for x in sim.confidence_interval()]
             except:
                 pass
 
-        # 玩法推荐
+        # 推荐生成
         ml_rec = "PASS"
         if kelly_ml > 0.05:
             ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
@@ -152,31 +173,23 @@ def generate_predictions(elo_system=None):
             ml_rec = f"Bet {away} ({pred_away:.1%}, {kelly_ml_away:.1%} Kelly)"
 
         spread_rec = "PASS"
+        if home_cover is not None and home_cover > 0.55:
+            spread_rec = f"Bet {home} -1.5 ({home_cover:.1%} cover)"
+        elif away_cover is not None and away_cover > 0.55:
+            spread_rec = f"Bet {away} +1.5 ({away_cover:.1%} cover)"
+
         total_rec = "PASS"
-        home_cover = away_cover = over_prob = under_prob = None
-        total_mean = diff_mean = None
-        ci_diff = []
-
-        if sim:
-            home_cover, away_cover = sim.spread_prob(-1.5)
-            if home_cover > 0.55:
-                spread_rec = f"Bet {home} -1.5 ({home_cover:.1%} cover)"
-            elif away_cover > 0.55:
-                spread_rec = f"Bet {away} +1.5 ({away_cover:.1%} cover)"
-
-            over_prob, under_prob, _ = sim.total_prob(8.5)
-            if over_prob > 0.55:
-                total_rec = f"Bet OVER 8.5 ({over_prob:.1%})"
-            elif under_prob > 0.55:
-                total_rec = f"Bet UNDER 8.5 ({under_prob:.1%})"
-
-            total_mean = round(sim.results['total_runs'].mean(), 1)
-            diff_mean = round(sim.results['run_diff'].mean(), 1)
-            ci_diff = [round(x, 1) for x in sim.confidence_interval()]
+        if over_prob is not None and over_prob > 0.55:
+            total_rec = f"Bet OVER 8.5 ({over_prob:.1%})"
+        elif under_prob is not None and under_prob > 0.55:
+            total_rec = f"Bet UNDER 8.5 ({under_prob:.1%})"
 
         predictions.append({
+            "game_date": game.get("game_date"),          # 比赛时间（ISO 8601）
             "home_team": home,
             "away_team": away,
+            "status": game.get("status"),                # 比赛状态（Preview/Live/Final等）
+            "venue": game.get("venue", ""),              # 球场
             "predicted_home_win_pct": round(pred_home, 3),
             "predicted_away_win_pct": round(pred_away, 3),
             "home_odds": home_odds,
