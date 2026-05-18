@@ -1,18 +1,19 @@
+"""
+球队战绩客户端（使用 MLB Stats API standings）
+"""
 import pandas as pd
 import requests
 
 def fetch_sportsipy(date_str=None, errors=None):
     year = 2026
-    # 球队战绩 —— 从 MLB Stats API 获取
     try:
         url = "https://statsapi.mlb.com/api/v1/standings"
         params = {"leagueId": "103,104", "season": year}
         resp = requests.get(url, params=params, timeout=15)
         resp.raise_for_status()
-        standings_data = resp.json()
-
+        data = resp.json()
         team_list = []
-        for record in standings_data.get("records", []):
+        for record in data.get("records", []):
             for team_record in record.get("teamRecords", []):
                 team = team_record.get("team", {})
                 team_list.append({
@@ -28,7 +29,7 @@ def fetch_sportsipy(date_str=None, errors=None):
             errors.append(f"Sportsipy teams error: {e}")
         df_teams = pd.DataFrame()
 
-    # 球员示例 —— 不再调用可能出错的 API，使用静态数据
+    # 球员示例（静态）
     player_info = {
         "name": "Shohei Ohtani",
         "home_runs": None,
@@ -36,5 +37,4 @@ def fetch_sportsipy(date_str=None, errors=None):
         "ops": None,
         "note": "Player stats via Stats API temporarily disabled"
     }
-
     return {"teams": df_teams, "player_example": player_info}
