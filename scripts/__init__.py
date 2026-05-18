@@ -1,1 +1,1 @@
-# 初始化 scripts 包
+# scripts package init
