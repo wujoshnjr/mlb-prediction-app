@@ -1,6 +1,6 @@
 """
 MLB Stats API 客户端（增强版）
-从 /v1/schedule 抓取当日完整赛程，包含比赛时间、球场、两队先发投手等
+从 /v1/schedule 抓取当日完整赛程，包含比赛时间、球场、先发投手 ID
 """
 import requests
 import pandas as pd
@@ -29,17 +29,13 @@ def fetch_mlb_statsapi(date_str: str = None, errors: list = None) -> pd.DataFram
     for date_info in data.get("dates", []):
         for game in date_info.get("games", []):
             game_id = game["gamePk"]
-            # 比赛时间（UTC，可转本地）
-            game_date = game.get("gameDate")  # ISO 8601 格式
-            # 状态
+            game_date = game.get("gameDate")
             status = game.get("status", {}).get("abstractGameState", "Unknown")
-            # 球队
             teams = game.get("teams", {})
             home_team = teams.get("home", {}).get("team", {})
             away_team = teams.get("away", {}).get("team", {})
-            # 球场
             venue = game.get("venue", {}).get("name", "")
-            # 先发投手（通过 hydrate=probablePitcher）
+            # 先发投手
             home_pitcher_id = None
             away_pitcher_id = None
             if teams.get("home", {}).get("probablePitcher"):
@@ -49,7 +45,7 @@ def fetch_mlb_statsapi(date_str: str = None, errors: list = None) -> pd.DataFram
 
             games.append({
                 "game_id": game_id,
-                "game_date": game_date,          # ISO 8601，如 "2026-05-18T23:10:00Z"
+                "game_date": game_date,
                 "status": status,
                 "home_team": home_team.get("name", "Unknown"),
                 "away_team": away_team.get("name", "Unknown"),
