@@ -7,7 +7,6 @@ import numpy as np
 
 from model import UnifiedSportsModel
 
-# 尝试导入 ELO 和蒙特卡洛，失败则降级运行
 try:
     from scripts.elo import MLBElosystem
 except:
@@ -19,14 +18,12 @@ except:
 
 
 def implied_prob(odds):
-    """赔率转隐含概率（扣除 5% 抽水）"""
     if odds is None or odds <= 1:
         return None
     return 1 / (odds * 1.05)
 
 
 def kelly_criterion(win_prob, odds, fraction=0.25):
-    """半凯利准则"""
     if win_prob is None or odds is None or odds <= 1:
         return 0
     b = odds - 1
@@ -41,7 +38,6 @@ def generate_predictions(elo_system=None):
     date_str = datetime.now().strftime('%Y-%m-%d')
     errors = data.get('errors', [])
 
-    # ----- ELO 初始化 -----
     if elo_system is None:
         if MLBElosystem:
             elo_system = MLBElosystem()
@@ -50,7 +46,7 @@ def generate_predictions(elo_system=None):
             print("ELO 模块未安装，将使用基础预测")
             elo_system = None
 
-    # ----- 球队战力 -----
+    # 球队战力
     teams_df = pd.DataFrame(data.get('sportsipy_teams', []))
     if teams_df.empty:
         teams_df = pd.DataFrame(columns=['name', 'wins', 'losses', 'win_pct'])
@@ -62,7 +58,7 @@ def generate_predictions(elo_system=None):
         teams_df['win_pct'] = 0.5
     teams_df['win_pct'] = teams_df['win_pct'].fillna(0.5)
 
-    # ----- 赔率字典 -----
+    # 赔率字典
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     for _, row in odds_df.iterrows():
@@ -71,10 +67,8 @@ def generate_predictions(elo_system=None):
             odds_dict[key] = []
         odds_dict[key].append(row.get('odds'))
 
-    # ----- 赛程（增强版：包含日期时间，不再过滤状态，显示所有比赛）-----
+    # 赛程（不再过滤状态，显示所有比赛）
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
-    # 不再使用状态过滤，直接显示当天所有比赛（含 Preview, Live, Final）
-    # 这样可以确保无论 MLB API 返回什么状态，都能展示比赛列表
     print(f"当日比赛数量: {len(schedule_df)}")
 
     # 投手数据字典
@@ -91,7 +85,6 @@ def generate_predictions(elo_system=None):
         if not home or not away or home == 'Unknown' or away == 'Unknown':
             continue
 
-        # 基础胜率
         home_pct = teams_df[teams_df['name'] == home]['win_pct'].values
         away_pct = teams_df[teams_df['name'] == away]['win_pct'].values
         if len(home_pct) == 0 or len(away_pct) == 0:
@@ -125,7 +118,7 @@ def generate_predictions(elo_system=None):
 
         pred_home = home_pct * weights['pct'] + elo_prob * weights['elo'] + (market_prob or 0.5) * weights['market']
 
-        # 投手调整（如果投手数据可用）
+        # 投手调整
         pitcher_data = pitcher_dict.get(game.get('game_id'))
         sp_adj = 0.0
         if pitcher_data is not None:
@@ -141,8 +134,7 @@ def generate_predictions(elo_system=None):
         kelly_ml_away = 0
         if home_odds:
             kelly_ml = kelly_criterion(pred_home, home_odds)
-            kelly_ml_away = kelly_criterion(pred_away, 1 / (1 - implied_prob(home_odds))
-                                            if implied_prob(home_odds) and implied_prob(home_odds) < 1 else None)
+            kelly_ml_away = kelly_criterion(pred_away, 1 / (1 - implied_prob(home_odds)) if implied_prob(home_odds) and implied_prob(home_odds) < 1 else None)
 
         # 蒙特卡洛模拟
         sim = None
@@ -165,7 +157,6 @@ def generate_predictions(elo_system=None):
             except:
                 pass
 
-        # 推荐生成
         ml_rec = "PASS"
         if kelly_ml > 0.05:
             ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
@@ -185,11 +176,11 @@ def generate_predictions(elo_system=None):
             total_rec = f"Bet UNDER 8.5 ({under_prob:.1%})"
 
         predictions.append({
-            "game_date": game.get("game_date"),          # 比赛时间（ISO 8601）
+            "game_date": game.get("game_date"),
             "home_team": home,
             "away_team": away,
-            "status": game.get("status"),                # 比赛状态（Preview/Live/Final等）
-            "venue": game.get("venue", ""),              # 球场
+            "status": game.get("status"),
+            "venue": game.get("venue", ""),
             "predicted_home_win_pct": round(pred_home, 3),
             "predicted_away_win_pct": round(pred_away, 3),
             "home_odds": home_odds,
@@ -208,7 +199,6 @@ def generate_predictions(elo_system=None):
             "kelly_fraction": round(kelly_ml, 4)
         })
 
-    # 战力排名
     power_rankings = teams_df.sort_values('win_pct', ascending=False).to_dict('records')
 
     output = {
