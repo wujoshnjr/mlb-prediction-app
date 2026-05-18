@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 import pandas as pd
 
-# 防禦性匯入：任何一個模組失敗都不影響主服務啟動
+# 防禦性匯入
 fetch_mlb_statsapi = None
 fetch_savant_statcast = None
 fetch_retrosheet = None
@@ -18,7 +18,6 @@ fetch_odds = None
 fetch_probable_pitchers = None
 fetch_injuries = None
 
-# 依次尝试导入，任何一个失败都不会影响主服务启动
 try:
     from scripts.mlb_stats_client import fetch_mlb_statsapi
 except Exception as e:
@@ -113,8 +112,10 @@ class UnifiedSportsModel:
         balldontlie = safe_call(fetch_balldontlie, "balldontlie", self.ball_api_key, date_str, errors)
         odds = safe_call(fetch_odds, "odds", self.odds_api_key, date_str, errors)
         pitchers = safe_call(fetch_probable_pitchers, "pitchers", date_str, errors)
+        # 伤病模块已禁用，不会产生错误
         injuries = safe_call(fetch_injuries, "injuries", date_str, errors)
 
+        # 填充结果
         result['mlb_statsapi'] = mlb_stats.to_dict(orient='records') if not mlb_stats.empty else []
         result['savant_statcast'] = savant.to_dict(orient='records') if not savant.empty else []
         result['retrosheet'] = retro.to_dict(orient='records') if not retro.empty else []
