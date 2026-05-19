@@ -1,39 +1,85 @@
+"""
+回测系统
+计算 ROI、胜率、盈亏曲线、最大回撤
+"""
 import pandas as pd
 import numpy as np
-from datetime import datetime
+import os
 
-def run_backtest(predictions_file="report/prediction.json", historical_results_file=None):
-    """
-    简易回测：假设 historical_results_file 包含 'game_id','home_score','away_score'
-    若没有，则跳过实际结果比对，仅统计推荐次数。
-    """
-    import json, os
-    if not os.path.exists(predictions_file):
-        print("预测文件不存在")
+HISTORY_FILE = "data/historical_predictions.csv"
+
+def run_backtest():
+    if not os.path.exists(HISTORY_FILE):
+        print("历史数据文件不存在")
         return
 
-    with open(predictions_file, 'r') as f:
-        data = json.load(f)
+    df = pd.read_csv(HISTORY_FILE)
+    # 只保留有真实结果的比赛
+    df = df[df['home_win'] != '']
+    df['home_win'] = df['home_win'].astype(int)
 
-    preds = data.get("today_predictions", [])
-    # 统计推荐数量
-    ml = [p for p in preds if p.get("moneyline_recommendation") != "PASS"]
-    spread = [p for p in preds if p.get("spread_recommendation") != "PASS"]
-    total = [p for p in preds if p.get("total_recommendation") != "PASS"]
+    if len(df) == 0:
+        print("没有已完成的比赛数据")
+        return
 
-    report = {
-        "date": datetime.now().isoformat(),
-        "total_games": len(preds),
-        "moneyline_recommendations": len(ml),
-        "spread_recommendations": len(spread),
-        "total_recommendations": len(total),
+    # 计算投注信号：凯利推荐且不为 PASS
+    df['bet'] = df['ml_rec'].apply(lambda x: 1 if 'Bet' in str(x) else 0)
+
+    # 计算每场盈亏（假设投注1单位）
+    def calc_profit(row):
+        if row['bet'] == 0:
+            return 0
+        odds = row.get('home_odds', 2.0)
+        if pd.isna(odds) or odds <= 1:
+            odds = 2.0
+        if row['home_win'] == 1:
+            return odds - 1  # 盈利
+        else:
+            return -1  # 亏损
+
+    df['profit'] = df.apply(calc_profit, axis=1)
+    df['cumulative_profit'] = df['profit'].cumsum()
+
+    # 统计指标
+    total_bets = df['bet'].sum()
+    total_profit = df['profit'].sum()
+    roi = total_profit / total_bets if total_bets > 0 else 0
+    win_rate = df[df['bet'] == 1]['home_win'].mean() if total_bets > 0 else 0
+
+    # 最大回撤
+    cumulative = df['cumulative_profit']
+    running_max = cumulative.cummax()
+    drawdown = cumulative - running_max
+    max_drawdown = drawdown.min()
+
+    # Sharpe Ratio（简化版，假设无风险利率为0）
+    bet_profits = df[df['bet'] == 1]['profit']
+    if len(bet_profits) > 1 and bet_profits.std() > 0:
+        sharpe = bet_profits.mean() / bet_profits.std() * np.sqrt(len(bet_profits))
+    else:
+        sharpe = 0
+
+    print("=" * 50)
+    print("📊 回测报告")
+    print("=" * 50)
+    print(f"总比赛数: {len(df)}")
+    print(f"总投注数: {total_bets}")
+    print(f"总盈利: {total_profit:.2f} 单位")
+    print(f"ROI: {roi:.2%}")
+    print(f"胜率: {win_rate:.2%}")
+    print(f"最大回撤: {max_drawdown:.2f} 单位")
+    print(f"Sharpe Ratio: {sharpe:.2f}")
+    print("=" * 50)
+
+    return {
+        "total_games": len(df),
+        "total_bets": int(total_bets),
+        "total_profit": round(total_profit, 2),
+        "roi": round(roi, 4),
+        "win_rate": round(win_rate, 4),
+        "max_drawdown": round(max_drawdown, 2),
+        "sharpe": round(sharpe, 2)
     }
-    # 如果有实际结果文件，计算ROI、CLV等
-    if historical_results_file and os.path.exists(historical_results_file):
-        results_df = pd.read_csv(historical_results_file)  # 假设有 game_id, home_score, away_score, closing_odds...
-        # 实现与预测数据的合并和ROI计算
-        # 此处省略详细实现，后续可扩展
-        pass
 
-    print("回测报告：", json.dumps(report, indent=2))
-    return report
+if __name__ == "__main__":
+    run_backtest()
