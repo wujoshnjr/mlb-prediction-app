@@ -19,13 +19,19 @@ def run_backtest():
         return
 
     df = pd.read_csv(HISTORY_FILE)
-    df = df[df['home_win'] != '']
-    df['home_win'] = df['home_win'].astype(int)
+
+    # 将空字符串替换为 NaN，然后删除 home_win 为空的记录
+    df['home_win'] = df['home_win'].replace('', np.nan)
+    df = df.dropna(subset=['home_win'])
 
     if len(df) == 0:
         print("没有已完成的比赛数据")
         return
 
+    # 现在可以安全转换为整数
+    df['home_win'] = df['home_win'].astype(int)
+
+    # 判断是否有凯利推荐
     df['bet'] = df['ml_rec'].apply(lambda x: 1 if 'Bet' in str(x) else 0)
 
     def calc_profit(row):
