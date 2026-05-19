@@ -2,9 +2,14 @@
 回测系统
 计算 ROI、胜率、盈亏曲线、最大回撤
 """
+import os
+import sys
+
+# 确保项目根目录在 sys.path 中
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import pandas as pd
 import numpy as np
-import os
 
 HISTORY_FILE = "data/historical_predictions.csv"
 
@@ -14,7 +19,6 @@ def run_backtest():
         return
 
     df = pd.read_csv(HISTORY_FILE)
-    # 只保留有真实结果的比赛
     df = df[df['home_win'] != '']
     df['home_win'] = df['home_win'].astype(int)
 
@@ -22,10 +26,8 @@ def run_backtest():
         print("没有已完成的比赛数据")
         return
 
-    # 计算投注信号：凯利推荐且不为 PASS
     df['bet'] = df['ml_rec'].apply(lambda x: 1 if 'Bet' in str(x) else 0)
 
-    # 计算每场盈亏（假设投注1单位）
     def calc_profit(row):
         if row['bet'] == 0:
             return 0
@@ -33,26 +35,23 @@ def run_backtest():
         if pd.isna(odds) or odds <= 1:
             odds = 2.0
         if row['home_win'] == 1:
-            return odds - 1  # 盈利
+            return odds - 1
         else:
-            return -1  # 亏损
+            return -1
 
     df['profit'] = df.apply(calc_profit, axis=1)
     df['cumulative_profit'] = df['profit'].cumsum()
 
-    # 统计指标
     total_bets = df['bet'].sum()
     total_profit = df['profit'].sum()
     roi = total_profit / total_bets if total_bets > 0 else 0
     win_rate = df[df['bet'] == 1]['home_win'].mean() if total_bets > 0 else 0
 
-    # 最大回撤
     cumulative = df['cumulative_profit']
     running_max = cumulative.cummax()
     drawdown = cumulative - running_max
     max_drawdown = drawdown.min()
 
-    # Sharpe Ratio（简化版，假设无风险利率为0）
     bet_profits = df[df['bet'] == 1]['profit']
     if len(bet_profits) > 1 and bet_profits.std() > 0:
         sharpe = bet_profits.mean() / bet_profits.std() * np.sqrt(len(bet_profits))
@@ -70,16 +69,6 @@ def run_backtest():
     print(f"最大回撤: {max_drawdown:.2f} 单位")
     print(f"Sharpe Ratio: {sharpe:.2f}")
     print("=" * 50)
-
-    return {
-        "total_games": len(df),
-        "total_bets": int(total_bets),
-        "total_profit": round(total_profit, 2),
-        "roi": round(roi, 4),
-        "win_rate": round(win_rate, 4),
-        "max_drawdown": round(max_drawdown, 2),
-        "sharpe": round(sharpe, 2)
-    }
 
 if __name__ == "__main__":
     run_backtest()
