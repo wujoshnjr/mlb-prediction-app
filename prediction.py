@@ -4,6 +4,7 @@ import traceback
 from datetime import datetime
 import pandas as pd
 import numpy as np
+import csv                           # 用于写入历史记录
 
 from model import UnifiedSportsModel
 
@@ -48,7 +49,6 @@ def generate_predictions(elo_system=None):
     date_str = datetime.now().strftime('%Y-%m-%d')
     errors = data.get('errors', [])
 
-    # ----- ELO 初始化 -----
     if elo_system is None:
         if MLBElosystem:
             elo_system = MLBElosystem()
@@ -57,7 +57,7 @@ def generate_predictions(elo_system=None):
             print("ELO 模块未安装，将使用基础预测")
             elo_system = None
 
-    # ----- 球队战力 -----
+    # 球队战力
     teams_df = pd.DataFrame(data.get('sportsipy_teams', []))
     if teams_df.empty:
         teams_df = pd.DataFrame(columns=['name', 'wins', 'losses', 'win_pct'])
@@ -69,7 +69,7 @@ def generate_predictions(elo_system=None):
         teams_df['win_pct'] = 0.5
     teams_df['win_pct'] = teams_df['win_pct'].fillna(0.5)
 
-    # ----- 赔率字典 -----
+    # 赔率字典
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     for _, row in odds_df.iterrows():
@@ -78,18 +78,18 @@ def generate_predictions(elo_system=None):
             odds_dict[key] = []
         odds_dict[key].append(row.get('odds'))
 
-    # ----- 赛程（不再过滤状态，显示所有比赛）-----
+    # 赛程（不筛选状态）
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
     print(f"当日比赛数量: {len(schedule_df)}")
 
-    # ----- 投手数据字典 -----
+    # 投手数据字典
     pitchers_df = pd.DataFrame(data.get('pitchers', []))
     pitcher_dict = {}
     if not pitchers_df.empty:
         for _, row in pitchers_df.iterrows():
             pitcher_dict[row['game_id']] = row
 
-    # ----- 队名映射：统一赛程中的队名与战力数据中的队名 -----
+    # 队名映射
     team_name_map = {
         "Cleveland Guardians": "Guardians",
         "Detroit Tigers": "Tigers",
@@ -128,15 +128,11 @@ def generate_predictions(elo_system=None):
     for _, game in schedule_df.iterrows():
         home = game.get('home_team', '')
         away = game.get('away_team', '')
-
-        # 统一队名
         home = team_name_map.get(home, home)
         away = team_name_map.get(away, away)
-
         if not home or not away or home == 'Unknown' or away == 'Unknown':
             continue
 
-        # 基础胜率
         home_pct = teams_df[teams_df['name'] == home]['win_pct'].values
         away_pct = teams_df[teams_df['name'] == away]['win_pct'].values
         if len(home_pct) == 0 or len(away_pct) == 0:
@@ -170,16 +166,13 @@ def generate_predictions(elo_system=None):
 
         pred_home = home_pct * weights['pct'] + elo_prob * weights['elo'] + (market_prob or 0.5) * weights['market']
 
-        # ----- 概率校准 -----
+        # 概率校准
         if calibrator is not None:
             try:
-                # calibrator.predict 期望输入 (n_samples, 1)
-                pred_home_calibrated = calibrator.predict(np.array([[pred_home]]))[0]
-                pred_home = float(pred_home_calibrated)
-                # 防止极端值
+                pred_home = float(calibrator.predict(np.array([[pred_home]]))[0])
                 pred_home = min(0.95, max(0.05, pred_home))
             except Exception as e:
-                print(f"校准失败，使用原始概率: {e}")
+                print(f"校准失败: {e}")
 
         # 投手调整
         pitcher_data = pitcher_dict.get(game.get('game_id'))
@@ -221,7 +214,6 @@ def generate_predictions(elo_system=None):
             except:
                 pass
 
-        # 推荐生成
         ml_rec = "PASS"
         if kelly_ml > 0.05:
             ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
@@ -241,6 +233,7 @@ def generate_predictions(elo_system=None):
             total_rec = f"Bet UNDER 8.5 ({under_prob:.1%})"
 
         predictions.append({
+            "game_id": game.get("game_id"),
             "game_date": game.get("game_date"),
             "home_team": home,
             "away_team": away,
@@ -280,6 +273,38 @@ def generate_predictions(elo_system=None):
         "errors": errors
     }
 
+    # ========== 保存历史预测记录 ==========
+    HISTORY_FILE = "data/historical_predictions.csv"
+    os.makedirs("data", exist_ok=True)
+    file_exists = os.path.exists(HISTORY_FILE)
+    with open(HISTORY_FILE, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow([
+                "game_id", "game_date", "home_team", "away_team",
+                "pred_home_win", "home_odds", "elo_home", "elo_away",
+                "ml_rec", "spread_rec", "total_rec",
+                "kelly_fraction", "home_win"
+            ])
+        for p in predictions:
+            writer.writerow([
+                p.get("game_id", ""),
+                p.get("game_date", ""),
+                p.get("home_team", ""),
+                p.get("away_team", ""),
+                p.get("predicted_home_win_pct", ""),
+                p.get("home_odds", ""),
+                p.get("elo_home", ""),
+                p.get("elo_away", ""),
+                p.get("moneyline_recommendation", ""),
+                p.get("spread_recommendation", ""),
+                p.get("total_recommendation", ""),
+                p.get("kelly_fraction", ""),
+                ""   # home_win 留空，稍后由 update_results 填充
+            ])
+    print(f"历史预测已追加至 {HISTORY_FILE}")
+
+    # 保存预测报告
     os.makedirs('report', exist_ok=True)
     with open('report/prediction.json', 'w') as f:
         json.dump(output, f, indent=2, default=str)
