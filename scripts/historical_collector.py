@@ -1,12 +1,11 @@
 """
 历史数据收集器
-每日由 GitHub Actions 调用，回填指定日期范围的比赛数据
+每日由 GitHub Actions 调用，回填指定日期的比赛数据
 """
 import os
-import json
 import time
-import pandas as pd
 import requests
+import pandas as pd
 from datetime import datetime, timedelta
 
 DATA_DIR = "data/historical"
@@ -50,7 +49,7 @@ def fetch_pitcher_stats(pitcher_id, season):
     return {}
 
 def collect_date(date_str, season, last_game_dict=None):
-    """收集单个日期所有比赛的特征与结果"""
+    """收集单个日期所有比赛的特征与结果，返回更新后的 last_game_dict"""
     schedule = fetch_schedule(date_str)
     if not schedule:
         return last_game_dict
@@ -68,17 +67,16 @@ def collect_date(date_str, season, last_game_dict=None):
             if game["teams"]["away"].get("probablePitcher"):
                 away_pitcher_id = game["teams"]["away"]["probablePitcher"]["id"]
 
-            # 获取比赛结果（如果已结束）
+            # 比赛结果
             home_win = None
-            game_status = game.get("status", {}).get("abstractGameState")
-            if game_status == "Final":
+            if game.get("status", {}).get("abstractGameState") == "Final":
                 home_win = fetch_game_result(game_id)
 
-            # 获取先发投手数据
+            # 先发投手数据
             home_pitcher_stats = fetch_pitcher_stats(home_pitcher_id, season) if home_pitcher_id else {}
             away_pitcher_stats = fetch_pitcher_stats(away_pitcher_id, season) if away_pitcher_id else {}
 
-            # 计算休息天数（如果有last_game_dict）
+            # 休息天数
             rest_home = 2
             rest_away = 2
             if last_game_dict:
@@ -93,7 +91,6 @@ def collect_date(date_str, season, last_game_dict=None):
                 except:
                     pass
 
-            # 更新 last_game_dict
             if last_game_dict is not None:
                 last_game_dict[home_team] = date_str
                 last_game_dict[away_team] = date_str
@@ -112,14 +109,12 @@ def collect_date(date_str, season, last_game_dict=None):
                 "rest_away": rest_away
             })
 
-    # 保存当天数据
     df = pd.DataFrame(games)
     df.to_parquet(os.path.join(DATA_DIR, f"{date_str}.parquet"), index=False)
     print(f"Saved {len(games)} games for {date_str}")
     return last_game_dict
 
 def collect_range(start_date, end_date):
-    """按天收集一个日期范围的数据，自动维护休息日状态"""
     current = datetime.strptime(start_date, "%Y-%m-%d")
     end = datetime.strptime(end_date, "%Y-%m-%d")
     last_game_dict = {}
@@ -127,7 +122,7 @@ def collect_range(start_date, end_date):
         date_str = current.strftime("%Y-%m-%d")
         if not os.path.exists(os.path.join(DATA_DIR, f"{date_str}.parquet")):
             last_game_dict = collect_date(date_str, current.year, last_game_dict)
-            time.sleep(0.5)  # 礼貌限速
+            time.sleep(0.5)
         current += timedelta(days=1)
 
 if __name__ == "__main__":
