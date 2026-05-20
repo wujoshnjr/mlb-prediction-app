@@ -1,11 +1,6 @@
-"""
-回测系统
-计算 ROI、胜率、盈亏曲线、最大回撤
-"""
 import os
 import sys
 
-# 确保项目根目录在 sys.path 中
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
@@ -19,19 +14,13 @@ def run_backtest():
         return
 
     df = pd.read_csv(HISTORY_FILE)
-
-    # 将空字符串替换为 NaN，然后删除 home_win 为空的记录
     df['home_win'] = df['home_win'].replace('', np.nan)
     df = df.dropna(subset=['home_win'])
-
     if len(df) == 0:
         print("没有已完成的比赛数据")
         return
-
-    # 现在可以安全转换为整数
     df['home_win'] = df['home_win'].astype(int)
 
-    # 判断是否有凯利推荐
     df['bet'] = df['ml_rec'].apply(lambda x: 1 if 'Bet' in str(x) else 0)
 
     def calc_profit(row):
