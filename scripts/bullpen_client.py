@@ -1,7 +1,3 @@
-"""
-牛棚数据客户端
-获取各球队近3天救援投手使用情况
-"""
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
