@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-训练 XGBoost 模型并进行概率校准
+训练 XGBoost 模型并进行概率校准（健壮版，自动处理缺失列）
 """
 import pandas as pd
 import numpy as np
@@ -10,7 +10,10 @@ from sklearn.model_selection import TimeSeriesSplit
 from sklearn.calibration import CalibratedClassifierCV
 
 HISTORY_FILE = "data/historical_predictions.csv"
-MODEL_OUTPUT = "data/calibrator.pkl"   # 保存校准后的模型
+MODEL_OUTPUT = "data/calibrator.pkl"
+
+# 期望的特征列
+EXPECTED_FEATURES = ['elo_diff', 'market_prob', 'sp_era_diff', 'bullpen_era_diff', 'rest_diff']
 
 def prepare_data():
     df = pd.read_csv(HISTORY_FILE)
@@ -23,13 +26,15 @@ def prepare_data():
         print(f"数据量不足 ({len(df)} 条)，跳过训练")
         return None, None
 
-    # 构造特征
-    feature_cols = ['elo_diff', 'market_prob', 'sp_era_diff', 'bullpen_era_diff', 'rest_diff']
-    # 处理缺失值
-    for col in feature_cols:
-        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+    # 确保所有特征列都存在，缺失则填充0
+    for col in EXPECTED_FEATURES:
+        if col not in df.columns:
+            print(f"警告：缺少列 {col}，将用 0 填充")
+            df[col] = 0.0
+        else:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
 
-    X = df[feature_cols].values
+    X = df[EXPECTED_FEATURES].values
     y = df['home_win'].values
     return X, y
 
@@ -38,9 +43,7 @@ def train():
     if X is None:
         return
 
-    # 时间序列交叉验证
     tscv = TimeSeriesSplit(n_splits=3)
-
     xgb = XGBClassifier(
         n_estimators=300,
         max_depth=5,
@@ -51,7 +54,6 @@ def train():
         eval_metric='logloss'
     )
 
-    # 校准
     calibrated = CalibratedClassifierCV(
         estimator=xgb,
         method='isotonic',
@@ -59,14 +61,11 @@ def train():
     )
     calibrated.fit(X, y)
 
-    # 保存模型
     joblib.dump(calibrated, MODEL_OUTPUT)
     print(f"模型已保存至 {MODEL_OUTPUT}")
 
-    # 特征重要性
-    feature_names = ['elo_diff', 'market_prob', 'sp_era_diff', 'bullpen_era_diff', 'rest_diff']
     importances = xgb.feature_importances_
-    for name, imp in zip(feature_names, importances):
+    for name, imp in zip(EXPECTED_FEATURES, importances):
         print(f"{name}: {imp:.4f}")
 
 if __name__ == "__main__":
