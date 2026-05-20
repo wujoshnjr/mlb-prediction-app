@@ -1,11 +1,3 @@
-"""
-旅行与休息特征
-根据赛程计算主客队休息天数、是否跨时区等
-"""
-import pandas as pd
-from datetime import datetime, timedelta
-
-# 简化版：30队所在时区（东部/中部/山地/太平洋）
 TEAM_TIMEZONES = {
     "Braves": "Eastern", "Orioles": "Eastern", "Red Sox": "Eastern",
     "Cubs": "Central", "White Sox": "Central", "Reds": "Eastern",
@@ -19,17 +11,49 @@ TEAM_TIMEZONES = {
     "Blue Jays": "Eastern", "Nationals": "Eastern", "D-backs": "Mountain"
 }
 
-def calculate_rest_days(schedule_df):
+def calculate_rest_days(schedule_df, last_game_dict=None):
     """
-    根据赛程DataFrame计算每场比赛两队的休息天数
-    简化版：假设所有球队前一场比赛在1-3天前
+    根据赛程计算每场比赛两队的休息天数
+    schedule_df: 包含 home_team, away_team, game_date
+    last_game_dict: {team_name: last_game_date_str}，如果没有则默认休息3天
     """
+    if last_game_dict is None:
+        last_game_dict = {}
+    from datetime import datetime, timedelta
     rest_home = []
     rest_away = []
     for _, game in schedule_df.iterrows():
-        # 简化：随机分配1-3天休息（实际应用需查询前一场比赛日期）
-        rest_home.append(2)   # 占位，后续可用真实数据替代
-        rest_away.append(2)
+        home = game.get('home_team')
+        away = game.get('away_team')
+        game_date = game.get('game_date')
+        if game_date:
+            try:
+                game_dt = datetime.strptime(game_date[:10], '%Y-%m-%d')
+            except:
+                game_dt = datetime.now()
+        else:
+            game_dt = datetime.now()
+
+        # 主队休息天数
+        if home in last_game_dict:
+            last = datetime.strptime(last_game_dict[home][:10], '%Y-%m-%d')
+            rest = (game_dt - last).days - 1
+            rest = max(0, min(rest, 5))  # 限制在0-5天
+        else:
+            rest = 2  # 默认
+        rest_home.append(rest)
+
+        # 客队休息天数
+        if away in last_game_dict:
+            last = datetime.strptime(last_game_dict[away][:10], '%Y-%m-%d')
+            rest = (game_dt - last).days - 1
+            rest = max(0, min(rest, 5))
+        else:
+            rest = 2
+        rest_away.append(rest)
+
+    schedule_df = schedule_df.copy()
     schedule_df['rest_home'] = rest_home
     schedule_df['rest_away'] = rest_away
+    schedule_df['rest_diff'] = schedule_df['rest_home'] - schedule_df['rest_away']
     return schedule_df
