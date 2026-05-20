@@ -1,7 +1,3 @@
-"""
-自动更新历史预测中的比赛结果
-通过 MLB Stats API 获取已结束比赛的比分，回填 home_win 字段
-"""
 import csv
 import os
 import requests
@@ -10,7 +6,6 @@ import time
 HISTORY_FILE = "data/historical_predictions.csv"
 
 def fetch_game_result(game_id):
-    """抓取单场比赛的比分，返回 1(主胜) / 0(客胜) / None(未结束或失败)"""
     url = f"https://statsapi.mlb.com/api/v1.1/game/{game_id}/feed/live"
     try:
         resp = requests.get(url, timeout=10)
@@ -26,7 +21,7 @@ def fetch_game_result(game_id):
 
 def update_results():
     if not os.path.exists(HISTORY_FILE):
-        print("历史预测文件不存在，无需更新")
+        print("历史预测文件不存在")
         return
 
     rows = []
@@ -43,7 +38,7 @@ def update_results():
                     print(f"✅ {row['home_team']} vs {row['away_team']}: home_win={result}")
                 else:
                     print(f"⏳ {row['home_team']} vs {row['away_team']}: 比赛未结束或数据不可用")
-                time.sleep(0.5)  # 礼貌限速
+                time.sleep(0.5)
             rows.append(row)
 
     with open(HISTORY_FILE, 'w', newline='', encoding='utf-8') as f:
