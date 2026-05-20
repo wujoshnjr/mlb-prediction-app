@@ -21,26 +21,32 @@ def fetch_game_result(game_id):
 
 def update_results():
     if not os.path.exists(HISTORY_FILE):
-        print("历史预测文件不存在")
+        print("历史预测文件不存在，无需更新")
         return
 
     rows = []
     updated_count = 0
+
+    # 读取现有数据
     with open(HISTORY_FILE, 'r', newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
-        fieldnames = reader.fieldnames
+        # 过滤掉可能存在的 None 键（如果列标题为空）
+        fieldnames = [fn for fn in reader.fieldnames if fn is not None]
         for row in reader:
-            if row["home_win"].strip() == "" and row["game_id"].strip():
-                result = fetch_game_result(row["game_id"])
+            # 确保 row 只包含有效字段
+            clean_row = {k: v for k, v in row.items() if k in fieldnames}
+            if clean_row.get("home_win", "").strip() == "" and clean_row.get("game_id", "").strip():
+                result = fetch_game_result(clean_row["game_id"])
                 if result is not None:
-                    row["home_win"] = str(result)
+                    clean_row["home_win"] = str(result)
                     updated_count += 1
-                    print(f"✅ {row['home_team']} vs {row['away_team']}: home_win={result}")
+                    print(f"✅ {clean_row['home_team']} vs {clean_row['away_team']}: home_win={result}")
                 else:
-                    print(f"⏳ {row['home_team']} vs {row['away_team']}: 比赛未结束或数据不可用")
+                    print(f"⏳ {clean_row['home_team']} vs {clean_row['away_team']}: 比赛未结束或数据不可用")
                 time.sleep(0.5)
-            rows.append(row)
+            rows.append(clean_row)
 
+    # 写回文件（使用清理后的字段名）
     with open(HISTORY_FILE, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
