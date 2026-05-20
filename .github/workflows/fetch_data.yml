@@ -2,8 +2,8 @@ name: Hourly Prediction Update
 
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *'          # 每小时整点执行预测
+  workflow_dispatch:              # 允许手动触发
 
 permissions:
   contents: write
@@ -47,7 +47,7 @@ jobs:
 
   update-results:
     runs-on: ubuntu-latest
-    needs: predict
+    needs: predict               # 先跑预测，再更新结果
     steps:
       - uses: actions/checkout@v5
         with:
@@ -93,21 +93,35 @@ jobs:
           git commit -m "Update game results, ELO & model [skip ci]" || echo "No changes"
           git pull --rebase origin main
           git push
-          collect-history:
+
+  collect-history:
     runs-on: ubuntu-latest
+    needs: update-results       # 等待结果更新完成，避免同时写入冲突
+    if: github.event.schedule == '0 * * * *' || github.event_name == 'workflow_dispatch'  # 定时或手动才执行
     steps:
       - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull latest changes
+        run: git pull --rebase origin main
+
       - uses: actions/setup-python@v6
         with:
           python-version: '3.10'
+
       - name: Install dependencies
         run: pip install pandas requests
+
       - name: Collect yesterday's data
         run: |
           python scripts/historical_collector.py $(date -d "yesterday" +%Y-%m-%d)
-      - name: Commit history
+
+      - name: Commit historical data
+        if: always()
         run: |
           git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/historical/
           git commit -m "Add historical data for $(date -d 'yesterday' +%Y-%m-%d)" || echo "No changes"
           git pull --rebase origin main
