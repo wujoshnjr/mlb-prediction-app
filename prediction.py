@@ -3,16 +3,14 @@ import sys
 import json
 import traceback
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 
-# 确保项目根目录在路径中
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from model import UnifiedSportsModel
 
-# 尝试导入 ELO 和蒙特卡洛
 try:
     from scripts.elo import MLBElosystem
 except:
@@ -22,7 +20,7 @@ try:
 except:
     MonteCarloSimulator = None
 
-# 尝试加载模型（校准后的 XGBoost 或纯校准器）
+# 尝试加载模型
 model = None
 try:
     import joblib
@@ -31,19 +29,32 @@ try:
 except:
     print("未找到训练模型，将使用手工集成")
 
-# 尝试加载旅行/休息数据（简化版）
-try:
-    from scripts.travel_rest import TEAM_TIMEZONES, calculate_rest_days
-except:
-    TEAM_TIMEZONES = {}
-    calculate_rest_days = None
+# 加载休息天数缓存
+LAST_GAME_FILE = "data/team_last_game.json"
+if os.path.exists(LAST_GAME_FILE):
+    with open(LAST_GAME_FILE, 'r') as f:
+        last_game_dict = json.load(f)
+else:
+    last_game_dict = {}
 
+# 球队名到 MLB Stats API team_id 的映射（用于牛棚数据）
+TEAM_ID_MAP = {
+    "Braves": 144, "Orioles": 110, "Red Sox": 111,
+    "Cubs": 112, "White Sox": 145, "Reds": 113,
+    "Guardians": 114, "Rockies": 115, "Tigers": 116,
+    "Astros": 117, "Royals": 118, "Angels": 108,
+    "Dodgers": 119, "Marlins": 146, "Brewers": 158,
+    "Twins": 142, "Mets": 121, "Yankees": 147,
+    "Athletics": 133, "Phillies": 143, "Pirates": 134,
+    "Padres": 135, "Giants": 137, "Mariners": 136,
+    "Cardinals": 138, "Rays": 139, "Rangers": 140,
+    "Blue Jays": 141, "Nationals": 120, "D-backs": 109
+}
 
 def implied_prob(odds):
     if odds is None or odds <= 1:
         return None
     return 1 / (odds * 1.05)
-
 
 def kelly_criterion(win_prob, odds, fraction=0.25):
     if win_prob is None or odds is None or odds <= 1:
@@ -51,7 +62,6 @@ def kelly_criterion(win_prob, odds, fraction=0.25):
     b = odds - 1
     f = win_prob - (1 - win_prob) / b
     return max(0, f * fraction)
-
 
 def generate_predictions(elo_system=None):
     print("开始抓取数据...")
@@ -106,12 +116,6 @@ def generate_predictions(elo_system=None):
     if not bullpen_df.empty:
         for _, row in bullpen_df.iterrows():
             bullpen_dict[row['team_id']] = row
-
-    # 旅行/休息数据（简化）
-    rest_data = {}
-    if calculate_rest_days is not None:
-        # 如果有历史赛程，可以计算休息天数；否则用默认值
-        pass
 
     # 队名映射
     team_name_map = {
@@ -184,17 +188,32 @@ def generate_predictions(elo_system=None):
             away_era = float(pitcher_data.get('away_era') or 4.5)
             sp_era_diff = home_era - away_era
 
-        # 牛棚数据（获取两队牛棚 ERA 差值）
+        # 休息天数差异
+        try:
+            today = datetime.strptime(date_str, "%Y-%m-%d")
+            home_rest = 2
+            away_rest = 2
+            if home in last_game_dict:
+                last_home = datetime.strptime(last_game_dict[home], "%Y-%m-%d")
+                home_rest = max(0, (today - last_home).days - 1)
+            if away in last_game_dict:
+                last_away = datetime.strptime(last_game_dict[away], "%Y-%m-%d")
+                away_rest = max(0, (today - last_away).days - 1)
+            rest_diff = home_rest - away_rest
+        except:
+            rest_diff = 0
+
+        # 牛棚疲劳度差异（使用团队 ERA 近似，可替换为局数差值）
         bullpen_era_diff = 0.0
-        # 从球队 ID 获取牛棚数据；这里假设已经通过 team_id 关联
-        # 简化：使用 team_name 匹配
-        # 需要事先在 bullpen_df 中加入 team_name
-        # 暂时用 0
+        home_id = TEAM_ID_MAP.get(home)
+        away_id = TEAM_ID_MAP.get(away)
+        if home_id and away_id and home_id in bullpen_dict and away_id in bullpen_dict:
+            home_bp_era = bullpen_dict[home_id].get('bullpen_era')
+            away_bp_era = bullpen_dict[away_id].get('bullpen_era')
+            if home_bp_era is not None and away_bp_era is not None:
+                bullpen_era_diff = home_bp_era - away_bp_era
 
-        # 休息天数差异（默认0）
-        rest_diff = 0.0
-
-        # 特征向量（用于模型或写入 CSV）
+        # 特征向量
         features = {
             'elo_diff': round(elo_diff, 3),
             'market_prob': round(market_prob, 3) if market_prob else 0.5,
@@ -205,9 +224,8 @@ def generate_predictions(elo_system=None):
             'away_winrate': round(away_pct, 3)
         }
 
-        # 获取预测概率
+        # 预测
         if model is not None:
-            # 使用训练好的模型预测
             feature_array = np.array([[
                 features['elo_diff'],
                 features['market_prob'],
@@ -216,17 +234,15 @@ def generate_predictions(elo_system=None):
                 features['rest_diff']
             ]])
             try:
-                # 如果是校准后的模型（CalibratedClassifierCV），直接 predict_proba
                 pred_home = model.predict_proba(feature_array)[0, 1]
                 pred_home = min(0.95, max(0.05, pred_home))
             except:
-                # 降级到手工集成
+                # 降级到手工
                 model_fallback = True
         else:
             model_fallback = True
 
         if model is None or model_fallback:
-            # 手工集成权重
             weights = {'pct': 0.25, 'elo': 0.35, 'market': 0.40}
             if elo_system is None:
                 weights['elo'] = 0
@@ -240,13 +256,9 @@ def generate_predictions(elo_system=None):
                 else:
                     weights['pct'] += 0.40
 
-            pred_home = home_pct * weights['pct'] + (elo_diff / 400 * 0.35 if elo_system else 0) + (market_prob or 0.5) * weights['market']
-            # 简单的 ELO 概率转换
-            if elo_system:
-                elo_prob = 1 / (1 + 10 ** (-elo_diff / 400))
-                pred_home = home_pct * weights['pct'] + elo_prob * weights['elo'] + (market_prob or 0.5) * weights['market']
+            elo_prob = 1 / (1 + 10 ** (-elo_diff / 400)) if elo_system else 0.5
+            pred_home = home_pct * weights['pct'] + elo_prob * weights['elo'] + (market_prob or 0.5) * weights['market']
 
-            # 投手调整
             sp_adj = -0.07 * sp_era_diff
             pred_home = min(0.95, max(0.05, pred_home + sp_adj))
 
@@ -260,7 +272,7 @@ def generate_predictions(elo_system=None):
             kelly_ml_away = kelly_criterion(pred_away, 1 / (1 - implied_prob(home_odds))
                                             if implied_prob(home_odds) and implied_prob(home_odds) < 1 else None)
 
-        # 蒙特卡洛模拟（保持原样）
+        # 蒙特卡洛模拟
         sim = None
         home_cover = away_cover = over_prob = under_prob = None
         total_mean = diff_mean = None
@@ -323,7 +335,6 @@ def generate_predictions(elo_system=None):
             "home_cover_prob": round(home_cover, 3) if home_cover is not None else None,
             "away_cover_prob": round(away_cover, 3) if away_cover is not None else None,
             "kelly_fraction": round(kelly_ml, 4),
-            # 新增特征字段
             "elo_diff": features['elo_diff'],
             "market_prob": features['market_prob'],
             "sp_era_diff": features['sp_era_diff'],
@@ -349,7 +360,7 @@ def generate_predictions(elo_system=None):
         "errors": errors
     }
 
-    # ========== 保存历史预测记录（增强特征）==========
+    # 保存历史预测记录
     HISTORY_FILE = "data/historical_predictions.csv"
     os.makedirs("data", exist_ok=True)
     file_exists = os.path.exists(HISTORY_FILE)
@@ -377,7 +388,7 @@ def generate_predictions(elo_system=None):
                 p.get("spread_recommendation", ""),
                 p.get("total_recommendation", ""),
                 p.get("kelly_fraction", ""),
-                "",   # home_win 留空
+                "",
                 p.get("elo_diff", ""),
                 p.get("market_prob", ""),
                 p.get("sp_era_diff", ""),
