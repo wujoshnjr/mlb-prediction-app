@@ -53,7 +53,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 拉取 predict job 可能已推送的最新代码
       - name: Pull latest changes
         run: git pull --rebase origin main
 
@@ -62,7 +61,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install requests pandas
+        run: pip install requests pandas xgboost scikit-learn joblib
 
       - name: Update game results
         run: python scripts/update_results.py
@@ -73,7 +72,11 @@ jobs:
       - name: Run backtest
         run: python scripts/backtest.py
 
-      - name: Commit results & ELO
+      - name: Train model if enough data
+        run: python train_xgboost.py
+        if: success()
+
+      - name: Commit results, ELO, and model
         if: always()
         run: |
           git config --global user.name "github-actions[bot]"
@@ -84,6 +87,9 @@ jobs:
           if [ -f data/elo_ratings.json ]; then
             git add -f data/elo_ratings.json
           fi
-          git commit -m "Update game results & ELO [skip ci]" || echo "No changes"
+          if [ -f data/calibrator.pkl ]; then
+            git add -f data/calibrator.pkl
+          fi
+          git commit -m "Update game results, ELO & model [skip ci]" || echo "No changes"
           git pull --rebase origin main
           git push
