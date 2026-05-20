@@ -1,12 +1,12 @@
 """
-UnifiedSportsModel - 整合所有数据源（启动友善、自动清理 API Key）
+UnifiedSportsModel - 整合所有数据源（启动友善、自动清理 API Key、包含牛棚）
 """
 import os
 import json
 from datetime import datetime
 import pandas as pd
 
-# 防禦性匯入
+# 防禦性匯入：任何一個模組失敗都不影響主服務啟動
 fetch_mlb_statsapi = None
 fetch_savant_statcast = None
 fetch_retrosheet = None
@@ -17,6 +17,7 @@ fetch_balldontlie = None
 fetch_odds = None
 fetch_probable_pitchers = None
 fetch_injuries = None
+fetch_bullpen_stats = None
 
 try:
     from scripts.mlb_stats_client import fetch_mlb_statsapi
@@ -68,6 +69,11 @@ try:
 except Exception as e:
     print(f"Warning: Failed to import injury_client: {e}")
 
+try:
+    from scripts.bullpen_client import fetch_bullpen_stats
+except Exception as e:
+    print(f"Warning: Failed to import bullpen_client: {e}")
+
 
 class UnifiedSportsModel:
     def __init__(self):
@@ -88,7 +94,7 @@ class UnifiedSportsModel:
             'pybaseball_statcast': [], 'pybaseball_batting': [], 'pybaseball_pitching': [],
             'sportsipy_teams': [], 'sportsipy_player': {},
             'openmeteo_weather': [], 'balldontlie_teams': [], 'odds_data': [],
-            'pitchers': [], 'injuries': [],
+            'pitchers': [], 'injuries': [], 'bullpen': [],
             'errors': errors
         }
 
@@ -112,10 +118,10 @@ class UnifiedSportsModel:
         balldontlie = safe_call(fetch_balldontlie, "balldontlie", self.ball_api_key, date_str, errors)
         odds = safe_call(fetch_odds, "odds", self.odds_api_key, date_str, errors)
         pitchers = safe_call(fetch_probable_pitchers, "pitchers", date_str, errors)
-        # 伤病模块已禁用，不会产生错误
         injuries = safe_call(fetch_injuries, "injuries", date_str, errors)
+        bullpen = safe_call(fetch_bullpen_stats, "bullpen", date_str, errors)
 
-        # 填充结果
+        # 填充結果
         result['mlb_statsapi'] = mlb_stats.to_dict(orient='records') if not mlb_stats.empty else []
         result['savant_statcast'] = savant.to_dict(orient='records') if not savant.empty else []
         result['retrosheet'] = retro.to_dict(orient='records') if not retro.empty else []
@@ -131,6 +137,7 @@ class UnifiedSportsModel:
         result['odds_data'] = odds.to_dict(orient='records') if not odds.empty else []
         result['pitchers'] = pitchers.to_dict(orient='records') if not pitchers.empty else []
         result['injuries'] = injuries.to_dict(orient='records') if not injuries.empty else []
+        result['bullpen'] = bullpen.to_dict(orient='records') if not bullpen.empty else []
 
         # 保存報告
         if os.path.isfile('report'):
