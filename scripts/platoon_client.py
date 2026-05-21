@@ -1,7 +1,3 @@
-"""
-Platoon 拆分客户端
-获取各球队对左投和右投的打击数据 (OPS, wOBA)
-"""
 import requests
 import pandas as pd
 
@@ -25,9 +21,9 @@ def fetch_platoon_splits(season=2026, errors=None):
         return pd.DataFrame()
 
     rows = []
-    for split in data.get("stats", []):
-        split_type = split.get("split", "vsRhp")
-        for s in split.get("splits", []):
+    for stat_group in data.get("stats", []):
+        split_type = stat_group.get("split", "vsRhp")
+        for s in stat_group.get("splits", []):
             team_name = s.get("team", {}).get("name", "")
             stat = s.get("stat", {})
             rows.append({
