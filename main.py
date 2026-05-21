@@ -59,6 +59,7 @@ HTML = """
         .summary-item { flex: 1; min-width: 150px; background: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .summary-item .number { font-size: 2rem; font-weight: bold; color: #1e3c72; }
         .summary-item .label { color: #64748b; font-size: 0.9rem; }
+        .warning { color: #d97706; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -81,8 +82,8 @@ HTML = """
             <div class="card">
                 <h2>📅 今日對戰預測總覽</h2>
                 <table id="predictions-table">
-                    <thead><tr><th>比賽時間</th><th>主隊</th><th>客隊</th><th>球場</th><th>預測主勝</th><th>預測客勝</th><th>勝負推薦</th><th>讓分推薦</th><th>大小推薦</th></tr></thead>
-                    <tbody id="predictions-body"><tr><td colspan="9" class="loading">⏳ 加載中...</td></tr></tbody>
+                    <thead><tr><th>比賽時間</th><th>主隊</th><th>客隊</th><th>球場</th><th>預測主勝</th><th>預測客勝</th><th>關鍵因素</th><th>市場</th><th>勝負推薦</th><th>讓分推薦</th><th>大小推薦</th></tr></thead>
+                    <tbody id="predictions-body"><tr><td colspan="11" class="loading">⏳ 加載中...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -187,13 +188,15 @@ HTML = """
                         <td>${p.venue || ''}</td>
                         <td>${p.predicted_home_win_pct != null ? (p.predicted_home_win_pct*100).toFixed(1)+'%' : '-'}</td>
                         <td>${p.predicted_away_win_pct != null ? (p.predicted_away_win_pct*100).toFixed(1)+'%' : '-'}</td>
+                        <td style="font-size:0.8rem; color:#555;">${p.top_features ? (Array.isArray(p.top_features) ? p.top_features.join('; ') : p.top_features) : '-'}</td>
+                        <td>${p.market_divergence == 1 ? '<span class="warning">⚠️ 分歧</span>' : '-'}</td>
                         <td>${p.moneyline_recommendation !== 'PASS' ? `<span class="recommendation">${p.moneyline_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
                         <td>${p.spread_recommendation !== 'PASS' ? `<span class="rec-spread">${p.spread_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
                         <td>${p.total_recommendation !== 'PASS' ? `<span class="rec-total">${p.total_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
                     </tr>
                 `).join('');
             } else {
-                predBody.innerHTML = '<tr><td colspan="9">今日暫無比賽或數據</td></tr>';
+                predBody.innerHTML = '<tr><td colspan="11">今日暫無比賽或數據</td></tr>';
             }
 
             // 胜分盘
