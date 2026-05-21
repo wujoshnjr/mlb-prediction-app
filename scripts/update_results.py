@@ -3,7 +3,6 @@ import os
 import json
 import requests
 import time
-from datetime import datetime
 
 HISTORY_FILE = "data/historical_predictions.csv"
 LAST_GAME_FILE = "data/team_last_game.json"
@@ -20,6 +19,17 @@ def fetch_game_result(game_id):
             return 1 if home_runs > away_runs else 0
     except Exception as e:
         print(f"获取比赛 {game_id} 结果失败: {e}")
+    return None
+
+def fetch_closing_odds(game_id):
+    """
+    获取收盘赔率（未来可在此接入 API）
+    目前暂无法自动获取，返回 None
+    """
+    # 示例：未来可通过 Odds-API.io 的历史端点获取
+    # url = f"https://api.odds-api.io/v3/historical?event_id={game_id}&apiKey=..."
+    # resp = requests.get(url, timeout=10)
+    # ...
     return None
 
 def update_results():
@@ -39,10 +49,12 @@ def update_results():
 
     with open(HISTORY_FILE, 'r', newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
+        # 修复字段名中可能的 None 问题
         fieldnames = [fn for fn in reader.fieldnames if fn is not None]
         for row in reader:
             clean_row = {k: v for k, v in row.items() if k in fieldnames}
-            # 如果 home_win 为空且 game_id 存在，尝试获取结果
+
+            # 1. 更新比赛结果
             if clean_row.get("home_win", "").strip() == "" and clean_row.get("game_id", "").strip():
                 result = fetch_game_result(clean_row["game_id"])
                 if result is not None:
@@ -58,10 +70,16 @@ def update_results():
                         last_game_dict[home_team] = game_date
                     if away_team and game_date:
                         last_game_dict[away_team] = game_date
-
                 else:
                     print(f"⏳ {clean_row['home_team']} vs {clean_row['away_team']}: 比赛未结束或数据不可用")
                 time.sleep(0.5)
+
+            # 2. 尝试获取收盘赔率（如果 closing_odds 仍为空且 home_odds 已存在）
+            if "closing_odds" in clean_row and clean_row["closing_odds"].strip() == "":
+                closing = fetch_closing_odds(clean_row["game_id"])
+                if closing is not None:
+                    clean_row["closing_odds"] = str(closing)
+
             rows.append(clean_row)
 
     # 写回历史文件
