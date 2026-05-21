@@ -24,6 +24,7 @@ try:
 except:
     calculate_catcher_effect = None
 
+# 尝试加载训练好的模型（XGBoost + 校准）
 model = None
 try:
     import joblib
@@ -32,6 +33,7 @@ try:
 except:
     print("未找到训练模型，将使用手工集成")
 
+# 加载休息天数缓存
 LAST_GAME_FILE = "data/team_last_game.json"
 if os.path.exists(LAST_GAME_FILE):
     with open(LAST_GAME_FILE, 'r') as f:
@@ -39,6 +41,7 @@ if os.path.exists(LAST_GAME_FILE):
 else:
     last_game_dict = {}
 
+# 球队名到 MLB Stats API team_id 的映射（用于牛棚数据）
 TEAM_ID_MAP = {
     "Braves": 144, "Orioles": 110, "Red Sox": 111,
     "Cubs": 112, "White Sox": 145, "Reds": 113,
@@ -52,6 +55,7 @@ TEAM_ID_MAP = {
     "Blue Jays": 141, "Nationals": 120, "D-backs": 109
 }
 
+# 球队时区映射（用于旅行疲劳计算）
 TEAM_TIMEZONES = {
     "Braves": "Eastern", "Orioles": "Eastern", "Red Sox": "Eastern",
     "Cubs": "Central", "White Sox": "Central", "Reds": "Eastern",
@@ -104,11 +108,16 @@ def generate_predictions(elo_system=None):
         teams_df['win_pct'] = 0.5
     teams_df['win_pct'] = teams_df['win_pct'].fillna(0.5)
 
-    # ========== 修复赔率字典：只取主队赔率 ==========
+    # 确保有 runs_scored 和 runs_allowed 列
+    if 'runs_scored' not in teams_df.columns:
+        teams_df['runs_scored'] = 400
+    if 'runs_allowed' not in teams_df.columns:
+        teams_df['runs_allowed'] = 400
+
+    # ========== 赔率字典：只取主队赔率 ==========
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     if not odds_df.empty:
-        # 过滤出主队赔率行 (team == "home")
         home_odds_df = odds_df[odds_df['team'] == 'home']
         for _, row in home_odds_df.iterrows():
             key = (row.get('home_team'), row.get('away_team'))
@@ -340,6 +349,20 @@ def generate_predictions(elo_system=None):
         if avg_wind_speed > 10:
             wind_effect = 0.02 * avg_wind_speed * np.sin(np.radians(avg_wind_dir))
 
+        # ========== Pythagorean Record ==========
+        home_runs_scored = float(teams_df[teams_df['name'] == home]['runs_scored'].values[0])
+        home_runs_allowed = float(teams_df[teams_df['name'] == home]['runs_allowed'].values[0])
+        away_runs_scored = float(teams_df[teams_df['name'] == away]['runs_scored'].values[0])
+        away_runs_allowed = float(teams_df[teams_df['name'] == away]['runs_allowed'].values[0])
+
+        home_pythag = home_runs_scored**1.83 / (home_runs_scored**1.83 + home_runs_allowed**1.83) if (home_runs_scored + home_runs_allowed) > 0 else 0.5
+        away_pythag = away_runs_scored**1.83 / (away_runs_scored**1.83 + away_runs_allowed**1.83) if (away_runs_scored + away_runs_allowed) > 0 else 0.5
+        pythag_diff = home_pythag - away_pythag
+
+        # ========== Log5 概率 ==========
+        log5_home = (home_pct - home_pct * away_pct) / (home_pct + away_pct - 2 * home_pct * away_pct) if (home_pct + away_pct) > 0 else 0.5
+
+        # 特征向量
         features = {
             'elo_diff': round(elo_diff, 3),
             'market_prob': round(market_prob, 3) if market_prob else 0.5,
@@ -360,11 +383,13 @@ def generate_predictions(elo_system=None):
             'catcher_era_diff': round(catcher_era_diff, 3),
             'cs_diff': round(cs_diff, 3),
             'wind_effect': round(wind_effect, 4),
+            'pythag_diff': round(pythag_diff, 3),
+            'log5_prob': round(log5_home, 3),
             'home_winrate': round(home_pct, 3),
             'away_winrate': round(away_pct, 3)
         }
 
-        # 手工集成预测
+        # ---------- 手工集成预测 ----------
         weights = {'pct': 0.25, 'elo': 0.35, 'market': 0.40}
         if elo_system is None:
             weights['elo'] = 0
@@ -383,19 +408,31 @@ def generate_predictions(elo_system=None):
         sp_adj = -0.07 * sp_era_diff
         manual_pred = min(0.95, max(0.05, manual_pred + sp_adj))
 
-        # ML 预测
+        # ---------- 机器学习预测 ----------
         ml_pred = None
         if model is not None:
             feature_array = np.array([[
-                features['elo_diff'], features['market_prob'], features['sp_era_diff'],
-                features['sp_fip_diff'], features['bullpen_ip_diff'], features['rest_diff'],
-                features['park_factor'], features['platoon_ops_diff'],
-                features['statcast_launch_speed_diff'], features['statcast_barrel_diff'],
-                features['statcast_hard_hit_diff'], features['statcast_woba_diff'],
-                features['timezone_diff'], features['is_day_game'],
-                features['home_back2back'], features['away_back2back'],
-                features['catcher_era_diff'], features['cs_diff'],
-                features['wind_effect']
+                features['elo_diff'],
+                features['market_prob'],
+                features['sp_era_diff'],
+                features['sp_fip_diff'],
+                features['bullpen_ip_diff'],
+                features['rest_diff'],
+                features['park_factor'],
+                features['platoon_ops_diff'],
+                features['statcast_launch_speed_diff'],
+                features['statcast_barrel_diff'],
+                features['statcast_hard_hit_diff'],
+                features['statcast_woba_diff'],
+                features['timezone_diff'],
+                features['is_day_game'],
+                features['home_back2back'],
+                features['away_back2back'],
+                features['catcher_era_diff'],
+                features['cs_diff'],
+                features['wind_effect'],
+                features['pythag_diff'],
+                features['log5_prob']
             ]])
             try:
                 ml_pred = model.predict_proba(feature_array)[0, 1]
@@ -403,6 +440,7 @@ def generate_predictions(elo_system=None):
             except:
                 ml_pred = None
 
+        # ---------- 动态融合 ----------
         if ml_pred is not None and historical_count > 100:
             ml_weight = min(0.5, historical_count / 1000)
             pred_home = (1 - ml_weight) * manual_pred + ml_weight * ml_pred
@@ -442,6 +480,7 @@ def generate_predictions(elo_system=None):
             except:
                 pass
 
+        # 推荐生成
         ml_rec = "PASS"
         if kelly_ml > 0.05:
             ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
@@ -502,10 +541,13 @@ def generate_predictions(elo_system=None):
             "catcher_era_diff": features['catcher_era_diff'],
             "cs_diff": features['cs_diff'],
             "wind_effect": features['wind_effect'],
+            "pythag_diff": features['pythag_diff'],
+            "log5_prob": features['log5_prob'],
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate']
         })
 
+    # 战力排名
     power_rankings = teams_df.sort_values('win_pct', ascending=False).to_dict('records')
 
     output = {
@@ -521,7 +563,7 @@ def generate_predictions(elo_system=None):
         "errors": errors
     }
 
-    # 保存历史预测记录
+    # ========== 保存历史预测记录 ==========
     HISTORY_FILE = "data/historical_predictions.csv"
     os.makedirs("data", exist_ok=True)
     file_exists = os.path.exists(HISTORY_FILE)
@@ -541,6 +583,7 @@ def generate_predictions(elo_system=None):
                 "timezone_diff", "is_day_game",
                 "home_back2back", "away_back2back",
                 "catcher_era_diff", "cs_diff", "wind_effect",
+                "pythag_diff", "log5_prob",
                 "closing_odds"
             ])
         for p in predictions:
@@ -557,7 +600,7 @@ def generate_predictions(elo_system=None):
                 p.get("spread_recommendation", ""),
                 p.get("total_recommendation", ""),
                 p.get("kelly_fraction", ""),
-                "",
+                "",                     # home_win 留空
                 p.get("elo_diff", ""),
                 p.get("market_prob", ""),
                 p.get("sp_era_diff", ""),
@@ -577,7 +620,9 @@ def generate_predictions(elo_system=None):
                 p.get("catcher_era_diff", ""),
                 p.get("cs_diff", ""),
                 p.get("wind_effect", ""),
-                ""
+                p.get("pythag_diff", ""),
+                p.get("log5_prob", ""),
+                ""                      # closing_odds 留空
             ])
     print(f"历史预测已追加至 {HISTORY_FILE}")
 
