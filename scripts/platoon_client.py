@@ -1,20 +1,40 @@
+"""
+Platoon 拆分客户端
+获取球队对左/右投手的打击数据
+"""
 import requests
 import pandas as pd
 
-def fetch_platoon_splits(season=2026):
-    """获取所有球队对左/右投的 wOBA 或 OPS 拆分"""
+def fetch_platoon_splits(season=2026, errors=None):
+    """获取所有球队对左/右投的 OPS 拆分"""
     url = "https://statsapi.mlb.com/api/v1/stats"
     params = {
         "stats": "season",
         "season": season,
         "group": "hitting",
         "gameType": "R",
-        "limit": 300  # 足够覆盖所有球队
+        "split": "vsLhp,vsRhp",   # 关键：按投手左右拆分
+        "limit": 60               # 30队 × 2拆分
     }
-    resp = requests.get(url, params=params, timeout=15)
-    resp.raise_for_status()
-    data = resp.json()
-    # 解析球队 split 数据（需按 pitcher_hand 分组，这里简化处理）
-    # 返回一个 DataFrame，包含 team_name, vs_lhp_ops, vs_rhp_ops
-    # 具体解析逻辑略，根据 API 返回结构调整
-    return pd.DataFrame()
+    try:
+        resp = requests.get(url, params=params, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as e:
+        if errors is not None:
+            errors.append(f"Platoon fetch error: {e}")
+        return pd.DataFrame()
+
+    rows = []
+    for split in data.get("stats", []):
+        split_type = split.get("split", "vsRhp")
+        for s in split.get("splits", []):
+            team_name = s.get("team", {}).get("name", "")
+            stat = s.get("stat", {})
+            rows.append({
+                "team_name": team_name,
+                "split": split_type,
+                "ops": stat.get("ops", "0.700"),
+                "woba": stat.get("woba", "0.310")
+            })
+    return pd.DataFrame(rows)
