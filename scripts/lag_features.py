@@ -1,6 +1,6 @@
 """
 滞后特征生成器
-计算球队最近7/14/30天的滚动指标
+计算球队最近7/14/30天的滚动胜率和场均得分
 """
 import pandas as pd
 import numpy as np
@@ -8,8 +8,8 @@ from datetime import datetime, timedelta
 
 def calculate_lag_features(home_team, away_team, historical_games_df, date_str, days=30):
     """
-    historical_games_df: 包含 home_team, away_team, home_score, away_score, date 的历史比赛数据
-    返回: home_winrate_30d, away_winrate_30d, home_avg_runs_30d, away_avg_runs_30d
+    historical_games_df: 必须包含 home_team, away_team, home_score, away_score, date 列
+    返回: (home_winrate, away_winrate, home_avg_runs, away_avg_runs)
     """
     if historical_games_df is None or historical_games_df.empty:
         return 0.5, 0.5, 4.5, 4.5
@@ -18,41 +18,22 @@ def calculate_lag_features(home_team, away_team, historical_games_df, date_str, 
     cutoff = current_date - timedelta(days=days)
     cutoff_str = cutoff.strftime("%Y-%m-%d")
 
-    # 筛选最近N天的比赛
-    recent_games = historical_games_df[historical_games_df['date'] >= cutoff_str]
+    recent = historical_games_df[historical_games_df['date'] >= cutoff_str]
 
-    # 主队近N战胜率及场均得分
-    home_games = recent_games[
-        (recent_games['home_team'] == home_team) | (recent_games['away_team'] == home_team)
-    ]
-    home_wins = len(home_games[
-        ((home_games['home_team'] == home_team) & (home_games['home_score'] > home_games['away_score'])) |
-        ((home_games['away_team'] == home_team) & (home_games['away_score'] > home_games['home_score']))
-    ])
-    home_winrate = home_wins / len(home_games) if len(home_games) > 0 else 0.5
-    home_runs_list = []
-    for _, g in home_games.iterrows():
-        if g['home_team'] == home_team:
-            home_runs_list.append(g['home_score'])
+    def get_team_winrate_and_runs(team, is_home):
+        if is_home:
+            games = recent[recent['home_team'] == team]
+            wins = len(games[games['home_score'] > games['away_score']])
+            runs = games['home_score'].tolist()
         else:
-            home_runs_list.append(g['away_score'])
-    home_avg_runs = np.mean(home_runs_list) if home_runs_list else 4.5
+            games = recent[recent['away_team'] == team]
+            wins = len(games[games['away_score'] > games['home_score']])
+            runs = games['away_score'].tolist()
+        winrate = wins / len(games) if len(games) > 0 else 0.5
+        avg_runs = np.mean(runs) if runs else 4.5
+        return winrate, avg_runs
 
-    # 客队近N战胜率及场均得分
-    away_games = recent_games[
-        (recent_games['home_team'] == away_team) | (recent_games['away_team'] == away_team)
-    ]
-    away_wins = len(away_games[
-        ((away_games['home_team'] == away_team) & (away_games['home_score'] > away_games['away_score'])) |
-        ((away_games['away_team'] == away_team) & (away_games['away_score'] > away_games['home_score']))
-    ])
-    away_winrate = away_wins / len(away_games) if len(away_games) > 0 else 0.5
-    away_runs_list = []
-    for _, g in away_games.iterrows():
-        if g['home_team'] == away_team:
-            away_runs_list.append(g['home_score'])
-        else:
-            away_runs_list.append(g['away_score'])
-    away_avg_runs = np.mean(away_runs_list) if away_runs_list else 4.5
+    home_winrate, home_avg_runs = get_team_winrate_and_runs(home_team, True)
+    away_winrate, away_avg_runs = get_team_winrate_and_runs(away_team, False)
 
     return home_winrate, away_winrate, home_avg_runs, away_avg_runs
