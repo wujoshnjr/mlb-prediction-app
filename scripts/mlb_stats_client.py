@@ -1,6 +1,3 @@
-"""
-MLB Stats API 客户端（增强版：含捕手、日场信息）
-"""
 import requests
 import pandas as pd
 from datetime import datetime
