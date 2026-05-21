@@ -163,7 +163,6 @@ HTML = """
         function renderAll(data) {
             document.getElementById('update-time').innerText = '🕒 更新時間：' + (data.generated_at ? new Date(data.generated_at).toLocaleString('zh-TW') : '未知');
             
-            // 摘要
             const mlBets = data.bet_summary?.moneyline_bets?.length || 0;
             const spreadBets = data.bet_summary?.spread_bets?.length || 0;
             const totalBets = data.bet_summary?.total_bets?.length || 0;
