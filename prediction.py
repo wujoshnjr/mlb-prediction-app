@@ -32,6 +32,7 @@ try:
 except:
     filter_value_bets = None
 
+# 尝试加载训练好的集成模型（XGBoost + LightGBM + 校准）
 model = None
 try:
     import joblib
@@ -40,6 +41,7 @@ try:
 except:
     print("未找到训练模型，将使用手工集成")
 
+# 加载休息天数缓存
 LAST_GAME_FILE = "data/team_last_game.json"
 if os.path.exists(LAST_GAME_FILE):
     with open(LAST_GAME_FILE, 'r') as f:
@@ -47,6 +49,7 @@ if os.path.exists(LAST_GAME_FILE):
 else:
     last_game_dict = {}
 
+# 球队名到 MLB Stats API team_id 的映射（用于牛棚数据）
 TEAM_ID_MAP = {
     "Braves": 144, "Orioles": 110, "Red Sox": 111,
     "Cubs": 112, "White Sox": 145, "Reds": 113,
@@ -60,6 +63,7 @@ TEAM_ID_MAP = {
     "Blue Jays": 141, "Nationals": 120, "D-backs": 109
 }
 
+# 球队时区映射（用于旅行疲劳计算）
 TEAM_TIMEZONES = {
     "Braves": "Eastern", "Orioles": "Eastern", "Red Sox": "Eastern",
     "Cubs": "Central", "White Sox": "Central", "Reds": "Eastern",
@@ -100,6 +104,7 @@ def generate_predictions(elo_system=None):
             print("ELO 模块未安装，将使用基础预测")
             elo_system = None
 
+    # 球队战力
     teams_df = pd.DataFrame(data.get('sportsipy_teams', []))
     if teams_df.empty:
         teams_df = pd.DataFrame(columns=['name', 'wins', 'losses', 'win_pct'])
@@ -115,6 +120,7 @@ def generate_predictions(elo_system=None):
     if 'runs_allowed' not in teams_df.columns:
         teams_df['runs_allowed'] = 400
 
+    # 赔率字典（只取主队赔率）
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     if not odds_df.empty:
@@ -170,10 +176,26 @@ def generate_predictions(elo_system=None):
                 grouped.rename(columns={team_col: 'team_name'}, inplace=True)
                 statcast_team_stats[side_label] = grouped
 
+    # 新增：投球位移与转速聚合（按主队聚合，因为投手是主队/客队的投手，我们取整体）
+    pitch_movement_dict = {}
+    if not savant_df.empty and 'pfx_x' in savant_df.columns:
+        # 使用 home_team 作为投手所属球队（近似）
+        pitch_df = savant_df[['home_team', 'pfx_x', 'pfx_z', 'release_spin_rate']].dropna()
+        if not pitch_df.empty:
+            team_pitch = pitch_df.groupby('home_team').agg(
+                avg_pfx_x=('pfx_x', 'mean'),
+                avg_pfx_z=('pfx_z', 'mean'),
+                avg_spin_rate=('release_spin_rate', 'mean')
+            ).reset_index()
+            team_pitch.rename(columns={'home_team': 'team_name'}, inplace=True)
+            for _, row in team_pitch.iterrows():
+                pitch_movement_dict[row['team_name']] = row.to_dict()
+
     weather_df = pd.DataFrame(data.get('openmeteo_weather', []))
     avg_wind_speed = weather_df['wind_speed'].mean() if not weather_df.empty else 0
     avg_wind_dir = weather_df['wind_direction'].mean() if not weather_df.empty else 0
 
+    # 加载历史比赛数据用于滞后特征
     historical_df = None
     hist_dir = "data/historical"
     if os.path.exists(hist_dir):
@@ -306,6 +328,7 @@ def generate_predictions(elo_system=None):
             if home_catcher_id and away_catcher_id:
                 catcher_era_diff, cs_diff = calculate_catcher_effect(home_catcher_id, away_catcher_id, 2026)
 
+        # Statcast 击球品质差值
         statcast_launch_speed_diff = 0.0
         statcast_barrel_diff = 0.0
         statcast_hard_hit_diff = 0.0
@@ -321,6 +344,16 @@ def generate_predictions(elo_system=None):
                     statcast_barrel_diff = home_row.iloc[0]['barrel_rate'] - away_row.iloc[0]['barrel_rate']
                     statcast_hard_hit_diff = home_row.iloc[0]['hard_hit_rate'] - away_row.iloc[0]['hard_hit_rate']
                     statcast_woba_diff = home_row.iloc[0]['avg_expected_woba'] - away_row.iloc[0]['avg_expected_woba']
+
+        # 投球位移差值（新增）
+        pitch_movement_diff = 0.0
+        if pitch_movement_dict:
+            home_pitch = pitch_movement_dict.get(home)
+            away_pitch = pitch_movement_dict.get(away)
+            if home_pitch and away_pitch:
+                home_movement = np.sqrt(home_pitch['avg_pfx_x']**2 + home_pitch['avg_pfx_z']**2)
+                away_movement = np.sqrt(away_pitch['avg_pfx_x']**2 + away_pitch['avg_pfx_z']**2)
+                pitch_movement_diff = home_movement - away_movement
 
         wind_effect = 0.0
         if avg_wind_speed > 10:
@@ -372,6 +405,7 @@ def generate_predictions(elo_system=None):
             'log5_prob': round(log5_home, 3),
             'lag30_winrate_diff': round(lag30_winrate_diff, 3),
             'lag30_runs_diff': round(lag30_runs_diff, 3),
+            'pitch_movement_diff': round(pitch_movement_diff, 3),
             'home_winrate': round(home_pct, 3),
             'away_winrate': round(away_pct, 3)
         }
@@ -409,7 +443,7 @@ def generate_predictions(elo_system=None):
                 features['catcher_era_diff'], features['cs_diff'],
                 features['wind_effect'], features['pythag_diff'],
                 features['log5_prob'], features['lag30_winrate_diff'],
-                features['lag30_runs_diff']
+                features['lag30_runs_diff'], features['pitch_movement_diff']
             ]])
             try:
                 ml_pred = model.predict_proba(feature_array)[0, 1]
@@ -457,7 +491,6 @@ def generate_predictions(elo_system=None):
             except:
                 pass
 
-        # 推荐
         ml_rec = "PASS"
         if kelly_ml > 0.05:
             ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
@@ -526,6 +559,7 @@ def generate_predictions(elo_system=None):
             "log5_prob": features['log5_prob'],
             "lag30_winrate_diff": features['lag30_winrate_diff'],
             "lag30_runs_diff": features['lag30_runs_diff'],
+            "pitch_movement_diff": features['pitch_movement_diff'],
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate'],
             "top_features": top_features,
@@ -572,6 +606,7 @@ def generate_predictions(elo_system=None):
                 "catcher_era_diff", "cs_diff", "wind_effect",
                 "pythag_diff", "log5_prob",
                 "lag30_winrate_diff", "lag30_runs_diff",
+                "pitch_movement_diff",
                 "closing_odds", "top_features", "market_divergence"
             ])
         for p in predictions:
@@ -588,6 +623,7 @@ def generate_predictions(elo_system=None):
                 p.get("catcher_era_diff", ""), p.get("cs_diff", ""), p.get("wind_effect", ""),
                 p.get("pythag_diff", ""), p.get("log5_prob", ""),
                 p.get("lag30_winrate_diff", ""), p.get("lag30_runs_diff", ""),
+                p.get("pitch_movement_diff", ""),
                 "",  # closing_odds
                 ";".join(p.get("top_features", [])) if isinstance(p.get("top_features"), list) else p.get("top_features", ""),
                 p.get("market_divergence", 0)
