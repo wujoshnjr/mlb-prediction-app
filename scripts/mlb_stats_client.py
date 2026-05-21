@@ -1,5 +1,5 @@
 """
-MLB Stats API 客户端（增强版：包含 lineup 捕手信息、日场/夜场）
+MLB Stats API 客户端（增强版：含捕手、日场信息）
 """
 import requests
 import pandas as pd
@@ -34,39 +34,27 @@ def fetch_mlb_statsapi(date_str: str = None, errors: list = None) -> pd.DataFram
             home_team = teams.get("home", {}).get("team", {})
             away_team = teams.get("away", {}).get("team", {})
             venue = game.get("venue", {}).get("name", "")
-
-            # 先发投手
-            home_pitcher_id = None
-            away_pitcher_id = None
+            home_pitcher_id = away_pitcher_id = None
             if teams.get("home", {}).get("probablePitcher"):
                 home_pitcher_id = teams["home"]["probablePitcher"]["id"]
             if teams.get("away", {}).get("probablePitcher"):
                 away_pitcher_id = teams["away"]["probablePitcher"]["id"]
-
-            # 先发捕手（从 lineup 中获取 catcher 位置球员，position code = 2）
-            home_catcher_id = None
-            away_catcher_id = None
+            home_catcher_id = away_catcher_id = None
             try:
-                home_lineup = teams["home"].get("lineup", {}).get("lineup", [])
-                for player in home_lineup:
+                for player in teams["home"].get("lineup", {}).get("lineup", []):
                     if player.get("position", {}).get("code") == "2":
-                        home_catcher_id = player.get("player", {}).get("id")
+                        home_catcher_id = player["player"]["id"]
                         break
             except:
                 pass
             try:
-                away_lineup = teams["away"].get("lineup", {}).get("lineup", [])
-                for player in away_lineup:
+                for player in teams["away"].get("lineup", {}).get("lineup", []):
                     if player.get("position", {}).get("code") == "2":
-                        away_catcher_id = player.get("player", {}).get("id")
+                        away_catcher_id = player["player"]["id"]
                         break
             except:
                 pass
-
-            # 日场/夜场
-            day_night = game.get("dayNight", "")
-            is_day_game = 1 if "day" in str(day_night).lower() else 0
-
+            is_day_game = 1 if "day" in str(game.get("dayNight", "")).lower() else 0
             games.append({
                 "game_id": game_id,
                 "game_date": game_date,
