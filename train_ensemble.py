@@ -13,14 +13,17 @@ HISTORY_FILE = "data/historical_predictions.csv"
 MODEL_OUTPUT = "data/calibrator.pkl"
 
 EXPECTED_FEATURES = [
-    'elo_diff','market_prob','sp_era_diff','sp_fip_diff','bullpen_ip_diff','rest_diff','park_factor',
+    'elo_diff','market_prob','sp_era_diff','sp_fip_diff','bullpen_ip_diff','rest_diff',
+    'dynamic_park_factor',          # 替换原 park_factor
     'platoon_ops_diff','statcast_launch_speed_diff','statcast_barrel_diff','statcast_hard_hit_diff',
     'statcast_woba_diff','timezone_diff','is_day_game','home_back2back','away_back2back',
     'catcher_era_diff','cs_diff','wind_effect',
     'temp_effect','precip_effect','injury_diff',
     'pythag_diff','log5_prob','lag30_winrate_diff','lag30_runs_diff',
     'pitch_movement_diff',
-    'k_pct_diff', 'bb_pct_diff', 'avg_bat_speed_diff'
+    'k_pct_diff','bb_pct_diff','avg_bat_speed_diff',
+    'pitcher_rating_diff',          # 新增
+    'odds_change'                   # 新增
 ]
 
 def prepare_data():
@@ -99,17 +102,9 @@ def train():
     best_lgb = LGBMClassifier(**study_lgb.best_params, verbose=-1, random_state=42)
     print("LightGBM 最佳参数:", study_lgb.best_params)
 
-    # 软投票集成
-    ensemble = VotingClassifier(
-        estimators=[('xgb', best_xgb), ('lgb', best_lgb)],
-        voting='soft'
-    )
+    ensemble = VotingClassifier(estimators=[('xgb', best_xgb), ('lgb', best_lgb)], voting='soft')
 
-    calibrated = CalibratedClassifierCV(
-        estimator=ensemble,
-        method='isotonic',
-        cv=tscv
-    )
+    calibrated = CalibratedClassifierCV(estimator=ensemble, method='isotonic', cv=tscv)
     calibrated.fit(X, y)
 
     joblib.dump(calibrated, MODEL_OUTPUT)
