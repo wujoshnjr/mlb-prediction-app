@@ -78,7 +78,7 @@ def generate_predictions(elo_system=None):
             print("ELO 模块未安装，将使用基础预测")
             elo_system = None
 
-    # 球队战力
+    # ----- 球队战力 -----
     teams_df = pd.DataFrame(data.get('sportsipy_teams', []))
     if teams_df.empty:
         teams_df = pd.DataFrame(columns=['name', 'wins', 'losses', 'win_pct'])
@@ -90,7 +90,7 @@ def generate_predictions(elo_system=None):
         teams_df['win_pct'] = 0.5
     teams_df['win_pct'] = teams_df['win_pct'].fillna(0.5)
 
-    # 赔率字典
+    # ----- 赔率字典 -----
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     for _, row in odds_df.iterrows():
@@ -99,25 +99,44 @@ def generate_predictions(elo_system=None):
             odds_dict[key] = []
         odds_dict[key].append(row.get('odds'))
 
-    # 赛程
+    # ----- 赛程 -----
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
     print(f"当日比赛数量: {len(schedule_df)}")
 
-    # 投手数据
+    # ----- 投手数据 -----
     pitchers_df = pd.DataFrame(data.get('pitchers', []))
     pitcher_dict = {}
     if not pitchers_df.empty:
         for _, row in pitchers_df.iterrows():
             pitcher_dict[row['game_id']] = row
 
-    # 牛棚数据
+    # ----- 牛棚数据 -----
     bullpen_df = pd.DataFrame(data.get('bullpen', []))
     bullpen_dict = {}
     if not bullpen_df.empty:
         for _, row in bullpen_df.iterrows():
             bullpen_dict[row['team_id']] = row
 
-    # 队名映射
+    # ----- Platoon 数据 -----
+    platoon_df = pd.DataFrame(data.get('platoon', []))
+    # 建立 (球队名, split) -> ops 的字典
+    platoon_dict = {}
+    if not platoon_df.empty:
+        for _, row in platoon_df.iterrows():
+            platoon_dict[(row['team_name'], row['split'])] = row['ops']
+
+    # ----- Statcast 进阶特征（团队近7天平均）-----
+    savant_df = pd.DataFrame(data.get('savant_statcast', []))
+    team_statcast = {}
+    if not savant_df.empty:
+        # 使用 home_team 和 away_team 的 pitcher/batter 数据聚合（此处简化：使用所有数据按 team 聚合）
+        # 由于 Savant 数据包含投手和打者信息，我们需要按球队分别计算击球品质均值。
+        # 这里简单使用所有事件中的 hitting 指标，按 game_date 关联球队名（需要从 schedule 中匹配）。
+        # 为减少复杂度，我们假设 savant 数据中已经有 team 信息（实际上 MLB Savant 会提供 home_team 和 away_team），但我们的抓取没有球队字段。
+        # 因此暂时跳过此特征，待优化抓取时加入球队关联。留作后续升级。
+        pass
+
+    # ----- 队名映射 -----
     team_name_map = {
         "Cleveland Guardians": "Guardians",
         "Detroit Tigers": "Tigers",
@@ -158,7 +177,6 @@ def generate_predictions(elo_system=None):
     if os.path.exists(HIST_FILE):
         try:
             hist_df = pd.read_csv(HIST_FILE)
-            # 只计算已经有结果的比赛
             if 'home_win' in hist_df.columns:
                 hist_df = hist_df[hist_df['home_win'].notna()]
                 historical_count = len(hist_df)
@@ -191,22 +209,20 @@ def generate_predictions(elo_system=None):
         home_odds = np.mean(avg_odds) if avg_odds else None
         market_prob = implied_prob(home_odds) if home_odds else 0.5
 
-        # 投手 ERA 差值
+        # 投手数据
         pitcher_data = pitcher_dict.get(game.get('game_id'))
         sp_era_diff = 0.0
-        home_era = 4.5
-        away_era = 4.5
+        sp_fip_diff = 0.0
+        home_pitcher_hand = "R"   # 默认右投，后续可从 pitcher_client 扩展获取投手投球手
+        away_pitcher_hand = "R"
         if pitcher_data is not None:
             home_era = float(pitcher_data.get('home_era') or 4.5)
             away_era = float(pitcher_data.get('away_era') or 4.5)
             sp_era_diff = home_era - away_era
-
-        # 投手 FIP 差值
-        sp_fip_diff = 0.0
-        if pitcher_data is not None:
             home_fip = float(pitcher_data.get('home_fip') or 4.0)
             away_fip = float(pitcher_data.get('away_fip') or 4.0)
             sp_fip_diff = home_fip - away_fip
+            # 投球手信息暂时缺失，留待后续从 pitcher_id 查询
 
         # 休息天数差异
         try:
@@ -223,7 +239,7 @@ def generate_predictions(elo_system=None):
         except:
             rest_diff = 0
 
-        # 牛棚局数差值（疲劳度）
+        # 牛棚局数差值
         bullpen_ip_diff = 0.0
         home_id = TEAM_ID_MAP.get(home)
         away_id = TEAM_ID_MAP.get(away)
@@ -241,6 +257,20 @@ def generate_predictions(elo_system=None):
         from scripts.park_factors import get_park_factor
         park_factor = get_park_factor(game.get('venue', ''))
 
+        # Platoon 拆分特征 (基于先发投手投球手)
+        platoon_ops_diff = 0.0
+        if not platoon_df.empty:
+            # 主队打者面对客队投手的投球手 (away_pitcher_hand)，客队打者面对主队投手 (home_pitcher_hand)
+            home_split_key = f"vs{away_pitcher_hand}hp"
+            away_split_key = f"vs{home_pitcher_hand}hp"
+            home_ops = platoon_dict.get((home, home_split_key))
+            away_ops = platoon_dict.get((away, away_split_key))
+            if home_ops is not None and away_ops is not None:
+                try:
+                    platoon_ops_diff = float(home_ops) - float(away_ops)
+                except:
+                    pass
+
         # 特征向量
         features = {
             'elo_diff': round(elo_diff, 3),
@@ -250,6 +280,7 @@ def generate_predictions(elo_system=None):
             'bullpen_ip_diff': round(bullpen_ip_diff, 3),
             'rest_diff': rest_diff,
             'park_factor': park_factor,
+            'platoon_ops_diff': round(platoon_ops_diff, 3),
             'home_winrate': round(home_pct, 3),
             'away_winrate': round(away_pct, 3)
         }
@@ -276,7 +307,6 @@ def generate_predictions(elo_system=None):
         # 机器学习预测（如果模型存在）
         ml_pred = None
         if model is not None:
-            # 使用当前特征（与训练时顺序一致）
             feature_array = np.array([[
                 features['elo_diff'],
                 features['market_prob'],
@@ -284,7 +314,8 @@ def generate_predictions(elo_system=None):
                 features['sp_fip_diff'],
                 features['bullpen_ip_diff'],
                 features['rest_diff'],
-                features['park_factor']
+                features['park_factor'],
+                features['platoon_ops_diff']
             ]])
             try:
                 ml_pred = model.predict_proba(feature_array)[0, 1]
@@ -320,7 +351,6 @@ def generate_predictions(elo_system=None):
                 away_runs_col = teams_df[teams_df['name'] == away]['runs_scored'].values if 'runs_scored' in teams_df.columns else []
                 hr = float(home_runs_col[0]) if len(home_runs_col) > 0 else 4.5
                 ar = float(away_runs_col[0]) if len(away_runs_col) > 0 else 4.5
-                # 使用公园因子调整期望得分
                 hr_adj = hr * park_factor
                 ar_adj = ar * park_factor
                 sim = MonteCarloSimulator(hr_adj, ar_adj, n_simulations=5000)
@@ -333,7 +363,7 @@ def generate_predictions(elo_system=None):
             except:
                 pass
 
-        # 推荐
+        # 推荐生成
         ml_rec = "PASS"
         if kelly_ml > 0.05:
             ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
@@ -382,6 +412,7 @@ def generate_predictions(elo_system=None):
             "bullpen_ip_diff": features['bullpen_ip_diff'],
             "rest_diff": features['rest_diff'],
             "park_factor": features['park_factor'],
+            "platoon_ops_diff": features['platoon_ops_diff'],
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate']
         })
@@ -414,7 +445,8 @@ def generate_predictions(elo_system=None):
                 "pred_home_win", "home_odds", "elo_home", "elo_away",
                 "ml_rec", "spread_rec", "total_rec",
                 "kelly_fraction", "home_win",
-                "elo_diff", "market_prob", "sp_era_diff", "sp_fip_diff", "bullpen_ip_diff", "rest_diff", "park_factor"
+                "elo_diff", "market_prob", "sp_era_diff", "sp_fip_diff",
+                "bullpen_ip_diff", "rest_diff", "park_factor", "platoon_ops_diff"
             ])
         for p in predictions:
             writer.writerow([
@@ -437,7 +469,8 @@ def generate_predictions(elo_system=None):
                 p.get("sp_fip_diff", ""),
                 p.get("bullpen_ip_diff", ""),
                 p.get("rest_diff", ""),
-                p.get("park_factor", "")
+                p.get("park_factor", ""),
+                p.get("platoon_ops_diff", "")
             ])
     print(f"历史预测已追加至 {HISTORY_FILE}")
 
