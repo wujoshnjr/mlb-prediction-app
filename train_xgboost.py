@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-训练 XGBoost 模型并进行概率校准
+训练 XGBoost 模型并进行概率校准（含所有高级特征）
 """
 import pandas as pd
 import numpy as np
@@ -25,7 +25,14 @@ EXPECTED_FEATURES = [
     'statcast_launch_speed_diff',
     'statcast_barrel_diff',
     'statcast_hard_hit_diff',
-    'statcast_woba_diff'
+    'statcast_woba_diff',
+    'timezone_diff',
+    'is_day_game',
+    'home_back2back',
+    'away_back2back',
+    'catcher_era_diff',
+    'cs_diff',
+    'wind_effect'
 ]
 
 def prepare_data():
