@@ -1,3 +1,7 @@
+"""
+Platoon 拆分客户端
+获取所有球队对左/右投手的打击数据 (OPS)
+"""
 import requests
 import pandas as pd
 
