@@ -88,7 +88,10 @@ FEATURE_DIRECTION = {
     'cs_diff': 1, 'wind_effect': 1, 'temp_effect': 1,
     'precip_effect': -1, 'injury_diff': -1, 'pythag_diff': 1,
     'log5_prob': 1, 'lag30_winrate_diff': 1, 'lag30_runs_diff': 1,
-    'pitch_movement_diff': 1
+    'pitch_movement_diff': 1,
+    'k_pct_diff': -1,       # 主队打者三振率高，不利
+    'bb_pct_diff': 1,       # 主队打者保送率高，有利
+    'avg_bat_speed_diff': 1 # 主队挥棒速度快，有利
 }
 
 def implied_prob(odds):
@@ -133,6 +136,11 @@ def generate_predictions(elo_system=None):
         teams_df['runs_scored'] = 400
     if 'runs_allowed' not in teams_df.columns:
         teams_df['runs_allowed'] = 400
+
+    # 补充 K% 和 BB% 字段默认值（若 sportsipy_client 未提供）
+    for col in ['home_k_pct', 'home_bb_pct', 'away_k_pct', 'away_bb_pct']:
+        if col not in teams_df.columns:
+            teams_df[col] = 0.2 if 'k' in col else 0.08
 
     # 赔率字典（只取主队赔率，并标注来源）
     odds_df = pd.DataFrame(data.get('odds_data', []))
@@ -204,6 +212,16 @@ def generate_predictions(elo_system=None):
             team_pitch.rename(columns={'home_team': 'team_name'}, inplace=True)
             for _, row in team_pitch.iterrows():
                 pitch_movement_dict[row['team_name']] = row.to_dict()
+
+    # 团队平均挥棒速度
+    bat_speed_dict = {}
+    if not savant_df.empty and 'bat_speed' in savant_df.columns:
+        bat_speed_df = savant_df[['home_team', 'bat_speed']].dropna()
+        if not bat_speed_df.empty:
+            team_bat = bat_speed_df.groupby('home_team')['bat_speed'].mean().reset_index()
+            team_bat.rename(columns={'home_team': 'team_name'}, inplace=True)
+            for _, row in team_bat.iterrows():
+                bat_speed_dict[row['team_name']] = row['bat_speed']
 
     weather_df = pd.DataFrame(data.get('openmeteo_weather', []))
     avg_wind_speed = weather_df['wind_speed'].mean() if not weather_df.empty else 0
@@ -390,7 +408,24 @@ def generate_predictions(elo_system=None):
                 away_movement = np.sqrt(away_pitch['avg_pfx_x']**2 + away_pitch['avg_pfx_z']**2)
                 pitch_movement_diff = home_movement - away_movement
 
-        # 环境效应（温度、湿度、降水）
+        # 团队 K% 和 BB% 差异
+        home_k_pct = teams_df[teams_df['name'] == home]['home_k_pct'].values[0]
+        away_k_pct = teams_df[teams_df['name'] == away]['away_k_pct'].values[0]
+        k_pct_diff = home_k_pct - away_k_pct
+
+        home_bb_pct = teams_df[teams_df['name'] == home]['home_bb_pct'].values[0]
+        away_bb_pct = teams_df[teams_df['name'] == away]['away_bb_pct'].values[0]
+        bb_pct_diff = home_bb_pct - away_bb_pct
+
+        # 挥棒速度差值
+        avg_bat_speed_diff = 0.0
+        if bat_speed_dict:
+            home_bs = bat_speed_dict.get(home)
+            away_bs = bat_speed_dict.get(away)
+            if home_bs is not None and away_bs is not None:
+                avg_bat_speed_diff = home_bs - away_bs
+
+        # 环境效应
         temp_effect = 0.0
         if avg_temp > 25:
             temp_effect = 0.02 * (avg_temp - 25)
@@ -456,6 +491,9 @@ def generate_predictions(elo_system=None):
             'lag30_winrate_diff': round(lag30_winrate_diff, 3),
             'lag30_runs_diff': round(lag30_runs_diff, 3),
             'pitch_movement_diff': round(pitch_movement_diff, 3),
+            'k_pct_diff': round(k_pct_diff, 3),
+            'bb_pct_diff': round(bb_pct_diff, 3),
+            'avg_bat_speed_diff': round(avg_bat_speed_diff, 3),
             'home_winrate': round(home_pct, 3),
             'away_winrate': round(away_pct, 3)
         }
@@ -495,7 +533,9 @@ def generate_predictions(elo_system=None):
                 features['precip_effect'], features['injury_diff'],
                 features['pythag_diff'], features['log5_prob'],
                 features['lag30_winrate_diff'], features['lag30_runs_diff'],
-                features['pitch_movement_diff']
+                features['pitch_movement_diff'],
+                features['k_pct_diff'], features['bb_pct_diff'],
+                features['avg_bat_speed_diff']
             ]])
             try:
                 ml_pred = model.predict_proba(feature_array)[0, 1]
@@ -625,6 +665,9 @@ def generate_predictions(elo_system=None):
             "lag30_winrate_diff": features['lag30_winrate_diff'],
             "lag30_runs_diff": features['lag30_runs_diff'],
             "pitch_movement_diff": features['pitch_movement_diff'],
+            "k_pct_diff": features['k_pct_diff'],
+            "bb_pct_diff": features['bb_pct_diff'],
+            "avg_bat_speed_diff": features['avg_bat_speed_diff'],
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate'],
             "top_features": top_features,
@@ -674,6 +717,7 @@ def generate_predictions(elo_system=None):
                 "pythag_diff", "log5_prob",
                 "lag30_winrate_diff", "lag30_runs_diff",
                 "pitch_movement_diff",
+                "k_pct_diff", "bb_pct_diff", "avg_bat_speed_diff",
                 "closing_odds", "top_features", "market_divergence", "odds_source"
             ])
         for p in predictions:
@@ -692,6 +736,7 @@ def generate_predictions(elo_system=None):
                 p.get("pythag_diff", ""), p.get("log5_prob", ""),
                 p.get("lag30_winrate_diff", ""), p.get("lag30_runs_diff", ""),
                 p.get("pitch_movement_diff", ""),
+                p.get("k_pct_diff", ""), p.get("bb_pct_diff", ""), p.get("avg_bat_speed_diff", ""),
                 "",  # closing_odds
                 ";".join(p.get("top_features", [])) if isinstance(p.get("top_features"), list) else p.get("top_features", ""),
                 p.get("market_divergence", 0),
