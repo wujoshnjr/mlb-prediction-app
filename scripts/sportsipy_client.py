@@ -3,7 +3,6 @@ import requests
 
 def fetch_sportsipy(date_str=None, errors=None):
     year = 2026
-    # 1. 获取 standings
     try:
         url = "https://statsapi.mlb.com/api/v1/standings"
         params = {"leagueId": "103,104", "season": year}
@@ -27,16 +26,13 @@ def fetch_sportsipy(date_str=None, errors=None):
             errors.append(f"Sportsipy standings error: {e}")
         df_teams = pd.DataFrame()
 
-    # 2. 获取团队总得分/失分
     try:
         stats_url = "https://statsapi.mlb.com/api/v1/stats"
-        # 进攻
         resp = requests.get(stats_url, params={"stats":"season","season":year,"group":"hitting","gameType":"R","limit":30}, timeout=15)
         runs_scored_map = {}
         if resp.status_code == 200:
             for split in resp.json().get("stats",[[]])[0].get("splits",[]):
                 runs_scored_map[split["team"]["name"]] = split["stat"].get("runs",0)
-        # 投球
         resp = requests.get(stats_url, params={"stats":"season","season":year,"group":"pitching","gameType":"R","limit":30}, timeout=15)
         runs_allowed_map = {}
         if resp.status_code == 200:
