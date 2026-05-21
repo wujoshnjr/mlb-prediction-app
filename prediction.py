@@ -77,6 +77,20 @@ TEAM_TIMEZONES = {
     "Blue Jays": "Eastern", "Nationals": "Eastern", "D-backs": "Mountain"
 }
 
+# 特征方向字典（用于可解释性箭头）
+FEATURE_DIRECTION = {
+    'elo_diff': 1, 'market_prob': 1, 'sp_era_diff': -1, 'sp_fip_diff': -1,
+    'bullpen_ip_diff': -1, 'rest_diff': 1, 'park_factor': 1,
+    'platoon_ops_diff': 1, 'statcast_launch_speed_diff': 1,
+    'statcast_barrel_diff': 1, 'statcast_hard_hit_diff': 1,
+    'statcast_woba_diff': 1, 'timezone_diff': -1, 'is_day_game': 0,
+    'home_back2back': -1, 'away_back2back': 1, 'catcher_era_diff': -1,
+    'cs_diff': 1, 'wind_effect': 1, 'temp_effect': 1,
+    'precip_effect': -1, 'injury_diff': -1, 'pythag_diff': 1,
+    'log5_prob': 1, 'lag30_winrate_diff': 1, 'lag30_runs_diff': 1,
+    'pitch_movement_diff': 1
+}
+
 def implied_prob(odds):
     if odds is None or odds <= 1:
         return None
@@ -120,9 +134,10 @@ def generate_predictions(elo_system=None):
     if 'runs_allowed' not in teams_df.columns:
         teams_df['runs_allowed'] = 400
 
-    # 赔率字典（只取主队赔率）
+    # 赔率字典（只取主队赔率，并标注来源）
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
+    odds_source = "bet365,draftkings" if not odds_df.empty else "none"
     if not odds_df.empty:
         home_odds_df = odds_df[odds_df['team'] == 'home']
         for _, row in home_odds_df.iterrows():
@@ -200,7 +215,6 @@ def generate_predictions(elo_system=None):
     injuries_df = pd.DataFrame(data.get('injuries', []))
     injury_index = {}
     if not injuries_df.empty:
-        # 按球队统计伤病严重度，简单规则：状态包含“60-Day”或“60-Day IL”的计2分，包含“10-Day”或“15-Day”的计1分，其余0.5分
         def injury_severity(status):
             if not isinstance(status, str):
                 return 0.5
@@ -377,12 +391,9 @@ def generate_predictions(elo_system=None):
                 pitch_movement_diff = home_movement - away_movement
 
         # 环境效应（温度、湿度、降水）
-        # 温度高于25°C时，平均得分增加；湿度高于70%时，球飞行距离减少
         temp_effect = 0.0
         if avg_temp > 25:
-            temp_effect = 0.02 * (avg_temp - 25)   # 每升高1°C，得分微增
-        humidity_effect = 0.0
-        # 没有湿度数据，简化为0；实际可从Open-Meteo获取，这里暂时用0
+            temp_effect = 0.02 * (avg_temp - 25)
         precip_effect = -0.01 * avg_precip if avg_precip > 0 else 0.0
 
         wind_effect = 0.0
@@ -392,7 +403,7 @@ def generate_predictions(elo_system=None):
         # 伤病影响
         home_injury_impact = injury_index.get(home, 0.0)
         away_injury_impact = injury_index.get(away, 0.0)
-        injury_diff = home_injury_impact - away_injury_impact  # 正值表示主队伤病更严重
+        injury_diff = home_injury_impact - away_injury_impact
 
         # Pythagorean Record
         home_runs_scored = float(teams_df[teams_df['name'] == home]['runs_scored'].values[0])
@@ -520,7 +531,6 @@ def generate_predictions(elo_system=None):
                 away_runs_col = teams_df[teams_df['name'] == away]['runs_scored'].values if 'runs_scored' in teams_df.columns else []
                 hr = float(home_runs_col[0]) if len(home_runs_col) > 0 else 4.5
                 ar = float(away_runs_col[0]) if len(away_runs_col) > 0 else 4.5
-                # 综合环境调整
                 env_adj = 1 + wind_effect + temp_effect + precip_effect
                 hr_adj = hr * park_factor * env_adj
                 ar_adj = ar * park_factor * env_adj
@@ -552,9 +562,18 @@ def generate_predictions(elo_system=None):
         elif under_prob is not None and under_prob > 0.55:
             total_rec = f"Bet UNDER 8.5 ({under_prob:.1%})"
 
-        # 特征重要性排序
+        # 特征重要性排序（带方向箭头）
         sorted_features = sorted(features.items(), key=lambda x: abs(x[1]), reverse=True)
-        top_features = [f"{name}={val}" for name, val in sorted_features[:3]]
+        top_features = []
+        for name, val in sorted_features[:5]:
+            direction = FEATURE_DIRECTION.get(name, 0)
+            if direction == 1:
+                arrow = "▲" if val > 0 else "▼"
+            elif direction == -1:
+                arrow = "▼" if val > 0 else "▲"
+            else:
+                arrow = "•"
+            top_features.append(f"{name}={val}{arrow}")
 
         predictions.append({
             "game_id": game.get("game_id"),
@@ -609,7 +628,8 @@ def generate_predictions(elo_system=None):
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate'],
             "top_features": top_features,
-            "market_divergence": 1 if abs(pred_home - market_prob) > 0.15 else 0
+            "market_divergence": 1 if abs(pred_home - market_prob) > 0.15 else 0,
+            "odds_source": odds_source
         })
 
     power_rankings = teams_df.sort_values('win_pct', ascending=False).to_dict('records')
@@ -654,7 +674,7 @@ def generate_predictions(elo_system=None):
                 "pythag_diff", "log5_prob",
                 "lag30_winrate_diff", "lag30_runs_diff",
                 "pitch_movement_diff",
-                "closing_odds", "top_features", "market_divergence"
+                "closing_odds", "top_features", "market_divergence", "odds_source"
             ])
         for p in predictions:
             writer.writerow([
@@ -674,7 +694,8 @@ def generate_predictions(elo_system=None):
                 p.get("pitch_movement_diff", ""),
                 "",  # closing_odds
                 ";".join(p.get("top_features", [])) if isinstance(p.get("top_features"), list) else p.get("top_features", ""),
-                p.get("market_divergence", 0)
+                p.get("market_divergence", 0),
+                p.get("odds_source", "")
             ])
     print(f"历史预测已追加至 {HISTORY_FILE}")
 
