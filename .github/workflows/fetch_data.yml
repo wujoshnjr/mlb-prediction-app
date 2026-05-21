@@ -73,11 +73,23 @@ jobs:
         run: python scripts/elo_updater.py
 
       - name: Run backtest
-        run: python scripts/backtest.py
+        id: backtest
+        run: |
+          python scripts/backtest.py | tee backtest_output.txt
+          echo "BRIER=$(grep 'Brier Score' backtest_output.txt | awk '{print $NF}')" >> $GITHUB_ENV
+          echo "LOGLOSS=$(grep 'Log Loss' backtest_output.txt | awk '{print $NF}')" >> $GITHUB_ENV
 
-      - name: Train model if enough data
-        run: python train_ensemble.py
-        if: success()
+      - name: Conditional model retraining
+        if: steps.backtest.outputs.BRIER != ''
+        run: |
+          BRIER_VALUE=${{ env.BRIER }}
+          echo "Brier Score: $BRIER_VALUE"
+          if (( $(echo "$BRIER_VALUE > 0.25" | bc -l) )); then
+            echo "⚠️ Brier Score 过高，自动触发重训练..."
+            python train_ensemble.py
+          else
+            echo "✅ 模型性能达标，跳过重训练"
+          fi
 
       - name: Commit results, ELO, and model
         if: always()
