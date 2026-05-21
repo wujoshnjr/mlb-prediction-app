@@ -32,7 +32,9 @@ EXPECTED_FEATURES = [
     'away_back2back',
     'catcher_era_diff',
     'cs_diff',
-    'wind_effect'
+    'wind_effect',
+    'pythag_diff',       # 新增
+    'log5_prob'          # 新增
 ]
 
 def prepare_data():
