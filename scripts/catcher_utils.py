@@ -1,13 +1,13 @@
 """
 捕手效应工具函数
-获取捕手赛季防守数据，计算 catcher ERA 或 framing 代理
+通过 MLB Stats API 获取捕手赛季防守数据，计算 catcher ERA 及阻杀率
 """
 import requests
 
 CATCHER_CACHE = {}
 
 def get_catcher_stats(catcher_id, season=2026):
-    """获取捕手赛季防守数据，返回 catcher_era 等"""
+    """获取指定捕手赛季的防守统计数据"""
     if catcher_id in CATCHER_CACHE:
         return CATCHER_CACHE[catcher_id]
 
@@ -33,7 +33,10 @@ def get_catcher_stats(catcher_id, season=2026):
     return {}
 
 def calculate_catcher_effect(home_catcher_id, away_catcher_id, season=2026):
-    """计算主客队捕手效应差值，返回 catcher_era_diff 和 framing_proxy_diff"""
+    """
+    计算主客队捕手效应差值
+    返回 (catcher_era_diff, cs_diff)
+    """
     home_stats = get_catcher_stats(home_catcher_id, season) if home_catcher_id else {}
     away_stats = get_catcher_stats(away_catcher_id, season) if away_catcher_id else {}
 
