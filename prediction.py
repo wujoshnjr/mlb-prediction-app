@@ -210,8 +210,13 @@ def generate_predictions(elo_system=None):
         if home_id and away_id and home_id in bullpen_dict and away_id in bullpen_dict:
             home_bp_era = bullpen_dict[home_id].get('bullpen_era')
             away_bp_era = bullpen_dict[away_id].get('bullpen_era')
-            if home_bp_era is not None and away_bp_era is not None:
-                bullpen_era_diff = home_bp_era - away_bp_era
+            try:
+                home_val = float(home_bp_era) if home_bp_era is not None else None
+                away_val = float(away_bp_era) if away_bp_era is not None else None
+                if home_val is not None and away_val is not None:
+                    bullpen_era_diff = home_val - away_val
+            except (TypeError, ValueError):
+                pass
 
         # 特征向量
         features = {
