@@ -23,6 +23,14 @@ try:
     from scripts.catcher_utils import calculate_catcher_effect
 except:
     calculate_catcher_effect = None
+try:
+    from scripts.lag_features import calculate_lag_features
+except:
+    calculate_lag_features = None
+try:
+    from scripts.expected_value import filter_value_bets
+except:
+    filter_value_bets = None
 
 # 尝试加载训练好的模型（XGBoost + 校准）
 model = None
@@ -174,6 +182,17 @@ def generate_predictions(elo_system=None):
     weather_df = pd.DataFrame(data.get('openmeteo_weather', []))
     avg_wind_speed = weather_df['wind_speed'].mean() if not weather_df.empty else 0
     avg_wind_dir = weather_df['wind_direction'].mean() if not weather_df.empty else 0
+
+    # 加载历史比赛数据（用于滞后特征）
+    historical_df = None
+    hist_dir = "data/historical"
+    if os.path.exists(hist_dir):
+        hist_files = [os.path.join(hist_dir, f) for f in os.listdir(hist_dir) if f.endswith(".parquet")]
+        if hist_files:
+            try:
+                historical_df = pd.concat([pd.read_parquet(f) for f in hist_files], ignore_index=True)
+            except:
+                pass
 
     team_name_map = {
         "Cleveland Guardians": "Guardians",
@@ -362,6 +381,19 @@ def generate_predictions(elo_system=None):
         # ========== Log5 概率 ==========
         log5_home = (home_pct - home_pct * away_pct) / (home_pct + away_pct - 2 * home_pct * away_pct) if (home_pct + away_pct) > 0 else 0.5
 
+        # ========== 滞后特征（最近30天胜率与得分差值）==========
+        lag30_winrate_diff = 0.0
+        lag30_runs_diff = 0.0
+        if calculate_lag_features and historical_df is not None:
+            try:
+                home_winrate_30, away_winrate_30, home_runs_30, away_runs_30 = calculate_lag_features(
+                    home, away, historical_df, date_str, days=30
+                )
+                lag30_winrate_diff = home_winrate_30 - away_winrate_30
+                lag30_runs_diff = home_runs_30 - away_runs_30
+            except:
+                pass
+
         # 特征向量
         features = {
             'elo_diff': round(elo_diff, 3),
@@ -385,6 +417,8 @@ def generate_predictions(elo_system=None):
             'wind_effect': round(wind_effect, 4),
             'pythag_diff': round(pythag_diff, 3),
             'log5_prob': round(log5_home, 3),
+            'lag30_winrate_diff': round(lag30_winrate_diff, 3),
+            'lag30_runs_diff': round(lag30_runs_diff, 3),
             'home_winrate': round(home_pct, 3),
             'away_winrate': round(away_pct, 3)
         }
@@ -432,7 +466,9 @@ def generate_predictions(elo_system=None):
                 features['cs_diff'],
                 features['wind_effect'],
                 features['pythag_diff'],
-                features['log5_prob']
+                features['log5_prob'],
+                features['lag30_winrate_diff'],
+                features['lag30_runs_diff']
             ]])
             try:
                 ml_pred = model.predict_proba(feature_array)[0, 1]
@@ -543,6 +579,8 @@ def generate_predictions(elo_system=None):
             "wind_effect": features['wind_effect'],
             "pythag_diff": features['pythag_diff'],
             "log5_prob": features['log5_prob'],
+            "lag30_winrate_diff": features['lag30_winrate_diff'],
+            "lag30_runs_diff": features['lag30_runs_diff'],
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate']
         })
@@ -562,6 +600,11 @@ def generate_predictions(elo_system=None):
         },
         "errors": errors
     }
+
+    # ========== 正期望值投注评估 ==========
+    if filter_value_bets:
+        value_bets = filter_value_bets(predictions)
+        output['value_bets'] = value_bets
 
     # ========== 保存历史预测记录 ==========
     HISTORY_FILE = "data/historical_predictions.csv"
@@ -584,6 +627,7 @@ def generate_predictions(elo_system=None):
                 "home_back2back", "away_back2back",
                 "catcher_era_diff", "cs_diff", "wind_effect",
                 "pythag_diff", "log5_prob",
+                "lag30_winrate_diff", "lag30_runs_diff",
                 "closing_odds"
             ])
         for p in predictions:
@@ -622,6 +666,8 @@ def generate_predictions(elo_system=None):
                 p.get("wind_effect", ""),
                 p.get("pythag_diff", ""),
                 p.get("log5_prob", ""),
+                p.get("lag30_winrate_diff", ""),
+                p.get("lag30_runs_diff", ""),
                 ""                      # closing_odds 留空
             ])
     print(f"历史预测已追加至 {HISTORY_FILE}")
