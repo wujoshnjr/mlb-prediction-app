@@ -3,8 +3,10 @@ import numpy as np
 import joblib
 import optuna
 from xgboost import XGBClassifier
-from sklearn.model_selection import TimeSeriesSplit
+from lightgbm import LGBMClassifier
+from sklearn.ensemble import VotingClassifier
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import log_loss
 
 HISTORY_FILE = "data/historical_predictions.csv"
@@ -40,11 +42,14 @@ def prepare_data():
 def train():
     X, y = prepare_data()
     if X is None: return
+
+    tscv = TimeSeriesSplit(n_splits=3)
     split = int(len(X) * 0.8)
     X_train, X_val = X[:split], X[split:]
     y_train, y_val = y[:split], y[split:]
 
-    def objective(trial):
+    # XGBoost
+    def objective_xgb(trial):
         params = {
             'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
             'max_depth': trial.suggest_int('max_depth', 3, 10),
@@ -62,20 +67,52 @@ def train():
         preds = model.predict_proba(X_val)[:,1]
         return log_loss(y_val, preds)
 
-    study = optuna.create_study(direction='minimize')
-    study.optimize(objective, n_trials=50, show_progress_bar=False)
-    best = study.best_params
-    print("最佳参数:", best)
+    study_xgb = optuna.create_study(direction='minimize')
+    study_xgb.optimize(objective_xgb, n_trials=50, show_progress_bar=False)
+    best_xgb = XGBClassifier(**study_xgb.best_params, eval_metric='logloss', random_state=42)
+    print("XGBoost 最佳参数:", study_xgb.best_params)
 
-    tscv = TimeSeriesSplit(n_splits=3)
-    final_xgb = XGBClassifier(**best, eval_metric='logloss', random_state=42)
-    calibrated = CalibratedClassifierCV(estimator=final_xgb, method='isotonic', cv=tscv)
+    # LightGBM
+    def objective_lgb(trial):
+        params = {
+            'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
+            'max_depth': trial.suggest_int('max_depth', 3, 10),
+            'learning_rate': trial.suggest_float('learning_rate', 0.001, 0.1, log=True),
+            'subsample': trial.suggest_float('subsample', 0.6, 1.0),
+            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
+            'min_child_samples': trial.suggest_int('min_child_samples', 5, 50),
+            'reg_alpha': trial.suggest_float('reg_alpha', 0, 1.0),
+            'reg_lambda': trial.suggest_float('reg_lambda', 0, 1.0),
+            'random_state': 42, 'verbose': -1
+        }
+        model = LGBMClassifier(**params)
+        model.fit(X_train, y_train)
+        preds = model.predict_proba(X_val)[:,1]
+        return log_loss(y_val, preds)
+
+    study_lgb = optuna.create_study(direction='minimize')
+    study_lgb.optimize(objective_lgb, n_trials=50, show_progress_bar=False)
+    best_lgb = LGBMClassifier(**study_lgb.best_params, verbose=-1, random_state=42)
+    print("LightGBM 最佳参数:", study_lgb.best_params)
+
+    # 软投票集成
+    ensemble = VotingClassifier(
+        estimators=[('xgb', best_xgb), ('lgb', best_lgb)],
+        voting='soft'
+    )
+
+    calibrated = CalibratedClassifierCV(
+        estimator=ensemble,
+        method='isotonic',
+        cv=tscv
+    )
     calibrated.fit(X, y)
+
     joblib.dump(calibrated, MODEL_OUTPUT)
-    print(f"模型已保存至 {MODEL_OUTPUT}")
+    print(f"集成模型已保存至 {MODEL_OUTPUT}")
 
     try:
-        importances = calibrated.estimator_.feature_importances_
+        importances = best_xgb.feature_importances_
         for name, imp in zip(EXPECTED_FEATURES, importances):
             print(f"{name}: {imp:.4f}")
     except Exception as e:
