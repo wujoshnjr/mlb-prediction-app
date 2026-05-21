@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime
 
 ELO_FILE = "data/elo_ratings.json"
 
