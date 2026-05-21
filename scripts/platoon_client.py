@@ -1,20 +1,19 @@
 """
 Platoon 拆分客户端
-获取球队对左/右投手的打击数据
+获取各球队对左投和右投的打击数据 (OPS, wOBA)
 """
 import requests
 import pandas as pd
 
 def fetch_platoon_splits(season=2026, errors=None):
-    """获取所有球队对左/右投的 OPS 拆分"""
     url = "https://statsapi.mlb.com/api/v1/stats"
     params = {
         "stats": "season",
         "season": season,
         "group": "hitting",
         "gameType": "R",
-        "split": "vsLhp,vsRhp",   # 关键：按投手左右拆分
-        "limit": 60               # 30队 × 2拆分
+        "split": "vsLhp,vsRhp",
+        "limit": 60
     }
     try:
         resp = requests.get(url, params=params, timeout=15)
