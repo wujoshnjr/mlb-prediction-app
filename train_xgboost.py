@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-训练 XGBoost 模型并进行概率校准（健壮版 v2）
+训练 XGBoost 模型并进行概率校准（包含所有新特征）
 """
 import pandas as pd
 import numpy as np
@@ -12,7 +12,10 @@ from sklearn.calibration import CalibratedClassifierCV
 HISTORY_FILE = "data/historical_predictions.csv"
 MODEL_OUTPUT = "data/calibrator.pkl"
 
-EXPECTED_FEATURES = ['elo_diff', 'market_prob', 'sp_era_diff', 'bullpen_era_diff', 'rest_diff']
+# 期望的特征列（与 prediction.py 写入的特征顺序一致）
+EXPECTED_FEATURES = [
+    'elo_diff', 'market_prob', 'sp_era_diff', 'sp_fip_diff', 'bullpen_ip_diff', 'rest_diff', 'park_factor'
+]
 
 def prepare_data():
     df = pd.read_csv(HISTORY_FILE)
@@ -25,7 +28,7 @@ def prepare_data():
         print(f"数据量不足 ({len(df)} 条)，跳过训练")
         return None, None
 
-    # 确保所有特征列存在
+    # 确保所有特征列存在，缺失则填充0
     for col in EXPECTED_FEATURES:
         if col not in df.columns:
             print(f"警告：缺少列 {col}，将用 0 填充")
@@ -36,9 +39,10 @@ def prepare_data():
     X = df[EXPECTED_FEATURES].values
     y = df['home_win'].values
 
-    # 检查是否有有效特征（不是全0）
-    if np.all(X == 0):
-        print("所有特征值均为0，无法训练有意义的模型，跳过训练")
+    # 检查是否有有效特征（非全0且方差>0）
+    variances = np.var(X, axis=0)
+    if np.all(variances < 1e-8):
+        print("所有特征方差接近0，无法训练有效模型")
         return None, None
 
     return X, y
@@ -69,9 +73,8 @@ def train():
     joblib.dump(calibrated, MODEL_OUTPUT)
     print(f"模型已保存至 {MODEL_OUTPUT}")
 
-    # 获取特征重要性（从校准器内部的最终估计器获取）
+    # 特征重要性
     try:
-        # CalibratedClassifierCV 训练后，calibrated.estimator_ 是原始估计器
         importances = calibrated.estimator_.feature_importances_
         for name, imp in zip(EXPECTED_FEATURES, importances):
             print(f"{name}: {imp:.4f}")
