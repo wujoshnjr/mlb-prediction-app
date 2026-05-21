@@ -14,7 +14,9 @@ MODEL_OUTPUT = "data/calibrator.pkl"
 
 # 期望的特征列（与 prediction.py 写入的特征顺序一致）
 EXPECTED_FEATURES = [
-    'elo_diff', 'market_prob', 'sp_era_diff', 'sp_fip_diff', 'bullpen_ip_diff', 'rest_diff', 'park_factor'
+    'elo_diff', 'market_prob', 'sp_era_diff', 'sp_fip_diff',
+    'bullpen_ip_diff', 'rest_diff', 'park_factor',
+    'platoon_ops_diff', 'statcast_barrel_diff', 'statcast_launch_speed_diff'
 ]
 
 def prepare_data():
