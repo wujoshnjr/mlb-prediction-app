@@ -1,5 +1,5 @@
 """
-MLB Stats API 客户端（增强版：包含 lineup 捕手信息）
+MLB Stats API 客户端（增强版：包含 lineup 捕手信息、日场/夜场）
 """
 import requests
 import pandas as pd
@@ -43,12 +43,11 @@ def fetch_mlb_statsapi(date_str: str = None, errors: list = None) -> pd.DataFram
             if teams.get("away", {}).get("probablePitcher"):
                 away_pitcher_id = teams["away"]["probablePitcher"]["id"]
 
-            # 先发捕手（从 lineup 中获取 catcher 位置球员，通常是第 2 位防守球员）
+            # 先发捕手（从 lineup 中获取 catcher 位置球员，position code = 2）
             home_catcher_id = None
             away_catcher_id = None
             try:
                 home_lineup = teams["home"].get("lineup", {}).get("lineup", [])
-                # 查找捕手 (position code = 2)
                 for player in home_lineup:
                     if player.get("position", {}).get("code") == "2":
                         home_catcher_id = player.get("player", {}).get("id")
@@ -64,6 +63,10 @@ def fetch_mlb_statsapi(date_str: str = None, errors: list = None) -> pd.DataFram
             except:
                 pass
 
+            # 日场/夜场
+            day_night = game.get("dayNight", "")
+            is_day_game = 1 if "day" in str(day_night).lower() else 0
+
             games.append({
                 "game_id": game_id,
                 "game_date": game_date,
@@ -77,7 +80,7 @@ def fetch_mlb_statsapi(date_str: str = None, errors: list = None) -> pd.DataFram
                 "away_pitcher_id": away_pitcher_id,
                 "home_catcher_id": home_catcher_id,
                 "away_catcher_id": away_catcher_id,
-                "is_day_game": 1 if "day" in str(game.get("dayNight", "")).lower() else 0,
+                "is_day_game": is_day_game,
                 "start_time": game.get("gameDate")
             })
     return pd.DataFrame(games)
