@@ -152,6 +152,19 @@ def generate_predictions(elo_system=None):
         "St. Louis Cardinals": "Cardinals",
     }
 
+    # 统计历史比赛数量，用于动态融合
+    HIST_FILE = "data/historical_predictions.csv"
+    historical_count = 0
+    if os.path.exists(HIST_FILE):
+        try:
+            hist_df = pd.read_csv(HIST_FILE)
+            # 只计算已经有结果的比赛
+            if 'home_win' in hist_df.columns:
+                hist_df = hist_df[hist_df['home_win'].notna()]
+                historical_count = len(hist_df)
+        except:
+            pass
+
     predictions = []
     for _, game in schedule_df.iterrows():
         home = game.get('home_team', '')
@@ -188,6 +201,13 @@ def generate_predictions(elo_system=None):
             away_era = float(pitcher_data.get('away_era') or 4.5)
             sp_era_diff = home_era - away_era
 
+        # 投手 FIP 差值
+        sp_fip_diff = 0.0
+        if pitcher_data is not None:
+            home_fip = float(pitcher_data.get('home_fip') or 4.0)
+            away_fip = float(pitcher_data.get('away_fip') or 4.0)
+            sp_fip_diff = home_fip - away_fip
+
         # 休息天数差异
         try:
             today = datetime.strptime(date_str, "%Y-%m-%d")
@@ -203,69 +223,81 @@ def generate_predictions(elo_system=None):
         except:
             rest_diff = 0
 
-        # 牛棚疲劳度差异（使用团队 ERA 近似，可替换为局数差值）
-        bullpen_era_diff = 0.0
+        # 牛棚局数差值（疲劳度）
+        bullpen_ip_diff = 0.0
         home_id = TEAM_ID_MAP.get(home)
         away_id = TEAM_ID_MAP.get(away)
         if home_id and away_id and home_id in bullpen_dict and away_id in bullpen_dict:
-            home_bp_era = bullpen_dict[home_id].get('bullpen_era')
-            away_bp_era = bullpen_dict[away_id].get('bullpen_era')
+            home_ip = bullpen_dict[home_id].get('bullpen_innings')
+            away_ip = bullpen_dict[away_id].get('bullpen_innings')
             try:
-                home_val = float(home_bp_era) if home_bp_era is not None else None
-                away_val = float(away_bp_era) if away_bp_era is not None else None
-                if home_val is not None and away_val is not None:
-                    bullpen_era_diff = home_val - away_val
+                home_val = float(home_ip) if home_ip is not None else 0.0
+                away_val = float(away_ip) if away_ip is not None else 0.0
+                bullpen_ip_diff = home_val - away_val
             except (TypeError, ValueError):
                 pass
+
+        # 球场因子
+        from scripts.park_factors import get_park_factor
+        park_factor = get_park_factor(game.get('venue', ''))
 
         # 特征向量
         features = {
             'elo_diff': round(elo_diff, 3),
             'market_prob': round(market_prob, 3) if market_prob else 0.5,
             'sp_era_diff': round(sp_era_diff, 3),
-            'bullpen_era_diff': round(bullpen_era_diff, 3),
+            'sp_fip_diff': round(sp_fip_diff, 3),
+            'bullpen_ip_diff': round(bullpen_ip_diff, 3),
             'rest_diff': rest_diff,
+            'park_factor': park_factor,
             'home_winrate': round(home_pct, 3),
             'away_winrate': round(away_pct, 3)
         }
 
-        # 预测
+        # 手工集成预测（基线）
+        weights = {'pct': 0.25, 'elo': 0.35, 'market': 0.40}
+        if elo_system is None:
+            weights['elo'] = 0
+            weights['pct'] += 0.175
+            weights['market'] += 0.175
+        if market_prob is None or home_odds is None:
+            weights['market'] = 0
+            if elo_system is not None:
+                weights['elo'] += 0.20
+                weights['pct'] += 0.20
+            else:
+                weights['pct'] += 0.40
+
+        elo_prob = 1 / (1 + 10 ** (-elo_diff / 400)) if elo_system else 0.5
+        manual_pred = home_pct * weights['pct'] + elo_prob * weights['elo'] + (market_prob or 0.5) * weights['market']
+        sp_adj = -0.07 * sp_era_diff
+        manual_pred = min(0.95, max(0.05, manual_pred + sp_adj))
+
+        # 机器学习预测（如果模型存在）
+        ml_pred = None
         if model is not None:
+            # 使用当前特征（与训练时顺序一致）
             feature_array = np.array([[
                 features['elo_diff'],
                 features['market_prob'],
                 features['sp_era_diff'],
-                features['bullpen_era_diff'],
-                features['rest_diff']
+                features['sp_fip_diff'],
+                features['bullpen_ip_diff'],
+                features['rest_diff'],
+                features['park_factor']
             ]])
             try:
-                pred_home = model.predict_proba(feature_array)[0, 1]
-                pred_home = min(0.95, max(0.05, pred_home))
+                ml_pred = model.predict_proba(feature_array)[0, 1]
+                ml_pred = min(0.95, max(0.05, ml_pred))
             except:
-                # 降级到手工
-                model_fallback = True
+                ml_pred = None
+
+        # 动态融合
+        if ml_pred is not None and historical_count > 100:
+            ml_weight = min(0.5, historical_count / 1000)
+            pred_home = (1 - ml_weight) * manual_pred + ml_weight * ml_pred
         else:
-            model_fallback = True
-
-        if model is None or model_fallback:
-            weights = {'pct': 0.25, 'elo': 0.35, 'market': 0.40}
-            if elo_system is None:
-                weights['elo'] = 0
-                weights['pct'] += 0.175
-                weights['market'] += 0.175
-            if market_prob is None or home_odds is None:
-                weights['market'] = 0
-                if elo_system is not None:
-                    weights['elo'] += 0.20
-                    weights['pct'] += 0.20
-                else:
-                    weights['pct'] += 0.40
-
-            elo_prob = 1 / (1 + 10 ** (-elo_diff / 400)) if elo_system else 0.5
-            pred_home = home_pct * weights['pct'] + elo_prob * weights['elo'] + (market_prob or 0.5) * weights['market']
-
-            sp_adj = -0.07 * sp_era_diff
-            pred_home = min(0.95, max(0.05, pred_home + sp_adj))
+            pred_home = manual_pred
 
         pred_away = 1 - pred_home
 
@@ -288,7 +320,10 @@ def generate_predictions(elo_system=None):
                 away_runs_col = teams_df[teams_df['name'] == away]['runs_scored'].values if 'runs_scored' in teams_df.columns else []
                 hr = float(home_runs_col[0]) if len(home_runs_col) > 0 else 4.5
                 ar = float(away_runs_col[0]) if len(away_runs_col) > 0 else 4.5
-                sim = MonteCarloSimulator(hr, ar, n_simulations=5000)
+                # 使用公园因子调整期望得分
+                hr_adj = hr * park_factor
+                ar_adj = ar * park_factor
+                sim = MonteCarloSimulator(hr_adj, ar_adj, n_simulations=5000)
                 sim.simulate()
                 home_cover, away_cover = sim.spread_prob(-1.5)
                 over_prob, under_prob, _ = sim.total_prob(8.5)
@@ -343,8 +378,10 @@ def generate_predictions(elo_system=None):
             "elo_diff": features['elo_diff'],
             "market_prob": features['market_prob'],
             "sp_era_diff": features['sp_era_diff'],
-            "bullpen_era_diff": features['bullpen_era_diff'],
+            "sp_fip_diff": features['sp_fip_diff'],
+            "bullpen_ip_diff": features['bullpen_ip_diff'],
             "rest_diff": features['rest_diff'],
+            "park_factor": features['park_factor'],
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate']
         })
@@ -377,7 +414,7 @@ def generate_predictions(elo_system=None):
                 "pred_home_win", "home_odds", "elo_home", "elo_away",
                 "ml_rec", "spread_rec", "total_rec",
                 "kelly_fraction", "home_win",
-                "elo_diff", "market_prob", "sp_era_diff", "bullpen_era_diff", "rest_diff"
+                "elo_diff", "market_prob", "sp_era_diff", "sp_fip_diff", "bullpen_ip_diff", "rest_diff", "park_factor"
             ])
         for p in predictions:
             writer.writerow([
@@ -397,8 +434,10 @@ def generate_predictions(elo_system=None):
                 p.get("elo_diff", ""),
                 p.get("market_prob", ""),
                 p.get("sp_era_diff", ""),
-                p.get("bullpen_era_diff", ""),
-                p.get("rest_diff", "")
+                p.get("sp_fip_diff", ""),
+                p.get("bullpen_ip_diff", ""),
+                p.get("rest_diff", ""),
+                p.get("park_factor", "")
             ])
     print(f"历史预测已追加至 {HISTORY_FILE}")
 
