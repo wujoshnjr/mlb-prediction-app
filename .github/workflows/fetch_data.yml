@@ -64,7 +64,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install pandas requests xgboost scikit-learn joblib optuna
+        run: pip install pandas requests xgboost scikit-learn joblib optuna lightgbm
 
       - name: Update game results
         run: python scripts/update_results.py
@@ -76,7 +76,7 @@ jobs:
         run: python scripts/backtest.py
 
       - name: Train model if enough data
-        run: python train_xgboost.py
+        run: python train_ensemble.py
         if: success()
 
       - name: Commit results, ELO, and model
