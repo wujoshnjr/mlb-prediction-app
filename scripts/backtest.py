@@ -86,6 +86,18 @@ def run_backtest():
             else:
                 print("➖ CLV 接近零，市场效率较高")
 
+    # 在原有回测逻辑结束后，输出性能指标之前加入：
+from sklearn.metrics import brier_score_loss, log_loss
+
+if len(df) > 0 and 'pred_home_win' in df.columns and 'home_win' in df.columns:
+    df_clean = df.dropna(subset=['home_win', 'pred_home_win'])
+    if len(df_clean) > 0:
+        brier = brier_score_loss(df_clean['home_win'].astype(int), df_clean['pred_home_win'].astype(float))
+        logloss = log_loss(df_clean['home_win'].astype(int), df_clean['pred_home_win'].astype(float))
+        print(f"\n📐 概率校准指标")
+        print(f"Brier Score: {brier:.4f} (越低越好，0=完美)")
+        print(f"Log Loss: {logloss:.4f} (越低越好)")
+        
     print("=" * 50)
 
 if __name__ == "__main__":
