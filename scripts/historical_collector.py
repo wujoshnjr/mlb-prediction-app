@@ -1,11 +1,4 @@
-"""
-历史数据收集器
-每日由 GitHub Actions 调用，回填指定日期的比赛数据
-"""
-import os
-import time
-import requests
-import pandas as pd
+import os, time, requests, pandas as pd
 from datetime import datetime, timedelta
 
 DATA_DIR = "data/historical"
@@ -27,8 +20,8 @@ def fetch_game_result(game_id):
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
         data = resp.json()
-        home_runs = data.get("liveData", {}).get("linescore", {}).get("teams", {}).get("home", {}).get("runs")
-        away_runs = data.get("liveData", {}).get("linescore", {}).get("teams", {}).get("away", {}).get("runs")
+        home_runs = data.get("liveData",{}).get("linescore",{}).get("teams",{}).get("home",{}).get("runs")
+        away_runs = data.get("liveData",{}).get("linescore",{}).get("teams",{}).get("away",{}).get("runs")
         if home_runs is not None and away_runs is not None:
             return 1 if home_runs > away_runs else 0
     except:
@@ -37,48 +30,36 @@ def fetch_game_result(game_id):
 
 def fetch_pitcher_stats(pitcher_id, season):
     url = f"https://statsapi.mlb.com/api/v1/people/{pitcher_id}/stats"
-    params = {"stats": "season", "season": season, "gameType": "R"}
+    params = {"stats":"season","season":season,"gameType":"R"}
     try:
         resp = requests.get(url, params=params, timeout=10)
         resp.raise_for_status()
-        splits = resp.json().get("stats", [])
-        if splits:
-            return splits[0].get("splits", [{}])[0].get("stat", {})
+        splits = resp.json().get("stats",[[]])[0].get("splits",[{}])
+        return splits[0].get("stat",{}) if splits else {}
     except:
-        pass
-    return {}
+        return {}
 
 def collect_date(date_str, season, last_game_dict=None):
-    """收集单个日期所有比赛的特征与结果，返回更新后的 last_game_dict"""
     schedule = fetch_schedule(date_str)
     if not schedule:
         return last_game_dict
-
     games = []
-    for date_info in schedule.get("dates", []):
-        for game in date_info.get("games", []):
+    for date_info in schedule.get("dates",[]):
+        for game in date_info.get("games",[]):
             game_id = game["gamePk"]
             home_team = game["teams"]["home"]["team"]["name"]
             away_team = game["teams"]["away"]["team"]["name"]
-            home_pitcher_id = None
-            away_pitcher_id = None
+            home_pitcher_id = away_pitcher_id = None
             if game["teams"]["home"].get("probablePitcher"):
                 home_pitcher_id = game["teams"]["home"]["probablePitcher"]["id"]
             if game["teams"]["away"].get("probablePitcher"):
                 away_pitcher_id = game["teams"]["away"]["probablePitcher"]["id"]
-
-            # 比赛结果
             home_win = None
-            if game.get("status", {}).get("abstractGameState") == "Final":
+            if game.get("status",{}).get("abstractGameState") == "Final":
                 home_win = fetch_game_result(game_id)
-
-            # 先发投手数据
             home_pitcher_stats = fetch_pitcher_stats(home_pitcher_id, season) if home_pitcher_id else {}
             away_pitcher_stats = fetch_pitcher_stats(away_pitcher_id, season) if away_pitcher_id else {}
-
-            # 休息天数
-            rest_home = 2
-            rest_away = 2
+            rest_home = rest_away = 2
             if last_game_dict:
                 try:
                     game_dt = datetime.strptime(date_str, "%Y-%m-%d")
@@ -90,25 +71,15 @@ def collect_date(date_str, season, last_game_dict=None):
                         rest_away = max(0, (game_dt - last).days - 1)
                 except:
                     pass
-
             if last_game_dict is not None:
                 last_game_dict[home_team] = date_str
                 last_game_dict[away_team] = date_str
-
             games.append({
-                "game_id": game_id,
-                "date": date_str,
-                "home_team": home_team,
-                "away_team": away_team,
-                "home_win": home_win,
-                "home_era": home_pitcher_stats.get("era"),
-                "away_era": away_pitcher_stats.get("era"),
-                "home_fip": home_pitcher_stats.get("fip"),
-                "away_fip": away_pitcher_stats.get("fip"),
-                "rest_home": rest_home,
-                "rest_away": rest_away
+                "game_id": game_id, "date": date_str, "home_team": home_team, "away_team": away_team,
+                "home_win": home_win, "home_era": home_pitcher_stats.get("era"),
+                "away_era": away_pitcher_stats.get("era"), "home_fip": home_pitcher_stats.get("fip"),
+                "away_fip": away_pitcher_stats.get("fip"), "rest_home": rest_home, "rest_away": rest_away
             })
-
     df = pd.DataFrame(games)
     df.to_parquet(os.path.join(DATA_DIR, f"{date_str}.parquet"), index=False)
     print(f"Saved {len(games)} games for {date_str}")
