@@ -20,7 +20,7 @@ try:
 except:
     MonteCarloSimulator = None
 
-# 尝试加载训练好的模型
+# 尝试加载训练好的模型（XGBoost + 校准）
 model = None
 try:
     import joblib
@@ -103,7 +103,7 @@ def generate_predictions(elo_system=None):
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
     print(f"当日比赛数量: {len(schedule_df)}")
 
-    # 投手数据
+    # 投手数据（包含 pitch_hand）
     pitchers_df = pd.DataFrame(data.get('pitchers', []))
     pitcher_dict = {}
     if not pitchers_df.empty:
@@ -119,7 +119,6 @@ def generate_predictions(elo_system=None):
 
     # Platoon 数据
     platoon_df = pd.DataFrame(data.get('platoon', []))
-    # 构建快速查询字典：{team_name: {vsLhp: {ops: ...}, vsRhp: {ops: ...}}}
     platoon_dict = {}
     if not platoon_df.empty:
         for _, row in platoon_df.iterrows():
@@ -131,14 +130,30 @@ def generate_predictions(elo_system=None):
                 'ops': float(row.get('ops', 0.700)) if row.get('ops') else 0.700
             }
 
-    # Statcast 团队聚合特征（基于最近7天逐球数据）
+    # ---------- Statcast 团队聚合（击球品质）----------
     savant_df = pd.DataFrame(data.get('savant_statcast', []))
+    # 预先为每支球队计算近7天打击指标均值
     statcast_team_stats = {}
-    if not savant_df.empty:
-        # 按球队（假设逐球数据中包含 team 字段，实际 Savant 返回的是 pitcher_team / batter_team）
-        # 这里需要根据实际字段处理，简化：使用 home_team / away_team 在逐球数据中不存在，我们暂时跳过
-        # 后续可以从其他来源获取团队 Statcast 数据
-        pass
+    if not savant_df.empty and 'launch_speed' in savant_df.columns:
+        # Savant 数据中 'inning_topbot' 表示上半局(Top)或下半局(Bot)
+        # Top 是客队打击，Bot 是主队打击
+        # 因此可以根据 home_team 和 away_team 确定打击方
+        required_cols = ['home_team', 'away_team', 'inning_topbot', 'launch_speed', 'barrel', 'hard_hit', 'expected_woba']
+        if all(c in savant_df.columns for c in required_cols):
+            # 分离主队打击事件和客队打击事件
+            home_bat = savant_df[savant_df['inning_topbot'] == 'Bot'].copy()
+            away_bat = savant_df[savant_df['inning_topbot'] == 'Top'].copy()
+
+            for df_side, side_label in [(home_bat, 'home'), (away_bat, 'away')]:
+                team_col = 'home_team' if side_label == 'home' else 'away_team'
+                grouped = df_side.groupby(team_col).agg(
+                    avg_launch_speed=('launch_speed', 'mean'),
+                    barrel_rate=('barrel', lambda x: x.astype(float).eq(1).mean()),
+                    hard_hit_rate=('hard_hit', lambda x: x.astype(float).eq(1).mean()),
+                    avg_expected_woba=('expected_woba', 'mean')
+                ).reset_index()
+                grouped.rename(columns={team_col: 'team_name'}, inplace=True)
+                statcast_team_stats[side_label] = grouped
 
     # 队名映射
     team_name_map = {
@@ -213,22 +228,21 @@ def generate_predictions(elo_system=None):
         home_odds = np.mean(avg_odds) if avg_odds else None
         market_prob = implied_prob(home_odds) if home_odds else 0.5
 
-        # 投手 ERA 差值
+        # 投手数据（含投球手）
         pitcher_data = pitcher_dict.get(game.get('game_id'))
         sp_era_diff = 0.0
-        home_era = 4.5
-        away_era = 4.5
+        sp_fip_diff = 0.0
+        home_pitch_hand = "R"
+        away_pitch_hand = "R"
         if pitcher_data is not None:
             home_era = float(pitcher_data.get('home_era') or 4.5)
             away_era = float(pitcher_data.get('away_era') or 4.5)
             sp_era_diff = home_era - away_era
-
-        # 投手 FIP 差值
-        sp_fip_diff = 0.0
-        if pitcher_data is not None:
             home_fip = float(pitcher_data.get('home_fip') or 4.0)
             away_fip = float(pitcher_data.get('away_fip') or 4.0)
             sp_fip_diff = home_fip - away_fip
+            home_pitch_hand = pitcher_data.get('home_pitch_hand', 'R')
+            away_pitch_hand = pitcher_data.get('away_pitch_hand', 'R')
 
         # 休息天数差异
         try:
@@ -263,23 +277,36 @@ def generate_predictions(elo_system=None):
         from scripts.park_factors import get_park_factor
         park_factor = get_park_factor(game.get('venue', ''))
 
-        # ---------- Platoon 拆分特征 ----------
-        # 获取先发投手投球手（暂时默认右投，后续从 pitcher 数据获取）
-        starter_hand = "R"   # 假设右投
+        # ---------- Platoon 拆分（动态选择）----------
         platoon_ops_diff = 0.0
         if not platoon_df.empty:
-            split_key = "vsLhp" if starter_hand == "L" else "vsRhp"
-            home_platoon = platoon_dict.get(home, {}).get(split_key, {})
-            away_platoon = platoon_dict.get(away, {}).get(split_key, {})
+            # 根据先发投手的手别选择拆分类别
+            # 如果主队先发是左投，客队打击面对左投 -> 使用 vsLhp
+            home_split = "vsLhp" if home_pitch_hand == "L" else "vsRhp"
+            away_split = "vsLhp" if away_pitch_hand == "L" else "vsRhp"
+            home_platoon = platoon_dict.get(home, {}).get(home_split, {})
+            away_platoon = platoon_dict.get(away, {}).get(away_split, {})
             if home_platoon and away_platoon:
                 platoon_ops_diff = home_platoon['ops'] - away_platoon['ops']
 
-        # ---------- Statcast 聚合特征（占位，后续完善）----------
-        # 这里可以通过 savant_df 计算团队近7天均值，但现在先留空
-        statcast_barrel_diff = 0.0
+        # ---------- Statcast 团队击球品质差值 ----------
         statcast_launch_speed_diff = 0.0
+        statcast_barrel_diff = 0.0
+        statcast_hard_hit_diff = 0.0
+        statcast_woba_diff = 0.0
+        if statcast_team_stats:
+            home_hit = statcast_team_stats.get('home')
+            away_hit = statcast_team_stats.get('away')
+            if home_hit is not None and away_hit is not None:
+                home_row = home_hit[home_hit['team_name'] == home]
+                away_row = away_hit[away_hit['team_name'] == away]
+                if not home_row.empty and not away_row.empty:
+                    statcast_launch_speed_diff = home_row.iloc[0]['avg_launch_speed'] - away_row.iloc[0]['avg_launch_speed']
+                    statcast_barrel_diff = home_row.iloc[0]['barrel_rate'] - away_row.iloc[0]['barrel_rate']
+                    statcast_hard_hit_diff = home_row.iloc[0]['hard_hit_rate'] - away_row.iloc[0]['hard_hit_rate']
+                    statcast_woba_diff = home_row.iloc[0]['avg_expected_woba'] - away_row.iloc[0]['avg_expected_woba']
 
-        # 特征向量（供模型和 CSV 使用）
+        # 特征向量
         features = {
             'elo_diff': round(elo_diff, 3),
             'market_prob': round(market_prob, 3) if market_prob else 0.5,
@@ -289,13 +316,15 @@ def generate_predictions(elo_system=None):
             'rest_diff': rest_diff,
             'park_factor': park_factor,
             'platoon_ops_diff': round(platoon_ops_diff, 3),
-            'statcast_barrel_diff': round(statcast_barrel_diff, 3),
             'statcast_launch_speed_diff': round(statcast_launch_speed_diff, 3),
+            'statcast_barrel_diff': round(statcast_barrel_diff, 3),
+            'statcast_hard_hit_diff': round(statcast_hard_hit_diff, 3),
+            'statcast_woba_diff': round(statcast_woba_diff, 3),
             'home_winrate': round(home_pct, 3),
             'away_winrate': round(away_pct, 3)
         }
 
-        # ---------- 手工集成预测（基线）----------
+        # ---------- 手工集成预测 ----------
         weights = {'pct': 0.25, 'elo': 0.35, 'market': 0.40}
         if elo_system is None:
             weights['elo'] = 0
@@ -314,10 +343,10 @@ def generate_predictions(elo_system=None):
         sp_adj = -0.07 * sp_era_diff
         manual_pred = min(0.95, max(0.05, manual_pred + sp_adj))
 
-        # ---------- 机器学习预测（如果模型存在）----------
+        # ---------- 机器学习预测 ----------
         ml_pred = None
         if model is not None:
-            # 特征顺序需与训练时完全一致
+            # 特征顺序必须与 train_xgboost.py 的 EXPECTED_FEATURES 完全一致
             feature_array = np.array([[
                 features['elo_diff'],
                 features['market_prob'],
@@ -326,9 +355,11 @@ def generate_predictions(elo_system=None):
                 features['bullpen_ip_diff'],
                 features['rest_diff'],
                 features['park_factor'],
-                features['platoon_ops_diff'],          # 新增
-                features['statcast_barrel_diff'],      # 新增
-                features['statcast_launch_speed_diff'] # 新增
+                features['platoon_ops_diff'],
+                features['statcast_launch_speed_diff'],
+                features['statcast_barrel_diff'],
+                features['statcast_hard_hit_diff'],
+                features['statcast_woba_diff']
             ]])
             try:
                 ml_pred = model.predict_proba(feature_array)[0, 1]
@@ -353,7 +384,7 @@ def generate_predictions(elo_system=None):
             kelly_ml_away = kelly_criterion(pred_away, 1 / (1 - implied_prob(home_odds))
                                             if implied_prob(home_odds) and implied_prob(home_odds) < 1 else None)
 
-        # 蒙特卡洛模拟（使用公园因子调整期望得分）
+        # 蒙特卡洛模拟（公园因子调整）
         sim = None
         home_cover = away_cover = over_prob = under_prob = None
         total_mean = diff_mean = None
@@ -426,8 +457,10 @@ def generate_predictions(elo_system=None):
             "rest_diff": features['rest_diff'],
             "park_factor": features['park_factor'],
             "platoon_ops_diff": features['platoon_ops_diff'],
-            "statcast_barrel_diff": features['statcast_barrel_diff'],
             "statcast_launch_speed_diff": features['statcast_launch_speed_diff'],
+            "statcast_barrel_diff": features['statcast_barrel_diff'],
+            "statcast_hard_hit_diff": features['statcast_hard_hit_diff'],
+            "statcast_woba_diff": features['statcast_woba_diff'],
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate']
         })
@@ -462,7 +495,8 @@ def generate_predictions(elo_system=None):
                 "kelly_fraction", "home_win",
                 "elo_diff", "market_prob", "sp_era_diff", "sp_fip_diff",
                 "bullpen_ip_diff", "rest_diff", "park_factor",
-                "platoon_ops_diff", "statcast_barrel_diff", "statcast_launch_speed_diff",
+                "platoon_ops_diff",
+                "statcast_launch_speed_diff", "statcast_barrel_diff", "statcast_hard_hit_diff", "statcast_woba_diff",
                 "closing_odds"
             ])
         for p in predictions:
@@ -479,7 +513,7 @@ def generate_predictions(elo_system=None):
                 p.get("spread_recommendation", ""),
                 p.get("total_recommendation", ""),
                 p.get("kelly_fraction", ""),
-                "",                     # home_win 留空
+                "",                     # home_win
                 p.get("elo_diff", ""),
                 p.get("market_prob", ""),
                 p.get("sp_era_diff", ""),
@@ -488,13 +522,14 @@ def generate_predictions(elo_system=None):
                 p.get("rest_diff", ""),
                 p.get("park_factor", ""),
                 p.get("platoon_ops_diff", ""),
-                p.get("statcast_barrel_diff", ""),
                 p.get("statcast_launch_speed_diff", ""),
-                ""                      # closing_odds 暂时留空
+                p.get("statcast_barrel_diff", ""),
+                p.get("statcast_hard_hit_diff", ""),
+                p.get("statcast_woba_diff", ""),
+                ""                      # closing_odds
             ])
     print(f"历史预测已追加至 {HISTORY_FILE}")
 
-    # 保存预测报告
     os.makedirs('report', exist_ok=True)
     with open('report/prediction.json', 'w') as f:
         json.dump(output, f, indent=2, default=str)
