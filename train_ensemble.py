@@ -16,8 +16,10 @@ EXPECTED_FEATURES = [
     'elo_diff','market_prob','sp_era_diff','sp_fip_diff','bullpen_ip_diff','rest_diff','park_factor',
     'platoon_ops_diff','statcast_launch_speed_diff','statcast_barrel_diff','statcast_hard_hit_diff',
     'statcast_woba_diff','timezone_diff','is_day_game','home_back2back','away_back2back',
-    'catcher_era_diff','cs_diff','wind_effect','pythag_diff','log5_prob','lag30_winrate_diff','lag30_runs_diff',
-    'pitch_movement_diff'   # 新增
+    'catcher_era_diff','cs_diff','wind_effect',
+    'temp_effect','precip_effect','injury_diff',   # 新增
+    'pythag_diff','log5_prob','lag30_winrate_diff','lag30_runs_diff',
+    'pitch_movement_diff'
 ]
 
 def prepare_data():
