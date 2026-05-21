@@ -17,9 +17,10 @@ EXPECTED_FEATURES = [
     'platoon_ops_diff','statcast_launch_speed_diff','statcast_barrel_diff','statcast_hard_hit_diff',
     'statcast_woba_diff','timezone_diff','is_day_game','home_back2back','away_back2back',
     'catcher_era_diff','cs_diff','wind_effect',
-    'temp_effect','precip_effect','injury_diff',   # 新增
+    'temp_effect','precip_effect','injury_diff',
     'pythag_diff','log5_prob','lag30_winrate_diff','lag30_runs_diff',
-    'pitch_movement_diff'
+    'pitch_movement_diff',
+    'k_pct_diff', 'bb_pct_diff', 'avg_bat_speed_diff'
 ]
 
 def prepare_data():
