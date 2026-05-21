@@ -1,4 +1,5 @@
-import os, json
+import os
+import json
 from datetime import datetime
 import pandas as pd
 
@@ -15,6 +16,7 @@ fetch_probable_pitchers = None
 fetch_injuries = None
 fetch_bullpen_stats = None
 fetch_platoon_splits = None
+fetch_umpire_data = None
 
 try:
     from scripts.mlb_stats_client import fetch_mlb_statsapi
@@ -76,6 +78,11 @@ try:
 except Exception as e:
     print(f"Warning: Failed to import platoon_client: {e}")
 
+try:
+    from scripts.umpire_client import fetch_umpire_data
+except Exception as e:
+    print(f"Warning: Failed to import umpire_client: {e}")
+
 
 class UnifiedSportsModel:
     def __init__(self):
@@ -97,6 +104,7 @@ class UnifiedSportsModel:
             'sportsipy_teams': [], 'sportsipy_player': {},
             'openmeteo_weather': [], 'balldontlie_teams': [], 'odds_data': [],
             'pitchers': [], 'injuries': [], 'bullpen': [], 'platoon': [],
+            'umpires': [],        # 新增裁判數據
             'errors': errors
         }
 
@@ -123,6 +131,7 @@ class UnifiedSportsModel:
         injuries = safe_call(fetch_injuries, "injuries", date_str, errors)
         bullpen = safe_call(fetch_bullpen_stats, "bullpen", date_str, errors)
         platoon = safe_call(fetch_platoon_splits, "platoon", 2026, errors)
+        umpire = safe_call(fetch_umpire_data, "umpires", date_str, errors)
 
         result['mlb_statsapi'] = mlb_stats.to_dict(orient='records') if not mlb_stats.empty else []
         result['savant_statcast'] = savant.to_dict(orient='records') if not savant.empty else []
@@ -141,6 +150,7 @@ class UnifiedSportsModel:
         result['injuries'] = injuries.to_dict(orient='records') if not injuries.empty else []
         result['bullpen'] = bullpen.to_dict(orient='records') if not bullpen.empty else []
         result['platoon'] = platoon.to_dict(orient='records') if not platoon.empty else []
+        result['umpires'] = umpire.to_dict(orient='records') if not umpire.empty else []
 
         # 保存報告
         if os.path.isfile('report'):
