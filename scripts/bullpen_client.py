@@ -1,5 +1,5 @@
 """
-牛棚数据客户端（增强版：包含背靠背和近期使用量）
+牛棚数据客户端（增强版：包含背靠背标记）
 """
 import requests
 import pandas as pd
@@ -9,7 +9,7 @@ def fetch_bullpen_stats(date_str=None, errors=None):
     if date_str is None:
         date_str = datetime.now().strftime('%Y-%m-%d')
 
-    # 球队列表
+    # 获取所有球队ID
     try:
         teams_resp = requests.get("https://statsapi.mlb.com/api/v1/teams?sportId=1", timeout=10)
         teams_resp.raise_for_status()
@@ -25,6 +25,7 @@ def fetch_bullpen_stats(date_str=None, errors=None):
 
     for tid in team_ids:
         try:
+            # 近3天团队投球统计
             url = "https://statsapi.mlb.com/api/v1/stats"
             params = {
                 "stats": "byDateRange",
@@ -38,35 +39,33 @@ def fetch_bullpen_stats(date_str=None, errors=None):
             resp = requests.get(url, params=params, timeout=10)
             resp.raise_for_status()
             splits = resp.json().get("stats", [])
-            if splits:
-                stat = splits[0].get("splits", [{}])[0].get("stat", {})
-                # 获取每日比赛数据以判断背靠背
-                schedule_url = "https://statsapi.mlb.com/api/v1/schedule"
-                sched_params = {
-                    "sportId": 1,
-                    "teamId": tid,
-                    "startDate": start_date,
-                    "endDate": date_str,
-                    "gameTypes": "R"
-                }
-                sched_resp = requests.get(schedule_url, params=sched_params, timeout=10)
-                sched_data = sched_resp.json() if sched_resp.status_code == 200 else {}
-                game_dates = []
-                for d in sched_data.get("dates", []):
-                    for g in d.get("games", []):
-                        game_dates.append(d["date"])
-                # 判断昨天是否有比赛（背靠背）
-                yesterday = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
-                back_to_back = 1 if yesterday in game_dates else 0
+            stat = splits[0].get("splits", [{}])[0].get("stat", {}) if splits else {}
 
-                bullpen_data.append({
-                    "team_id": tid,
-                    "bullpen_era": stat.get("era"),
-                    "bullpen_whip": stat.get("whip"),
-                    "bullpen_pitches": stat.get("numberOfPitches"),
-                    "bullpen_innings": stat.get("inningsPitched"),
-                    "back_to_back": back_to_back
-                })
+            # 背靠背判定：昨天是否有比赛
+            yesterday = (datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+            sched_url = "https://statsapi.mlb.com/api/v1/schedule"
+            sched_params = {
+                "sportId": 1,
+                "teamId": tid,
+                "startDate": yesterday,
+                "endDate": yesterday,
+                "gameTypes": "R"
+            }
+            sched_resp = requests.get(sched_url, params=sched_params, timeout=10)
+            back_to_back = 0
+            if sched_resp.status_code == 200:
+                sched_data = sched_resp.json()
+                if sched_data.get("totalGames", 0) > 0:
+                    back_to_back = 1
+
+            bullpen_data.append({
+                "team_id": tid,
+                "bullpen_era": stat.get("era"),
+                "bullpen_whip": stat.get("whip"),
+                "bullpen_pitches": stat.get("numberOfPitches"),
+                "bullpen_innings": stat.get("inningsPitched"),
+                "back_to_back": back_to_back
+            })
         except Exception as e:
             if errors is not None:
                 errors.append(f"Bullpen fetch error for team {tid}: {e}")
