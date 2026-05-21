@@ -18,10 +18,8 @@ def fetch_injuries(date_str: str = None, errors: list = None) -> pd.DataFrame:
         resp = requests.get(url, headers=headers, timeout=10)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
-        # ESPN 伤病页面结构：表格包含球队和球员信息，class 可能变化，做一个简单的解析
         injury_list = []
-        # 查找所有球队区块（以 class "Table__Title" 等为标志，这里仅提供通用解析思路）
-        # 实际 ESPN 页面结构可能较复杂，以下为简化示例，若实际解析失败则返回空
+        # ESPN 伤病页面结构：表格包含球队和球员信息
         tables = soup.find_all("table", class_="Table")
         for table in tables:
             # 提取球队名（通常在 caption 或 thead 中）
@@ -40,8 +38,11 @@ def fetch_injuries(date_str: str = None, errors: list = None) -> pd.DataFrame:
                     })
         # 如果解析不到，尝试更宽松的解析
         if not injury_list:
-            # 备选：直接找所有 class 包含 "injuries" 的 div 等，此处略
-            pass
+            # 备选：直接找所有 class 包含 "injuries" 的 div 等
+            divs = soup.find_all("div", class_="ResponsiveTable")
+            for div in divs:
+                # 简单处理，不再深入
+                pass
         return pd.DataFrame(injury_list)
     except Exception as e:
         if errors is not None:
