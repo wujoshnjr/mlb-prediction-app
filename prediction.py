@@ -176,10 +176,9 @@ def generate_predictions(elo_system=None):
                 grouped.rename(columns={team_col: 'team_name'}, inplace=True)
                 statcast_team_stats[side_label] = grouped
 
-    # 新增：投球位移与转速聚合（按主队聚合，因为投手是主队/客队的投手，我们取整体）
+    # 投球位移与转速聚合
     pitch_movement_dict = {}
     if not savant_df.empty and 'pfx_x' in savant_df.columns:
-        # 使用 home_team 作为投手所属球队（近似）
         pitch_df = savant_df[['home_team', 'pfx_x', 'pfx_z', 'release_spin_rate']].dropna()
         if not pitch_df.empty:
             team_pitch = pitch_df.groupby('home_team').agg(
@@ -194,8 +193,30 @@ def generate_predictions(elo_system=None):
     weather_df = pd.DataFrame(data.get('openmeteo_weather', []))
     avg_wind_speed = weather_df['wind_speed'].mean() if not weather_df.empty else 0
     avg_wind_dir = weather_df['wind_direction'].mean() if not weather_df.empty else 0
+    avg_temp = weather_df['temperature_2m'].mean() if not weather_df.empty else 20.0
+    avg_precip = weather_df['precipitation'].mean() if not weather_df.empty else 0.0
 
-    # 加载历史比赛数据用于滞后特征
+    # 伤病数据特征化
+    injuries_df = pd.DataFrame(data.get('injuries', []))
+    injury_index = {}
+    if not injuries_df.empty:
+        # 按球队统计伤病严重度，简单规则：状态包含“60-Day”或“60-Day IL”的计2分，包含“10-Day”或“15-Day”的计1分，其余0.5分
+        def injury_severity(status):
+            if not isinstance(status, str):
+                return 0.5
+            status_lower = status.lower()
+            if '60-day' in status_lower or '60 day' in status_lower:
+                return 2.0
+            elif '10-day' in status_lower or '15-day' in status_lower:
+                return 1.0
+            else:
+                return 0.5
+        injuries_df['severity_score'] = injuries_df['status'].apply(injury_severity)
+        team_injury = injuries_df.groupby('team_name')['severity_score'].sum().reset_index()
+        for _, row in team_injury.iterrows():
+            injury_index[row['team_name']] = row['severity_score']
+
+    # 历史比赛数据用于滞后特征
     historical_df = None
     hist_dir = "data/historical"
     if os.path.exists(hist_dir):
@@ -345,7 +366,7 @@ def generate_predictions(elo_system=None):
                     statcast_hard_hit_diff = home_row.iloc[0]['hard_hit_rate'] - away_row.iloc[0]['hard_hit_rate']
                     statcast_woba_diff = home_row.iloc[0]['avg_expected_woba'] - away_row.iloc[0]['avg_expected_woba']
 
-        # 投球位移差值（新增）
+        # 投球位移差值
         pitch_movement_diff = 0.0
         if pitch_movement_dict:
             home_pitch = pitch_movement_dict.get(home)
@@ -355,10 +376,25 @@ def generate_predictions(elo_system=None):
                 away_movement = np.sqrt(away_pitch['avg_pfx_x']**2 + away_pitch['avg_pfx_z']**2)
                 pitch_movement_diff = home_movement - away_movement
 
+        # 环境效应（温度、湿度、降水）
+        # 温度高于25°C时，平均得分增加；湿度高于70%时，球飞行距离减少
+        temp_effect = 0.0
+        if avg_temp > 25:
+            temp_effect = 0.02 * (avg_temp - 25)   # 每升高1°C，得分微增
+        humidity_effect = 0.0
+        # 没有湿度数据，简化为0；实际可从Open-Meteo获取，这里暂时用0
+        precip_effect = -0.01 * avg_precip if avg_precip > 0 else 0.0
+
         wind_effect = 0.0
         if avg_wind_speed > 10:
             wind_effect = 0.02 * avg_wind_speed * np.sin(np.radians(avg_wind_dir))
 
+        # 伤病影响
+        home_injury_impact = injury_index.get(home, 0.0)
+        away_injury_impact = injury_index.get(away, 0.0)
+        injury_diff = home_injury_impact - away_injury_impact  # 正值表示主队伤病更严重
+
+        # Pythagorean Record
         home_runs_scored = float(teams_df[teams_df['name'] == home]['runs_scored'].values[0])
         home_runs_allowed = float(teams_df[teams_df['name'] == home]['runs_allowed'].values[0])
         away_runs_scored = float(teams_df[teams_df['name'] == away]['runs_scored'].values[0])
@@ -401,6 +437,9 @@ def generate_predictions(elo_system=None):
             'catcher_era_diff': round(catcher_era_diff, 3),
             'cs_diff': round(cs_diff, 3),
             'wind_effect': round(wind_effect, 4),
+            'temp_effect': round(temp_effect, 4),
+            'precip_effect': round(precip_effect, 4),
+            'injury_diff': round(injury_diff, 3),
             'pythag_diff': round(pythag_diff, 3),
             'log5_prob': round(log5_home, 3),
             'lag30_winrate_diff': round(lag30_winrate_diff, 3),
@@ -441,9 +480,11 @@ def generate_predictions(elo_system=None):
                 features['timezone_diff'], features['is_day_game'],
                 features['home_back2back'], features['away_back2back'],
                 features['catcher_era_diff'], features['cs_diff'],
-                features['wind_effect'], features['pythag_diff'],
-                features['log5_prob'], features['lag30_winrate_diff'],
-                features['lag30_runs_diff'], features['pitch_movement_diff']
+                features['wind_effect'], features['temp_effect'],
+                features['precip_effect'], features['injury_diff'],
+                features['pythag_diff'], features['log5_prob'],
+                features['lag30_winrate_diff'], features['lag30_runs_diff'],
+                features['pitch_movement_diff']
             ]])
             try:
                 ml_pred = model.predict_proba(feature_array)[0, 1]
@@ -479,8 +520,10 @@ def generate_predictions(elo_system=None):
                 away_runs_col = teams_df[teams_df['name'] == away]['runs_scored'].values if 'runs_scored' in teams_df.columns else []
                 hr = float(home_runs_col[0]) if len(home_runs_col) > 0 else 4.5
                 ar = float(away_runs_col[0]) if len(away_runs_col) > 0 else 4.5
-                hr_adj = hr * park_factor * (1 + wind_effect)
-                ar_adj = ar * park_factor * (1 - wind_effect)
+                # 综合环境调整
+                env_adj = 1 + wind_effect + temp_effect + precip_effect
+                hr_adj = hr * park_factor * env_adj
+                ar_adj = ar * park_factor * env_adj
                 sim = MonteCarloSimulator(hr_adj, ar_adj, n_simulations=5000)
                 sim.simulate()
                 home_cover, away_cover = sim.spread_prob(-1.5)
@@ -555,6 +598,9 @@ def generate_predictions(elo_system=None):
             "catcher_era_diff": features['catcher_era_diff'],
             "cs_diff": features['cs_diff'],
             "wind_effect": features['wind_effect'],
+            "temp_effect": features['temp_effect'],
+            "precip_effect": features['precip_effect'],
+            "injury_diff": features['injury_diff'],
             "pythag_diff": features['pythag_diff'],
             "log5_prob": features['log5_prob'],
             "lag30_winrate_diff": features['lag30_winrate_diff'],
@@ -604,6 +650,7 @@ def generate_predictions(elo_system=None):
                 "timezone_diff", "is_day_game",
                 "home_back2back", "away_back2back",
                 "catcher_era_diff", "cs_diff", "wind_effect",
+                "temp_effect", "precip_effect", "injury_diff",
                 "pythag_diff", "log5_prob",
                 "lag30_winrate_diff", "lag30_runs_diff",
                 "pitch_movement_diff",
@@ -621,6 +668,7 @@ def generate_predictions(elo_system=None):
                 p.get("statcast_hard_hit_diff", ""), p.get("statcast_woba_diff", ""),
                 p.get("timezone_diff", ""), p.get("is_day_game", ""), p.get("home_back2back", ""), p.get("away_back2back", ""),
                 p.get("catcher_era_diff", ""), p.get("cs_diff", ""), p.get("wind_effect", ""),
+                p.get("temp_effect", ""), p.get("precip_effect", ""), p.get("injury_diff", ""),
                 p.get("pythag_diff", ""), p.get("log5_prob", ""),
                 p.get("lag30_winrate_diff", ""), p.get("lag30_runs_diff", ""),
                 p.get("pitch_movement_diff", ""),
