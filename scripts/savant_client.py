@@ -24,12 +24,16 @@ def fetch_savant_statcast(date_str: str = None, errors: list = None) -> pd.DataF
         resp.raise_for_status()
         df = pd.read_csv(StringIO(resp.text))
         desired = [
-            'pitch_type', 'release_speed', 'events', 'game_date', 'launch_speed', 'launch_angle',
-            'barrel', 'hard_hit', 'hit_distance_sc', 'expected_batting_avg', 'expected_slugging_percent',
-            'expected_woba', 'pitch_hand', 'bat_side'
+            'pitch_type', 'release_speed', 'events', 'game_date',
+            'launch_speed', 'launch_angle', 'barrel', 'hard_hit',
+            'hit_distance_sc', 'expected_batting_avg', 'expected_slugging_percent',
+            'expected_woba', 'pitch_hand', 'bat_side',
+            'pfx_x', 'pfx_z',           # 水平/垂直位移
+            'release_spin_rate',        # 转速
+            'plate_x', 'plate_z'        # 进垒位置
         ]
         cols = [c for c in desired if c in df.columns]
-        return df[cols].head(2000)
+        return df[cols].head(3000)   # 稍多取一些样本用于聚合
     except Exception as e:
         if errors is not None:
             errors.append(f"Savant fetch error: {e}")
