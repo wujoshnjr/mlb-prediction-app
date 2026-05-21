@@ -2,7 +2,7 @@ name: Hourly Prediction Update
 
 on:
   schedule:
-    - cron: '0 * * * *'          # 每小时整点执行预测
+    - cron: '0 * * * *'
   workflow_dispatch:
     inputs:
       collect_from:
@@ -42,12 +42,8 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add -f report/prediction.json
-          if [ -f data/historical_predictions.csv ]; then
-            git add -f data/historical_predictions.csv
-          fi
-          if [ -f data/elo_ratings.json ]; then
-            git add -f data/elo_ratings.json
-          fi
+          if [ -f data/historical_predictions.csv ]; then git add -f data/historical_predictions.csv; fi
+          if [ -f data/elo_ratings.json ]; then git add -f data/elo_ratings.json; fi
           git commit -m "Update prediction & history [skip ci]" || echo "No changes"
           git pull --rebase origin main
           git push
@@ -68,7 +64,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install requests pandas xgboost scikit-learn joblib
+        run: pip install pandas requests xgboost scikit-learn joblib optuna
 
       - name: Update game results
         run: python scripts/update_results.py
@@ -88,15 +84,9 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -f data/historical_predictions.csv ]; then
-            git add -f data/historical_predictions.csv
-          fi
-          if [ -f data/elo_ratings.json ]; then
-            git add -f data/elo_ratings.json
-          fi
-          if [ -f data/calibrator.pkl ]; then
-            git add -f data/calibrator.pkl
-          fi
+          if [ -f data/historical_predictions.csv ]; then git add -f data/historical_predictions.csv; fi
+          if [ -f data/elo_ratings.json ]; then git add -f data/elo_ratings.json; fi
+          if [ -f data/calibrator.pkl ]; then git add -f data/calibrator.pkl; fi
           git commit -m "Update game results, ELO & model [skip ci]" || echo "No changes"
           git pull --rebase origin main
           git push
