@@ -35,7 +35,12 @@ try:
     from scripts.player_ratings import calculate_pitcher_ratings
 except:
     calculate_pitcher_ratings = None
+try:
+    from scripts.bullpen_availability import calculate_bullpen_availability
+except:
+    calculate_bullpen_availability = None
 
+# 尝试加载训练好的集成模型（XGBoost + LightGBM + 校准）
 model = None
 try:
     import joblib
@@ -43,6 +48,14 @@ try:
     print("已加载训练好的集成模型（XGBoost + LightGBM + 校准）")
 except:
     print("未找到训练模型，将使用手工集成")
+
+# SHAP explainer 延迟初始化
+shap_available = False
+try:
+    from scripts.shap_explainer import get_top_shap_features
+    shap_available = True
+except:
+    print("SHAP 模块不可用，跳过可解释性分析")
 
 LAST_GAME_FILE = "data/team_last_game.json"
 if os.path.exists(LAST_GAME_FILE):
@@ -89,9 +102,9 @@ FEATURE_DIRECTION = {
     'log5_prob': 1, 'lag30_winrate_diff': 1, 'lag30_runs_diff': 1,
     'pitch_movement_diff': 1,
     'k_pct_diff': -1, 'bb_pct_diff': 1, 'avg_bat_speed_diff': 1,
-    'pitcher_rating_diff': 1,          # 新增
-    'dynamic_park_factor': 1,          # 新增
-    'odds_change': 1                   # 新增
+    'pitcher_rating_diff': 1, 'dynamic_park_factor': 1, 'odds_change': 1,
+    'zone_size': 1, 'k_rate': 1,
+    'bullpen_availability_diff': 1,
 }
 
 def implied_prob(odds):
@@ -161,6 +174,11 @@ def generate_predictions(elo_system=None):
         for _, row in bullpen_df.iterrows():
             bullpen_dict[row['team_id']] = row
 
+    # 牛棚可用性评分
+    bullpen_availability_dict = {}
+    if calculate_bullpen_availability:
+        bullpen_availability_dict = calculate_bullpen_availability(bullpen_df)
+
     platoon_df = pd.DataFrame(data.get('platoon', []))
     platoon_dict = {}
     if not platoon_df.empty:
@@ -205,7 +223,6 @@ def generate_predictions(elo_system=None):
             for _, row in team_bat.iterrows():
                 bat_speed_dict[row['team_name']] = row['bat_speed']
 
-    # 球员综合评分
     pitcher_rating_dict = {}
     if calculate_pitcher_ratings and not savant_df.empty:
         pitcher_rating_dict = calculate_pitcher_ratings(savant_df)
@@ -229,6 +246,13 @@ def generate_predictions(elo_system=None):
         team_injury = injuries_df.groupby('team_name')['severity_score'].sum().reset_index()
         for _, row in team_injury.iterrows():
             injury_index[row['team_name']] = row['severity_score']
+
+    # 裁判数据
+    umpire_df = pd.DataFrame(data.get('umpires', []))
+    umpire_dict = {}
+    if not umpire_df.empty:
+        for _, row in umpire_df.iterrows():
+            umpire_dict[row['game_id']] = row.to_dict()
 
     historical_df = None
     hist_dir = "data/historical"
@@ -325,9 +349,15 @@ def generate_predictions(elo_system=None):
             home_back2back = int(bullpen_dict[home_id].get('back_to_back', 0))
             away_back2back = int(bullpen_dict[away_id].get('back_to_back', 0))
 
+        # 牛棚可用性差异
+        bullpen_availability_diff = 0.0
+        if bullpen_availability_dict:
+            home_avail = bullpen_availability_dict.get(home_id, 50.0)
+            away_avail = bullpen_availability_dict.get(away_id, 50.0)
+            bullpen_availability_diff = home_avail - away_avail
+
         from scripts.park_factors import get_park_factor
         static_park = get_park_factor(game.get('venue', ''))
-        # 动态公园因子：温度调整（每偏离70°F 10°F，距离变化1%）
         temp_f = (avg_temp * 9/5) + 32
         temp_effect = (temp_f - 70) / 10 * 0.01
         dynamic_park_factor = static_park * (1 + temp_effect)
@@ -417,7 +447,7 @@ def generate_predictions(elo_system=None):
                 lag30_runs_diff = home_runs_30 - away_runs_30
             except: pass
 
-        # 赔率变化特征（基于历史预测数据中的上次赔率快照，简化版：若无则设为0）
+        # 赔率变化特征
         odds_change = 0.0
         if os.path.exists(HIST_FILE):
             try:
@@ -426,6 +456,11 @@ def generate_predictions(elo_system=None):
                 if len(last_odds) > 0 and home_odds is not None:
                     odds_change = home_odds - last_odds[0]
             except: pass
+
+        # 裁判特征
+        umpire_data = umpire_dict.get(game.get('game_id'), {})
+        zone_size = umpire_data.get("zone_size", 1.0)
+        k_rate = umpire_data.get("k_rate", 0.0)
 
         features = {
             'elo_diff': round(elo_diff, 3),
@@ -461,6 +496,9 @@ def generate_predictions(elo_system=None):
             'avg_bat_speed_diff': round(avg_bat_speed_diff, 3),
             'pitcher_rating_diff': round(pitcher_rating_diff, 3),
             'odds_change': round(odds_change, 4),
+            'zone_size': round(zone_size, 3),
+            'k_rate': round(k_rate, 3),
+            'bullpen_availability_diff': round(bullpen_availability_diff, 3),
             'home_winrate': round(home_pct, 3),
             'away_winrate': round(away_pct, 3)
         }
@@ -499,7 +537,9 @@ def generate_predictions(elo_system=None):
                 features['k_pct_diff'], features['bb_pct_diff'],
                 features['avg_bat_speed_diff'],
                 features['pitcher_rating_diff'],
-                features['odds_change']
+                features['odds_change'],
+                features['zone_size'], features['k_rate'],
+                features['bullpen_availability_diff']
             ]])
             try:
                 ml_pred = model.predict_proba(feature_array)[0, 1]
@@ -558,6 +598,16 @@ def generate_predictions(elo_system=None):
         elif under_prob is not None and under_prob > 0.55:
             total_rec = f"Bet UNDER 8.5 ({under_prob:.1%})"
 
+        # NRFI 预测（基于先发投手首局 ERA 简化）
+        nrfi_prob = 0.5
+        if pitcher_data is not None:
+            home_first_era = float(pitcher_data.get('home_first_era', 4.5) or 4.5)
+            away_first_era = float(pitcher_data.get('away_first_era', 4.5) or 4.5)
+            # 简化：双方先发首局 ERA 越低，NRFI 概率越高
+            nrfi_prob = max(0.3, min(0.7, 0.5 + (4.5 - (home_first_era + away_first_era) / 2) * 0.08))
+        nrfi_rec = f"NRFI ({nrfi_prob:.1%})" if nrfi_prob > 0.55 else f"YRFI ({(1-nrfi_prob):.1%})"
+
+        # 特征重要性排序（带方向箭头）
         sorted_features = sorted(features.items(), key=lambda x: abs(x[1]), reverse=True)
         top_features = []
         for name, val in sorted_features[:5]:
@@ -583,6 +633,8 @@ def generate_predictions(elo_system=None):
             "moneyline_recommendation": ml_rec,
             "spread_recommendation": spread_rec,
             "total_recommendation": total_rec,
+            "nrfi_recommendation": nrfi_rec,
+            "nrfi_prob": round(nrfi_prob, 3),
             "simulated_total_mean": total_mean,
             "simulated_diff_mean": diff_mean,
             "confidence_interval_diff": ci_diff,
@@ -624,6 +676,9 @@ def generate_predictions(elo_system=None):
             "avg_bat_speed_diff": features['avg_bat_speed_diff'],
             "pitcher_rating_diff": features['pitcher_rating_diff'],
             "odds_change": features['odds_change'],
+            "zone_size": features['zone_size'],
+            "k_rate": features['k_rate'],
+            "bullpen_availability_diff": features['bullpen_availability_diff'],
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate'],
             "top_features": top_features,
@@ -641,7 +696,8 @@ def generate_predictions(elo_system=None):
         "bet_summary": {
             "moneyline_bets": [p for p in predictions if p['moneyline_recommendation'] != 'PASS'],
             "spread_bets": [p for p in predictions if p['spread_recommendation'] != 'PASS'],
-            "total_bets": [p for p in predictions if p['total_recommendation'] != 'PASS']
+            "total_bets": [p for p in predictions if p['total_recommendation'] != 'PASS'],
+            "nrfi_bets": [p for p in predictions if 'NRFI' in p.get('nrfi_recommendation', '')]
         },
         "errors": errors
     }
@@ -659,7 +715,7 @@ def generate_predictions(elo_system=None):
             writer.writerow([
                 "game_id", "game_date", "home_team", "away_team",
                 "pred_home_win", "home_odds", "elo_home", "elo_away",
-                "ml_rec", "spread_rec", "total_rec",
+                "ml_rec", "spread_rec", "total_rec", "nrfi_rec", "nrfi_prob",
                 "kelly_fraction", "home_win",
                 "elo_diff", "market_prob", "sp_era_diff", "sp_fip_diff",
                 "bullpen_ip_diff", "rest_diff", "park_factor",
@@ -676,6 +732,7 @@ def generate_predictions(elo_system=None):
                 "pitch_movement_diff",
                 "k_pct_diff", "bb_pct_diff", "avg_bat_speed_diff",
                 "pitcher_rating_diff", "odds_change",
+                "zone_size", "k_rate", "bullpen_availability_diff",
                 "closing_odds", "top_features", "market_divergence", "odds_source"
             ])
         for p in predictions:
@@ -683,6 +740,7 @@ def generate_predictions(elo_system=None):
                 p.get("game_id", ""), p.get("game_date", ""), p.get("home_team", ""), p.get("away_team", ""),
                 p.get("predicted_home_win_pct", ""), p.get("home_odds", ""), p.get("elo_home", ""), p.get("elo_away", ""),
                 p.get("moneyline_recommendation", ""), p.get("spread_recommendation", ""), p.get("total_recommendation", ""),
+                p.get("nrfi_recommendation", ""), p.get("nrfi_prob", ""),
                 p.get("kelly_fraction", ""), "",
                 p.get("elo_diff", ""), p.get("market_prob", ""), p.get("sp_era_diff", ""), p.get("sp_fip_diff", ""),
                 p.get("bullpen_ip_diff", ""), p.get("rest_diff", ""), p.get("park_factor", ""),
@@ -697,7 +755,8 @@ def generate_predictions(elo_system=None):
                 p.get("pitch_movement_diff", ""),
                 p.get("k_pct_diff", ""), p.get("bb_pct_diff", ""), p.get("avg_bat_speed_diff", ""),
                 p.get("pitcher_rating_diff", ""), p.get("odds_change", ""),
-                "",  # closing_odds
+                p.get("zone_size", ""), p.get("k_rate", ""), p.get("bullpen_availability_diff", ""),
+                "",
                 ";".join(p.get("top_features", [])) if isinstance(p.get("top_features"), list) else p.get("top_features", ""),
                 p.get("market_divergence", 0),
                 p.get("odds_source", "")
