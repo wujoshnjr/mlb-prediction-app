@@ -20,7 +20,7 @@ try:
 except:
     MonteCarloSimulator = None
 
-# 尝试加载训练好的模型（XGBoost + 校准）
+# 尝试加载训练好的模型
 model = None
 try:
     import joblib
@@ -116,6 +116,29 @@ def generate_predictions(elo_system=None):
     if not bullpen_df.empty:
         for _, row in bullpen_df.iterrows():
             bullpen_dict[row['team_id']] = row
+
+    # Platoon 数据
+    platoon_df = pd.DataFrame(data.get('platoon', []))
+    # 构建快速查询字典：{team_name: {vsLhp: {ops: ...}, vsRhp: {ops: ...}}}
+    platoon_dict = {}
+    if not platoon_df.empty:
+        for _, row in platoon_df.iterrows():
+            team = row['team_name']
+            split = row['split']
+            if team not in platoon_dict:
+                platoon_dict[team] = {}
+            platoon_dict[team][split] = {
+                'ops': float(row.get('ops', 0.700)) if row.get('ops') else 0.700
+            }
+
+    # Statcast 团队聚合特征（基于最近7天逐球数据）
+    savant_df = pd.DataFrame(data.get('savant_statcast', []))
+    statcast_team_stats = {}
+    if not savant_df.empty:
+        # 按球队（假设逐球数据中包含 team 字段，实际 Savant 返回的是 pitcher_team / batter_team）
+        # 这里需要根据实际字段处理，简化：使用 home_team / away_team 在逐球数据中不存在，我们暂时跳过
+        # 后续可以从其他来源获取团队 Statcast 数据
+        pass
 
     # 队名映射
     team_name_map = {
@@ -222,7 +245,7 @@ def generate_predictions(elo_system=None):
         except:
             rest_diff = 0
 
-        # 牛棚局数差值（疲劳度）
+        # 牛棚局数差值
         bullpen_ip_diff = 0.0
         home_id = TEAM_ID_MAP.get(home)
         away_id = TEAM_ID_MAP.get(away)
@@ -240,6 +263,22 @@ def generate_predictions(elo_system=None):
         from scripts.park_factors import get_park_factor
         park_factor = get_park_factor(game.get('venue', ''))
 
+        # ---------- Platoon 拆分特征 ----------
+        # 获取先发投手投球手（暂时默认右投，后续从 pitcher 数据获取）
+        starter_hand = "R"   # 假设右投
+        platoon_ops_diff = 0.0
+        if not platoon_df.empty:
+            split_key = "vsLhp" if starter_hand == "L" else "vsRhp"
+            home_platoon = platoon_dict.get(home, {}).get(split_key, {})
+            away_platoon = platoon_dict.get(away, {}).get(split_key, {})
+            if home_platoon and away_platoon:
+                platoon_ops_diff = home_platoon['ops'] - away_platoon['ops']
+
+        # ---------- Statcast 聚合特征（占位，后续完善）----------
+        # 这里可以通过 savant_df 计算团队近7天均值，但现在先留空
+        statcast_barrel_diff = 0.0
+        statcast_launch_speed_diff = 0.0
+
         # 特征向量（供模型和 CSV 使用）
         features = {
             'elo_diff': round(elo_diff, 3),
@@ -249,6 +288,9 @@ def generate_predictions(elo_system=None):
             'bullpen_ip_diff': round(bullpen_ip_diff, 3),
             'rest_diff': rest_diff,
             'park_factor': park_factor,
+            'platoon_ops_diff': round(platoon_ops_diff, 3),
+            'statcast_barrel_diff': round(statcast_barrel_diff, 3),
+            'statcast_launch_speed_diff': round(statcast_launch_speed_diff, 3),
             'home_winrate': round(home_pct, 3),
             'away_winrate': round(away_pct, 3)
         }
@@ -275,6 +317,7 @@ def generate_predictions(elo_system=None):
         # ---------- 机器学习预测（如果模型存在）----------
         ml_pred = None
         if model is not None:
+            # 特征顺序需与训练时完全一致
             feature_array = np.array([[
                 features['elo_diff'],
                 features['market_prob'],
@@ -282,7 +325,10 @@ def generate_predictions(elo_system=None):
                 features['sp_fip_diff'],
                 features['bullpen_ip_diff'],
                 features['rest_diff'],
-                features['park_factor']
+                features['park_factor'],
+                features['platoon_ops_diff'],          # 新增
+                features['statcast_barrel_diff'],      # 新增
+                features['statcast_launch_speed_diff'] # 新增
             ]])
             try:
                 ml_pred = model.predict_proba(feature_array)[0, 1]
@@ -307,7 +353,7 @@ def generate_predictions(elo_system=None):
             kelly_ml_away = kelly_criterion(pred_away, 1 / (1 - implied_prob(home_odds))
                                             if implied_prob(home_odds) and implied_prob(home_odds) < 1 else None)
 
-        # 蒙特卡洛模拟
+        # 蒙特卡洛模拟（使用公园因子调整期望得分）
         sim = None
         home_cover = away_cover = over_prob = under_prob = None
         total_mean = diff_mean = None
@@ -379,6 +425,9 @@ def generate_predictions(elo_system=None):
             "bullpen_ip_diff": features['bullpen_ip_diff'],
             "rest_diff": features['rest_diff'],
             "park_factor": features['park_factor'],
+            "platoon_ops_diff": features['platoon_ops_diff'],
+            "statcast_barrel_diff": features['statcast_barrel_diff'],
+            "statcast_launch_speed_diff": features['statcast_launch_speed_diff'],
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate']
         })
@@ -399,7 +448,7 @@ def generate_predictions(elo_system=None):
         "errors": errors
     }
 
-    # ========== 保存历史预测记录（包含 closing_odds 列）==========
+    # ========== 保存历史预测记录 ==========
     HISTORY_FILE = "data/historical_predictions.csv"
     os.makedirs("data", exist_ok=True)
     file_exists = os.path.exists(HISTORY_FILE)
@@ -413,6 +462,7 @@ def generate_predictions(elo_system=None):
                 "kelly_fraction", "home_win",
                 "elo_diff", "market_prob", "sp_era_diff", "sp_fip_diff",
                 "bullpen_ip_diff", "rest_diff", "park_factor",
+                "platoon_ops_diff", "statcast_barrel_diff", "statcast_launch_speed_diff",
                 "closing_odds"
             ])
         for p in predictions:
@@ -437,6 +487,9 @@ def generate_predictions(elo_system=None):
                 p.get("bullpen_ip_diff", ""),
                 p.get("rest_diff", ""),
                 p.get("park_factor", ""),
+                p.get("platoon_ops_diff", ""),
+                p.get("statcast_barrel_diff", ""),
+                p.get("statcast_launch_speed_diff", ""),
                 ""                      # closing_odds 暂时留空
             ])
     print(f"历史预测已追加至 {HISTORY_FILE}")
