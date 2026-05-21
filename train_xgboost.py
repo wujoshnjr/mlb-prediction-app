@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-训练 XGBoost 模型并进行概率校准（包含所有新特征）
+训练 XGBoost 模型并进行概率校准
 """
 import pandas as pd
 import numpy as np
@@ -12,16 +12,24 @@ from sklearn.calibration import CalibratedClassifierCV
 HISTORY_FILE = "data/historical_predictions.csv"
 MODEL_OUTPUT = "data/calibrator.pkl"
 
-# 期望的特征列（与 prediction.py 写入的特征顺序一致）
+# 特征列表（必须与 prediction.py 中传递给模型的特征顺序完全一致）
 EXPECTED_FEATURES = [
-    'elo_diff', 'market_prob', 'sp_era_diff', 'sp_fip_diff',
-    'bullpen_ip_diff', 'rest_diff', 'park_factor',
-    'platoon_ops_diff', 'statcast_barrel_diff', 'statcast_launch_speed_diff'
+    'elo_diff',
+    'market_prob',
+    'sp_era_diff',
+    'sp_fip_diff',
+    'bullpen_ip_diff',
+    'rest_diff',
+    'park_factor',
+    'platoon_ops_diff',
+    'statcast_launch_speed_diff',
+    'statcast_barrel_diff',
+    'statcast_hard_hit_diff',
+    'statcast_woba_diff'
 ]
 
 def prepare_data():
     df = pd.read_csv(HISTORY_FILE)
-    # 删除无结果的记录
     df['home_win'] = df['home_win'].replace('', np.nan)
     df = df.dropna(subset=['home_win'])
     df['home_win'] = df['home_win'].astype(int)
@@ -30,7 +38,6 @@ def prepare_data():
         print(f"数据量不足 ({len(df)} 条)，跳过训练")
         return None, None
 
-    # 确保所有特征列存在，缺失则填充0
     for col in EXPECTED_FEATURES:
         if col not in df.columns:
             print(f"警告：缺少列 {col}，将用 0 填充")
@@ -41,7 +48,6 @@ def prepare_data():
     X = df[EXPECTED_FEATURES].values
     y = df['home_win'].values
 
-    # 检查是否有有效特征（非全0且方差>0）
     variances = np.var(X, axis=0)
     if np.all(variances < 1e-8):
         print("所有特征方差接近0，无法训练有效模型")
@@ -75,7 +81,6 @@ def train():
     joblib.dump(calibrated, MODEL_OUTPUT)
     print(f"模型已保存至 {MODEL_OUTPUT}")
 
-    # 特征重要性
     try:
         importances = calibrated.estimator_.feature_importances_
         for name, imp in zip(EXPECTED_FEATURES, importances):
