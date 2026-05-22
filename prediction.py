@@ -107,6 +107,9 @@ FEATURE_DIRECTION = {
     'bullpen_availability_diff': 1,
     'elo_momentum_7d': 1, 'elo_momentum_30d': 1,
     'barrel_pa_diff': 1, 'hardhit_pa_diff': 1,
+    'swing_miss_diff': 1,
+    'csw_diff': 1,
+    'barrel_bb_pct_diff': -1,
 }
 
 def implied_prob(odds):
@@ -235,6 +238,33 @@ def generate_predictions(elo_system=None):
     if calculate_pitcher_ratings and not savant_df.empty:
         pitcher_rating_dict = calculate_pitcher_ratings(savant_df)
 
+    # ========== 投球压制力聚合（挥空率、CSW%、被扎实击球率） ==========
+    swing_miss_dict = {}
+    csw_dict = {}
+    barrel_against_dict = {}
+
+    if not savant_df.empty and 'whiff' in savant_df.columns:
+        pitcher_team_col = 'home_team'
+        whiff_rate = savant_df.groupby(pitcher_team_col)['whiff'].mean().reset_index()
+        whiff_rate.rename(columns={pitcher_team_col: 'team_name', 'whiff': 'whiff_rate'}, inplace=True)
+        for _, row in whiff_rate.iterrows():
+            swing_miss_dict[row['team_name']] = row['whiff_rate']
+
+        if 'csw' in savant_df.columns:
+            csw_rate = savant_df.groupby(pitcher_team_col)['csw'].mean().reset_index()
+            csw_rate.rename(columns={pitcher_team_col: 'team_name', 'csw': 'csw_rate'}, inplace=True)
+            for _, row in csw_rate.iterrows():
+                csw_dict[row['team_name']] = row['csw_rate']
+
+        faced = savant_df.groupby(pitcher_team_col).size().reset_index(name='faced')
+        barrel_count = savant_df[savant_df['barrel'] == 1].groupby(pitcher_team_col).size().reset_index(name='barrel_count')
+        barrel_rate = faced.merge(barrel_count, on=pitcher_team_col, how='left')
+        barrel_rate['barrel_count'] = barrel_rate['barrel_count'].fillna(0)
+        barrel_rate['barrel_rate_against'] = barrel_rate['barrel_count'] / barrel_rate['faced']
+        barrel_rate.rename(columns={pitcher_team_col: 'team_name'}, inplace=True)
+        for _, row in barrel_rate.iterrows():
+            barrel_against_dict[row['team_name']] = row['barrel_rate_against']
+
     weather_df = pd.DataFrame(data.get('openmeteo_weather', []))
     avg_wind_speed = weather_df['wind_speed'].mean() if not weather_df.empty else 0
     avg_wind_dir = weather_df['wind_direction'].mean() if not weather_df.empty else 0
@@ -305,7 +335,6 @@ def generate_predictions(elo_system=None):
         if len(home_pct) == 0 or len(away_pct) == 0: continue
         home_pct, away_pct = home_pct[0], away_pct[0]
 
-        # 场均得分
         home_wins = int(teams_df[teams_df['name'] == home]['wins'].values[0])
         home_losses = int(teams_df[teams_df['name'] == home]['losses'].values[0])
         away_wins = int(teams_df[teams_df['name'] == away]['wins'].values[0])
@@ -319,7 +348,6 @@ def generate_predictions(elo_system=None):
         if elo_system:
             elo_diff = elo_system.elos.get(home, 1500) - elo_system.elos.get(away, 1500) + elo_system.home_adv
 
-        # ELO 动量
         elo_momentum_7d = 0.0; elo_momentum_30d = 0.0
         if get_elo_momentum:
             try:
@@ -445,6 +473,28 @@ def generate_predictions(elo_system=None):
             if home_rating is not None and away_rating is not None:
                 pitcher_rating_diff = home_rating - away_rating
 
+        # 投球压制力差值
+        swing_miss_diff = 0.0
+        if swing_miss_dict:
+            h_whiff = swing_miss_dict.get(home)
+            a_whiff = swing_miss_dict.get(away)
+            if h_whiff is not None and a_whiff is not None:
+                swing_miss_diff = h_whiff - a_whiff
+
+        csw_diff = 0.0
+        if csw_dict:
+            h_csw = csw_dict.get(home)
+            a_csw = csw_dict.get(away)
+            if h_csw is not None and a_csw is not None:
+                csw_diff = h_csw - a_csw
+
+        barrel_bb_pct_diff = 0.0
+        if barrel_against_dict:
+            h_barrel = barrel_against_dict.get(home)
+            a_barrel = barrel_against_dict.get(away)
+            if h_barrel is not None and a_barrel is not None:
+                barrel_bb_pct_diff = h_barrel - a_barrel
+
         temp_effect_raw = 0.0
         if avg_temp > 25: temp_effect_raw = 0.02 * (avg_temp - 25)
         precip_effect = -0.01 * avg_precip if avg_precip > 0 else 0.0
@@ -532,6 +582,9 @@ def generate_predictions(elo_system=None):
             'elo_momentum_30d': round(elo_momentum_30d, 3),
             'barrel_pa_diff': round(barrel_pa_diff, 3),
             'hardhit_pa_diff': round(hardhit_pa_diff, 3),
+            'swing_miss_diff': round(swing_miss_diff, 3),
+            'csw_diff': round(csw_diff, 3),
+            'barrel_bb_pct_diff': round(barrel_bb_pct_diff, 3),
             'home_winrate': round(home_pct, 3),
             'away_winrate': round(away_pct, 3)
         }
@@ -576,10 +629,11 @@ def generate_predictions(elo_system=None):
                 features['zone_size'], features['k_rate'],
                 features['bullpen_availability_diff'],
                 features['elo_momentum_7d'], features['elo_momentum_30d'],
-                features['barrel_pa_diff'], features['hardhit_pa_diff']
+                features['barrel_pa_diff'], features['hardhit_pa_diff'],
+                features['swing_miss_diff'], features['csw_diff'],
+                features['barrel_bb_pct_diff']
             ]])
             try:
-                # 双阶段校准模型 predict_proba 返回校准后的概率
                 ml_pred = model.predict_proba(feature_array)[0, 1]
                 ml_pred = min(0.95, max(0.05, ml_pred))
                 if hasattr(model, 'platt') and hasattr(model.platt, 'estimators_'):
@@ -601,7 +655,7 @@ def generate_predictions(elo_system=None):
         if xgb_pred is not None and lgb_pred is not None:
             pred_uncertainty = abs(xgb_pred - lgb_pred)
 
-        # ========== 80% 置信区间 ==========
+        # 80% 置信区间
         pred_std = 0.10
         if historical_count > 10:
             try:
@@ -744,6 +798,9 @@ def generate_predictions(elo_system=None):
             "elo_momentum_30d": features['elo_momentum_30d'],
             "barrel_pa_diff": features['barrel_pa_diff'],
             "hardhit_pa_diff": features['hardhit_pa_diff'],
+            "swing_miss_diff": features['swing_miss_diff'],
+            "csw_diff": features['csw_diff'],
+            "barrel_bb_pct_diff": features['barrel_bb_pct_diff'],
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate'],
             "top_features": top_features,
@@ -836,6 +893,9 @@ def generate_predictions(elo_system=None):
                 "elo_momentum_30d": p.get("elo_momentum_30d"),
                 "barrel_pa_diff": p.get("barrel_pa_diff"),
                 "hardhit_pa_diff": p.get("hardhit_pa_diff"),
+                "swing_miss_diff": p.get("swing_miss_diff"),
+                "csw_diff": p.get("csw_diff"),
+                "barrel_bb_pct_diff": p.get("barrel_bb_pct_diff"),
                 "closing_odds": None,
                 "top_features": ";".join(p.get("top_features", [])) if isinstance(p.get("top_features"), list) else p.get("top_features", ""),
                 "market_divergence": p.get("market_divergence", 0),
@@ -877,6 +937,7 @@ def generate_predictions(elo_system=None):
                 "pitcher_rating_diff", "odds_change",
                 "zone_size", "k_rate", "bullpen_availability_diff",
                 "elo_momentum_7d", "elo_momentum_30d", "barrel_pa_diff", "hardhit_pa_diff",
+                "swing_miss_diff", "csw_diff", "barrel_bb_pct_diff",
                 "closing_odds", "top_features", "market_divergence", "odds_source"
             ])
         for p in predictions:
@@ -902,6 +963,7 @@ def generate_predictions(elo_system=None):
                 p.get("pitcher_rating_diff", ""), p.get("odds_change", ""),
                 p.get("zone_size", ""), p.get("k_rate", ""), p.get("bullpen_availability_diff", ""),
                 p.get("elo_momentum_7d", ""), p.get("elo_momentum_30d", ""), p.get("barrel_pa_diff", ""), p.get("hardhit_pa_diff", ""),
+                p.get("swing_miss_diff", ""), p.get("csw_diff", ""), p.get("barrel_bb_pct_diff", ""),
                 "",
                 ";".join(p.get("top_features", [])) if isinstance(p.get("top_features"), list) else p.get("top_features", ""),
                 p.get("market_divergence", 0),
