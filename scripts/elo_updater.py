@@ -20,17 +20,18 @@ def update_elo_from_results():
     with open(HISTORY_FILE, 'r', newline='', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            home = row.get("home_team", "").strip()
-            away = row.get("away_team", "").strip()
-            home_win_str = row.get("home_win", "").strip()
+            # 安全获取字段，处理 None 值
+            home = (row.get("home_team") or "").strip()
+            away = (row.get("away_team") or "").strip()
+            home_win_str = (row.get("home_win") or "").strip()
 
             if not home or not away or not home_win_str:
                 skipped_count += 1
                 continue
 
-            # 尝试安全转换为整数（支持 "0", "1", 或浮点字符串如 "0.5"）
+            # 安全转换为主队胜负
             try:
-                home_win = int(float(home_win_str) + 0.5)  # 四舍五入
+                home_win = int(float(home_win_str) + 0.5)
                 if home_win not in (0, 1):
                     skipped_count += 1
                     continue
@@ -39,7 +40,7 @@ def update_elo_from_results():
                 skipped_count += 1
                 continue
 
-            game_date = row.get("game_date", "")
+            game_date = (row.get("game_date") or "").strip()
             elo.update(home, away, home_win, game_date)
             updated_count += 1
 
