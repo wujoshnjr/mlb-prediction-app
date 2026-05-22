@@ -42,16 +42,21 @@ def fetch_mlb_statsapi(date_str: str = None, errors: list = None) -> pd.DataFram
                     if player.get("position", {}).get("code") == "2":
                         home_catcher_id = player["player"]["id"]
                         break
-            except:
-                pass
+            except: pass
             try:
                 for player in teams["away"].get("lineup", {}).get("lineup", []):
                     if player.get("position", {}).get("code") == "2":
                         away_catcher_id = player["player"]["id"]
                         break
-            except:
-                pass
+            except: pass
             is_day_game = 1 if "day" in str(game.get("dayNight", "")).lower() else 0
+
+            # 提取前3棒的平均wOBA（暂时用默认值，后续可通过Stats API获取）
+            home_top3_avg_woba = 0.320
+            away_top3_avg_woba = 0.320
+            # 实际实现：从lineup中取前3名player id，然后查询赛季wOBA
+            # 这里作为占位，后续可完善
+
             games.append({
                 "game_id": game_id,
                 "game_date": game_date,
@@ -66,6 +71,8 @@ def fetch_mlb_statsapi(date_str: str = None, errors: list = None) -> pd.DataFram
                 "home_catcher_id": home_catcher_id,
                 "away_catcher_id": away_catcher_id,
                 "is_day_game": is_day_game,
-                "start_time": game.get("gameDate")
+                "start_time": game.get("gameDate"),
+                "home_top3_avg_woba": home_top3_avg_woba,
+                "away_top3_avg_woba": away_top3_avg_woba
             })
     return pd.DataFrame(games)
