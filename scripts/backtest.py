@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.metrics import brier_score_loss, log_loss
 
 HISTORY_FILE = "data/historical_predictions.csv"
+REPORT_FILE = "data/backtest_report.csv"
 
 def run_backtest():
     if not os.path.exists(HISTORY_FILE):
@@ -45,7 +46,11 @@ def run_backtest():
         logloss = log_loss(clean['home_win'].astype(int), clean['pred_home_win'].astype(float))
         print(f"Brier Score: {brier:.4f} | Log Loss: {logloss:.4f}")
         if brier > 0.25:
-            print("\n⚠️ Brier Score 过高，建议立即重新训练模型。")
+            print("⚠️ Brier Score 过高，建议立即重新训练模型。")
+
+    # 保存详细报告
+    df.to_csv(REPORT_FILE, index=False)
+    print(f"详细回测报告已保存至 {REPORT_FILE}")
 
 if __name__ == "__main__":
     run_backtest()
