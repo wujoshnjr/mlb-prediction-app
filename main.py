@@ -1,21 +1,20 @@
-import sys
-import os
-import json
-import threading
+import sys, os, json, threading
 from datetime import datetime
+import pandas as pd
+import numpy as np
+from sklearn.metrics import brier_score_loss
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
 
-# 尝试导入预测和ELO系统，失败不影响服务启动
 try:
     from prediction import generate_predictions
     from scripts.elo import MLBElosystem
     elo_system = MLBElosystem()
 except Exception as e:
-    print(f"Warning: Could not import prediction/elo: {e}")
+    print(f"Warning: {e}")
     generate_predictions = None
     elo_system = None
 
@@ -30,54 +29,39 @@ HTML = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MLB Prediction Hub</title>
     <style>
-        :root {
-            --bg: #f9fafb;
-            --card-bg: #ffffff;
-            --text: #1a202c;
-            --muted: #718096;
-            --border: #e2e8f0;
-            --accent: #2b6cb0;
-            --positive: #38a169;
-            --negative: #e53e3e;
-            --warning: #d69e2e;
-        }
+        :root { --bg:#f9fafb; --card:#fff; --text:#1a202c; --muted:#718096; --border:#e2e8f0; --accent:#2b6cb0; --positive:#38a169; --negative:#e53e3e; }
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
-        .container { max-width: 1280px; margin: 0 auto; }
-        .header { border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; }
-        .header h1 { font-size: 1.8rem; font-weight: 600; }
-        .header p { color: var(--muted); margin-top: 4px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
-        .stat-card .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-        .stat-card .value { font-size: 2rem; font-weight: 600; margin-top: 4px; }
-        .positive { color: var(--positive); }
-        .negative { color: var(--negative); }
-        .table-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; margin-bottom: 24px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover { background: var(--accent-light); }
-        .rec { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-        .rec-bet { background: #c6f6d5; color: #22543d; }
-        .rec-pass { background: #edf2f7; color: #718096; }
-        .tab-bar { display: flex; gap: 8px; margin-bottom: 16px; }
-        .tab { padding: 8px 16px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.85rem; background: var(--card-bg); }
-        .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
-        .loading { text-align: center; padding: 32px; color: var(--muted); }
-        .footer { margin-top: 32px; text-align: center; color: var(--muted); font-size: 0.8rem; }
-        .error { color: var(--negative); background: #fff5f5; border: 1px solid var(--negative); padding: 12px; border-radius: 8px; margin-bottom: 16px; }
+        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); padding:20px; }
+        .container { max-width:1400px; margin:0 auto; }
+        .header { border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:24px; }
+        .header h1 { font-size:1.8rem; font-weight:600; }
+        .header p { color:var(--muted); margin-top:4px; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:24px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:18px; }
+        .stat-card .label { font-size:0.8rem; color:var(--muted); text-transform:uppercase; }
+        .stat-card .value { font-size:1.8rem; font-weight:600; margin-top:4px; }
+        .positive { color:var(--positive); } .negative { color:var(--negative); }
+        .table-container { background:var(--card); border:1px solid var(--border); border-radius:8px; overflow-x:auto; margin-bottom:24px; }
+        table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+        th,td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
+        th { font-weight:600; color:var(--muted); font-size:0.75rem; text-transform:uppercase; background:#f8fafc; }
+        tr:last-child td { border-bottom:none; }
+        tr:hover { background:#f0f4ff; }
+        .rec { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:600; }
+        .rec-bet { background:#c6f6d5; color:#22543d; }
+        .rec-pass { background:#edf2f7; color:#718096; }
+        .loading { text-align:center; padding:32px; color:var(--muted); }
+        .footer { margin-top:32px; text-align:center; color:var(--muted); font-size:0.8rem; }
+        .error { color:var(--negative); background:#fff5f5; border:1px solid var(--negative); padding:12px; border-radius:8px; margin-bottom:16px; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>MLB Prediction Hub</h1>
+            <h1>⚾ MLB Prediction Hub</h1>
             <p>Probabilistic forecasts · Backtested · Transparent</p>
             <p id="update-time" style="font-size:0.8rem; margin-top:8px;">Loading...</p>
         </div>
-
         <div id="error-box"></div>
 
         <!-- 绩效卡片 -->
@@ -88,25 +72,16 @@ HTML = """
             <div class="stat-card"><div class="label">Brier Score</div><div class="value" id="perf-brier">—</div></div>
         </div>
 
-        <!-- 导航 -->
-        <div class="tab-bar">
-            <div class="tab active" onclick="switchTab('predictions')">Predictions</div>
-            <div class="tab" onclick="switchTab('rankings')">Power Rankings</div>
-        </div>
-
         <!-- 预测表格 -->
-        <div class="table-container" id="tab-predictions">
+        <div class="table-container">
             <table>
-                <thead><tr><th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th><th>Rec</th></tr></thead>
-                <tbody id="pred-body"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
-            </table>
-        </div>
-
-        <!-- 战力排名 -->
-        <div class="table-container" id="tab-rankings" style="display:none">
-            <table>
-                <thead><tr><th>#</th><th>Team</th><th>W-L</th><th>Win%</th><th>ELO</th></tr></thead>
-                <tbody id="rank-body"><tr><td colspan="5" class="loading">Loading...</td></tr></tbody>
+                <thead>
+                    <tr>
+                        <th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th>
+                        <th>Moneyline</th><th>Spread</th><th>Total</th><th>NRFI</th><th>Key Factors</th>
+                    </tr>
+                </thead>
+                <tbody id="pred-body"><tr><td colspan="10" class="loading">Loading...</td></tr></tbody>
             </table>
         </div>
 
@@ -114,15 +89,6 @@ HTML = """
     </div>
 
     <script>
-        let allData = null;
-        function switchTab(tab) {
-            document.querySelectorAll('.tab').forEach((t, i) => {
-                t.classList.toggle('active', i === (tab === 'predictions' ? 0 : 1));
-            });
-            document.getElementById('tab-predictions').style.display = tab === 'predictions' ? 'block' : 'none';
-            document.getElementById('tab-rankings').style.display = tab === 'rankings' ? 'block' : 'none';
-        }
-
         async function load() {
             const errorBox = document.getElementById('error-box');
             try {
@@ -132,7 +98,6 @@ HTML = """
                 ]);
                 if (!predResp.ok) throw new Error('Predictions API ' + predResp.status);
                 const predData = await predResp.json();
-                allData = predData;
                 renderPredictions(predData);
 
                 if (perfResp.ok) {
@@ -141,7 +106,7 @@ HTML = """
                 }
                 document.getElementById('update-time').innerText = 'Updated: ' + (predData.generated_at ? new Date(predData.generated_at).toLocaleString() : '—');
             } catch (err) {
-                errorBox.innerHTML = `<div class="error">Failed to load data: ${err.message}</div>`;
+                errorBox.innerHTML = `<div class="error">Failed to load: ${err.message}</div>`;
             }
         }
 
@@ -150,7 +115,7 @@ HTML = """
             const roiEl = document.getElementById('perf-roi');
             const roi = data.roi;
             if (roi != null) {
-                roiEl.innerHTML = roi > 0 ? `<span class="positive">${(roi*100).toFixed(1)}%</span>` : `<span class="negative">${(roi*100).toFixed(1)}%</span>`;
+                roiEl.innerHTML = roi > 0 ? `<span class="positive">+${(roi*100).toFixed(1)}%</span>` : `<span class="negative">${(roi*100).toFixed(1)}%</span>`;
             } else {
                 roiEl.innerText = '—';
             }
@@ -162,28 +127,20 @@ HTML = """
             const preds = data.today_predictions || [];
             const tbody = document.getElementById('pred-body');
             if (preds.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6">今日暂无比赛</td></tr>';
-            } else {
-                tbody.innerHTML = preds.map(p => {
-                    const time = p.game_date ? new Date(p.game_date).toLocaleTimeString('zh-TW', {hour:'2-digit',minute:'2-digit'}) : '—';
-                    const pred = p.predicted_home_win_pct != null ? (p.predicted_home_win_pct*100).toFixed(1)+'%' : '—';
-                    const odds = p.home_odds ? p.home_odds.toFixed(2) : '—';
-                    const rec = p.moneyline_recommendation && p.moneyline_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.moneyline_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
-                    return `<tr><td>${time}</td><td><strong>${p.home_team}</strong></td><td>${p.away_team}</td><td>${pred}</td><td>${odds}</td><td>${rec}</td></tr>`;
-                }).join('');
+                tbody.innerHTML = '<tr><td colspan="10">今日暂无比赛</td></tr>';
+                return;
             }
-
-            // 排名
-            const rankBody = document.getElementById('rank-body');
-            const ranks = data.power_rankings || [];
-            if (ranks.length === 0) {
-                rankBody.innerHTML = '<tr><td colspan="5">暂无排名数据</td></tr>';
-            } else {
-                rankBody.innerHTML = ranks.map((t, i) => {
-                    const elo = data.elo_ratings && data.elo_ratings[t.name] ? data.elo_ratings[t.name].toFixed(0) : '—';
-                    return `<tr><td>${i+1}</td><td>${t.name}</td><td>${t.wins}-${t.losses}</td><td>${(t.win_pct*100).toFixed(1)}%</td><td>${elo}</td></tr>`;
-                }).join('');
-            }
+            tbody.innerHTML = preds.map(p => {
+                const time = p.game_date ? new Date(p.game_date).toLocaleTimeString('zh-TW', {hour:'2-digit',minute:'2-digit'}) : '—';
+                const pred = p.predicted_home_win_pct != null ? (p.predicted_home_win_pct*100).toFixed(1)+'%' : '—';
+                const odds = p.home_odds ? p.home_odds.toFixed(2) : '—';
+                const ml = p.moneyline_recommendation && p.moneyline_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.moneyline_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
+                const spread = p.spread_recommendation && p.spread_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.spread_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
+                const total = p.total_recommendation && p.total_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.total_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
+                const nrfi = p.nrfi_recommendation || '—';
+                const factors = (p.top_features || []).join(' · ');
+                return `<tr><td>${time}</td><td><strong>${p.home_team}</strong></td><td>${p.away_team}</td><td>${pred}</td><td>${odds}</td><td>${ml}</td><td>${spread}</td><td>${total}</td><td>${nrfi}</td><td style="font-size:0.75rem;color:var(--muted)">${factors}</td></tr>`;
+            }).join('');
         }
 
         load();
@@ -200,7 +157,6 @@ def index():
 
 @app.get("/api/predictions")
 def get_predictions():
-    # 优先读取已有的预测报告
     try:
         with open("report/prediction.json", "r", encoding="utf-8") as f:
             data = json.load(f)
@@ -210,38 +166,65 @@ def get_predictions():
     except Exception:
         pass
 
-    # 尝试实时生成
     if generate_predictions:
         try:
             data = generate_predictions(elo_system) if elo_system else generate_predictions()
             return data
         except Exception as e:
-            return JSONResponse({"error": f"实时生成预测失败: {str(e)}"}, status_code=500)
+            return JSONResponse({"error": f"Real-time generation failed: {str(e)}"}, status_code=500)
     else:
-        return JSONResponse({"error": "预测模块未加载，且无本地预测数据"}, status_code=503)
+        return JSONResponse({"error": "Prediction module not loaded"}, status_code=503)
 
 @app.get("/api/performance")
 def get_performance():
-    """返回简单的绩效统计（从数据库或回测报告获取）"""
+    """从 historical_predictions.csv 计算真实绩效指标"""
+    history_file = "data/historical_predictions.csv"
+    result = {"total": 0, "roi": 0.0, "win_rate": 0.0, "brier": 0.0}
+
+    if not os.path.exists(history_file):
+        return result
+
     try:
-        # 尝试从数据库获取
-        from scripts.database import get_performance_metrics
-        metrics = get_performance_metrics()
-        return {
-            "total": metrics.get("total", 0),
-            "roi": 0.0,           # 后续接入真实 ROI 计算
-            "win_rate": metrics.get("win_rate", 0) or 0,
-            "brier": 0.0
-        }
-    except:
-        pass
-    # 回退
-    return {
-        "total": 0,
-        "roi": 0.0,
-        "win_rate": 0.0,
-        "brier": 0.0
-    }
+        df = pd.read_csv(history_file)
+        # 只保留有真实结果的比赛
+        df = df[df['home_win'].notna()]
+        df['home_win'] = df['home_win'].astype(int)
+        if len(df) == 0:
+            return result
+
+        result["total"] = len(df)
+
+        # 胜率（只统计有推荐的比赛）
+        bets = df[df['ml_rec'].notna() & (df['ml_rec'] != '')]
+        bets_with_rec = bets[bets['ml_rec'].str.contains('Bet', na=False)]
+        if len(bets_with_rec) > 0:
+            result["win_rate"] = bets_with_rec['home_win'].mean()
+
+        # ROI (1/4 Kelly 简化计算)
+        def calc_profit(row):
+            if 'Bet' not in str(row.get('ml_rec', '')):
+                return 0
+            odds = row.get('home_odds', 2.0)
+            if pd.isna(odds) or odds <= 1:
+                odds = 2.0
+            # 简单按固定1单位投注
+            return (odds - 1) if row['home_win'] == 1 else -1
+
+        df['profit'] = df.apply(calc_profit, axis=1)
+        total_bets = (df['profit'] != 0).sum()
+        total_profit = df['profit'].sum()
+        if total_bets > 0:
+            result["roi"] = total_profit / total_bets
+
+        # Brier Score
+        clean = df[['home_win', 'pred_home_win']].dropna()
+        if len(clean) > 0:
+            result["brier"] = brier_score_loss(clean['home_win'], clean['pred_home_win'])
+
+    except Exception as e:
+        print(f"Performance calculation error: {e}")
+
+    return result
 
 @app.get("/run")
 def run_background():
