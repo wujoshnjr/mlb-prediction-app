@@ -23,7 +23,8 @@ EXPECTED_FEATURES = [
     'pitch_movement_diff',
     'k_pct_diff','bb_pct_diff','avg_bat_speed_diff',
     'pitcher_rating_diff','odds_change',
-    'zone_size','k_rate','bullpen_availability_diff'
+    'zone_size','k_rate','bullpen_availability_diff',
+    'elo_momentum_7d','elo_momentum_30d','barrel_pa_diff','hardhit_pa_diff'
 ]
 
 def prepare_data():
