@@ -58,12 +58,18 @@ def train():
     X, y, df_all = prepare_data()
     if X is None: return
 
+    # 记录训练数据的赛季分布
+    if 'game_date' in df_all.columns:
+        df_all['season'] = pd.to_datetime(df_all['game_date']).dt.year
+        seasons_in_data = df_all['season'].unique()
+        print(f"训练数据涵盖赛季: {sorted(seasons_in_data)}")
+
     tscv = TimeSeriesSplit(n_splits=3)
     split = int(len(X) * 0.8)
     X_train, X_val = X[:split], X[split:]
     y_train, y_val = y[:split], y[split:]
 
-    # XGBoost
+    # XGBoost 超参数优化
     def objective_xgb(trial):
         params = {
             'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
@@ -85,7 +91,7 @@ def train():
     study_xgb.optimize(objective_xgb, n_trials=50, show_progress_bar=False)
     best_xgb = XGBClassifier(**study_xgb.best_params, eval_metric='logloss', random_state=42)
 
-    # LightGBM
+    # LightGBM 优化
     def objective_lgb(trial):
         params = {
             'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
@@ -106,6 +112,7 @@ def train():
     study_lgb.optimize(objective_lgb, n_trials=50, show_progress_bar=False)
     best_lgb = LGBMClassifier(**study_lgb.best_params, verbose=-1, random_state=42)
 
+    # 集成与校准
     ensemble = VotingClassifier(estimators=[('xgb', best_xgb), ('lgb', best_lgb)], voting='soft')
     calibrated_platt = CalibratedClassifierCV(estimator=ensemble, method='sigmoid', cv=tscv)
     calibrated_platt.fit(X, y)
@@ -113,6 +120,7 @@ def train():
     platt_probs = calibrated_platt.predict_proba(X)[:, 1]
     iso_reg = IsotonicRegression(out_of_bounds='clip')
     iso_reg.fit(platt_probs, y)
+
     class TwoStageCalibrator:
         def __init__(self, platt, iso):
             self.platt = platt; self.iso = iso
@@ -129,7 +137,7 @@ def train():
     val_logloss = log_loss(y_val, val_probs)
     print(f"验证集 Brier: {val_brier:.4f}, LogLoss: {val_logloss:.4f}")
 
-    # 记录训练日志
+    # 记录日志
     log_entry = {"timestamp": datetime.now().isoformat(), "num_samples": len(df_all), "brier": round(val_brier,4), "logloss": round(val_logloss,4)}
     log_df = pd.DataFrame([log_entry])
     if os.path.exists(TRAINING_LOG):
@@ -137,7 +145,7 @@ def train():
     else:
         log_df.to_csv(TRAINING_LOG, index=False)
 
-    # 特征重要性及审查
+    # 特征重要性（记录到日志）
     importances = best_xgb.feature_importances_
     imp_df = pd.DataFrame([importances], columns=EXPECTED_FEATURES)
     imp_df['timestamp'] = datetime.now().isoformat()
@@ -148,6 +156,9 @@ def train():
 
     # 输出最低5个特征
     sorted_idx = np.argsort(importances)
-    print("\n⚠️ 重要性最低的5个特征（可考虑剔除）:")
+    print("\n⚠️ 重要性最低的5个特征:")
     for i in sorted_idx[:5]:
         print(f"  {EXPECTED_FEATURES[i]}: {importances[i]:.6f}")
+
+if __name__ == "__main__":
+    train()
