@@ -69,10 +69,11 @@ except:
 shap_explainer = None
 try:
     from scripts.shap_explainer import init_shap_explainer, get_top_shap_features
-    init_shap_explainer()
+    if init_shap_explainer():
+        shap_explainer = True
 except:
     pass
-
+    
 LAST_GAME_FILE = "data/team_last_game.json"
 if os.path.exists(LAST_GAME_FILE):
     with open(LAST_GAME_FILE, 'r') as f:
