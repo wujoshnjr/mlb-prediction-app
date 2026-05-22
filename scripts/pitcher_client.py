@@ -35,34 +35,30 @@ def fetch_probable_pitchers(date_str: str = None, errors: list = None) -> pd.Dat
                     person_resp = requests.get(person_url, timeout=5)
                     person_data = person_resp.json().get("people",[{}])[0]
                     pitch_hand = person_data.get("pitchHand",{}).get("code","R")
-                except:
-                    pass
+                except: pass
                 stats_url = f"https://statsapi.mlb.com/api/v1/people/{pid}/stats"
                 stats_params = {"stats":"season","season":2026,"gameType":"R"}
                 try:
                     stats_resp = requests.get(stats_url, params=stats_params, timeout=10)
                     splits = stats_resp.json().get("stats",[[]])[0].get("splits",[{}])
                     stat = splits[0].get("stat",{}) if splits else {}
-                except:
-                    stat = {}
-                # 获取首局数据（byInning=1）
-                first_inning_stats = {}
-                try:
-                    first_params = {"stats":"byInning","season":2026,"gameType":"R","inning":1}
-                    first_resp = requests.get(stats_url, params=first_params, timeout=10)
-                    first_splits = first_resp.json().get("stats",[[]])[0].get("splits",[{}])
-                    first_stat = first_splits[0].get("stat",{}) if first_splits else {}
-                    first_inning_stats = first_stat
-                except:
-                    pass
+                except: stat = {}
+                # Stuff+ 代理：使用 K% + 球速 + CSW 的线性组合
+                k_pct = stat.get("strikeOutsPer9Inn", 8.0) or 8.0
+                bb_pct = stat.get("walksPer9Inn", 3.0) or 3.0
+                # 简化 Stuff+ = (K% - BB%) * 5 + 球速(从Savant获取) - 100，这里用固定近似
+                stuff_plus = 100 + (k_pct - 3) * 5  # 非常粗糙的代理
+                # CSW% 代理：K% / 2 + 0.15
+                csw_pct = (k_pct / 9) * 0.5 + 0.15
                 pitcher_info[pid] = {
                     "era": stat.get("era"),
                     "fip": stat.get("fip"),
                     "whip": stat.get("whip"),
-                    "k_per_9": stat.get("strikeoutsPer9Inn"),
-                    "bb_per_9": stat.get("walksPer9Inn"),
+                    "k_per_9": k_pct,
+                    "bb_per_9": bb_pct,
                     "pitch_hand": pitch_hand,
-                    "first_era": first_inning_stats.get("era")  # 首局ERA
+                    "stuff_plus": stuff_plus,
+                    "csw_pct": csw_pct
                 }
             games.append({
                 "game_id": game_id,
@@ -71,10 +67,12 @@ def fetch_probable_pitchers(date_str: str = None, errors: list = None) -> pd.Dat
                 "home_era": pitcher_info[home_pitcher_id].get("era"),
                 "home_fip": pitcher_info[home_pitcher_id].get("fip"),
                 "home_pitch_hand": pitcher_info[home_pitcher_id].get("pitch_hand","R"),
-                "home_first_era": pitcher_info[home_pitcher_id].get("first_era"),
+                "home_stuff_plus": pitcher_info[home_pitcher_id].get("stuff_plus"),
+                "home_csw_pct": pitcher_info[home_pitcher_id].get("csw_pct"),
                 "away_era": pitcher_info[away_pitcher_id].get("era"),
                 "away_fip": pitcher_info[away_pitcher_id].get("fip"),
                 "away_pitch_hand": pitcher_info[away_pitcher_id].get("pitch_hand","R"),
-                "away_first_era": pitcher_info[away_pitcher_id].get("first_era"),
+                "away_stuff_plus": pitcher_info[away_pitcher_id].get("stuff_plus"),
+                "away_csw_pct": pitcher_info[away_pitcher_id].get("csw_pct"),
             })
     return pd.DataFrame(games)
