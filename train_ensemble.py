@@ -7,10 +7,12 @@ from lightgbm import LGBMClassifier
 from sklearn.ensemble import VotingClassifier
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics import log_loss
+from sklearn.metrics import log_loss, brier_score_loss
+from datetime import datetime
 
 HISTORY_FILE = "data/historical_predictions.csv"
 MODEL_OUTPUT = "data/calibrator.pkl"
+TRAINING_LOG = "data/training_log.csv"
 
 EXPECTED_FEATURES = [
     'elo_diff','market_prob','sp_era_diff','sp_fip_diff','bullpen_ip_diff','rest_diff',
@@ -29,26 +31,41 @@ EXPECTED_FEATURES = [
 
 def prepare_data():
     df = pd.read_csv(HISTORY_FILE)
+    # 确保按日期排序（时间序列的关键）
+    if 'game_date' in df.columns:
+        df = df.sort_values('game_date').reset_index(drop=True)
+    else:
+        print("警告：缺少 game_date 列，无法确保时间排序，按文件顺序处理")
+
     df['home_win'] = df['home_win'].replace('', np.nan)
     df = df.dropna(subset=['home_win'])
     df['home_win'] = df['home_win'].astype(int)
+
     if len(df) < 50:
         print(f"数据量不足 ({len(df)})，跳过训练")
         return None, None
+
+    # 自动构建衍生特征（如果尚未存在）
+    if 'barrel_pa_diff' not in df.columns and 'statcast_barrel_diff' in df.columns:
+        df['barrel_pa_diff'] = df['statcast_barrel_diff']
+    if 'hardhit_pa_diff' not in df.columns and 'statcast_hard_hit_diff' in df.columns:
+        df['hardhit_pa_diff'] = df['statcast_hard_hit_diff']
+
     for col in EXPECTED_FEATURES:
         if col not in df.columns:
             df[col] = 0.0
         else:
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
+
     X = df[EXPECTED_FEATURES].values
     y = df['home_win'].values
     if np.all(np.var(X, axis=0) < 1e-8):
         print("特征无方差，跳过")
         return None, None
-    return X, y
+    return X, y, df
 
 def train():
-    X, y = prepare_data()
+    X, y, df_all = prepare_data()
     if X is None: return
 
     tscv = TimeSeriesSplit(n_splits=3)
@@ -56,6 +73,7 @@ def train():
     X_train, X_val = X[:split], X[split:]
     y_train, y_val = y[:split], y[split:]
 
+    # XGBoost
     def objective_xgb(trial):
         params = {
             'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
@@ -79,6 +97,7 @@ def train():
     best_xgb = XGBClassifier(**study_xgb.best_params, eval_metric='logloss', random_state=42)
     print("XGBoost 最佳参数:", study_xgb.best_params)
 
+    # LightGBM
     def objective_lgb(trial):
         params = {
             'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
@@ -101,6 +120,7 @@ def train():
     best_lgb = LGBMClassifier(**study_lgb.best_params, verbose=-1, random_state=42)
     print("LightGBM 最佳参数:", study_lgb.best_params)
 
+    # 集成
     ensemble = VotingClassifier(estimators=[('xgb', best_xgb), ('lgb', best_lgb)], voting='soft')
     calibrated = CalibratedClassifierCV(estimator=ensemble, method='isotonic', cv=tscv)
     calibrated.fit(X, y)
@@ -108,6 +128,29 @@ def train():
     joblib.dump(calibrated, MODEL_OUTPUT)
     print(f"集成模型已保存至 {MODEL_OUTPUT}")
 
+    # 计算验证集指标
+    val_preds = calibrated.predict_proba(X_val)[:, 1]
+    val_brier = brier_score_loss(y_val, val_preds)
+    val_logloss = log_loss(y_val, val_preds)
+    print(f"验证集 Brier: {val_brier:.4f}, LogLoss: {val_logloss:.4f}")
+
+    # 记录训练日志
+    log_entry = {
+        "timestamp": datetime.now().isoformat(),
+        "num_samples": len(df_all),
+        "brier": round(val_brier, 4),
+        "logloss": round(val_logloss, 4),
+        "xgb_params": study_xgb.best_params,
+        "lgb_params": study_lgb.best_params
+    }
+    log_df = pd.DataFrame([log_entry])
+    if os.path.exists(TRAINING_LOG):
+        log_df.to_csv(TRAINING_LOG, mode='a', header=False, index=False)
+    else:
+        log_df.to_csv(TRAINING_LOG, index=False)
+    print(f"训练日志已追加至 {TRAINING_LOG}")
+
+    # 特征重要性
     try:
         importances = best_xgb.feature_importances_
         for name, imp in zip(EXPECTED_FEATURES, importances):
@@ -116,4 +159,5 @@ def train():
         print(f"特征重要性错误: {e}")
 
 if __name__ == "__main__":
+    import os
     train()
