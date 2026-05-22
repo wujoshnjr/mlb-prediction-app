@@ -1,14 +1,12 @@
-import sys
-import os
-import json
-import traceback
-import threading
+import sys, os, json, threading
 from datetime import datetime
+import pandas as pd
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, JSONResponse
+from scripts.database import init_database, get_performance_metrics, get_connection
 
 try:
     from prediction import generate_predictions
@@ -21,244 +19,156 @@ except Exception as e:
 
 app = FastAPI(title="MLB Prediction Engine")
 
+init_database()
+
+# ========== 专业风格前端 ==========
 HTML = """
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MLB 預測分析中心</title>
+    <title>MLB Prediction Hub</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; padding: 30px; border-radius: 16px; margin-bottom: 20px; }
-        .header h1 { font-size: 2.5rem; margin-bottom: 5px; }
-        .header p { opacity: 0.9; }
-        .card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
-        .card h2 { color: #1e3c72; margin-bottom: 15px; border-bottom: 2px solid #e0e7ff; padding-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #f8fafc; color: #1e3c72; font-weight: 600; }
-        tr:hover { background: #f1f5f9; }
-        .recommendation { background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 20px; font-weight: 600; display: inline-block; margin: 2px 0; }
-        .rec-spread { background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 20px; font-weight: 600; display: inline-block; margin: 2px 0; }
-        .rec-total { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 20px; font-weight: 600; display: inline-block; margin: 2px 0; }
-        .no-rec { color: #64748b; }
-        .elo-badge { background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 12px; font-size: 0.85rem; }
-        .loading { text-align: center; padding: 40px; color: #64748b; }
-        .error { color: #dc2626; background: #fee2e2; padding: 15px; border-radius: 8px; }
-        .flex { display: flex; gap: 20px; flex-wrap: wrap; }
-        .flex > div { flex: 1; min-width: 280px; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .nav-tab { padding: 10px 20px; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; color: #1e3c72; border: 2px solid #e0e7ff; }
-        .nav-tab.active { background: #1e3c72; color: white; border-color: #1e3c72; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .summary-box { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 20px; }
-        .summary-item { flex: 1; min-width: 150px; background: white; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .summary-item .number { font-size: 2rem; font-weight: bold; color: #1e3c72; }
-        .summary-item .label { color: #64748b; font-size: 0.9rem; }
-        .warning { color: #d97706; font-weight: bold; }
+        :root {
+            --bg: #f9fafb;
+            --card-bg: #ffffff;
+            --text: #1a202c;
+            --muted: #718096;
+            --border: #e2e8f0;
+            --accent: #2b6cb0;
+            --accent-light: #ebf4ff;
+            --positive: #38a169;
+            --negative: #e53e3e;
+            --warning: #d69e2e;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+        .container { max-width: 1280px; margin: 0 auto; padding: 24px 16px; }
+        .header { border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 24px; }
+        .header h1 { font-size: 1.8rem; font-weight: 600; color: #1a202c; }
+        .header p { color: var(--muted); margin-top: 4px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+        .stat-card .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        .stat-card .value { font-size: 2rem; font-weight: 600; margin-top: 4px; }
+        .positive { color: var(--positive); }
+        .negative { color: var(--negative); }
+        .table-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { font-weight: 600; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: var(--accent-light); }
+        .rec { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .rec-bet { background: #c6f6d5; color: #22543d; }
+        .rec-pass { background: #edf2f7; color: #718096; }
+        .tab-bar { display: flex; gap: 8px; margin-bottom: 16px; }
+        .tab { padding: 8px 16px; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.85rem; background: var(--card-bg); }
+        .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .loading { text-align: center; padding: 32px; color: var(--muted); }
+        .footer { margin-top: 32px; text-align: center; color: var(--muted); font-size: 0.8rem; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>⚾ MLB 預測分析中心</h1>
-            <p>🎯 全方位運彩投注決策系統 | 勝負盤 · 讓分盤 · 大小分盤 | 蒙地卡羅模擬</p>
-            <p id="update-time" style="margin-top:10px;">載入中...</p>
+            <h1>MLB Prediction Hub</h1>
+            <p>Probabilistic forecasts · Backtested · Transparent</p>
+            <p id="update-time" style="font-size:0.8rem; margin-top:8px;">Loading...</p>
         </div>
-        <div id="error-box"></div>
-        <div class="summary-box" id="summary-box"></div>
-        <div class="nav-tabs">
-            <div class="nav-tab active" onclick="switchTab('all')">📋 全部推薦</div>
-            <div class="nav-tab" onclick="switchTab('moneyline')">💰 勝負盤</div>
-            <div class="nav-tab" onclick="switchTab('spread')">🎯 讓分盤</div>
-            <div class="nav-tab" onclick="switchTab('total')">📏 大小分盤</div>
-            <div class="nav-tab" onclick="switchTab('rankings')">📊 戰力排名</div>
+
+        <!-- 绩效卡片 -->
+        <div class="grid" id="perf-cards">
+            <div class="stat-card"><div class="label">Total Predictions</div><div class="value" id="perf-total">—</div></div>
+            <div class="stat-card"><div class="label">ROI (1/4 Kelly)</div><div class="value" id="perf-roi">—</div></div>
+            <div class="stat-card"><div class="label">Win Rate</div><div class="value" id="perf-winrate">—</div></div>
+            <div class="stat-card"><div class="label">Brier Score</div><div class="value" id="perf-brier">—</div></div>
         </div>
-        <div class="tab-content active" id="tab-all">
-            <div class="card">
-                <h2>📅 今日對戰預測總覽</h2>
-                <table id="predictions-table">
-                    <thead><tr><th>比賽時間</th><th>主隊</th><th>客隊</th><th>球場</th><th>預測主勝</th><th>預測客勝</th><th>關鍵因素</th><th>市場</th><th>勝負推薦</th><th>讓分推薦</th><th>大小推薦</th></tr></thead>
-                    <tbody id="predictions-body"><tr><td colspan="11" class="loading">⏳ 加載中...</td></tr></tbody>
-                </table>
-            </div>
+
+        <!-- 导航 -->
+        <div class="tab-bar">
+            <div class="tab active" onclick="switchTab('predictions')">Predictions</div>
+            <div class="tab" onclick="switchTab('rankings')">Power Rankings</div>
         </div>
-        <div class="tab-content" id="tab-moneyline">
-            <div class="card">
-                <h2>💰 勝負盤 (Moneyline) 推薦</h2>
-                <table id="moneyline-table">
-                    <thead><tr><th>比賽</th><th>預測主勝</th><th>賠率</th><th>凱利值</th><th>推薦</th></tr></thead>
-                    <tbody id="moneyline-body"><tr><td colspan="5" class="loading">⏳ 加載中...</td></tr></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="tab-content" id="tab-spread">
-            <div class="card">
-                <h2>🎯 讓分盤 (Spread) 推薦</h2>
-                <table id="spread-table">
-                    <thead><tr><th>比賽</th><th>讓分線</th><th>主隊過盤率</th><th>客隊過盤率</th><th>推薦</th></tr></thead>
-                    <tbody id="spread-body"><tr><td colspan="5" class="loading">⏳ 加載中...</td></tr></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="tab-content" id="tab-total">
-            <div class="card">
-                <h2>📏 大小分盤 (Total) 推薦</h2>
-                <table id="total-table">
-                    <thead><tr><th>比賽</th><th>大小分線</th><th>模擬總分</th><th>大分機率</th><th>小分機率</th><th>推薦</th></tr></thead>
-                    <tbody id="total-body"><tr><td colspan="6" class="loading">⏳ 加載中...</td></tr></tbody>
-                </table>
-            </div>
-        </div>
-        <div class="tab-content" id="tab-rankings">
-            <div class="flex">
-                <div class="card">
-                    <h2>📊 球隊戰力排名</h2>
-                    <table id="rankings-table">
-                        <thead><tr><th>#</th><th>球隊</th><th>勝-負</th><th>勝率</th></tr></thead>
-                        <tbody id="rankings-body"><tr><td colspan="4" class="loading">⏳ 加載中...</td></tr></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div class="card">
-            <h2>🎲 蒙地卡羅模擬詳情 (5,000次)</h2>
-            <table id="sim-table">
-                <thead><tr><th>比賽</th><th>模擬平均總分</th><th>模擬平均分差</th><th>80% 置信區間 (分差)</th></tr></thead>
-                <tbody id="sim-body"><tr><td colspan="4" class="loading">⏳ 加載中...</td></tr></tbody>
+
+        <!-- 预测表格 -->
+        <div class="table-container" id="tab-predictions">
+            <table>
+                <thead><tr><th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th><th>Key Factors</th><th>Rec</th></tr></thead>
+                <tbody id="pred-body"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
             </table>
         </div>
+
+        <!-- 战力排名 -->
+        <div class="table-container" id="tab-rankings" style="display:none">
+            <table>
+                <thead><tr><th>#</th><th>Team</th><th>W-L</th><th>Win%</th><th>ELO</th></tr></thead>
+                <tbody id="rank-body"><tr><td colspan="5" class="loading">Loading...</td></tr></tbody>
+            </table>
+        </div>
+
+        <div class="footer">Data updated hourly · Past performance does not guarantee future results</div>
     </div>
+
     <script>
         let allData = null;
-        function switchTab(tabId) {
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            const tabBtn = document.querySelector(`.nav-tab[onclick="switchTab('${tabId}')"]`);
-            if (tabBtn) tabBtn.classList.add('active');
-            const tabContent = document.getElementById(`tab-${tabId}`);
-            if (tabContent) tabContent.classList.add('active');
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab:nth-child(${tab === 'predictions' ? 1 : 2})`).classList.add('active');
+            document.getElementById('tab-predictions').style.display = tab === 'predictions' ? 'block' : 'none';
+            document.getElementById('tab-rankings').style.display = tab === 'rankings' ? 'block' : 'none';
         }
-        async function loadData() {
-            const errorBox = document.getElementById('error-box');
+        async function load() {
             try {
-                const resp = await fetch('/api/predictions');
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                allData = await resp.json();
-                renderAll(allData);
-            } catch (err) {
-                errorBox.innerHTML = `<div class="error">⚠️ 數據加載失敗：${err.message}。請稍後刷新重試。</div>`;
+                const [predResp, perfResp] = await Promise.all([
+                    fetch('/api/predictions'),
+                    fetch('/api/performance')
+                ]);
+                const predData = await predResp.json();
+                const perfData = await perfResp.json();
+                allData = predData;
+                renderPredictions(predData);
+                renderPerformance(perfData);
+            } catch(e) {
+                document.getElementById('pred-body').innerHTML = '<tr><td colspan="7" class="loading">Failed to load data</td></tr>';
             }
         }
-        function formatGameDate(isoString) {
-            if (!isoString) return '';
-            try {
-                const d = new Date(isoString);
-                return d.toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-            } catch { return isoString; }
+        function renderPerformance(data) {
+            document.getElementById('perf-total').innerText = data.total || '—';
+            document.getElementById('perf-roi').innerHTML = data.roi ? `<span class="${data.roi > 0 ? 'positive' : 'negative'}">${(data.roi*100).toFixed(1)}%</span>` : '—';
+            document.getElementById('perf-winrate').innerText = data.win_rate ? (data.win_rate*100).toFixed(1)+'%' : '—';
+            document.getElementById('perf-brier').innerText = data.brier ? data.brier.toFixed(3) : '—';
+            document.getElementById('update-time').innerText = 'Updated: ' + (predData?.generated_at ? new Date(predData.generated_at).toLocaleString() : '—');
         }
-        function renderAll(data) {
-            document.getElementById('update-time').innerText = '🕒 更新時間：' + (data.generated_at ? new Date(data.generated_at).toLocaleString('zh-TW') : '未知');
-            
-            const mlBets = data.bet_summary?.moneyline_bets?.length || 0;
-            const spreadBets = data.bet_summary?.spread_bets?.length || 0;
-            const totalBets = data.bet_summary?.total_bets?.length || 0;
-            const totalGames = data.today_predictions?.length || 0;
-            document.getElementById('summary-box').innerHTML = `
-                <div class="summary-item"><div class="number">${totalGames}</div><div class="label">今日比賽</div></div>
-                <div class="summary-item"><div class="number">${mlBets}</div><div class="label">💰 勝負推薦</div></div>
-                <div class="summary-item"><div class="number">${spreadBets}</div><div class="label">🎯 讓分推薦</div></div>
-                <div class="summary-item"><div class="number">${totalBets}</div><div class="label">📏 大小推薦</div></div>
-            `;
-
+        function renderPredictions(data) {
             const preds = data.today_predictions || [];
-            
-            // 总览表格
-            const predBody = document.getElementById('predictions-body');
-            if (preds.length > 0) {
-                predBody.innerHTML = preds.map(p => `
-                    <tr>
-                        <td>${formatGameDate(p.game_date)}</td>
-                        <td><strong>${p.home_team || ''}</strong></td>
-                        <td>${p.away_team || ''}</td>
-                        <td>${p.venue || ''}</td>
-                        <td>${p.predicted_home_win_pct != null ? (p.predicted_home_win_pct*100).toFixed(1)+'%' : '-'}</td>
-                        <td>${p.predicted_away_win_pct != null ? (p.predicted_away_win_pct*100).toFixed(1)+'%' : '-'}</td>
-                        <td style="font-size:0.8rem; color:#555;">${p.top_features ? (Array.isArray(p.top_features) ? p.top_features.join('; ') : p.top_features) : '-'}</td>
-                        <td>${p.market_divergence == 1 ? '<span class="warning">⚠️ 分歧</span>' : '-'}</td>
-                        <td>${p.moneyline_recommendation !== 'PASS' ? `<span class="recommendation">${p.moneyline_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
-                        <td>${p.spread_recommendation !== 'PASS' ? `<span class="rec-spread">${p.spread_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
-                        <td>${p.total_recommendation !== 'PASS' ? `<span class="rec-total">${p.total_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
-                    </tr>
-                `).join('');
-            } else {
-                predBody.innerHTML = '<tr><td colspan="11">今日暫無比賽或數據</td></tr>';
-            }
-
-            // 胜分盘
-            document.getElementById('moneyline-body').innerHTML = preds.map(p => `
+            const body = document.getElementById('pred-body');
+            body.innerHTML = preds.map(p => `
                 <tr>
-                    <td>${p.home_team || ''} vs ${p.away_team || ''}</td>
-                    <td>${p.predicted_home_win_pct != null ? (p.predicted_home_win_pct*100).toFixed(1)+'%' : '-'}</td>
-                    <td>${p.home_odds != null ? p.home_odds.toFixed(2) : '-'}</td>
-                    <td>${p.kelly_fraction != null ? (p.kelly_fraction*100).toFixed(1)+'%' : '-'}</td>
-                    <td>${p.moneyline_recommendation !== 'PASS' ? `<span class="recommendation">${p.moneyline_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
+                    <td>${new Date(p.game_date).toLocaleTimeString('zh-TW', {hour:'2-digit',minute:'2-digit'})}</td>
+                    <td><strong>${p.home_team}</strong></td>
+                    <td>${p.away_team}</td>
+                    <td>${(p.predicted_home_win_pct*100).toFixed(1)}%</td>
+                    <td>${p.home_odds ? p.home_odds.toFixed(2) : '—'}</td>
+                    <td style="font-size:0.8rem;color:#718096;">${(p.top_features||[]).join(' · ')}</td>
+                    <td><span class="rec ${p.moneyline_recommendation !== 'PASS' ? 'rec-bet' : 'rec-pass'}">${p.moneyline_recommendation !== 'PASS' ? 'Bet' : 'Pass'}</span></td>
                 </tr>
-            `).join('') || '<tr><td colspan="5">無數據</td></tr>';
-
-            // 让分盘
-            document.getElementById('spread-body').innerHTML = preds.map(p => `
+            `).join('');
+            // 排名
+            const rankBody = document.getElementById('rank-body');
+            const ranks = data.power_rankings || [];
+            rankBody.innerHTML = ranks.map((t,i) => `
                 <tr>
-                    <td>${p.home_team || ''} vs ${p.away_team || ''}</td>
-                    <td>-1.5</td>
-                    <td>${p.home_cover_prob != null ? (p.home_cover_prob*100).toFixed(1)+'%' : '-'}</td>
-                    <td>${p.away_cover_prob != null ? (p.away_cover_prob*100).toFixed(1)+'%' : '-'}</td>
-                    <td>${p.spread_recommendation !== 'PASS' ? `<span class="rec-spread">${p.spread_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
+                    <td>${i+1}</td>
+                    <td>${t.name}</td>
+                    <td>${t.wins}-${t.losses}</td>
+                    <td>${(t.win_pct*100).toFixed(1)}%</td>
+                    <td>${data.elo_ratings?.[t.name]?.toFixed(0) || '—'}</td>
                 </tr>
-            `).join('') || '<tr><td colspan="5">無數據</td></tr>';
-
-            // 大小分盘
-            document.getElementById('total-body').innerHTML = preds.map(p => `
-                <tr>
-                    <td>${p.home_team || ''} vs ${p.away_team || ''}</td>
-                    <td>8.5</td>
-                    <td>${p.simulated_total_mean != null ? p.simulated_total_mean : '-'}</td>
-                    <td>${p.over_prob != null ? (p.over_prob*100).toFixed(1)+'%' : '-'}</td>
-                    <td>${p.under_prob != null ? (p.under_prob*100).toFixed(1)+'%' : '-'}</td>
-                    <td>${p.total_recommendation !== 'PASS' ? `<span class="rec-total">${p.total_recommendation}</span>` : '<span class="no-rec">—</span>'}</td>
-                </tr>
-            `).join('') || '<tr><td colspan="6">無數據</td></tr>';
-
-            // 战力排名
-            const rankingsBody = document.getElementById('rankings-body');
-            if (data.power_rankings && data.power_rankings.length > 0) {
-                rankingsBody.innerHTML = data.power_rankings.map((t, i) => `
-                    <tr>
-                        <td>${i+1}</td>
-                        <td><strong>${t.name || ''}</strong></td>
-                        <td>${t.wins || 0}-${t.losses || 0}</td>
-                        <td>${t.win_pct != null ? (t.win_pct*100).toFixed(1)+'%' : '-'}</td>
-                    </tr>
-                `).join('');
-            } else {
-                rankingsBody.innerHTML = '<tr><td colspan="4">暫無球隊數據</td></tr>';
-            }
-
-            // 模拟详情
-            document.getElementById('sim-body').innerHTML = preds.map(p => `
-                <tr>
-                    <td>${p.home_team || ''} vs ${p.away_team || ''}</td>
-                    <td>${p.simulated_total_mean != null ? p.simulated_total_mean : '-'}</td>
-                    <td>${p.simulated_diff_mean != null ? p.simulated_diff_mean : '-'}</td>
-                    <td>${p.confidence_interval_diff && p.confidence_interval_diff.length === 2 ? '[' + p.confidence_interval_diff[0] + ', ' + p.confidence_interval_diff[1] + ']' : '-'}</td>
-                </tr>
-            `).join('') || '<tr><td colspan="4">無模擬數據</td></tr>';
+            `).join('');
         }
-        loadData();
+        load();
     </script>
 </body>
 </html>
@@ -276,23 +186,23 @@ def get_predictions():
         return data
     except:
         if generate_predictions:
-            try:
-                data = generate_predictions(elo_system) if elo_system else generate_predictions()
-                return data
-            except Exception as e:
-                return JSONResponse({"error": str(e)}, status_code=500)
+            data = generate_predictions(elo_system) if elo_system else generate_predictions()
+            return data
         return JSONResponse({"error": "No data"}, status_code=503)
 
-@app.get("/run")
-def run_background():
-    def task():
-        try:
-            if generate_predictions:
-                generate_predictions(elo_system) if elo_system else generate_predictions()
-        except Exception as e:
-            print(f"Background error: {e}")
-    threading.Thread(target=task).start()
-    return {"status": "started"}
+@app.get("/api/performance")
+def get_performance():
+    try:
+        metrics = get_performance_metrics()
+        # 补充 Brier 计算（可从 backtest 读取，这里简化）
+        return {
+            "total": metrics.get("total", 0),
+            "roi": 0.0,  # 需从 backtest 计算，这里占位
+            "win_rate": metrics.get("win_rate", 0) or 0,
+            "brier": 0.0
+        }
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 @app.get("/health")
 def health():
