@@ -5,7 +5,7 @@ import optuna
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 from sklearn.ensemble import VotingClassifier
-from sklearn.calibration import CalibratedClassifierCV
+from sklearn.calibration import CalibratedClassifierCV, calibration_curve
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import log_loss, brier_score_loss
 from datetime import datetime
@@ -31,25 +31,14 @@ EXPECTED_FEATURES = [
 
 def prepare_data():
     df = pd.read_csv(HISTORY_FILE)
-    # 确保按日期排序（时间序列的关键）
     if 'game_date' in df.columns:
         df = df.sort_values('game_date').reset_index(drop=True)
-    else:
-        print("警告：缺少 game_date 列，无法确保时间排序，按文件顺序处理")
-
     df['home_win'] = df['home_win'].replace('', np.nan)
     df = df.dropna(subset=['home_win'])
     df['home_win'] = df['home_win'].astype(int)
-
     if len(df) < 50:
         print(f"数据量不足 ({len(df)})，跳过训练")
-        return None, None
-
-    # 自动构建衍生特征（如果尚未存在）
-    if 'barrel_pa_diff' not in df.columns and 'statcast_barrel_diff' in df.columns:
-        df['barrel_pa_diff'] = df['statcast_barrel_diff']
-    if 'hardhit_pa_diff' not in df.columns and 'statcast_hard_hit_diff' in df.columns:
-        df['hardhit_pa_diff'] = df['statcast_hard_hit_diff']
+        return None, None, None
 
     for col in EXPECTED_FEATURES:
         if col not in df.columns:
@@ -61,7 +50,7 @@ def prepare_data():
     y = df['home_win'].values
     if np.all(np.var(X, axis=0) < 1e-8):
         print("特征无方差，跳过")
-        return None, None
+        return None, None, None
     return X, y, df
 
 def train():
@@ -73,7 +62,7 @@ def train():
     X_train, X_val = X[:split], X[split:]
     y_train, y_val = y[:split], y[split:]
 
-    # XGBoost
+    # ==================== XGBoost 超参数优化 ====================
     def objective_xgb(trial):
         params = {
             'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
@@ -97,7 +86,7 @@ def train():
     best_xgb = XGBClassifier(**study_xgb.best_params, eval_metric='logloss', random_state=42)
     print("XGBoost 最佳参数:", study_xgb.best_params)
 
-    # LightGBM
+    # ==================== LightGBM 超参数优化 ====================
     def objective_lgb(trial):
         params = {
             'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
@@ -120,18 +109,41 @@ def train():
     best_lgb = LGBMClassifier(**study_lgb.best_params, verbose=-1, random_state=42)
     print("LightGBM 最佳参数:", study_lgb.best_params)
 
-    # 集成
+    # ==================== 软投票集成 ====================
     ensemble = VotingClassifier(estimators=[('xgb', best_xgb), ('lgb', best_lgb)], voting='soft')
-    calibrated = CalibratedClassifierCV(estimator=ensemble, method='isotonic', cv=tscv)
-    calibrated.fit(X, y)
 
-    joblib.dump(calibrated, MODEL_OUTPUT)
-    print(f"集成模型已保存至 {MODEL_OUTPUT}")
+    # ==================== 双阶段概率校准 ====================
+    # 阶段 1：Platt Scaling (sigmoid) 校准，使用全部训练数据
+    calibrated_platt = CalibratedClassifierCV(estimator=ensemble, method='sigmoid', cv=tscv)
+    calibrated_platt.fit(X, y)
 
-    # 计算验证集指标
-    val_preds = calibrated.predict_proba(X_val)[:, 1]
-    val_brier = brier_score_loss(y_val, val_preds)
-    val_logloss = log_loss(y_val, val_preds)
+    # 阶段 2：对 Platt 输出做 Isotonic 校准（进一步修正）
+    # 在 Platt 校准后的概率上再训练一个 Isotonic 回归
+    from sklearn.isotonic import IsotonicRegression
+    # 获取 Platt 校准后的概率（使用整个训练集）
+    platt_probs = calibrated_platt.predict_proba(X)[:, 1]
+    # 训练 Isotonic 回归
+    iso_reg = IsotonicRegression(out_of_bounds='clip')
+    iso_reg.fit(platt_probs, y)
+    # 创建一个组合校准函数（保存为 pkl）
+    class TwoStageCalibrator:
+        def __init__(self, platt, iso):
+            self.platt = platt
+            self.iso = iso
+        def predict_proba(self, X):
+            # 先 Platt，再 Isotonic
+            probs = self.platt.predict_proba(X)[:, 1]
+            calibrated_probs = self.iso.predict(probs)
+            return np.column_stack([1 - calibrated_probs, calibrated_probs])
+    final_calibrator = TwoStageCalibrator(calibrated_platt, iso_reg)
+
+    joblib.dump(final_calibrator, MODEL_OUTPUT)
+    print(f"双阶段校准模型已保存至 {MODEL_OUTPUT}")
+
+    # ==================== 评估 ====================
+    val_probs = final_calibrator.predict_proba(X_val)[:, 1]
+    val_brier = brier_score_loss(y_val, val_probs)
+    val_logloss = log_loss(y_val, val_probs)
     print(f"验证集 Brier: {val_brier:.4f}, LogLoss: {val_logloss:.4f}")
 
     # 记录训练日志
