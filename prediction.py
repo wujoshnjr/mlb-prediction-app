@@ -43,6 +43,12 @@ try:
     from scripts.elo_momentum import get_elo_momentum
 except:
     get_elo_momentum = None
+try:
+    from scripts.database import init_database, insert_prediction
+except:
+    # 如果数据库模块不可用，回退到 CSV 写入
+    init_database = None
+    insert_prediction = None
 
 model = None
 try:
@@ -740,6 +746,88 @@ def generate_predictions(elo_system=None):
         value_bets = filter_value_bets(predictions)
         output['value_bets'] = value_bets
 
+    # ========== 存储到 SQLite 数据库 ==========
+    db_available = init_database is not None and insert_prediction is not None
+    if db_available:
+        try:
+            init_database()
+        except Exception as e:
+            print(f"数据库初始化失败: {e}，回退到 CSV")
+            db_available = False
+
+    if db_available:
+        for p in predictions:
+            db_data = {
+                "game_id": p.get("game_id"),
+                "game_date": p.get("game_date"),
+                "home_team": p.get("home_team"),
+                "away_team": p.get("away_team"),
+                "pred_home_win": p.get("predicted_home_win_pct"),
+                "home_odds": p.get("home_odds"),
+                "elo_home": p.get("elo_home"),
+                "elo_away": p.get("elo_away"),
+                "ml_rec": p.get("moneyline_recommendation"),
+                "spread_rec": p.get("spread_recommendation"),
+                "total_rec": p.get("total_recommendation"),
+                "nrfi_rec": p.get("nrfi_recommendation"),
+                "nrfi_prob": p.get("nrfi_prob"),
+                "pred_uncertainty": p.get("pred_uncertainty"),
+                "kelly_fraction": p.get("kelly_fraction"),
+                "elo_diff": p.get("elo_diff"),
+                "market_prob": p.get("market_prob"),
+                "sp_era_diff": p.get("sp_era_diff"),
+                "sp_fip_diff": p.get("sp_fip_diff"),
+                "bullpen_ip_diff": p.get("bullpen_ip_diff"),
+                "rest_diff": p.get("rest_diff"),
+                "park_factor": p.get("park_factor"),
+                "dynamic_park_factor": p.get("dynamic_park_factor"),
+                "platoon_ops_diff": p.get("platoon_ops_diff"),
+                "statcast_launch_speed_diff": p.get("statcast_launch_speed_diff"),
+                "statcast_barrel_diff": p.get("statcast_barrel_diff"),
+                "statcast_hard_hit_diff": p.get("statcast_hard_hit_diff"),
+                "statcast_woba_diff": p.get("statcast_woba_diff"),
+                "timezone_diff": p.get("timezone_diff"),
+                "is_day_game": p.get("is_day_game"),
+                "home_back2back": p.get("home_back2back"),
+                "away_back2back": p.get("away_back2back"),
+                "catcher_era_diff": p.get("catcher_era_diff"),
+                "cs_diff": p.get("cs_diff"),
+                "wind_effect": p.get("wind_effect"),
+                "temp_effect": p.get("temp_effect"),
+                "precip_effect": p.get("precip_effect"),
+                "injury_diff": p.get("injury_diff"),
+                "pythag_diff": p.get("pythag_diff"),
+                "log5_prob": p.get("log5_prob"),
+                "lag30_winrate_diff": p.get("lag30_winrate_diff"),
+                "lag30_runs_diff": p.get("lag30_runs_diff"),
+                "pitch_movement_diff": p.get("pitch_movement_diff"),
+                "k_pct_diff": p.get("k_pct_diff"),
+                "bb_pct_diff": p.get("bb_pct_diff"),
+                "avg_bat_speed_diff": p.get("avg_bat_speed_diff"),
+                "pitcher_rating_diff": p.get("pitcher_rating_diff"),
+                "odds_change": p.get("odds_change"),
+                "zone_size": p.get("zone_size"),
+                "k_rate": p.get("k_rate"),
+                "bullpen_availability_diff": p.get("bullpen_availability_diff"),
+                "elo_momentum_7d": p.get("elo_momentum_7d"),
+                "elo_momentum_30d": p.get("elo_momentum_30d"),
+                "barrel_pa_diff": p.get("barrel_pa_diff"),
+                "hardhit_pa_diff": p.get("hardhit_pa_diff"),
+                "closing_odds": None,
+                "top_features": ";".join(p.get("top_features", [])) if isinstance(p.get("top_features"), list) else p.get("top_features", ""),
+                "market_divergence": p.get("market_divergence", 0),
+                "odds_source": p.get("odds_source", "")
+            }
+            try:
+                insert_prediction(db_data)
+            except Exception as e:
+                print(f"插入数据库失败: {e}，回退到 CSV")
+                db_available = False
+                break
+        if db_available:
+            print(f"预测已写入 SQLite 数据库")
+
+    # ========== 同时保留 CSV 写入（双保险） ==========
     HISTORY_FILE = "data/historical_predictions.csv"
     os.makedirs("data", exist_ok=True)
     file_exists = os.path.exists(HISTORY_FILE)
