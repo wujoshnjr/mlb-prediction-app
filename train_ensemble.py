@@ -26,21 +26,16 @@ EXPECTED_FEATURES = [
     'k_pct_diff','bb_pct_diff','avg_bat_speed_diff',
     'pitcher_rating_diff','odds_change',
     'zone_size','k_rate','bullpen_availability_diff',
-    'elo_momentum_7d','elo_momentum_30d','barrel_pa_diff','hardhit_pa_diff',
-    'swing_miss_diff',        # 新增
-    'csw_diff',               # 新增
-    'barrel_bb_pct_diff'      # 新增
+    'elo_momentum_7d','elo_momentum_30d','barrel_pa_diff','hardhit_pa_diff'
 ]
 
 def prepare_data():
     df = pd.read_csv(HISTORY_FILE)
     if 'game_date' in df.columns:
         df = df.sort_values('game_date').reset_index(drop=True)
-
     df['home_win'] = df['home_win'].replace('', np.nan)
     df = df.dropna(subset=['home_win'])
     df['home_win'] = df['home_win'].astype(int)
-
     if len(df) < 50:
         print(f"数据量不足 ({len(df)})，跳过训练")
         return None, None, None
@@ -67,7 +62,7 @@ def train():
     X_train, X_val = X[:split], X[split:]
     y_train, y_val = y[:split], y[split:]
 
-    # XGBoost 超参数优化
+    # ==================== XGBoost 超参数优化 ====================
     def objective_xgb(trial):
         params = {
             'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
@@ -91,7 +86,7 @@ def train():
     best_xgb = XGBClassifier(**study_xgb.best_params, eval_metric='logloss', random_state=42)
     print("XGBoost 最佳参数:", study_xgb.best_params)
 
-    # LightGBM 超参数优化
+    # ==================== LightGBM 超参数优化 ====================
     def objective_lgb(trial):
         params = {
             'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
@@ -114,37 +109,44 @@ def train():
     best_lgb = LGBMClassifier(**study_lgb.best_params, verbose=-1, random_state=42)
     print("LightGBM 最佳参数:", study_lgb.best_params)
 
-    # 软投票集成
+    # ==================== 软投票集成 ====================
     ensemble = VotingClassifier(estimators=[('xgb', best_xgb), ('lgb', best_lgb)], voting='soft')
 
-    # 双阶段校准 (Platt + Isotonic)
+    # ==================== 双阶段概率校准 ====================
+    # 阶段 1：Platt Scaling (sigmoid) 校准，使用全部训练数据
     calibrated_platt = CalibratedClassifierCV(estimator=ensemble, method='sigmoid', cv=tscv)
     calibrated_platt.fit(X, y)
 
+    # 阶段 2：对 Platt 输出做 Isotonic 校准（进一步修正）
+    # 在 Platt 校准后的概率上再训练一个 Isotonic 回归
     from sklearn.isotonic import IsotonicRegression
+    # 获取 Platt 校准后的概率（使用整个训练集）
     platt_probs = calibrated_platt.predict_proba(X)[:, 1]
+    # 训练 Isotonic 回归
     iso_reg = IsotonicRegression(out_of_bounds='clip')
     iso_reg.fit(platt_probs, y)
-
+    # 创建一个组合校准函数（保存为 pkl）
     class TwoStageCalibrator:
         def __init__(self, platt, iso):
             self.platt = platt
             self.iso = iso
         def predict_proba(self, X):
+            # 先 Platt，再 Isotonic
             probs = self.platt.predict_proba(X)[:, 1]
             calibrated_probs = self.iso.predict(probs)
             return np.column_stack([1 - calibrated_probs, calibrated_probs])
-
     final_calibrator = TwoStageCalibrator(calibrated_platt, iso_reg)
+
     joblib.dump(final_calibrator, MODEL_OUTPUT)
     print(f"双阶段校准模型已保存至 {MODEL_OUTPUT}")
 
-    # 评估
+    # ==================== 评估 ====================
     val_probs = final_calibrator.predict_proba(X_val)[:, 1]
     val_brier = brier_score_loss(y_val, val_probs)
     val_logloss = log_loss(y_val, val_probs)
     print(f"验证集 Brier: {val_brier:.4f}, LogLoss: {val_logloss:.4f}")
 
+    # 记录训练日志
     log_entry = {
         "timestamp": datetime.now().isoformat(),
         "num_samples": len(df_all),
@@ -160,6 +162,7 @@ def train():
         log_df.to_csv(TRAINING_LOG, index=False)
     print(f"训练日志已追加至 {TRAINING_LOG}")
 
+    # 特征重要性
     try:
         importances = best_xgb.feature_importances_
         for name, imp in zip(EXPECTED_FEATURES, importances):
