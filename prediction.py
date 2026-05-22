@@ -957,7 +957,7 @@ if get_bradley_terry_strengths:
     # DB/CSV写入（略，与之前完整版相同，需增加新特征列）
     # ...（保留原有写入逻辑，表头增加 sp_stuff_plus_diff, sp_csw_diff, bt_strength_diff, odds_momentum, ci_80_lower, ci_80_upper, ci_95_lower, ci_95_upper, shap_features）
 
-    os.makedirs('report', exist_ok=True)
+      os.makedirs('report', exist_ok=True)
     with open('report/prediction.json', 'w') as f:
         json.dump(output, f, indent=2, default=str)
     print("prediction.json 已生成")
