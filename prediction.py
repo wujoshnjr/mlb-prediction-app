@@ -53,7 +53,7 @@ model = None
 try:
     import joblib
     model = joblib.load("data/calibrator.pkl")
-    print("已加载训练好的集成模型（XGBoost + LightGBM + 校准）")
+    print("已加载训练好的集成模型（双阶段校准）")
 except:
     print("未找到训练模型，将使用手工集成")
 
@@ -305,7 +305,7 @@ def generate_predictions(elo_system=None):
         if len(home_pct) == 0 or len(away_pct) == 0: continue
         home_pct, away_pct = home_pct[0], away_pct[0]
 
-        # 场均得分计算（修复蒙特卡洛模拟）
+        # 场均得分
         home_wins = int(teams_df[teams_df['name'] == home]['wins'].values[0])
         home_losses = int(teams_df[teams_df['name'] == home]['losses'].values[0])
         away_wins = int(teams_df[teams_df['name'] == away]['wins'].values[0])
@@ -550,7 +550,7 @@ def generate_predictions(elo_system=None):
         sp_adj = -0.07 * sp_era_diff
         manual_pred = min(0.95, max(0.05, manual_pred + sp_adj))
 
-        # 机器学习预测（集成模型）
+        # 机器学习预测
         ml_pred = None
         xgb_pred = None
         lgb_pred = None
@@ -579,12 +579,12 @@ def generate_predictions(elo_system=None):
                 features['barrel_pa_diff'], features['hardhit_pa_diff']
             ]])
             try:
+                # 双阶段校准模型 predict_proba 返回校准后的概率
                 ml_pred = model.predict_proba(feature_array)[0, 1]
                 ml_pred = min(0.95, max(0.05, ml_pred))
-                # 尝试获取子模型预测（如果模型是VotingClassifier）
-                if hasattr(model, 'estimators_'):
-                    xgb_pred = model.estimators_[0].predict_proba(feature_array)[0, 1]
-                    lgb_pred = model.estimators_[1].predict_proba(feature_array)[0, 1]
+                if hasattr(model, 'platt') and hasattr(model.platt, 'estimators_'):
+                    xgb_pred = model.platt.estimators_[0].predict_proba(feature_array)[0, 1]
+                    lgb_pred = model.platt.estimators_[1].predict_proba(feature_array)[0, 1]
             except:
                 ml_pred = None
 
@@ -596,10 +596,27 @@ def generate_predictions(elo_system=None):
 
         pred_away = 1 - pred_home
 
-        # 预测不确定性（两个子模型的分歧）
+        # 预测不确定性
         pred_uncertainty = 0.0
         if xgb_pred is not None and lgb_pred is not None:
             pred_uncertainty = abs(xgb_pred - lgb_pred)
+
+        # ========== 80% 置信区间 ==========
+        pred_std = 0.10
+        if historical_count > 10:
+            try:
+                hist_df = pd.read_csv(HIST_FILE)
+                hist_df = hist_df.dropna(subset=['home_win', 'pred_home_win'])
+                if len(hist_df) > 10:
+                    similar = hist_df[(hist_df['pred_home_win'] >= pred_home - 0.05) & 
+                                      (hist_df['pred_home_win'] <= pred_home + 0.05)]
+                    if len(similar) > 3:
+                        pred_std = max(0.02, similar['home_win'].std())
+            except:
+                pass
+        z = 1.28
+        ci_lower = max(0.01, pred_home - z * pred_std)
+        ci_upper = min(0.99, pred_home + z * pred_std)
 
         kelly_ml = 0; kelly_ml_away = 0
         if home_odds:
@@ -677,6 +694,8 @@ def generate_predictions(elo_system=None):
             "nrfi_recommendation": nrfi_rec,
             "nrfi_prob": round(nrfi_prob, 3),
             "pred_uncertainty": round(pred_uncertainty, 4),
+            "ci_lower": round(ci_lower, 3),
+            "ci_upper": round(ci_upper, 3),
             "simulated_total_mean": total_mean,
             "simulated_diff_mean": diff_mean,
             "confidence_interval_diff": ci_diff,
@@ -752,15 +771,13 @@ def generate_predictions(elo_system=None):
         value_bets = filter_value_bets(predictions)
         output['value_bets'] = value_bets
 
-    # ========== 存储到 SQLite 数据库 ==========
+    # 存储到 SQLite
     db_available = init_database is not None and insert_prediction is not None
     if db_available:
         try:
             init_database()
-        except Exception as e:
-            print(f"数据库初始化失败: {e}，回退到 CSV")
+        except:
             db_available = False
-
     if db_available:
         for p in predictions:
             db_data = {
@@ -826,14 +843,11 @@ def generate_predictions(elo_system=None):
             }
             try:
                 insert_prediction(db_data)
-            except Exception as e:
-                print(f"插入数据库失败: {e}，回退到 CSV")
+            except:
                 db_available = False
                 break
-        if db_available:
-            print(f"预测已写入 SQLite 数据库")
 
-    # ========== 同时保留 CSV 写入（双保险） ==========
+    # CSV 双写
     HISTORY_FILE = "data/historical_predictions.csv"
     os.makedirs("data", exist_ok=True)
     file_exists = os.path.exists(HISTORY_FILE)
@@ -844,6 +858,7 @@ def generate_predictions(elo_system=None):
                 "game_id", "game_date", "home_team", "away_team",
                 "pred_home_win", "home_odds", "elo_home", "elo_away",
                 "ml_rec", "spread_rec", "total_rec", "nrfi_rec", "nrfi_prob", "pred_uncertainty",
+                "ci_lower", "ci_upper",
                 "kelly_fraction", "home_win",
                 "elo_diff", "market_prob", "sp_era_diff", "sp_fip_diff",
                 "bullpen_ip_diff", "rest_diff", "park_factor",
@@ -870,6 +885,7 @@ def generate_predictions(elo_system=None):
                 p.get("predicted_home_win_pct", ""), p.get("home_odds", ""), p.get("elo_home", ""), p.get("elo_away", ""),
                 p.get("moneyline_recommendation", ""), p.get("spread_recommendation", ""), p.get("total_recommendation", ""),
                 p.get("nrfi_recommendation", ""), p.get("nrfi_prob", ""), p.get("pred_uncertainty", ""),
+                p.get("ci_lower", ""), p.get("ci_upper", ""),
                 p.get("kelly_fraction", ""), "",
                 p.get("elo_diff", ""), p.get("market_prob", ""), p.get("sp_era_diff", ""), p.get("sp_fip_diff", ""),
                 p.get("bullpen_ip_diff", ""), p.get("rest_diff", ""), p.get("park_factor", ""),
