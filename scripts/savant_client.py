@@ -28,12 +28,9 @@ def fetch_savant_statcast(date_str: str = None, errors: list = None) -> pd.DataF
             'launch_speed', 'launch_angle', 'barrel', 'hard_hit',
             'hit_distance_sc', 'expected_batting_avg', 'expected_slugging_percent',
             'expected_woba', 'pitch_hand', 'bat_side',
-            'pfx_x', 'pfx_z',           # 位移
-            'release_spin_rate',        # 转速
-            'plate_x', 'plate_z',       # 进垒位置
-            'whiff',                    # 挥空
-            'csw',                      # 拿棒 (Called Strike + Whiff)
-            'bat_speed'                 # 挥棒速度
+            'pfx_x', 'pfx_z', 'release_spin_rate',
+            'plate_x', 'plate_z', 'whiff', 'csw', 'bat_speed',
+            'sprint_speed'   # 新增
         ]
         cols = [c for c in desired if c in df.columns]
         return df[cols].head(3000)
