@@ -31,8 +31,8 @@ def fetch_savant_statcast(date_str: str = None, errors: list = None) -> pd.DataF
             'pfx_x', 'pfx_z',           # 位移
             'release_spin_rate',        # 转速
             'plate_x', 'plate_z',       # 进垒位置
-            'whiff',                    # 挥空
-            'csw',                      # 拿棒 (Called Strike + Whiff)
+            'whiff',                    # 挥空（1=挥空，0=其他）
+            'csw',                      # 拿棒（若可用，1= Called Strike + Whiff）
             'bat_speed'                 # 挥棒速度
         ]
         cols = [c for c in desired if c in df.columns]
