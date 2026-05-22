@@ -3,7 +3,6 @@ import os
 import json
 import requests
 import time
-from datetime import datetime
 
 # 导入数据库模块
 try:
@@ -21,8 +20,8 @@ def fetch_game_result(game_id):
         resp = requests.get(url, timeout=10)
         resp.raise_for_status()
         data = resp.json()
-        home_runs = data.get("liveData",{}).get("linescore",{}).get("teams",{}).get("home",{}).get("runs")
-        away_runs = data.get("liveData",{}).get("linescore",{}).get("teams",{}).get("away",{}).get("runs")
+        home_runs = data.get("liveData", {}).get("linescore", {}).get("teams", {}).get("home", {}).get("runs")
+        away_runs = data.get("liveData", {}).get("linescore", {}).get("teams", {}).get("away", {}).get("runs")
         if home_runs is not None and away_runs is not None:
             return 1 if home_runs > away_runs else 0
     except:
@@ -54,9 +53,11 @@ def update_results():
 
             for row in pending:
                 game_id = row["game_id"]
-                home_team = row["home_team"]
-                away_team = row["away_team"]
-                game_date = row["game_date"]
+                if not game_id:
+                    continue
+                home_team = row["home_team"] or ""
+                away_team = row["away_team"] or ""
+                game_date = row["game_date"] or ""
                 result = fetch_game_result(game_id)
                 if result is not None:
                     update_game_result(game_id, result)
@@ -82,14 +83,17 @@ def update_results():
             fieldnames = [fn for fn in reader.fieldnames if fn is not None]
             for row in reader:
                 clean_row = {k: v for k, v in row.items() if k in fieldnames}
-                if clean_row.get("home_win","").strip() == "" and clean_row.get("game_id","").strip():
-                    result = fetch_game_result(clean_row["game_id"])
+                # 安全获取 home_win 和 game_id，处理 None 值
+                home_win_val = clean_row.get("home_win") or ""
+                game_id_val = clean_row.get("game_id") or ""
+                if home_win_val.strip() == "" and game_id_val.strip():
+                    result = fetch_game_result(game_id_val.strip())
                     if result is not None:
                         clean_row["home_win"] = str(result)
                         csv_updated += 1
-                        home_team = clean_row.get("home_team","").strip()
-                        away_team = clean_row.get("away_team","").strip()
-                        game_date = clean_row.get("game_date","").strip()
+                        home_team = (clean_row.get("home_team") or "").strip()
+                        away_team = (clean_row.get("away_team") or "").strip()
+                        game_date = (clean_row.get("game_date") or "").strip()
                         if home_team and game_date:
                             last_game_dict[home_team] = game_date
                         if away_team and game_date:
