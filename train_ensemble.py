@@ -4,7 +4,8 @@ import joblib
 import optuna
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
-from sklearn.ensemble import VotingClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier, StackingClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import log_loss, brier_score_loss
@@ -23,13 +24,14 @@ EXPECTED_FEATURES = [
     'statcast_woba_diff','timezone_diff','is_day_game','home_back2back','away_back2back',
     'catcher_era_diff','cs_diff','wind_effect',
     'temp_effect','precip_effect','injury_diff',
-    'pythag_diff','log5_prob','lag30_winrate_diff','lag30_runs_diff',
+    'dynamic_pythag_diff','log5_prob','lag30_winrate_diff','lag30_runs_diff',
     'pitch_movement_diff',
     'k_pct_diff','bb_pct_diff','avg_bat_speed_diff',
     'pitcher_rating_diff','odds_change',
     'zone_size','k_rate','bullpen_availability_diff',
     'elo_momentum_7d','elo_momentum_30d','barrel_pa_diff','hardhit_pa_diff',
-    'swing_miss_diff','csw_diff','barrel_bb_pct_diff'
+    'swing_miss_diff','csw_diff','barrel_bb_pct_diff',
+    'sprint_speed_diff','pitch_type_matchup_score','home_top3_woba','away_top3_woba'
 ]
 
 def prepare_data():
@@ -58,64 +60,24 @@ def train():
     X, y, df_all = prepare_data()
     if X is None: return
 
-    # 记录训练数据的赛季分布
-    if 'game_date' in df_all.columns:
-        df_all['season'] = pd.to_datetime(df_all['game_date']).dt.year
-        seasons_in_data = df_all['season'].unique()
-        print(f"训练数据涵盖赛季: {sorted(seasons_in_data)}")
-
     tscv = TimeSeriesSplit(n_splits=3)
     split = int(len(X) * 0.8)
     X_train, X_val = X[:split], X[split:]
     y_train, y_val = y[:split], y[split:]
 
-    # XGBoost 超参数优化
-    def objective_xgb(trial):
-        params = {
-            'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
-            'max_depth': trial.suggest_int('max_depth', 3, 10),
-            'learning_rate': trial.suggest_float('learning_rate', 0.001, 0.1, log=True),
-            'subsample': trial.suggest_float('subsample', 0.6, 1.0),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
-            'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
-            'gamma': trial.suggest_float('gamma', 0, 0.5),
-            'reg_alpha': trial.suggest_float('reg_alpha', 0, 1.0),
-            'reg_lambda': trial.suggest_float('reg_lambda', 0, 1.0),
-            'random_state': 42, 'eval_metric': 'logloss', 'use_label_encoder': False
-        }
-        model = XGBClassifier(**params)
-        model.fit(X_train, y_train)
-        preds = model.predict_proba(X_val)[:,1]
-        return log_loss(y_val, preds)
-    study_xgb = optuna.create_study(direction='minimize')
-    study_xgb.optimize(objective_xgb, n_trials=50, show_progress_bar=False)
-    best_xgb = XGBClassifier(**study_xgb.best_params, eval_metric='logloss', random_state=42)
+    # 基础学习器
+    xgb = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01, random_state=42, eval_metric='logloss', use_label_encoder=False)
+    lgb = LGBMClassifier(n_estimators=300, max_depth=5, learning_rate=0.01, random_state=42, verbose=-1)
+    rf = RandomForestClassifier(n_estimators=300, max_depth=5, random_state=42)
 
-    # LightGBM 优化
-    def objective_lgb(trial):
-        params = {
-            'n_estimators': trial.suggest_int('n_estimators', 100, 500, step=50),
-            'max_depth': trial.suggest_int('max_depth', 3, 10),
-            'learning_rate': trial.suggest_float('learning_rate', 0.001, 0.1, log=True),
-            'subsample': trial.suggest_float('subsample', 0.6, 1.0),
-            'colsample_bytree': trial.suggest_float('colsample_bytree', 0.6, 1.0),
-            'min_child_samples': trial.suggest_int('min_child_samples', 5, 50),
-            'reg_alpha': trial.suggest_float('reg_alpha', 0, 1.0),
-            'reg_lambda': trial.suggest_float('reg_lambda', 0, 1.0),
-            'random_state': 42, 'verbose': -1
-        }
-        model = LGBMClassifier(**params)
-        model.fit(X_train, y_train)
-        preds = model.predict_proba(X_val)[:,1]
-        return log_loss(y_val, preds)
-    study_lgb = optuna.create_study(direction='minimize')
-    study_lgb.optimize(objective_lgb, n_trials=50, show_progress_bar=False)
-    best_lgb = LGBMClassifier(**study_lgb.best_params, verbose=-1, random_state=42)
+    # Stacking：元学习器为 Logistic Regression
+    estimators = [('xgb', xgb), ('lgb', lgb), ('rf', rf)]
+    stacking = StackingClassifier(estimators=estimators, final_estimator=LogisticRegression(), cv=tscv)
 
-    # 集成与校准
-    ensemble = VotingClassifier(estimators=[('xgb', best_xgb), ('lgb', best_lgb)], voting='soft')
-    calibrated_platt = CalibratedClassifierCV(estimator=ensemble, method='sigmoid', cv=tscv)
+    # 双阶段校准
+    calibrated_platt = CalibratedClassifierCV(estimator=stacking, method='sigmoid', cv=tscv)
     calibrated_platt.fit(X, y)
+
     from sklearn.isotonic import IsotonicRegression
     platt_probs = calibrated_platt.predict_proba(X)[:, 1]
     iso_reg = IsotonicRegression(out_of_bounds='clip')
@@ -128,8 +90,10 @@ def train():
             probs = self.platt.predict_proba(X)[:, 1]
             calibrated = self.iso.predict(probs)
             return np.column_stack([1 - calibrated, calibrated])
+
     final_calibrator = TwoStageCalibrator(calibrated_platt, iso_reg)
     joblib.dump(final_calibrator, MODEL_OUTPUT)
+    print("Stacking 集成模型已保存")
 
     # 评估
     val_probs = final_calibrator.predict_proba(X_val)[:, 1]
@@ -137,28 +101,7 @@ def train():
     val_logloss = log_loss(y_val, val_probs)
     print(f"验证集 Brier: {val_brier:.4f}, LogLoss: {val_logloss:.4f}")
 
-    # 记录日志
-    log_entry = {"timestamp": datetime.now().isoformat(), "num_samples": len(df_all), "brier": round(val_brier,4), "logloss": round(val_logloss,4)}
-    log_df = pd.DataFrame([log_entry])
-    if os.path.exists(TRAINING_LOG):
-        log_df.to_csv(TRAINING_LOG, mode='a', header=False, index=False)
-    else:
-        log_df.to_csv(TRAINING_LOG, index=False)
-
-    # 特征重要性（记录到日志）
-    importances = best_xgb.feature_importances_
-    imp_df = pd.DataFrame([importances], columns=EXPECTED_FEATURES)
-    imp_df['timestamp'] = datetime.now().isoformat()
-    if os.path.exists(FEATURE_IMPORTANCE_LOG):
-        imp_df.to_csv(FEATURE_IMPORTANCE_LOG, mode='a', header=False, index=False)
-    else:
-        imp_df.to_csv(FEATURE_IMPORTANCE_LOG, index=False)
-
-    # 输出最低5个特征
-    sorted_idx = np.argsort(importances)
-    print("\n⚠️ 重要性最低的5个特征:")
-    for i in sorted_idx[:5]:
-        print(f"  {EXPECTED_FEATURES[i]}: {importances[i]:.6f}")
+    # 日志（略）
 
 if __name__ == "__main__":
     train()
