@@ -147,7 +147,6 @@ def generate_predictions(elo_system=None):
         save_elo_snapshot()
     except: pass
 
-    # 球队战力
     teams_df = pd.DataFrame(data.get('sportsipy_teams', []))
     if teams_df.empty:
         teams_df = pd.DataFrame(columns=['name', 'wins', 'losses', 'win_pct'])
@@ -162,18 +161,16 @@ def generate_predictions(elo_system=None):
         if col not in teams_df.columns:
             teams_df[col] = 400 if 'runs' in col else (0.2 if 'k' in col else 0.08)
 
-    # 联盟场均得分（用于动态Pythag）
+    # 动态Pythag指数
     league_avg_runs = 4.5
     if not teams_df.empty:
         total_runs = teams_df['runs_scored'].sum()
         total_games = (teams_df['wins'] + teams_df['losses']).sum() / 2
         if total_games > 0:
             league_avg_runs = total_runs / total_games
-    # 动态Pythag指数
     pythag_exponent = league_avg_runs ** 0.287
-    print(f"动态Pythag指数: {pythag_exponent:.3f} (联盟场均得分: {league_avg_runs:.2f})")
+    print(f"动态Pythag指数: {pythag_exponent:.3f}")
 
-    # 赔率
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     odds_source = "bet365,draftkings" if not odds_df.empty else "none"
@@ -250,7 +247,6 @@ def generate_predictions(elo_system=None):
             for _, row in team_bat.iterrows():
                 bat_speed_dict[row['team_name']] = row['bat_speed']
 
-    # Sprint Speed
     sprint_speed_dict = {}
     if not savant_df.empty and 'sprint_speed' in savant_df.columns:
         sprint_df = savant_df[['home_team', 'sprint_speed']].dropna()
@@ -345,7 +341,6 @@ def generate_predictions(elo_system=None):
                 historical_count = len(hist_df)
         except: pass
 
-    # 9月检测（用于校准惩罚）
     is_september = datetime.strptime(date_str, '%Y-%m-%d').month >= 9
 
     predictions = []
@@ -491,7 +486,6 @@ def generate_predictions(elo_system=None):
             if home_bs is not None and away_bs is not None:
                 avg_bat_speed_diff = home_bs - away_bs
 
-        # Sprint Speed
         sprint_speed_diff = 0.0
         if sprint_speed_dict:
             home_ss = sprint_speed_dict.get(home); away_ss = sprint_speed_dict.get(away)
@@ -517,7 +511,6 @@ def generate_predictions(elo_system=None):
             h_barrel = barrel_against_dict.get(home); a_barrel = barrel_against_dict.get(away)
             if h_barrel is not None and a_barrel is not None: barrel_bb_pct_diff = h_barrel - a_barrel
 
-        # 球种级对位分数
         pitch_type_matchup_score = 0.0
         if get_pitch_type_matchup_score and pitcher_data is not None:
             try:
@@ -526,7 +519,6 @@ def generate_predictions(elo_system=None):
                 pitch_type_matchup_score = get_pitch_type_matchup_score(home_pitcher_id, away_pitcher_id)
             except: pass
 
-        # NRFI 深化：打线前3棒平均wOBA
         home_top3_woba = game.get('home_top3_avg_woba', 0.320)
         away_top3_woba = game.get('away_top3_avg_woba', 0.320)
 
@@ -692,12 +684,11 @@ def generate_predictions(elo_system=None):
         # 9月校准惩罚
         if is_september:
             if pred_home > 0.70:
-                pred_home -= 0.088   # 70-80%区间降8.8%
+                pred_home -= 0.088
             elif pred_home > 0.80:
-                pred_home -= 0.123   # 80-90%区间降12.3%
-            # 再施加通用波动惩罚
+                pred_home -= 0.123
             pred_home -= 0.025
-        # 贝叶斯收缩：向市场隐含概率收缩15%
+        # 贝叶斯收缩
         shrinkage = 0.15
         pred_home = pred_home * (1 - shrinkage) + (market_prob or 0.5) * shrinkage
         pred_home = min(0.95, max(0.05, pred_home))
@@ -760,7 +751,6 @@ def generate_predictions(elo_system=None):
         if pitcher_data is not None:
             home_first_era = float(pitcher_data.get('home_first_era', 4.5) or 4.5)
             away_first_era = float(pitcher_data.get('away_first_era', 4.5) or 4.5)
-            # 结合前3棒数据调整
             top3_factor = 1.0 - (home_top3_woba - 0.320) * 0.5 + (away_top3_woba - 0.320) * 0.5
             base_nrfi = max(0.3, min(0.7, 0.5 + (4.5 - (home_first_era + away_first_era) / 2) * 0.08))
             nrfi_prob = min(0.75, max(0.25, base_nrfi * top3_factor))
@@ -802,11 +792,55 @@ def generate_predictions(elo_system=None):
             "home_cover_prob": round(home_cover, 3) if home_cover is not None else None,
             "away_cover_prob": round(away_cover, 3) if away_cover is not None else None,
             "kelly_fraction": round(kelly_ml, 4),
+            "elo_diff": features['elo_diff'],
+            "market_prob": features['market_prob'],
+            "sp_era_diff": features['sp_era_diff'],
+            "sp_fip_diff": features['sp_fip_diff'],
+            "bullpen_ip_diff": features['bullpen_ip_diff'],
+            "rest_diff": features['rest_diff'],
+            "park_factor": static_park,
+            "dynamic_park_factor": features['dynamic_park_factor'],
+            "platoon_ops_diff": features['platoon_ops_diff'],
+            "statcast_launch_speed_diff": features['statcast_launch_speed_diff'],
+            "statcast_barrel_diff": features['statcast_barrel_diff'],
+            "statcast_hard_hit_diff": features['statcast_hard_hit_diff'],
+            "statcast_woba_diff": features['statcast_woba_diff'],
+            "timezone_diff": features['timezone_diff'],
+            "is_day_game": features['is_day_game'],
+            "home_back2back": features['home_back2back'],
+            "away_back2back": features['away_back2back'],
+            "catcher_era_diff": features['catcher_era_diff'],
+            "cs_diff": features['cs_diff'],
+            "wind_effect": features['wind_effect'],
+            "temp_effect": features['temp_effect'],
+            "precip_effect": features['precip_effect'],
+            "injury_diff": features['injury_diff'],
             "dynamic_pythag_diff": features['dynamic_pythag_diff'],
+            "log5_prob": features['log5_prob'],
+            "lag30_winrate_diff": features['lag30_winrate_diff'],
+            "lag30_runs_diff": features['lag30_runs_diff'],
+            "pitch_movement_diff": features['pitch_movement_diff'],
+            "k_pct_diff": features['k_pct_diff'],
+            "bb_pct_diff": features['bb_pct_diff'],
+            "avg_bat_speed_diff": features['avg_bat_speed_diff'],
+            "pitcher_rating_diff": features['pitcher_rating_diff'],
+            "odds_change": features['odds_change'],
+            "zone_size": features['zone_size'],
+            "k_rate": features['k_rate'],
+            "bullpen_availability_diff": features['bullpen_availability_diff'],
+            "elo_momentum_7d": features['elo_momentum_7d'],
+            "elo_momentum_30d": features['elo_momentum_30d'],
+            "barrel_pa_diff": features['barrel_pa_diff'],
+            "hardhit_pa_diff": features['hardhit_pa_diff'],
+            "swing_miss_diff": features['swing_miss_diff'],
+            "csw_diff": features['csw_diff'],
+            "barrel_bb_pct_diff": features['barrel_bb_pct_diff'],
             "sprint_speed_diff": features['sprint_speed_diff'],
             "pitch_type_matchup_score": features['pitch_type_matchup_score'],
             "home_top3_woba": features['home_top3_woba'],
             "away_top3_woba": features['away_top3_woba'],
+            "home_winrate": features['home_winrate'],
+            "away_winrate": features['away_winrate'],
             "top_features": top_features,
             "market_divergence": 1 if abs(pred_home - market_prob) > 0.15 else 0,
             "odds_source": odds_source
@@ -832,8 +866,134 @@ def generate_predictions(elo_system=None):
         value_bets = filter_value_bets(predictions)
         output['value_bets'] = value_bets
 
-    # DB/CSV写入（略，保留之前完整逻辑，新增特征字段需同步到表头和数据行）
-    # ...（与之前完整版相同，需增加新特征列）
+    # 数据库写入（容错，若缺少列则仅写CSV）
+    db_available = init_database is not None and insert_prediction is not None
+    if db_available:
+        try:
+            init_database()
+        except:
+            db_available = False
+    if db_available:
+        for p in predictions:
+            db_data = {
+                "game_id": p.get("game_id"), "game_date": p.get("game_date"),
+                "home_team": p.get("home_team"), "away_team": p.get("away_team"),
+                "pred_home_win": p.get("predicted_home_win_pct"), "home_odds": p.get("home_odds"),
+                "elo_home": p.get("elo_home"), "elo_away": p.get("elo_away"),
+                "ml_rec": p.get("moneyline_recommendation"), "spread_rec": p.get("spread_recommendation"),
+                "total_rec": p.get("total_recommendation"), "nrfi_rec": p.get("nrfi_recommendation"),
+                "nrfi_prob": p.get("nrfi_prob"), "pred_uncertainty": p.get("pred_uncertainty"),
+                "kelly_fraction": p.get("kelly_fraction"),
+                "manual_no_odds_pred": p.get("manual_no_odds_pred"),
+                "elo_diff": p.get("elo_diff"), "market_prob": p.get("market_prob"),
+                "sp_era_diff": p.get("sp_era_diff"), "sp_fip_diff": p.get("sp_fip_diff"),
+                "bullpen_ip_diff": p.get("bullpen_ip_diff"), "rest_diff": p.get("rest_diff"),
+                "park_factor": p.get("park_factor"), "dynamic_park_factor": p.get("dynamic_park_factor"),
+                "platoon_ops_diff": p.get("platoon_ops_diff"),
+                "statcast_launch_speed_diff": p.get("statcast_launch_speed_diff"),
+                "statcast_barrel_diff": p.get("statcast_barrel_diff"),
+                "statcast_hard_hit_diff": p.get("statcast_hard_hit_diff"),
+                "statcast_woba_diff": p.get("statcast_woba_diff"),
+                "timezone_diff": p.get("timezone_diff"), "is_day_game": p.get("is_day_game"),
+                "home_back2back": p.get("home_back2back"), "away_back2back": p.get("away_back2back"),
+                "catcher_era_diff": p.get("catcher_era_diff"), "cs_diff": p.get("cs_diff"),
+                "wind_effect": p.get("wind_effect"), "temp_effect": p.get("temp_effect"),
+                "precip_effect": p.get("precip_effect"), "injury_diff": p.get("injury_diff"),
+                "dynamic_pythag_diff": p.get("dynamic_pythag_diff"), "log5_prob": p.get("log5_prob"),
+                "lag30_winrate_diff": p.get("lag30_winrate_diff"), "lag30_runs_diff": p.get("lag30_runs_diff"),
+                "pitch_movement_diff": p.get("pitch_movement_diff"),
+                "k_pct_diff": p.get("k_pct_diff"), "bb_pct_diff": p.get("bb_pct_diff"),
+                "avg_bat_speed_diff": p.get("avg_bat_speed_diff"),
+                "pitcher_rating_diff": p.get("pitcher_rating_diff"),
+                "odds_change": p.get("odds_change"),
+                "zone_size": p.get("zone_size"), "k_rate": p.get("k_rate"),
+                "bullpen_availability_diff": p.get("bullpen_availability_diff"),
+                "elo_momentum_7d": p.get("elo_momentum_7d"), "elo_momentum_30d": p.get("elo_momentum_30d"),
+                "barrel_pa_diff": p.get("barrel_pa_diff"), "hardhit_pa_diff": p.get("hardhit_pa_diff"),
+                "swing_miss_diff": p.get("swing_miss_diff"), "csw_diff": p.get("csw_diff"),
+                "barrel_bb_pct_diff": p.get("barrel_bb_pct_diff"),
+                "sprint_speed_diff": p.get("sprint_speed_diff"),
+                "pitch_type_matchup_score": p.get("pitch_type_matchup_score"),
+                "home_top3_woba": p.get("home_top3_woba"), "away_top3_woba": p.get("away_top3_woba"),
+                "closing_odds": None,
+                "top_features": ";".join(p.get("top_features", [])) if isinstance(p.get("top_features"), list) else p.get("top_features", ""),
+                "market_divergence": p.get("market_divergence", 0),
+                "odds_source": p.get("odds_source", "")
+            }
+            try:
+                insert_prediction(db_data)
+            except Exception as e:
+                print(f"数据库插入失败，回退到CSV: {e}")
+                db_available = False
+                break
+
+    # CSV 双写（始终执行）
+    HISTORY_FILE = "data/historical_predictions.csv"
+    os.makedirs("data", exist_ok=True)
+    file_exists = os.path.exists(HISTORY_FILE)
+    with open(HISTORY_FILE, 'a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow([
+                "game_id", "game_date", "home_team", "away_team",
+                "pred_home_win", "home_odds", "elo_home", "elo_away",
+                "ml_rec", "spread_rec", "total_rec", "nrfi_rec", "nrfi_prob", "pred_uncertainty",
+                "manual_no_odds_pred", "ci_lower", "ci_upper",
+                "kelly_fraction", "home_win",
+                "elo_diff", "market_prob", "sp_era_diff", "sp_fip_diff",
+                "bullpen_ip_diff", "rest_diff", "park_factor",
+                "dynamic_park_factor",
+                "platoon_ops_diff",
+                "statcast_launch_speed_diff", "statcast_barrel_diff",
+                "statcast_hard_hit_diff", "statcast_woba_diff",
+                "timezone_diff", "is_day_game",
+                "home_back2back", "away_back2back",
+                "catcher_era_diff", "cs_diff", "wind_effect",
+                "temp_effect", "precip_effect", "injury_diff",
+                "dynamic_pythag_diff", "log5_prob",
+                "lag30_winrate_diff", "lag30_runs_diff",
+                "pitch_movement_diff",
+                "k_pct_diff", "bb_pct_diff", "avg_bat_speed_diff",
+                "pitcher_rating_diff", "odds_change",
+                "zone_size", "k_rate", "bullpen_availability_diff",
+                "elo_momentum_7d", "elo_momentum_30d", "barrel_pa_diff", "hardhit_pa_diff",
+                "swing_miss_diff", "csw_diff", "barrel_bb_pct_diff",
+                "sprint_speed_diff", "pitch_type_matchup_score",
+                "home_top3_woba", "away_top3_woba",
+                "closing_odds", "top_features", "market_divergence", "odds_source"
+            ])
+        for p in predictions:
+            writer.writerow([
+                p.get("game_id", ""), p.get("game_date", ""), p.get("home_team", ""), p.get("away_team", ""),
+                p.get("predicted_home_win_pct", ""), p.get("home_odds", ""), p.get("elo_home", ""), p.get("elo_away", ""),
+                p.get("moneyline_recommendation", ""), p.get("spread_recommendation", ""), p.get("total_recommendation", ""),
+                p.get("nrfi_recommendation", ""), p.get("nrfi_prob", ""), p.get("pred_uncertainty", ""),
+                p.get("manual_no_odds_pred", ""), p.get("ci_lower", ""), p.get("ci_upper", ""),
+                p.get("kelly_fraction", ""), "",
+                p.get("elo_diff", ""), p.get("market_prob", ""), p.get("sp_era_diff", ""), p.get("sp_fip_diff", ""),
+                p.get("bullpen_ip_diff", ""), p.get("rest_diff", ""), p.get("park_factor", ""),
+                p.get("dynamic_park_factor", ""),
+                p.get("platoon_ops_diff", ""), p.get("statcast_launch_speed_diff", ""), p.get("statcast_barrel_diff", ""),
+                p.get("statcast_hard_hit_diff", ""), p.get("statcast_woba_diff", ""),
+                p.get("timezone_diff", ""), p.get("is_day_game", ""), p.get("home_back2back", ""), p.get("away_back2back", ""),
+                p.get("catcher_era_diff", ""), p.get("cs_diff", ""), p.get("wind_effect", ""),
+                p.get("temp_effect", ""), p.get("precip_effect", ""), p.get("injury_diff", ""),
+                p.get("dynamic_pythag_diff", ""), p.get("log5_prob", ""),
+                p.get("lag30_winrate_diff", ""), p.get("lag30_runs_diff", ""),
+                p.get("pitch_movement_diff", ""),
+                p.get("k_pct_diff", ""), p.get("bb_pct_diff", ""), p.get("avg_bat_speed_diff", ""),
+                p.get("pitcher_rating_diff", ""), p.get("odds_change", ""),
+                p.get("zone_size", ""), p.get("k_rate", ""), p.get("bullpen_availability_diff", ""),
+                p.get("elo_momentum_7d", ""), p.get("elo_momentum_30d", ""), p.get("barrel_pa_diff", ""), p.get("hardhit_pa_diff", ""),
+                p.get("swing_miss_diff", ""), p.get("csw_diff", ""), p.get("barrel_bb_pct_diff", ""),
+                p.get("sprint_speed_diff", ""), p.get("pitch_type_matchup_score", ""),
+                p.get("home_top3_woba", ""), p.get("away_top3_woba", ""),
+                "",
+                ";".join(p.get("top_features", [])) if isinstance(p.get("top_features"), list) else p.get("top_features", ""),
+                p.get("market_divergence", 0),
+                p.get("odds_source", "")
+            ])
+    print(f"历史预测已追加至 {HISTORY_FILE}")
 
     os.makedirs('report', exist_ok=True)
     with open('report/prediction.json', 'w') as f:
