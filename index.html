@@ -1,1 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLB 预测</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; max-width: 1100px; margin: 20px auto; padding: 0 15px; background: #f9fafb; }
+        h1 { font-size: 1.8rem; margin-bottom: 8px; }
+        .subtitle { color: #718096; font-size: 0.9rem; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        th { background: #f8fafc; font-weight: 600; color: #4a5568; }
+        tr:hover { background: #ebf4ff; }
+        .loading { text-align: center; padding: 30px; color: #a0aec0; }
+        .error { color: #e53e3e; background: #fff5f5; padding: 12px; border-radius: 6px; margin-bottom: 16px; }
+        .rec-bet { background: #c6f6d5; color: #22543d; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+        .rec-pass { color: #a0aec0; }
+    </style>
+</head>
+<body>
+    <h1>⚾ MLB 预测</h1>
+    <p class="subtitle" id="update-time">加载中...</p>
+    <div id="error-box"></div>
+    <table id="table">
+        <thead>
+            <tr>
+                <th>时间</th>
+                <th>主队</th>
+                <th>客队</th>
+                <th>预测主胜</th>
+                <th>赔率</th>
+                <th>胜分推荐</th>
+                <th>让分推荐</th>
+                <th>大小推荐</th>
+            </tr>
+        </thead>
+        <tbody id="tbody">
+            <tr><td colspan="8" class="loading">加载中...</td></tr>
+        </tbody>
+    </table>
 
+    <script>
+        async function load() {
+            const errorBox = document.getElementById('error-box');
+            try {
+                // 同仓库内直接 fetch prediction.json
+                const resp = await fetch('./report/prediction.json');
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const data = await resp.json();
+                document.getElementById('update-time').innerText = '更新：' + new Date(data.generated_at).toLocaleString();
+                const preds = data.today_predictions || [];
+                const tbody = document.getElementById('tbody');
+                if (preds.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8">今日暂无比赛</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = preds.map(p => {
+                    const time = p.game_date ? new Date(p.game_date).toLocaleTimeString('zh-TW', {hour:'2-digit',minute:'2-digit'}) : '—';
+                    const pred = p.predicted_home_win_pct != null ? (p.predicted_home_win_pct*100).toFixed(1)+'%' : '—';
+                    const odds = p.home_odds ? p.home_odds.toFixed(2) : '—';
+                    const ml = p.moneyline_recommendation && p.moneyline_recommendation !== 'PASS' ? `<span class="rec-bet">${p.moneyline_recommendation}</span>` : '<span class="rec-pass">PASS</span>';
+                    const spread = p.spread_recommendation && p.spread_recommendation !== 'PASS' ? `<span class="rec-bet">${p.spread_recommendation}</span>` : '<span class="rec-pass">PASS</span>';
+                    const total = p.total_recommendation && p.total_recommendation !== 'PASS' ? `<span class="rec-bet">${p.total_recommendation}</span>` : '<span class="rec-pass">PASS</span>';
+                    return `<tr><td>${time}</td><td><strong>${p.home_team}</strong></td><td>${p.away_team}</td><td>${pred}</td><td>${odds}</td><td>${ml}</td><td>${spread}</td><td>${total}</td></tr>`;
+                }).join('');
+            } catch (err) {
+                errorBox.innerHTML = `<div class="error">加载失败：${err.message}。请确保 prediction.json 已生成。</div>`;
+            }
+        }
+        load();
+    </script>
+</body>
+</html>
