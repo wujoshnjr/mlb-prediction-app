@@ -4,6 +4,7 @@ SQLite 数据库管理模块
 """
 import sqlite3
 import os
+import pandas as pd
 from datetime import datetime
 
 DB_PATH = "data/mlb_predictions.db"
@@ -136,7 +137,6 @@ def get_all_predictions():
     return df
 
 def get_performance_metrics():
-    """计算回测绩效指标"""
     conn = get_connection()
     query = """
         SELECT 
