@@ -104,7 +104,7 @@ class UnifiedSportsModel:
             'sportsipy_teams': [], 'sportsipy_player': {},
             'openmeteo_weather': [], 'balldontlie_teams': [], 'odds_data': [],
             'pitchers': [], 'injuries': [], 'bullpen': [], 'platoon': [],
-            'umpires': [],        # 新增裁判數據
+            'umpires': [],        # 裁判數據
             'errors': errors
         }
 
