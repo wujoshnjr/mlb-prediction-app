@@ -129,7 +129,7 @@ def generate_predictions(elo_system=None):
             print("ELO 模块未安装，将使用基础预测")
             elo_system = None
 
-    # 保存ELO快照（用于计算动量）
+    # 保存 ELO 快照（用于动量）
     try:
         from scripts.elo_momentum import save_elo_snapshot
         save_elo_snapshot()
@@ -304,7 +304,7 @@ def generate_predictions(elo_system=None):
         if elo_system:
             elo_diff = elo_system.elos.get(home, 1500) - elo_system.elos.get(away, 1500) + elo_system.home_adv
 
-        # ELO动量
+        # ELO 动量
         elo_momentum_7d = 0.0; elo_momentum_30d = 0.0
         if get_elo_momentum:
             try:
@@ -473,8 +473,8 @@ def generate_predictions(elo_system=None):
         zone_size = umpire_data.get("zone_size", 1.0)
         k_rate = umpire_data.get("k_rate", 0.0)
 
-        # 额外的衍生特征：Barrel per PA, HardHit per PA（比率特征）
-        barrel_pa_diff = statcast_barrel_diff  # 因为已经是比率，直接使用
+        # 衍生比率特征
+        barrel_pa_diff = statcast_barrel_diff
         hardhit_pa_diff = statcast_hard_hit_diff
 
         features = {
