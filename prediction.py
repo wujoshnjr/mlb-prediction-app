@@ -203,7 +203,12 @@ def generate_predictions(elo_system=None):
     # Bradley-Terry 强度
     bt_strengths = {}
     if get_bradley_terry_strengths:
+        bt_strengths = {}
+if get_bradley_terry_strengths:
+    try:
         bt_strengths = get_bradley_terry_strengths()
+    except Exception as e:
+        print(f"BT模型获取失败: {e}")
 
     # 赔率
     odds_df = pd.DataFrame(data.get('odds_data', []))
