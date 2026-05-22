@@ -101,7 +101,5 @@ def train():
     val_logloss = log_loss(y_val, val_probs)
     print(f"验证集 Brier: {val_brier:.4f}, LogLoss: {val_logloss:.4f}")
 
-    # 日志（略）
-
 if __name__ == "__main__":
     train()
