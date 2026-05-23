@@ -73,7 +73,7 @@ try:
         shap_explainer = True
 except:
     pass
-    
+
 LAST_GAME_FILE = "data/team_last_game.json"
 if os.path.exists(LAST_GAME_FILE):
     with open(LAST_GAME_FILE, 'r') as f:
@@ -146,13 +146,13 @@ def kelly_criterion(win_prob, odds, fraction=0.25):
 def get_season_phase_adjustment(date_str, pred_prob):
     month = datetime.strptime(date_str, '%Y-%m-%d').month
     adj = 0.0
-    if month in [4, 5]:  # 早期
+    if month in [4, 5]:
         adj = -0.005
-    elif month == 9:     # 九月
+    elif month == 9:
         if pred_prob > 0.7: adj = -0.088
         elif pred_prob > 0.8: adj = -0.123
         adj -= 0.025
-    elif month == 10:    # 季后赛（如有）
+    elif month == 10:
         if pred_prob > 0.7: adj = -0.10
     return adj
 
@@ -174,7 +174,8 @@ def generate_predictions(elo_system=None):
     try:
         from scripts.elo_momentum import save_elo_snapshot
         save_elo_snapshot()
-    except: pass
+    except:
+        pass
 
     # 球队战力
     teams_df = pd.DataFrame(data.get('sportsipy_teams', []))
@@ -199,17 +200,15 @@ def generate_predictions(elo_system=None):
         if total_games > 0:
             league_avg_runs = total_runs / total_games
     pythag_exponent = league_avg_runs ** 0.287
-    print(f"动态Pythag指数: {pythag_exponent:.3f}")
+    print(f"动态Pythag指数: {pythag_exponent:.3f} (联盟场均得分: {league_avg_runs:.2f})")
 
     # Bradley-Terry 强度
     bt_strengths = {}
     if get_bradley_terry_strengths:
-        bt_strengths = {}
-if get_bradley_terry_strengths:
-    try:
-        bt_strengths = get_bradley_terry_strengths()
-    except Exception as e:
-        print(f"BT模型获取失败: {e}")
+        try:
+            bt_strengths = get_bradley_terry_strengths()
+        except Exception as e:
+            print(f"BT模型获取失败: {e}")
 
     # 赔率
     odds_df = pd.DataFrame(data.get('odds_data', []))
@@ -225,7 +224,7 @@ if get_bradley_terry_strengths:
                     odds_dict[key] = []
                 odds_dict[key].append(odds_val)
 
-    # 盘口变化序列特征（最近快照对比）
+    # 盘口动量
     odds_momentum_dict = {}
     odds_snapshot_dir = "data/odds_snapshots"
     if os.path.exists(odds_snapshot_dir):
@@ -239,7 +238,8 @@ if get_bradley_terry_strengths:
                     prev_row = prev_df[(prev_df['home_team'] == row['home_team']) & (prev_df['away_team'] == row['away_team'])]
                     if not prev_row.empty:
                         odds_momentum_dict[key] = row['odds'] - prev_row.iloc[0]['odds']
-            except: pass
+            except:
+                pass
 
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
     print(f"当日比赛数量: {len(schedule_df)}")
@@ -760,7 +760,7 @@ if get_bradley_terry_strengths:
         season_adj = get_season_phase_adjustment(date_str, pred_home)
         pred_home += season_adj
 
-        # 贝叶斯收缩：向市场隐含概率收缩15%，并随赛季阶段调整收缩强度
+        # 贝叶斯收缩：向市场隐含概率收缩15%
         shrinkage = 0.15
         pred_home = pred_home * (1 - shrinkage) + (market_prob or 0.5) * shrinkage
         pred_home = min(0.95, max(0.05, pred_home))
@@ -954,10 +954,10 @@ if get_bradley_terry_strengths:
         value_bets = filter_value_bets(predictions)
         output['value_bets'] = value_bets
 
-    # DB/CSV写入（略，与之前完整版相同，需增加新特征列）
-    # ...（保留原有写入逻辑，表头增加 sp_stuff_plus_diff, sp_csw_diff, bt_strength_diff, odds_momentum, ci_80_lower, ci_80_upper, ci_95_lower, ci_95_upper, shap_features）
+    # DB/CSV写入逻辑省略（保留原有完整逻辑，需增加新特征列）
+    # 为了完整性，这里省略了数据持久化部分的重复代码，实际部署时应包含之前版本中的完整CSV/DB写入代码
 
-      os.makedirs('report', exist_ok=True)
+    os.makedirs('report', exist_ok=True)
     with open('report/prediction.json', 'w') as f:
         json.dump(output, f, indent=2, default=str)
     print("prediction.json 已生成")
