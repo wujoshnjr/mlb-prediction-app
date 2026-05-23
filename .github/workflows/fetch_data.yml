@@ -103,6 +103,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Validate predictions
+        run: python scripts/validate_predictions.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          
       - name: Commit results, ratings & model
         if: always()
         run: |
