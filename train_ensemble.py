@@ -11,15 +11,15 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import log_loss, brier_score_loss
 
-# +++ NEW: 导入配置（防御性）
+# 导入配置（防御性）
 try:
     import config
 except ImportError:
     class config:
         MODEL_USE_MLP = False
-        MODEL_META = 'lr'  # 'lr' 或 'elasticnet'
+        MODEL_META = 'lr'
 
-# 可选模块（防御性导入）
+# 可选模块
 try:
     from sklearn.neural_network import MLPClassifier
     from sklearn.preprocessing import StandardScaler
@@ -39,15 +39,15 @@ MODEL_OUTPUT = "data/calibrator.pkl"
 TRAINING_LOG = "data/training_log.csv"
 FEATURE_IMPORTANCE_LOG = "data/feature_importance.csv"
 
-# ========== 与 prediction.py 完全同步的特征列表（已移除 market_prob，改用 diff 特征）==========
+# 与最新 prediction.py 完全同步的特征列表（无 market_prob，全部 diff）
 EXPECTED_FEATURES = [
-    'elo_diff',                     # 评分差值（ELO 或 Glicko2）
+    'elo_diff',
     'sp_era_diff', 'sp_fip_diff', 'sp_stuff_plus_diff', 'sp_csw_diff',
     'bullpen_ip_diff', 'rest_diff',
     'dynamic_park_factor',
     'platoon_ops_diff', 'statcast_launch_speed_diff', 'statcast_barrel_diff',
     'statcast_hard_hit_diff', 'statcast_woba_diff',
-    'timezone_diff', 'is_day_game', 'home_back2back', 'away_back2back',
+    'timezone_diff', 'is_day_game', 'back2back_diff',   # 替换 home_back2back/away_back2back
     'catcher_era_diff', 'cs_diff', 'wind_effect',
     'temp_effect', 'precip_effect', 'injury_diff',
     'dynamic_pythag_diff', 'log5_prob', 'lag30_winrate_diff', 'lag30_runs_diff',
@@ -58,10 +58,10 @@ EXPECTED_FEATURES = [
     'elo_momentum_7d', 'elo_momentum_30d', 'barrel_pa_diff', 'hardhit_pa_diff',
     'swing_miss_diff', 'csw_diff', 'barrel_bb_pct_diff',
     'sprint_speed_diff', 'pitch_type_matchup_score',
-    'top3_woba_diff',                # 新：前三棒 wOBA 差值
-    'winrate_diff',                  # 新：胜率差值
+    'top3_woba_diff',   # 新：前三棒 wOBA 差值
+    'winrate_diff',     # 新：胜率差值
     'bt_strength_diff',
-    # Pitch Usage 特征（保持不变）
+    # Pitch Usage 特征
     'home_usage_magnitude', 'away_usage_magnitude',
     'home_shift_score', 'away_shift_score',
     'home_delta_FF', 'home_delta_SL', 'home_delta_CH', 'home_delta_CU',
@@ -79,9 +79,8 @@ def prepare_data():
     df['home_win'] = df['home_win'].astype(int)
     if len(df) < 50:
         print(f"数据量不足 ({len(df)})，跳过训练")
-        return None, None, None, None
+        return None, None, None, None, None
 
-    # 补全缺失特征
     for col in EXPECTED_FEATURES:
         if col not in df.columns:
             df[col] = 0.0
@@ -101,12 +100,12 @@ def prepare_data():
     y = df['home_win'].values
     w = df['sample_weight'].values
 
-    # 正确移除低方差特征
+    # 移除低方差特征
     var = np.var(X, axis=0)
     keep_mask = var > 1e-8
     if not np.any(keep_mask):
         print("所有特征均无方差，跳过训练")
-        return None, None, None, None
+        return None, None, None, None, None
 
     X = X[:, keep_mask]
     kept_features = [f for f, k in zip(EXPECTED_FEATURES, keep_mask) if k]
@@ -122,7 +121,7 @@ def train():
         return
     X, y, w, df_all, used_features = data
 
-    # ========== 严格时间切分：70% 训练 / 15% 校准 / 15% 测试 ==========
+    # 严格时间切分：70% 训练 / 15% 校准 / 15% 测试
     n = len(X)
     train_end = int(n * 0.7)
     calib_end = int(n * 0.85)
@@ -141,7 +140,7 @@ def train():
 
     print(f"训练集: {len(X_train)}  校准集: {len(X_calib)}  测试集: {len(X_test)}")
 
-    # ========== 构建基础学习器 ==========
+    # 基础学习器
     xgb = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
                          importance_type='gain', random_state=42,
                          eval_metric='logloss', use_label_encoder=False)
@@ -150,7 +149,7 @@ def train():
     rf = RandomForestClassifier(n_estimators=300, max_depth=5, random_state=42)
     estimators = [('xgb', xgb), ('lgb', lgb), ('rf', rf)]
 
-    # 可选 MLP（保留原有逻辑，但建议暂时关闭）
+    # 可选 MLP
     if config.MODEL_USE_MLP:
         if MLPClassifier is not None and StandardScaler is not None and Pipeline is not None:
             mlp = MLPClassifier(hidden_layer_sizes=(64, 32), activation='relu',
@@ -168,13 +167,13 @@ def train():
 
     stacking = StackingClassifier(estimators=estimators,
                                   final_estimator=final_estimator,
-                                  cv='prefit')   # 关键：避免嵌套 CV，后续手动校准
+                                  cv='prefit')
 
-    # 首先在训练集上拟合 stacking（传入样本权重）
+    # 训练 Stacking
     print("训练 Stacking 模型...")
     stacking.fit(X_train, y_train, sample_weight=w_train)
 
-    # 然后用独立的校准集进行 sigmoid 校准（更稳健）
+    # 在独立校准集上做 sigmoid 校准
     print("进行 sigmoid 校准...")
     calibrated_model = CalibratedClassifierCV(estimator=stacking, method='sigmoid',
                                               cv='prefit')
@@ -184,7 +183,7 @@ def train():
     joblib.dump(calibrated_model, MODEL_OUTPUT)
     print("模型已保存至", MODEL_OUTPUT)
 
-    # ========== 在测试集上评估 ==========
+    # 测试集评估
     test_probs = calibrated_model.predict_proba(X_test)[:, 1]
     test_brier = brier_score_loss(y_test, test_probs)
     test_logloss = log_loss(y_test, test_probs)
@@ -202,20 +201,13 @@ def train():
         log_df.to_csv(TRAINING_LOG, index=False)
 
     # 特征重要性（基于 XGBoost gain）
-    # 为获得重要性，在训练集上重新训练一个未校准的 xgb（不影响主模型）
-    xgb_for_importance = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
-                                        importance_type='gain', random_state=42,
-                                        eval_metric='logloss', use_label_encoder=False)
-    xgb_for_importance.fit(X_train, y_train, sample_weight=w_train)
-    importances = xgb_for_importance.feature_importances_
+    xgb_for_imp = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
+                                importance_type='gain', random_state=42,
+                                eval_metric='logloss', use_label_encoder=False)
+    xgb_for_imp.fit(X_train, y_train, sample_weight=w_train)
+    importances = xgb_for_imp.feature_importances_
 
-    # 对齐特征名（可能因低方差移除而缩短）
-    if len(importances) == len(used_features):
-        feat_names = used_features
-    else:
-        # 如果低方差移除导致长度不一致，回退到 used_features 但截断或填充
-        feat_names = used_features[:len(importances)]
-
+    feat_names = used_features[:len(importances)] if len(importances) <= len(used_features) else used_features
     imp_df = pd.DataFrame([importances], columns=feat_names)
     imp_df['timestamp'] = datetime.now().isoformat()
     if os.path.exists(FEATURE_IMPORTANCE_LOG):
@@ -223,9 +215,8 @@ def train():
     else:
         imp_df.to_csv(FEATURE_IMPORTANCE_LOG, index=False)
 
-    # 输出重要性最低的 5 个特征
     sorted_idx = np.argsort(importances)
-    print("\n⚠️ 重要性最低的 5 个特征:")
+    print("\n⚠️ 重要性最低的5个特征:")
     for i in sorted_idx[:5]:
         if i < len(feat_names):
             print(f"  {feat_names[i]}: {importances[i]:.6f}")
