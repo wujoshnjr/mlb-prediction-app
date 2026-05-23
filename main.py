@@ -1,3 +1,4 @@
+# main.py
 import sys, os, json, threading
 from datetime import datetime
 import pandas as pd
@@ -20,7 +21,7 @@ except Exception as e:
 
 app = FastAPI(title="MLB Prediction Hub")
 
-# ==================== 前端 HTML ====================
+# ==================== 前端 HTML（新增 4 欄） ====================
 HTML = """
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -32,7 +33,7 @@ HTML = """
         :root { --bg:#f9fafb; --card:#fff; --text:#1a202c; --muted:#718096; --border:#e2e8f0; --accent:#2b6cb0; --positive:#38a169; --negative:#e53e3e; }
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); padding:20px; }
-        .container { max-width:1400px; margin:0 auto; }
+        .container { max-width:1600px; margin:0 auto; }
         .header { border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:24px; }
         .header h1 { font-size:1.8rem; font-weight:600; }
         .header p { color:var(--muted); margin-top:4px; }
@@ -53,6 +54,9 @@ HTML = """
         .loading { text-align:center; padding:32px; color:var(--muted); }
         .footer { margin-top:32px; text-align:center; color:var(--muted); font-size:0.8rem; }
         .error { color:var(--negative); background:#fff5f5; border:1px solid var(--negative); padding:12px; border-radius:8px; margin-bottom:16px; }
+        /* 新增欄位樣式 */
+        .nrfi-high { color: var(--positive); font-weight:600; }
+        .nrfi-low { color: var(--negative); font-weight:600; }
     </style>
 </head>
 <body>
@@ -72,16 +76,21 @@ HTML = """
             <div class="stat-card"><div class="label">Brier Score</div><div class="value" id="perf-brier">—</div></div>
         </div>
 
-        <!-- 预测表格 -->
+        <!-- 预测表格（新增 4 欄） -->
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th>
-                        <th>Moneyline</th><th>Spread</th><th>Total</th><th>NRFI</th><th>Key Factors</th>
+                        <th>Moneyline</th><th>Spread</th><th>Total</th>
+                        <th>NRFI</th>               <!-- 新增 -->
+                        <th>Glicko2 RD</th>         <!-- 新增 -->
+                        <th>Matchup (H/A)</th>      <!-- 新增 -->
+                        <th>Odds Trend</th>         <!-- 新增 -->
+                        <th>Key Factors</th>
                     </tr>
                 </thead>
-                <tbody id="pred-body"><tr><td colspan="10" class="loading">Loading...</td></tr></tbody>
+                <tbody id="pred-body"><tr><td colspan="13" class="loading">Loading...</td></tr></tbody>
             </table>
         </div>
 
@@ -127,7 +136,7 @@ HTML = """
             const preds = data.today_predictions || [];
             const tbody = document.getElementById('pred-body');
             if (preds.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10">今日暂无比赛</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="13">今日暂无比赛</td></tr>';
                 return;
             }
             tbody.innerHTML = preds.map(p => {
@@ -137,9 +146,38 @@ HTML = """
                 const ml = p.moneyline_recommendation && p.moneyline_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.moneyline_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
                 const spread = p.spread_recommendation && p.spread_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.spread_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
                 const total = p.total_recommendation && p.total_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.total_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
-                const nrfi = p.nrfi_recommendation || '—';
+
+                // 新增欄位：NRFI 概率
+                const nrfiProb = p.nrfi_prob != null ? (p.nrfi_prob*100).toFixed(1) + '%' : '—';
+                const nrfiClass = p.nrfi_prob > 0.55 ? 'nrfi-high' : (p.nrfi_prob < 0.45 ? 'nrfi-low' : '');
+
+                // Glicko2 RD Sum
+                const glickoRd = p.glicko_rd_sum != null ? p.glicko_rd_sum.toFixed(0) : '—';
+
+                // Matchup 優勢
+                const matchupHome = p.home_matchup_adv != null ? p.home_matchup_adv.toFixed(3) : '—';
+                const matchupAway = p.away_matchup_adv != null ? p.away_matchup_adv.toFixed(3) : '—';
+                const matchup = `${matchupHome} / ${matchupAway}`;
+
+                // 盤口趨勢
+                const oddsTrend = p.home_odds_trend != null ? p.home_odds_trend.toFixed(3) : '—';
+
                 const factors = (p.top_features || []).join(' · ');
-                return `<tr><td>${time}</td><td><strong>${p.home_team}</strong></td><td>${p.away_team}</td><td>${pred}</td><td>${odds}</td><td>${ml}</td><td>${spread}</td><td>${total}</td><td>${nrfi}</td><td style="font-size:0.75rem;color:var(--muted)">${factors}</td></tr>`;
+                return `<tr>
+                    <td>${time}</td>
+                    <td><strong>${p.home_team}</strong></td>
+                    <td>${p.away_team}</td>
+                    <td>${pred}</td>
+                    <td>${odds}</td>
+                    <td>${ml}</td>
+                    <td>${spread}</td>
+                    <td>${total}</td>
+                    <td class="${nrfiClass}">${nrfiProb}</td>
+                    <td>${glickoRd}</td>
+                    <td>${matchup}</td>
+                    <td>${oddsTrend}</td>
+                    <td style="font-size:0.75rem;color:var(--muted)">${factors}</td>
+                </tr>`;
             }).join('');
         }
 
@@ -149,7 +187,7 @@ HTML = """
 </html>
 """
 
-# ==================== API 端点 ====================
+# ==================== API 端点（全部保留） ====================
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def index():
@@ -186,7 +224,6 @@ def get_performance():
 
     try:
         df = pd.read_csv(history_file)
-        # 只保留有真实结果的比赛
         df = df[df['home_win'].notna()]
         df['home_win'] = df['home_win'].astype(int)
         if len(df) == 0:
@@ -194,20 +231,17 @@ def get_performance():
 
         result["total"] = len(df)
 
-        # 胜率（只统计有推荐的比赛）
         bets = df[df['ml_rec'].notna() & (df['ml_rec'] != '')]
         bets_with_rec = bets[bets['ml_rec'].str.contains('Bet', na=False)]
         if len(bets_with_rec) > 0:
             result["win_rate"] = bets_with_rec['home_win'].mean()
 
-        # ROI (1/4 Kelly 简化计算)
         def calc_profit(row):
             if 'Bet' not in str(row.get('ml_rec', '')):
                 return 0
             odds = row.get('home_odds', 2.0)
             if pd.isna(odds) or odds <= 1:
                 odds = 2.0
-            # 简单按固定1单位投注
             return (odds - 1) if row['home_win'] == 1 else -1
 
         df['profit'] = df.apply(calc_profit, axis=1)
@@ -216,7 +250,6 @@ def get_performance():
         if total_bets > 0:
             result["roi"] = total_profit / total_bets
 
-        # Brier Score
         clean = df[['home_win', 'pred_home_win']].dropna()
         if len(clean) > 0:
             result["brier"] = brier_score_loss(clean['home_win'], clean['pred_home_win'])
