@@ -5,26 +5,27 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import brier_score_loss, log_loss
 
+# 确保可以导入项目根目录下的模块（如 config）
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 HISTORY_FILE = "data/historical_predictions.csv"
 REPORT_FILE = "data/backtest_report.csv"
 FEATURE_IMPORTANCE_LOG = "data/feature_importance.csv"
 
-# +++ NEW: 导入配置（防御性）
+# 导入配置（防御性）
 try:
     import config
 except:
     class config:
         WALKFORWARD_STRICT = False
 
-# +++ NEW: 导入 Walk-Forward 模块（防御性）
+# 导入 Walk-Forward 模块（防御性）
 try:
     from scripts.walkforward import walkforward_train_evaluate
 except:
     walkforward_train_evaluate = None
 
-# +++ NEW: 模型构建函数（防御性，用于 Walk-Forward）
+# 模型构建函数（防御性，用于 Walk-Forward）
 def _create_model_for_wf():
     """创建一个未训练的 Stacking 模型，与 train_ensemble 保持一致"""
     try:
@@ -142,7 +143,7 @@ def run_backtest():
     df.to_csv(REPORT_FILE, index=False)
     print(f"\n详细报告已保存至 {REPORT_FILE}")
 
-    # ========== +++ NEW: 严格 Walk-Forward 训练评估（独立于现有回测） ==========
+    # ========== 严格 Walk-Forward 训练评估（新增） ==========
     if config.WALKFORWARD_STRICT:
         print("\n" + "=" * 60)
         print("🚀 严格 Walk-Forward 训练与评估")
@@ -150,7 +151,6 @@ def run_backtest():
         if walkforward_train_evaluate is None:
             print("  ❌ Walk-Forward 模块未正确导入，跳过。")
         else:
-            # 尝试加载特征数据集（需提前准备好 data/training_features.parquet）
             train_file = "data/training_features.parquet"
             if not os.path.exists(train_file):
                 print(f"  ❌ 训练特征文件 {train_file} 不存在，无法执行 Walk-Forward。")
@@ -158,7 +158,6 @@ def run_backtest():
             else:
                 try:
                     data = pd.read_parquet(train_file)
-                    # 假设目标列名为 'target'，日期列为 'date'
                     target_col = 'target'
                     date_col = 'date'
                     if target_col not in data.columns or date_col not in data.columns:
@@ -178,16 +177,14 @@ def run_backtest():
                                 X, y, dates, model_builder, gap_days=7, test_days=1,
                                 train_min_days=180, use_optuna=False
                             )
-                            # 计算指标
                             brier = brier_score_loss(y_true, y_pred)
                             ll = log_loss(y_true, y_pred)
                             acc = np.mean((y_pred > 0.5) == y_true)
-                            roi = 2 * acc - 1  # 简化
+                            roi = 2 * acc - 1
                             print(f"  Walk-Forward 结果 (比赛数={len(y_true)}):")
                             print(f"    准确率: {acc:.2%}, ROI: {roi:.2%}, Brier: {brier:.4f}, LogLoss: {ll:.4f}")
                 except Exception as e:
                     print(f"  ❌ Walk-Forward 评估失败: {e}")
-    # ========== 新增结束 ==========
 
 def evaluate(df):
     df = df.copy()
