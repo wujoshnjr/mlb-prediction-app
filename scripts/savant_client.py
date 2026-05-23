@@ -30,7 +30,8 @@ def fetch_savant_statcast(date_str: str = None, errors: list = None) -> pd.DataF
             'expected_woba', 'pitch_hand', 'bat_side',
             'pfx_x', 'pfx_z', 'release_spin_rate',
             'plate_x', 'plate_z', 'whiff', 'csw', 'bat_speed',
-            'sprint_speed'
+            'sprint_speed',
+            'pitcher'                # 投手ID
         ]
         cols = [c for c in desired if c in df.columns]
         return df[cols].head(3000)
