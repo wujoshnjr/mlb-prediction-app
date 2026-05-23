@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from model import UnifiedSportsModel
 
+# 尝试导入所有辅助模块，失败则降级运行
 try:
     from scripts.elo import MLBElosystem
 except:
@@ -57,6 +58,7 @@ try:
 except:
     get_bradley_terry_strengths = None
 
+# 尝试加载训练好的集成模型
 model = None
 try:
     import joblib
@@ -142,7 +144,6 @@ def kelly_criterion(win_prob, odds, fraction=0.25):
     f = win_prob - (1 - win_prob) / b
     return max(0, f * fraction)
 
-# 赛季阶段校准偏移表（基于Selman 2025）
 def get_season_phase_adjustment(date_str, pred_prob):
     month = datetime.strptime(date_str, '%Y-%m-%d').month
     adj = 0.0
@@ -174,10 +175,8 @@ def generate_predictions(elo_system=None):
     try:
         from scripts.elo_momentum import save_elo_snapshot
         save_elo_snapshot()
-    except:
-        pass
+    except: pass
 
-    # 球队战力
     teams_df = pd.DataFrame(data.get('sportsipy_teams', []))
     if teams_df.empty:
         teams_df = pd.DataFrame(columns=['name', 'wins', 'losses', 'win_pct'])
@@ -200,17 +199,14 @@ def generate_predictions(elo_system=None):
         if total_games > 0:
             league_avg_runs = total_runs / total_games
     pythag_exponent = league_avg_runs ** 0.287
-    print(f"动态Pythag指数: {pythag_exponent:.3f} (联盟场均得分: {league_avg_runs:.2f})")
 
     # Bradley-Terry 强度
     bt_strengths = {}
     if get_bradley_terry_strengths:
         try:
             bt_strengths = get_bradley_terry_strengths()
-        except Exception as e:
-            print(f"BT模型获取失败: {e}")
+        except: pass
 
-    # 赔率
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     odds_source = "bet365,draftkings" if not odds_df.empty else "none"
@@ -223,23 +219,6 @@ def generate_predictions(elo_system=None):
                 if key not in odds_dict:
                     odds_dict[key] = []
                 odds_dict[key].append(odds_val)
-
-    # 盘口动量
-    odds_momentum_dict = {}
-    odds_snapshot_dir = "data/odds_snapshots"
-    if os.path.exists(odds_snapshot_dir):
-        snapshots = sorted(os.listdir(odds_snapshot_dir))
-        if len(snapshots) >= 2:
-            try:
-                prev_df = pd.read_csv(os.path.join(odds_snapshot_dir, snapshots[-2]))
-                curr_df = pd.read_csv(os.path.join(odds_snapshot_dir, snapshots[-1]))
-                for _, row in curr_df.iterrows():
-                    key = (row['home_team'], row['away_team'])
-                    prev_row = prev_df[(prev_df['home_team'] == row['home_team']) & (prev_df['away_team'] == row['away_team'])]
-                    if not prev_row.empty:
-                        odds_momentum_dict[key] = row['odds'] - prev_row.iloc[0]['odds']
-            except:
-                pass
 
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
     print(f"当日比赛数量: {len(schedule_df)}")
@@ -398,8 +377,6 @@ def generate_predictions(elo_system=None):
                 historical_count = len(hist_df)
         except: pass
 
-    is_september = datetime.strptime(date_str, '%Y-%m-%d').month >= 9
-
     predictions = []
     for _, game in schedule_df.iterrows():
         home = game.get('home_team', ''); away = game.get('away_team', '')
@@ -424,7 +401,6 @@ def generate_predictions(elo_system=None):
         if elo_system:
             elo_diff = elo_system.elos.get(home, 1500) - elo_system.elos.get(away, 1500) + elo_system.home_adv
 
-        # Bradley-Terry 强度差值
         bt_strength_diff = 0.0
         if bt_strengths:
             bt_strength_diff = bt_strengths.get(home, 0.0) - bt_strengths.get(away, 0.0)
@@ -444,9 +420,6 @@ def generate_predictions(elo_system=None):
         home_odds = np.mean(avg_odds) if avg_odds else None
         market_prob = implied_prob(home_odds) if home_odds else 0.5
 
-        # 盘口动量
-        odds_momentum = odds_momentum_dict.get((home, away), 0.0)
-
         pitcher_data = pitcher_dict.get(game.get('game_id'))
         sp_era_diff = 0.0; sp_fip_diff = 0.0; home_pitch_hand = "R"; away_pitch_hand = "R"
         sp_stuff_plus_diff = 0.0; sp_csw_diff = 0.0
@@ -459,7 +432,6 @@ def generate_predictions(elo_system=None):
             sp_fip_diff = home_fip - away_fip
             home_pitch_hand = pitcher_data.get('home_pitch_hand', 'R')
             away_pitch_hand = pitcher_data.get('away_pitch_hand', 'R')
-            # 球员级别进阶特征
             sp_stuff_plus_diff = float(pitcher_data.get('home_stuff_plus', 100) or 100) - float(pitcher_data.get('away_stuff_plus', 100) or 100)
             sp_csw_diff = float(pitcher_data.get('home_csw_pct', 0.28) or 0.28) - float(pitcher_data.get('away_csw_pct', 0.28) or 0.28)
 
@@ -669,7 +641,6 @@ def generate_predictions(elo_system=None):
             'avg_bat_speed_diff': round(avg_bat_speed_diff, 3),
             'pitcher_rating_diff': round(pitcher_rating_diff, 3),
             'odds_change': round(odds_change, 4),
-            'odds_momentum': round(odds_momentum, 4),
             'zone_size': round(zone_size, 3),
             'k_rate': round(k_rate, 3),
             'bullpen_availability_diff': round(bullpen_availability_diff, 3),
@@ -702,17 +673,13 @@ def generate_predictions(elo_system=None):
         sp_adj = -0.07 * sp_era_diff
         manual_pred = min(0.95, max(0.05, manual_pred + sp_adj))
 
-        # 无赔率手工预测
         if elo_system:
             no_odds_pred = home_pct * 0.4 + elo_prob * 0.6
         else:
             no_odds_pred = home_pct
         no_odds_pred = min(0.95, max(0.05, no_odds_pred + sp_adj))
 
-        # 机器学习预测
         ml_pred = None
-        xgb_pred = None
-        lgb_pred = None
         if model is not None:
             feature_array = np.array([[
                 features['elo_diff'], features['market_prob'], features['sp_era_diff'],
@@ -732,7 +699,7 @@ def generate_predictions(elo_system=None):
                 features['k_pct_diff'], features['bb_pct_diff'],
                 features['avg_bat_speed_diff'],
                 features['pitcher_rating_diff'],
-                features['odds_change'], features['odds_momentum'],
+                features['odds_change'],
                 features['zone_size'], features['k_rate'],
                 features['bullpen_availability_diff'],
                 features['elo_momentum_7d'], features['elo_momentum_30d'],
@@ -756,11 +723,9 @@ def generate_predictions(elo_system=None):
         else:
             pred_home = manual_pred
 
-        # 赛季阶段校准调整
         season_adj = get_season_phase_adjustment(date_str, pred_home)
         pred_home += season_adj
 
-        # 贝叶斯收缩：向市场隐含概率收缩15%
         shrinkage = 0.15
         pred_home = pred_home * (1 - shrinkage) + (market_prob or 0.5) * shrinkage
         pred_home = min(0.95, max(0.05, pred_home))
@@ -768,10 +733,7 @@ def generate_predictions(elo_system=None):
         pred_away = 1 - pred_home
 
         pred_uncertainty = 0.0
-        if xgb_pred is not None and lgb_pred is not None:
-            pred_uncertainty = abs(xgb_pred - lgb_pred)
 
-        # 80%和95%置信区间
         pred_std = 0.10
         if historical_count > 10:
             try:
@@ -828,14 +790,6 @@ def generate_predictions(elo_system=None):
             base_nrfi = max(0.3, min(0.7, 0.5 + (4.5 - (home_first_era + away_first_era) / 2) * 0.08))
             nrfi_prob = min(0.75, max(0.25, base_nrfi * top3_factor))
         nrfi_rec = f"NRFI ({nrfi_prob:.1%})" if nrfi_prob > 0.55 else f"YRFI ({(1-nrfi_prob):.1%})"
-
-        # SHAP 解释（如果可用）
-        shap_features = []
-        if shap_explainer is not None:
-            try:
-                shap_features = get_top_shap_features(feature_array, list(features.keys()), top_n=5)
-                shap_features = [f"{name}={val:.4f}" for name, val in shap_features]
-            except: pass
 
         sorted_features = sorted(features.items(), key=lambda x: abs(x[1]), reverse=True)
         top_features = []
@@ -910,7 +864,6 @@ def generate_predictions(elo_system=None):
             "avg_bat_speed_diff": features['avg_bat_speed_diff'],
             "pitcher_rating_diff": features['pitcher_rating_diff'],
             "odds_change": features['odds_change'],
-            "odds_momentum": features['odds_momentum'],
             "zone_size": features['zone_size'],
             "k_rate": features['k_rate'],
             "bullpen_availability_diff": features['bullpen_availability_diff'],
@@ -929,7 +882,6 @@ def generate_predictions(elo_system=None):
             "home_winrate": features['home_winrate'],
             "away_winrate": features['away_winrate'],
             "top_features": top_features,
-            "shap_features": shap_features,
             "market_divergence": 1 if abs(pred_home - market_prob) > 0.15 else 0,
             "odds_source": odds_source
         })
@@ -954,9 +906,7 @@ def generate_predictions(elo_system=None):
         value_bets = filter_value_bets(predictions)
         output['value_bets'] = value_bets
 
-    # DB/CSV写入逻辑省略（保留原有完整逻辑，需增加新特征列）
-    # 为了完整性，这里省略了数据持久化部分的重复代码，实际部署时应包含之前版本中的完整CSV/DB写入代码
-
+    # 保存到 JSON 文件（用作前端展示）
     os.makedirs('report', exist_ok=True)
     with open('report/prediction.json', 'w') as f:
         json.dump(output, f, indent=2, default=str)
