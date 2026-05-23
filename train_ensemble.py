@@ -33,7 +33,14 @@ EXPECTED_FEATURES = [
     'elo_momentum_7d','elo_momentum_30d','barrel_pa_diff','hardhit_pa_diff',
     'swing_miss_diff','csw_diff','barrel_bb_pct_diff',
     'sprint_speed_diff','pitch_type_matchup_score','home_top3_woba','away_top3_woba',
-    'bt_strength_diff'
+    'bt_strength_diff',
+    # 新增 Pitch Usage 特征
+    'home_usage_magnitude','away_usage_magnitude',
+    'home_shift_score','away_shift_score',
+    'home_delta_FF','home_delta_SL','home_delta_CH','home_delta_CU',
+    'home_delta_FC','home_delta_SI','home_delta_KC','home_delta_FS',
+    'away_delta_FF','away_delta_SL','away_delta_CH','away_delta_CU',
+    'away_delta_FC','away_delta_SI','away_delta_KC','away_delta_FS'
 ]
 
 def prepare_data():
@@ -53,11 +60,10 @@ def prepare_data():
         else:
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
 
-    # 时效性衰减权重：离现在越近的比赛权重越高
+    # 时效性衰减权重
     if 'game_date' in df.columns:
         max_date = pd.to_datetime(df['game_date']).max()
         df['days_ago'] = (max_date - pd.to_datetime(df['game_date'])).dt.days
-        # 指数衰减，半衰期365天
         df['sample_weight'] = np.exp(-df['days_ago'] / 365 * np.log(2))
         df['sample_weight'] = df['sample_weight'].clip(lower=0.1)
     else:
@@ -82,12 +88,12 @@ def train():
     y_train, y_val = y[:split], y[split:]
     w_train = w[:split]
 
-    # 基础学习器（带样本权重）
+    # 基础学习器
     xgb = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01, random_state=42, eval_metric='logloss', use_label_encoder=False)
     lgb = LGBMClassifier(n_estimators=300, max_depth=5, learning_rate=0.01, random_state=42, verbose=-1)
     rf = RandomForestClassifier(n_estimators=300, max_depth=5, random_state=42)
 
-    # Stacking：元学习器为 Logistic Regression
+    # Stacking
     estimators = [('xgb', xgb), ('lgb', lgb), ('rf', rf)]
     stacking = StackingClassifier(estimators=estimators, final_estimator=LogisticRegression(), cv=tscv)
 
@@ -112,11 +118,22 @@ def train():
     joblib.dump(final_calibrator, MODEL_OUTPUT)
     print("Stacking 集成模型已保存")
 
-    # 评估
     val_probs = final_calibrator.predict_proba(X_val)[:, 1]
     val_brier = brier_score_loss(y_val, val_probs)
     val_logloss = log_loss(y_val, val_probs)
     print(f"验证集 Brier: {val_brier:.4f}, LogLoss: {val_logloss:.4f}")
+
+    # 记录日志（可选）
+    try:
+        importances = xgb.feature_importances_
+        imp_df = pd.DataFrame([importances], columns=EXPECTED_FEATURES)
+        imp_df['timestamp'] = datetime.now().isoformat()
+        if os.path.exists(FEATURE_IMPORTANCE_LOG):
+            imp_df.to_csv(FEATURE_IMPORTANCE_LOG, mode='a', header=False, index=False)
+        else:
+            imp_df.to_csv(FEATURE_IMPORTANCE_LOG, index=False)
+    except:
+        pass
 
 if __name__ == "__main__":
     train()
