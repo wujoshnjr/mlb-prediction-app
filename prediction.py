@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from model import UnifiedSportsModel
 
-# +++ NEW: 导入配置和可选新模块（防御性）
+# 防禦性導入 config
 try:
     import config
 except:
@@ -25,6 +25,7 @@ except:
         MODEL_USE_MLP = False
         WALKFORWARD_STRICT = False
 
+# 原有模組
 try:
     from scripts.elo import MLBElosystem
 except:
@@ -75,7 +76,7 @@ try:
 except:
     compute_pitch_usage_features = None
 
-# +++ NEW: 新增模块导入（防御性）
+# 新功能模組
 try:
     from scripts.batter_vs_pitch_client import add_matchup_features, get_matchup_lookup
 except:
@@ -106,7 +107,7 @@ try:
 except:
     print("未找到训练模型，将使用手工集成")
 
-# SHAP 延迟初始化
+# SHAP 延遲初始化
 shap_explainer = None
 try:
     from scripts.shap_explainer import init_shap_explainer, get_top_shap_features
@@ -115,7 +116,7 @@ try:
 except:
     pass
 
-# +++ NEW: 加载 NRFI 模型（若启用）
+# 加載 NRFI 模型（若啟用）
 nrfi_model = None
 if config.NRFI_USE_ML and NRFIModel is not None:
     nrfi_model_path = 'models/nrf_model.pkl'
@@ -123,11 +124,13 @@ if config.NRFI_USE_ML and NRFIModel is not None:
         try:
             nrfi_model = NRFIModel(nrfi_model_path)
             nrfi_model.load()
-            print("已加载 NRFI 独立模型")
+            print("✅ NRFI 模型已加载")
         except Exception as e:
-            print(f"NRFI 模型加载失败: {e}")
+            print(f"❌ NRFI 模型加载失败: {e}")
+    else:
+        print("❌ NRFI 模型文件不存在，将使用手工公式")
 
-# +++ NEW: 加载 Matchup lookup（若启用）
+# 加載 Matchup lookup（若啟用）
 matchup_lookup = None
 if config.FEATURE_USE_PITCH_MATCHUP and get_matchup_lookup is not None:
     try:
@@ -135,7 +138,7 @@ if config.FEATURE_USE_PITCH_MATCHUP and get_matchup_lookup is not None:
     except Exception as e:
         print(f"Matchup lookup 加载失败: {e}")
 
-# +++ NEW: 加载 Glicko2 联赛（若启用）
+# 加載 Glicko2 聯賽（若啟用）
 glicko_league = None
 if config.RATINGS_ENGINE == 'glicko2' and load_glicko2_league is not None:
     try:
@@ -177,14 +180,13 @@ TEAM_TIMEZONES = {
     "Blue Jays": "Eastern", "Nationals": "Eastern", "D-backs": "Mountain"
 }
 
-# 特征方向字典（更新）
 FEATURE_DIRECTION = {
     'elo_diff': 1, 'sp_era_diff': -1, 'sp_fip_diff': -1,
     'bullpen_ip_diff': -1, 'rest_diff': 1, 'dynamic_park_factor': 1,
     'platoon_ops_diff': 1, 'statcast_launch_speed_diff': 1,
     'statcast_barrel_diff': 1, 'statcast_hard_hit_diff': 1,
     'statcast_woba_diff': 1, 'timezone_diff': -1, 'is_day_game': 0,
-    'back2back_diff': -1,          # 新 diff
+    'back2back_diff': -1,
     'catcher_era_diff': -1,
     'cs_diff': 1, 'wind_effect': 1, 'temp_effect': 1,
     'precip_effect': -1, 'injury_diff': -1, 'dynamic_pythag_diff': 1,
@@ -251,6 +253,7 @@ def generate_predictions(elo_system=None):
     except:
         pass
 
+    # 球隊戰力
     teams_df = pd.DataFrame(data.get('sportsipy_teams', []))
     if teams_df.empty:
         teams_df = pd.DataFrame(columns=['name', 'wins', 'losses', 'win_pct'])
@@ -280,6 +283,7 @@ def generate_predictions(elo_system=None):
             bt_strengths = get_bradley_terry_strengths()
         except: pass
 
+    # 賠率
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     odds_source = "bet365,draftkings" if not odds_df.empty else "none"
@@ -470,7 +474,6 @@ def generate_predictions(elo_system=None):
         home_runs_per_game = float(teams_df[teams_df['name'] == home]['runs_scored'].values[0]) / home_games
         away_runs_per_game = float(teams_df[teams_df['name'] == away]['runs_scored'].values[0]) / away_games
 
-        # ELO/Glicko 差值（已由 rating 系统决定）
         elo_diff = 0.0
         if elo_system:
             elo_diff = elo_system.elos.get(home, 1500) - elo_system.elos.get(away, 1500) + elo_system.home_adv
@@ -539,7 +542,7 @@ def generate_predictions(elo_system=None):
             except: pass
             home_back2back = int(bullpen_dict[home_id].get('back_to_back', 0))
             away_back2back = int(bullpen_dict[away_id].get('back_to_back', 0))
-        back2back_diff = home_back2back - away_back2back   # 新 diff
+        back2back_diff = home_back2back - away_back2back
 
         bullpen_availability_diff = 0.0
         if bullpen_availability_dict:
@@ -679,7 +682,6 @@ def generate_predictions(elo_system=None):
         barrel_pa_diff = statcast_barrel_diff
         hardhit_pa_diff = statcast_hard_hit_diff
 
-        # 构建特征（已全部使用 diff 或中性特征）
         features = {
             'elo_diff': round(elo_diff, 3),
             'sp_era_diff': round(sp_era_diff, 3),
@@ -696,7 +698,7 @@ def generate_predictions(elo_system=None):
             'statcast_woba_diff': round(statcast_woba_diff, 3),
             'timezone_diff': timezone_diff,
             'is_day_game': is_day_game,
-            'back2back_diff': back2back_diff,       # 替换了 home_back2back/away_back2back
+            'back2back_diff': back2back_diff,
             'catcher_era_diff': round(catcher_era_diff, 3),
             'cs_diff': round(cs_diff, 3),
             'wind_effect': round(wind_effect, 4),
@@ -730,7 +732,6 @@ def generate_predictions(elo_system=None):
             'bt_strength_diff': round(bt_strength_diff, 3)
         }
 
-        # Pitch Usage 特征（保持原有）
         pitch_usage_feats = {}
         if compute_pitch_usage_features and savant_df is not None and not savant_df.empty:
             if 'pitcher' in savant_df.columns:
@@ -744,10 +745,9 @@ def generate_predictions(elo_system=None):
                     pass
         features.update(pitch_usage_feats)
 
-        # 新特征（Glicko2、Matchup、Odds Curve）
         if config.RATINGS_ENGINE == 'glicko2' and glicko_league is not None:
             diff, rd_sum = glicko_league.get_rating_diff(home, away)
-            features['elo_diff'] = round(diff, 3)   # 覆盖
+            features['elo_diff'] = round(diff, 3)
             features['glicko_rd_sum'] = round(rd_sum, 3)
 
         if config.FEATURE_USE_PITCH_MATCHUP and add_matchup_features is not None and matchup_lookup is not None:
@@ -766,16 +766,14 @@ def generate_predictions(elo_system=None):
                 features['home_odds_volatility'] = round(vol, 3)
                 features['home_odds_reversals'] = int(rev)
 
-        # ---------- 手工集成（完全移除市场依赖，使用对称概率）----------
-        # 直接使用 log5_prob（基于双方胜率的无偏估计）和 elo_prob
+        # ---------- 手工集成 ----------
         elo_prob = 1 / (1 + 10 ** (-features['elo_diff'] / 400)) if elo_system or config.RATINGS_ENGINE == 'glicko2' else 0.5
-        # 手工集成权重：50% log5，50% elo，不再使用 home_pct 绝对值
         manual_pred = log5_home * 0.5 + elo_prob * 0.5
         sp_adj = -0.07 * sp_era_diff
         manual_pred = min(0.95, max(0.05, manual_pred + sp_adj))
 
         if elo_system:
-            no_odds_pred = log5_home * 0.4 + elo_prob * 0.6  # 无赔率时更依赖 elo
+            no_odds_pred = log5_home * 0.4 + elo_prob * 0.6
         else:
             no_odds_pred = log5_home
         no_odds_pred = min(0.95, max(0.05, no_odds_pred + sp_adj))
@@ -785,7 +783,6 @@ def generate_predictions(elo_system=None):
         xgb_pred = None
         lgb_pred = None
         if model is not None:
-            # 特征顺序与训练时一致（无 market_prob，包含新 diff 特征）
             feature_order = [
                 'elo_diff','sp_era_diff','sp_fip_diff','sp_stuff_plus_diff','sp_csw_diff',
                 'bullpen_ip_diff','rest_diff','dynamic_park_factor','platoon_ops_diff',
@@ -817,7 +814,6 @@ def generate_predictions(elo_system=None):
         season_adj = get_season_phase_adjustment(date_str, pred_home)
         pred_home += season_adj
 
-        # 贝叶斯收缩（强度减半）
         shrinkage = 0.05
         pred_home = pred_home * (1 - shrinkage) + (market_prob or 0.5) * shrinkage
         pred_home = min(0.95, max(0.05, pred_home))
@@ -850,10 +846,12 @@ def generate_predictions(elo_system=None):
         sim = None; home_cover = away_cover = over_prob = under_prob = None; total_mean = diff_mean = None; ci_diff = []
         if MonteCarloSimulator:
             try:
-                hr = home_runs_per_game; ar = away_runs_per_game
-                env_adj = 1 + wind_effect + temp_effect_raw + precip_effect
-                hr_adj = hr * dynamic_park_factor * env_adj
-                ar_adj = ar * dynamic_park_factor * env_adj
+                hr = home_runs_per_game
+                ar = away_runs_per_game
+                hr_adj = hr * dynamic_park_factor
+                ar_adj = ar * dynamic_park_factor
+                hr_adj = max(0.5, min(hr_adj, 12.0))
+                ar_adj = max(0.5, min(ar_adj, 12.0))
                 sim = MonteCarloSimulator(hr_adj, ar_adj, n_simulations=5000)
                 sim.simulate()
                 home_cover, away_cover = sim.spread_prob(-1.5)
@@ -861,7 +859,8 @@ def generate_predictions(elo_system=None):
                 total_mean = round(sim.results['total_runs'].mean(), 1)
                 diff_mean = round(sim.results['run_diff'].mean(), 1)
                 ci_diff = [round(x, 1) for x in sim.confidence_interval()]
-            except: pass
+            except Exception as e:
+                errors.append(f"Monte Carlo 模拟失败: {e}")
 
         ml_rec = "PASS"
         if kelly_ml > 0.05: ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
@@ -905,7 +904,6 @@ def generate_predictions(elo_system=None):
                 nrfi_prob = min(0.75, max(0.25, base_nrfi * top3_factor))
         nrfi_rec = f"NRFI ({nrfi_prob:.1%})" if nrfi_prob > 0.55 else f"YRFI ({(1-nrfi_prob):.1%})"
 
-        # 展示性特征（仅绝对值最大，非 SHAP）
         sorted_features = sorted(features.items(), key=lambda x: abs(x[1]), reverse=True)
         top_features = []
         for name, val in sorted_features[:5]:
@@ -960,7 +958,7 @@ def generate_predictions(elo_system=None):
             "statcast_woba_diff": features['statcast_woba_diff'],
             "timezone_diff": features['timezone_diff'],
             "is_day_game": features['is_day_game'],
-            "back2back_diff": features['back2back_diff'],   # 新特征输出
+            "back2back_diff": features['back2back_diff'],
             "catcher_era_diff": features['catcher_era_diff'],
             "cs_diff": features['cs_diff'],
             "wind_effect": features['wind_effect'],
@@ -1002,6 +1000,29 @@ def generate_predictions(elo_system=None):
             "home_odds_volatility": features.get('home_odds_volatility'),
             "home_odds_reversals": features.get('home_odds_reversals')
         })
+
+    # ========== 分布診斷 ==========
+    if predictions:
+        home_probs = [p['predicted_home_win_pct'] for p in predictions]
+        mean_prob = np.mean(home_probs)
+        if mean_prob > 0.58 or mean_prob < 0.45:
+            errors.append(f"⚠️ 平均主隊概率異常: {mean_prob:.3f}，可能存在系統性偏差")
+        over_70 = sum(1 for x in home_probs if x > 0.7)
+        if over_70 > len(home_probs) * 0.3:
+            errors.append(f"⚠️ 超過30%比賽主隊概率>70%，可能存在過度自信或標籤洩漏")
+        over_probs = [p['over_prob'] for p in predictions if p.get('over_prob') is not None]
+        if over_probs:
+            mean_over = np.mean(over_probs)
+            if mean_over > 0.9:
+                errors.append(f"⚠️ 平均 over 概率過高: {mean_over:.3f}，模擬可能崩潰")
+        nrfi_probs = [p['nrfi_prob'] for p in predictions]
+        unique_nrfi = len(set(round(p, 3) for p in nrfi_probs))
+        if unique_nrfi <= 2:
+            errors.append("⚠️ NRFI 概率過於單一，可能模型未載入")
+        # 檢查賠率是否大量缺失
+        missing_odds = sum(1 for p in predictions if p['home_odds'] is None)
+        if missing_odds > len(predictions) * 0.5:
+            errors.append(f"⚠️ 超過50%比賽無賠率數據，請檢查 Odds API 配額")
 
     power_rankings = teams_df.sort_values('win_pct', ascending=False).to_dict('records')
 
