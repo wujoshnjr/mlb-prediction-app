@@ -1,17 +1,10 @@
 # scripts/rating_updater.py
-"""
-统一评级更新器：根据配置选择 ELO 或 Glicko2 引擎。
-内置简单 ELO 更新，Glicko2 转换时移除主场优势（24 分）。
-"""
-
-import sys
-import os
+import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
 import json
 from datetime import datetime
-
 import config
 from scripts.glicko2_ratings import Glicko2League
 
@@ -93,6 +86,13 @@ def update_ratings(game_results):
         logger.info(f"Glicko2 更新完成，共处理 {len(game_results)} 场比赛")
     else:
         raise ValueError(f"未知的评级引擎: {config.RATINGS_ENGINE}")
+
+    # 強制寫入日誌
+    try:
+        with open('data/rating_update_log.txt', 'a') as f:
+            f.write(f"{datetime.now().isoformat()}: 更新 {len(game_results)} 场比赛, 引擎={config.RATINGS_ENGINE}\n")
+    except:
+        pass
 
 if __name__ == '__main__':
     sample_results = [
