@@ -177,14 +177,15 @@ TEAM_TIMEZONES = {
     "Blue Jays": "Eastern", "Nationals": "Eastern", "D-backs": "Mountain"
 }
 
-# FIX: 更新特征方向字典，增加 diff 特征
+# 特征方向字典（更新）
 FEATURE_DIRECTION = {
     'elo_diff': 1, 'sp_era_diff': -1, 'sp_fip_diff': -1,
     'bullpen_ip_diff': -1, 'rest_diff': 1, 'dynamic_park_factor': 1,
     'platoon_ops_diff': 1, 'statcast_launch_speed_diff': 1,
     'statcast_barrel_diff': 1, 'statcast_hard_hit_diff': 1,
     'statcast_woba_diff': 1, 'timezone_diff': -1, 'is_day_game': 0,
-    'home_back2back': -1, 'away_back2back': 1, 'catcher_era_diff': -1,
+    'back2back_diff': -1,          # 新 diff
+    'catcher_era_diff': -1,
     'cs_diff': 1, 'wind_effect': 1, 'temp_effect': 1,
     'precip_effect': -1, 'injury_diff': -1, 'dynamic_pythag_diff': 1,
     'log5_prob': 1, 'lag30_winrate_diff': 1, 'lag30_runs_diff': 1,
@@ -198,8 +199,8 @@ FEATURE_DIRECTION = {
     'swing_miss_diff': 1, 'csw_diff': 1, 'barrel_bb_pct_diff': -1,
     'sprint_speed_diff': 1,
     'pitch_type_matchup_score': 1,
-    'top3_woba_diff': 1,          # FIX: 改为 diff
-    'winrate_diff': 1,            # FIX: 改为 diff
+    'top3_woba_diff': 1,
+    'winrate_diff': 1,
     'sp_stuff_plus_diff': 1, 'sp_csw_diff': 1,
     'bt_strength_diff': 1, 'odds_momentum': 1,
     'glicko_rd_sum': 1,
@@ -320,12 +321,8 @@ def generate_predictions(elo_system=None):
             platoon_dict[team][split] = {'ops': float(row.get('ops', 0.700)) if row.get('ops') else 0.700}
 
     savant_df = pd.DataFrame(data.get('savant_statcast', []))
-    # FIX: 不再区分 home/away，统一按 team_name 聚合（移除 inning_topbot 分组）
-    statcast_team_stats = {}  # 改为 {team_name: {avg_launch_speed, barrel_rate, ...}}
+    statcast_team_stats = {}
     if not savant_df.empty and 'launch_speed' in savant_df.columns:
-        required_cols = ['home_team', 'away_team', 'launch_speed', 'barrel', 'hard_hit', 'expected_woba']
-        # 简单处理：将每一行同时归入 home 和 away 球队的打击数据（需要根据实际情况调整，这里假设数据已经是每行代表一次击球，且有 batter_team 字段）
-        # 为了修正主客污染，我们使用 batter_team 列（如果存在），否则回退到安全默认值
         if 'batter_team' in savant_df.columns:
             team_col = 'batter_team'
             grouped = savant_df.groupby(team_col).agg(
@@ -337,7 +334,6 @@ def generate_predictions(elo_system=None):
             for _, row in grouped.iterrows():
                 statcast_team_stats[row['team_name']] = row.to_dict()
         else:
-            # 如果没有 batter_team，则放弃 Statcast 相关特征，避免污染
             statcast_team_stats = {}
 
     pitch_movement_dict = {}
@@ -352,7 +348,6 @@ def generate_predictions(elo_system=None):
 
     bat_speed_dict = {}
     if not savant_df.empty and 'bat_speed' in savant_df.columns:
-        # 同样可能需要 batter_team，这里暂沿用 home_team（仍可能污染，但后续特征改为 diff 形式影响较小）
         bat_speed_df = savant_df[['home_team', 'bat_speed']].dropna()
         if not bat_speed_df.empty:
             team_bat = bat_speed_df.groupby('home_team')['bat_speed'].mean().reset_index().rename(columns={'home_team': 'team_name'})
@@ -475,7 +470,7 @@ def generate_predictions(elo_system=None):
         home_runs_per_game = float(teams_df[teams_df['name'] == home]['runs_scored'].values[0]) / home_games
         away_runs_per_game = float(teams_df[teams_df['name'] == away]['runs_scored'].values[0]) / away_games
 
-        # ELO/Glicko 差值
+        # ELO/Glicko 差值（已由 rating 系统决定）
         elo_diff = 0.0
         if elo_system:
             elo_diff = elo_system.elos.get(home, 1500) - elo_system.elos.get(away, 1500) + elo_system.home_adv
@@ -544,6 +539,7 @@ def generate_predictions(elo_system=None):
             except: pass
             home_back2back = int(bullpen_dict[home_id].get('back_to_back', 0))
             away_back2back = int(bullpen_dict[away_id].get('back_to_back', 0))
+        back2back_diff = home_back2back - away_back2back   # 新 diff
 
         bullpen_availability_diff = 0.0
         if bullpen_availability_dict:
@@ -573,7 +569,6 @@ def generate_predictions(elo_system=None):
             if home_catcher_id and away_catcher_id:
                 catcher_era_diff, cs_diff = calculate_catcher_effect(home_catcher_id, away_catcher_id, 2026)
 
-        # FIX: Statcast 改为直接从 statcast_team_stats 字典取球队数据
         statcast_launch_speed_diff = 0.0; statcast_barrel_diff = 0.0; statcast_hard_hit_diff = 0.0; statcast_woba_diff = 0.0
         if statcast_team_stats:
             home_stat = statcast_team_stats.get(home, {})
@@ -684,7 +679,7 @@ def generate_predictions(elo_system=None):
         barrel_pa_diff = statcast_barrel_diff
         hardhit_pa_diff = statcast_hard_hit_diff
 
-        # FIX: 构建特征字典，移除 market_prob，改用 diff 特征
+        # 构建特征（已全部使用 diff 或中性特征）
         features = {
             'elo_diff': round(elo_diff, 3),
             'sp_era_diff': round(sp_era_diff, 3),
@@ -701,8 +696,7 @@ def generate_predictions(elo_system=None):
             'statcast_woba_diff': round(statcast_woba_diff, 3),
             'timezone_diff': timezone_diff,
             'is_day_game': is_day_game,
-            'home_back2back': home_back2back,
-            'away_back2back': away_back2back,
+            'back2back_diff': back2back_diff,       # 替换了 home_back2back/away_back2back
             'catcher_era_diff': round(catcher_era_diff, 3),
             'cs_diff': round(cs_diff, 3),
             'wind_effect': round(wind_effect, 4),
@@ -731,12 +725,12 @@ def generate_predictions(elo_system=None):
             'barrel_bb_pct_diff': round(barrel_bb_pct_diff, 3),
             'sprint_speed_diff': round(sprint_speed_diff, 3),
             'pitch_type_matchup_score': round(pitch_type_matchup_score, 3),
-            'top3_woba_diff': round(home_top3_woba - away_top3_woba, 3),   # FIX: diff
-            'winrate_diff': round(home_pct - away_pct, 3),                  # FIX: diff
+            'top3_woba_diff': round(home_top3_woba - away_top3_woba, 3),
+            'winrate_diff': round(home_pct - away_pct, 3),
             'bt_strength_diff': round(bt_strength_diff, 3)
         }
 
-        # Pitch Usage 特征
+        # Pitch Usage 特征（保持原有）
         pitch_usage_feats = {}
         if compute_pitch_usage_features and savant_df is not None and not savant_df.empty:
             if 'pitcher' in savant_df.columns:
@@ -753,7 +747,7 @@ def generate_predictions(elo_system=None):
         # 新特征（Glicko2、Matchup、Odds Curve）
         if config.RATINGS_ENGINE == 'glicko2' and glicko_league is not None:
             diff, rd_sum = glicko_league.get_rating_diff(home, away)
-            features['elo_diff'] = round(diff, 3)            # 直接覆盖，使 elo_prob 使用 Glicko
+            features['elo_diff'] = round(diff, 3)   # 覆盖
             features['glicko_rd_sum'] = round(rd_sum, 3)
 
         if config.FEATURE_USE_PITCH_MATCHUP and add_matchup_features is not None and matchup_lookup is not None:
@@ -772,37 +766,31 @@ def generate_predictions(elo_system=None):
                 features['home_odds_volatility'] = round(vol, 3)
                 features['home_odds_reversals'] = int(rev)
 
-        # ---------- 手工集成（已完全移除市场权重）----------
-        # 手工集成仅使用球队胜率与 ELO/Glicko 概率，不再使用市场概率
-        weights = {'pct': 0.40, 'elo': 0.60}  # 可调比例，总=1.0
-        if elo_system is None:
-            weights['elo'] = 0.0
-            weights['pct'] = 1.0
-
-        # 使用 features['elo_diff'] 确保 Glicko 生效
-        effective_elo_diff = features['elo_diff']
-        elo_prob = 1 / (1 + 10 ** (-effective_elo_diff / 400)) if elo_system or config.RATINGS_ENGINE == 'glicko2' else 0.5
-        manual_pred = home_pct * weights['pct'] + elo_prob * weights['elo']
+        # ---------- 手工集成（完全移除市场依赖，使用对称概率）----------
+        # 直接使用 log5_prob（基于双方胜率的无偏估计）和 elo_prob
+        elo_prob = 1 / (1 + 10 ** (-features['elo_diff'] / 400)) if elo_system or config.RATINGS_ENGINE == 'glicko2' else 0.5
+        # 手工集成权重：50% log5，50% elo，不再使用 home_pct 绝对值
+        manual_pred = log5_home * 0.5 + elo_prob * 0.5
         sp_adj = -0.07 * sp_era_diff
         manual_pred = min(0.95, max(0.05, manual_pred + sp_adj))
 
         if elo_system:
-            no_odds_pred = home_pct * 0.4 + elo_prob * 0.6
+            no_odds_pred = log5_home * 0.4 + elo_prob * 0.6  # 无赔率时更依赖 elo
         else:
-            no_odds_pred = home_pct
+            no_odds_pred = log5_home
         no_odds_pred = min(0.95, max(0.05, no_odds_pred + sp_adj))
 
-        # ---------- 机器学习预测（特征中无 market_prob）----------
+        # ---------- 机器学习预测 ----------
         ml_pred = None
         xgb_pred = None
         lgb_pred = None
         if model is not None:
-            # FIX: 移除 market_prob，改用更新后的特征顺序
+            # 特征顺序与训练时一致（无 market_prob，包含新 diff 特征）
             feature_order = [
                 'elo_diff','sp_era_diff','sp_fip_diff','sp_stuff_plus_diff','sp_csw_diff',
                 'bullpen_ip_diff','rest_diff','dynamic_park_factor','platoon_ops_diff',
                 'statcast_launch_speed_diff','statcast_barrel_diff','statcast_hard_hit_diff','statcast_woba_diff',
-                'timezone_diff','is_day_game','home_back2back','away_back2back',
+                'timezone_diff','is_day_game','back2back_diff',
                 'catcher_era_diff','cs_diff','wind_effect','temp_effect','precip_effect','injury_diff',
                 'dynamic_pythag_diff','log5_prob','lag30_winrate_diff','lag30_runs_diff','pitch_movement_diff',
                 'k_pct_diff','bb_pct_diff','avg_bat_speed_diff','pitcher_rating_diff','odds_change',
@@ -829,7 +817,7 @@ def generate_predictions(elo_system=None):
         season_adj = get_season_phase_adjustment(date_str, pred_home)
         pred_home += season_adj
 
-        # 贝叶斯收缩：仅保留市场概率的最后约束，但降低收缩强度（0.05 而不是 0.15）
+        # 贝叶斯收缩（强度减半）
         shrinkage = 0.05
         pred_home = pred_home * (1 - shrinkage) + (market_prob or 0.5) * shrinkage
         pred_home = min(0.95, max(0.05, pred_home))
@@ -917,7 +905,7 @@ def generate_predictions(elo_system=None):
                 nrfi_prob = min(0.75, max(0.25, base_nrfi * top3_factor))
         nrfi_rec = f"NRFI ({nrfi_prob:.1%})" if nrfi_prob > 0.55 else f"YRFI ({(1-nrfi_prob):.1%})"
 
-        # 展示特征（仅用于描述，非 SHAP）
+        # 展示性特征（仅绝对值最大，非 SHAP）
         sorted_features = sorted(features.items(), key=lambda x: abs(x[1]), reverse=True)
         top_features = []
         for name, val in sorted_features[:5]:
@@ -972,8 +960,7 @@ def generate_predictions(elo_system=None):
             "statcast_woba_diff": features['statcast_woba_diff'],
             "timezone_diff": features['timezone_diff'],
             "is_day_game": features['is_day_game'],
-            "home_back2back": features['home_back2back'],
-            "away_back2back": features['away_back2back'],
+            "back2back_diff": features['back2back_diff'],   # 新特征输出
             "catcher_era_diff": features['catcher_era_diff'],
             "cs_diff": features['cs_diff'],
             "wind_effect": features['wind_effect'],
