@@ -1,224 +1,204 @@
 # train_ensemble.py
-"""
-Stacking 集成训练脚本
-支持 XGBoost + LightGBM + RandomForest + 可选 MLP
-元学习器支持 LogisticRegression 或 ElasticNet (SGDClassifier)
-通过 config.py 切换特性
-"""
-
-import os
-import sys
-import logging
-import warnings
-import numpy as np
 import pandas as pd
+import numpy as np
 import joblib
-from datetime import datetime
-from sklearn.model_selection import TimeSeriesSplit, cross_val_predict
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression, SGDClassifier
-from sklearn.ensemble import RandomForestClassifier, StackingClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.pipeline import Pipeline
-import xgboost as xgb
-import lightgbm as lgb
 import optuna
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from sklearn.ensemble import RandomForestClassifier, StackingClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.metrics import log_loss, brier_score_loss
+from datetime import datetime
+import os
 
-import config
+# +++ NEW: 导入配置（防御性）
+try:
+    import config
+except ImportError:
+    class config:
+        MODEL_USE_MLP = False
+        MODEL_META = 'lr'  # 'lr' 或 'elasticnet'
 
-warnings.filterwarnings('ignore')
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+# 可选模块（防御性导入）
+try:
+    from sklearn.neural_network import MLPClassifier
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.pipeline import Pipeline
+except ImportError:
+    MLPClassifier = None
+    StandardScaler = None
+    Pipeline = None
 
-# 模型保存路径
-MODEL_PATH = 'models/stacking_model.pkl'
+try:
+    from sklearn.linear_model import SGDClassifier
+except ImportError:
+    SGDClassifier = None
 
+HISTORY_FILE = "data/historical_predictions.csv"
+MODEL_OUTPUT = "data/calibrator.pkl"
+TRAINING_LOG = "data/training_log.csv"
+FEATURE_IMPORTANCE_LOG = "data/feature_importance.csv"
 
-def build_base_estimators():
-    """根据配置构建第一层基础学习器列表"""
-    estimators = [
-        ('xgb', xgb.XGBClassifier(
-            objective='binary:logistic',
-            eval_metric='logloss',
-            use_label_encoder=False,
-            random_state=42
-        )),
-        ('lgb', lgb.LGBMClassifier(
-            objective='binary',
-            random_state=42,
-            verbose=-1
-        )),
-        ('rf', RandomForestClassifier(
-            random_state=42,
-            n_jobs=-1
-        ))
-    ]
+EXPECTED_FEATURES = [
+    'elo_diff','market_prob','sp_era_diff','sp_fip_diff','sp_stuff_plus_diff','sp_csw_diff',
+    'bullpen_ip_diff','rest_diff',
+    'dynamic_park_factor',
+    'platoon_ops_diff','statcast_launch_speed_diff','statcast_barrel_diff','statcast_hard_hit_diff',
+    'statcast_woba_diff','timezone_diff','is_day_game','home_back2back','away_back2back',
+    'catcher_era_diff','cs_diff','wind_effect',
+    'temp_effect','precip_effect','injury_diff',
+    'dynamic_pythag_diff','log5_prob','lag30_winrate_diff','lag30_runs_diff',
+    'pitch_movement_diff',
+    'k_pct_diff','bb_pct_diff','avg_bat_speed_diff',
+    'pitcher_rating_diff','odds_change','odds_momentum',
+    'zone_size','k_rate','bullpen_availability_diff',
+    'elo_momentum_7d','elo_momentum_30d','barrel_pa_diff','hardhit_pa_diff',
+    'swing_miss_diff','csw_diff','barrel_bb_pct_diff',
+    'sprint_speed_diff','pitch_type_matchup_score','home_top3_woba','away_top3_woba',
+    'bt_strength_diff',
+    # Pitch Usage 特征
+    'home_usage_magnitude','away_usage_magnitude',
+    'home_shift_score','away_shift_score',
+    'home_delta_FF','home_delta_SL','home_delta_CH','home_delta_CU','home_delta_FC','home_delta_SI','home_delta_KC','home_delta_FS',
+    'away_delta_FF','away_delta_SL','away_delta_CH','away_delta_CU','away_delta_FC','away_delta_SI','away_delta_KC','away_delta_FS'
+]
 
-    if config.MODEL_USE_MLP:
-        mlp = MLPClassifier(
-            hidden_layer_sizes=(64, 32),
-            activation='relu',
-            alpha=0.001,
-            early_stopping=True,
-            random_state=42
-        )
-        mlp_pipe = Pipeline([
-            ('scaler', StandardScaler()),
-            ('mlp', mlp)
-        ])
-        estimators.append(('mlp', mlp_pipe))
-        logger.info("已添加 MLP 神经网络至基础学习器")
+def prepare_data():
+    df = pd.read_csv(HISTORY_FILE)
+    if 'game_date' in df.columns:
+        df = df.sort_values('game_date').reset_index(drop=True)
+    df['home_win'] = df['home_win'].replace('', np.nan)
+    df = df.dropna(subset=['home_win'])
+    df['home_win'] = df['home_win'].astype(int)
+    if len(df) < 50:
+        print(f"数据量不足 ({len(df)})，跳过训练")
+        return None, None, None
 
-    return estimators
+    for col in EXPECTED_FEATURES:
+        if col not in df.columns:
+            df[col] = 0.0
+        else:
+            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
 
-
-def build_meta_learner():
-    """根据配置构建元学习器"""
-    if config.MODEL_META == 'elasticnet':
-        # 使用 SGDClassifier 实现 ElasticNet 正则化的逻辑回归
-        meta = SGDClassifier(
-            loss='log_loss',
-            penalty='elasticnet',
-            l1_ratio=0.5,
-            alpha=0.0001,
-            random_state=42,
-            max_iter=2000,
-            tol=1e-3
-        )
-        logger.info("元学习器: ElasticNet (SGDClassifier)")
+    # 时效性衰减权重
+    if 'game_date' in df.columns:
+        max_date = pd.to_datetime(df['game_date']).max()
+        df['days_ago'] = (max_date - pd.to_datetime(df['game_date'])).dt.days
+        df['sample_weight'] = np.exp(-df['days_ago'] / 365 * np.log(2))
+        df['sample_weight'] = df['sample_weight'].clip(lower=0.1)
     else:
-        meta = LogisticRegression(
-            random_state=42,
-            max_iter=2000,
-            solver='lbfgs'
-        )
-        logger.info("元学习器: LogisticRegression")
-    return meta
+        df['sample_weight'] = 1.0
 
+    X = df[EXPECTED_FEATURES].values
+    y = df['home_win'].values
+    w = df['sample_weight'].values
+    if np.all(np.var(X, axis=0) < 1e-8):
+        print("特征无方差，跳过")
+        return None, None, None
+    return X, y, w, df
 
-def train_ensemble(X, y, sample_weights=None, n_splits=5, use_optuna=False, n_trials=30):
-    """
-    训练 Stacking 集成模型。
-    
-    参数:
-        X: 特征 DataFrame/array
-        y: 目标 Series/array
-        sample_weights: 样本权重 (可选)
-        n_splits: 时间序列交叉验证折数
-        use_optuna: 是否使用 Optuna 优化超参 (简化版，可自定义)
-        n_trials: Optuna 试验次数
-    
-    返回:
-        trained StackingClassifier
-    """
-    # 确保是二分类
-    unique_labels = np.unique(y)
-    if len(unique_labels) != 2:
-        raise ValueError(f"目标变量必须为二分类，当前类别: {unique_labels}")
-
-    # 构建基础学习器和元学习器
-    base_estimators = build_base_estimators()
-    final_estimator = build_meta_learner()
-
-    # 内层交叉验证 (时序)
-    inner_cv = TimeSeriesSplit(n_splits=n_splits)
-
-    # 构建 Stacking 模型
-    stacking = StackingClassifier(
-        estimators=base_estimators,
-        final_estimator=final_estimator,
-        cv=inner_cv,
-        stack_method='predict_proba',
-        passthrough=False,
-        n_jobs=-1
-    )
-
-    if use_optuna:
-        logger.info("启用 Optuna 超参数优化...")
-        # 这里可以定义一个目标函数，对基础学习器和元学习器的关键参数进行搜索
-        # 为保持简洁，本示例仅展示结构，实际可扩展
-        study = optuna.create_study(direction='minimize')
-        # 由于参数较多，略去完整 optuna 集成，保留占位
-        logger.warning("Optuna 集成需根据实际超参空间定制，当前使用默认参数训练")
-    
-    # 训练模型
-    logger.info(f"开始训练，样本数={len(X)}, 特征数={X.shape[1]}")
-    stacking.fit(X, y, sample_weight=sample_weights)
-    logger.info("训练完成")
-
-    # 记录特征重要性（仅对树模型）
-    try:
-        importances = {}
-        for name, est in stacking.named_estimators_.items():
-            if hasattr(est, 'feature_importances_'):
-                importances[name] = est.feature_importances_
-            elif hasattr(est, 'named_steps') and 'mlp' in est.named_steps:
-                # MLP 没有特征重要性，跳过
-                pass
-        if importances:
-            # 平均重要性（可选）
-            avg_imp = np.mean(list(importances.values()), axis=0)
-            importance_df = pd.DataFrame({
-                'feature': X.columns if hasattr(X, 'columns') else range(X.shape[1]),
-                'avg_importance': avg_imp
-            }).sort_values('avg_importance', ascending=False)
-            logger.info("Top 10 特征重要性:\n" + importance_df.head(10).to_string(index=False))
-    except Exception as e:
-        logger.warning(f"特征重要性计算失败: {e}")
-
-    return stacking
-
-
-def main():
-    """主训练流程，可从命令行或 GitHub Actions 调用"""
-    # 从数据库或CSV加载特征和目标
-    try:
-        data = pd.read_csv('data/training_features.csv')
-        logger.info(f"加载训练数据: {data.shape}")
-    except FileNotFoundError:
-        logger.error("训练数据文件不存在: data/training_features.csv")
+def train():
+    data = prepare_data()
+    if data is None or data[0] is None:
         return
+    X, y, w, df_all = data
 
-    # 假设目标列名为 'target' (1=主胜, 0=客胜)
-    target_col = 'target'
-    if target_col not in data.columns:
-        logger.error(f"目标列 '{target_col}' 不存在")
-        return
-
-    # 分离特征和日期（如果有）
-    date_col = 'date' if 'date' in data.columns else None
-    feature_cols = [c for c in data.columns if c not in [target_col, date_col, 'game_id']]
-
-    X = data[feature_cols]
-    y = data[target_col]
-
-    # 样本权重：时效性衰减（可选）
-    sample_weights = None
-    if date_col and date_col in data.columns:
-        dates = pd.to_datetime(data[date_col])
-        max_date = dates.max()
-        # 指数衰减，半衰期约180天
-        days_diff = (max_date - dates).dt.days
-        sample_weights = np.exp(-days_diff / 260)  # 260天 ≈ 一个赛季
-        logger.info("已计算时效性样本权重")
-
-    # 训练模型
-    model = train_ensemble(X, y, sample_weights=sample_weights,
-                           n_splits=5, use_optuna=False)
-
-    # 保存模型
-    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
-    joblib.dump(model, MODEL_PATH)
-    logger.info(f"模型已保存至: {MODEL_PATH}")
-
-    # 输出基本性能（使用交叉验证粗略估计）
     tscv = TimeSeriesSplit(n_splits=3)
-    cv_preds = cross_val_predict(model, X, y, cv=tscv, method='predict_proba')[:, 1]
-    from sklearn.metrics import brier_score_loss, log_loss, roc_auc_score
-    logger.info(f"CV Brier Score: {brier_score_loss(y, cv_preds):.4f}")
-    logger.info(f"CV Log Loss: {log_loss(y, cv_preds):.4f}")
-    logger.info(f"CV AUC: {roc_auc_score(y, cv_preds):.4f}")
+    split = int(len(X) * 0.8)
+    X_train, X_val = X[:split], X[split:]
+    y_train, y_val = y[:split], y[split:]
+    w_train = w[:split]
 
+    # 基础学习器（原三个树模型）
+    estimators = []
+    xgb = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01, random_state=42,
+                         eval_metric='logloss', use_label_encoder=False)
+    lgb = LGBMClassifier(n_estimators=300, max_depth=5, learning_rate=0.01, random_state=42, verbose=-1)
+    rf = RandomForestClassifier(n_estimators=300, max_depth=5, random_state=42)
+    estimators = [('xgb', xgb), ('lgb', lgb), ('rf', rf)]
 
-if __name__ == '__main__':
-    main()
+    # +++ NEW: 根据配置添加 MLP 神经网络
+    if config.MODEL_USE_MLP:
+        if MLPClassifier is not None and StandardScaler is not None and Pipeline is not None:
+            mlp = MLPClassifier(hidden_layer_sizes=(64, 32), activation='relu',
+                                alpha=0.001, early_stopping=True, random_state=42)
+            mlp_pipe = Pipeline([
+                ('scaler', StandardScaler()),
+                ('mlp', mlp)
+            ])
+            estimators.append(('mlp', mlp_pipe))
+            print("已添加 MLP 神经网络到基础学习器")
+        else:
+            print("警告: MLP 所需模块未安装，跳过 MLP 添加")
+
+    # 元学习器选择
+    if config.MODEL_META == 'elasticnet' and SGDClassifier is not None:
+        final_estimator = SGDClassifier(loss='log_loss', penalty='elasticnet',
+                                        l1_ratio=0.5, alpha=0.0001,
+                                        random_state=42, max_iter=2000, tol=1e-3)
+        print("元学习器: ElasticNet (SGDClassifier)")
+    else:
+        final_estimator = LogisticRegression(random_state=42, max_iter=2000)
+        print("元学习器: LogisticRegression")
+
+    stacking = StackingClassifier(estimators=estimators,
+                                  final_estimator=final_estimator,
+                                  cv=tscv)
+
+    # 双阶段校准（保留原有逻辑，完全不变）
+    calibrated_platt = CalibratedClassifierCV(estimator=stacking, method='sigmoid', cv=tscv)
+    calibrated_platt.fit(X, y, sample_weight=w)
+
+    from sklearn.isotonic import IsotonicRegression
+    platt_probs = calibrated_platt.predict_proba(X)[:, 1]
+    iso_reg = IsotonicRegression(out_of_bounds='clip')
+    iso_reg.fit(platt_probs, y)
+
+    class TwoStageCalibrator:
+        def __init__(self, platt, iso):
+            self.platt = platt
+            self.iso = iso
+        def predict_proba(self, X):
+            probs = self.platt.predict_proba(X)[:, 1]
+            calibrated = self.iso.predict(probs)
+            return np.column_stack([1 - calibrated, calibrated])
+
+    final_calibrator = TwoStageCalibrator(calibrated_platt, iso_reg)
+    joblib.dump(final_calibrator, MODEL_OUTPUT)
+    print("Stacking 集成模型已保存")
+
+    # 评估
+    val_probs = final_calibrator.predict_proba(X_val)[:, 1]
+    val_brier = brier_score_loss(y_val, val_probs)
+    val_logloss = log_loss(y_val, val_probs)
+    print(f"验证集 Brier: {val_brier:.4f}, LogLoss: {val_logloss:.4f}")
+
+    # 记录训练日志
+    log_entry = {"timestamp": datetime.now().isoformat(), "num_samples": len(df_all),
+                 "brier": round(val_brier, 4), "logloss": round(val_logloss, 4)}
+    log_df = pd.DataFrame([log_entry])
+    if os.path.exists(TRAINING_LOG):
+        log_df.to_csv(TRAINING_LOG, mode='a', header=False, index=False)
+    else:
+        log_df.to_csv(TRAINING_LOG, index=False)
+
+    # 特征重要性（XGBoost）
+    xgb_fit = xgb.fit(X_train, y_train, sample_weight=w_train)
+    importances = xgb_fit.feature_importances_
+    imp_df = pd.DataFrame([importances], columns=EXPECTED_FEATURES)
+    imp_df['timestamp'] = datetime.now().isoformat()
+    if os.path.exists(FEATURE_IMPORTANCE_LOG):
+        imp_df.to_csv(FEATURE_IMPORTANCE_LOG, mode='a', header=False, index=False)
+    else:
+        imp_df.to_csv(FEATURE_IMPORTANCE_LOG, index=False)
+
+    # 输出最低5个特征
+    sorted_idx = np.argsort(importances)
+    print("\n⚠️ 重要性最低的5个特征:")
+    for i in sorted_idx[:5]:
+        print(f"  {EXPECTED_FEATURES[i]}: {importances[i]:.6f}")
+
+if __name__ == "__main__":
+    train()
