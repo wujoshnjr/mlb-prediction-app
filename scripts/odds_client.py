@@ -61,7 +61,6 @@ def fetch_odds(api_key: str = None, date_str: str = None, errors: list = None) -
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            # 使用统一的 apiKey 参数
             events_url = "https://api.the-odds-api.com/v4/sports/baseball_mlb/events"
             events_params = {"apiKey": api_key}
             events_resp = requests.get(events_url, params=events_params, timeout=15)
