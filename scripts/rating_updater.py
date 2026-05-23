@@ -1,13 +1,13 @@
 # scripts/rating_updater.py
 """
 统一评级更新器：根据配置选择 ELO 或 Glicko2 引擎。
-内置简单 ELO 更新，无需依赖 elo_updater。
+内置简单 ELO 更新，Glicko2 转换时移除主场优势（24 分）。
 """
 
 import sys
 import os
 
-# 将项目根目录加入 Python 搜索路径，确保能 import config
+# 确保可以导入 config
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
@@ -22,9 +22,8 @@ logger = logging.getLogger(__name__)
 ELO_FILE = 'data/elo_ratings.json'
 GLICKO_FILE = 'data/glicko2_ratings.json'
 
-# ---------- 简单的 ELO 更新 ----------
+# ---------- 简单 ELO 更新 ----------
 def simple_elo_update(elo_dict, home_team, away_team, home_score, away_score, K=32, home_adv=24):
-    """根据比赛结果更新 ELO 评分（双方）"""
     r_home = elo_dict.get(home_team, 1500)
     r_away = elo_dict.get(away_team, 1500)
     expected_home = 1 / (1 + 10 ** ((r_away - (r_home + home_adv)) / 400))
@@ -56,7 +55,9 @@ def load_glicko2_league():
         league = Glicko2League()
         elo = load_elo_ratings()
         for team_id, elo_val in elo.items():
-            league.add_team(team_id, rating=elo_val, rd=350, vol=0.06)
+            # 从 ELO 中移除主场优势（约 24 分），使 Glicko 评分为中性实力
+            adjusted_elo = elo_val - 24
+            league.add_team(team_id, rating=adjusted_elo, rd=350, vol=0.06)
         return league
 
 def save_glicko2_league(league):
