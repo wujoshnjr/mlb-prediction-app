@@ -6,8 +6,6 @@
 
 import sys
 import os
-
-# 确保可以导入 config
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import logging
@@ -22,7 +20,6 @@ logger = logging.getLogger(__name__)
 ELO_FILE = 'data/elo_ratings.json'
 GLICKO_FILE = 'data/glicko2_ratings.json'
 
-# ---------- 简单 ELO 更新 ----------
 def simple_elo_update(elo_dict, home_team, away_team, home_score, away_score, K=32, home_adv=24):
     r_home = elo_dict.get(home_team, 1500)
     r_away = elo_dict.get(away_team, 1500)
@@ -37,7 +34,6 @@ def simple_elo_update(elo_dict, home_team, away_team, home_score, away_score, K=
     elo_dict[away_team] = r_away + K * ((1 - actual_home) - (1 - expected_home))
     return elo_dict
 
-# ---------- 加载/保存 ----------
 def load_elo_ratings():
     if os.path.exists(ELO_FILE):
         with open(ELO_FILE) as f:
@@ -55,7 +51,6 @@ def load_glicko2_league():
         league = Glicko2League()
         elo = load_elo_ratings()
         for team_id, elo_val in elo.items():
-            # 从 ELO 中移除主场优势（约 24 分），使 Glicko 评分为中性实力
             adjusted_elo = elo_val - 24
             league.add_team(team_id, rating=adjusted_elo, rd=350, vol=0.06)
         return league
