@@ -4,8 +4,13 @@
 保留原有 ELO 更新逻辑，并通过事件驱动 RD 膨胀 (Glicko2) 支持伤病、先发更换等。
 """
 
-import logging
+import sys
 import os
+
+# 将项目根目录加入 Python 搜索路径，确保能 import config
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+import logging
 import json
 import math
 from datetime import datetime
