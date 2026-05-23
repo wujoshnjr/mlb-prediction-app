@@ -35,6 +35,7 @@ jobs:
         env:
           BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}   # 确保项目根目录在路径中
 
       - name: Commit prediction & history
         if: always()
@@ -72,9 +73,13 @@ jobs:
 
       - name: Update game results
         run: python scripts/update_results.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Update ratings (Glicko2/ELO)
         run: python scripts/rating_updater.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Run backtest
         id: backtest
@@ -82,6 +87,8 @@ jobs:
           python scripts/backtest.py 2>&1 | tee backtest_output.txt
           BRIER=$(grep -oP 'Brier Score:\s*\K[\d.]+' backtest_output.txt || echo "0.25")
           echo "BRIER=$BRIER" >> $GITHUB_ENV
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Conditional model retraining
         if: env.BRIER != ''
@@ -93,6 +100,8 @@ jobs:
           else
             echo "✅ 模型性能达标 (Brier $BRIER), 跳过重训练"
           fi
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Commit results, ratings & model
         if: always()
@@ -131,6 +140,8 @@ jobs:
       - name: Collect yesterday's data
         run: |
           python scripts/historical_collector.py $(date -d "yesterday" +%Y-%m-%d)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Commit historical data
         if: always()
@@ -166,6 +177,8 @@ jobs:
       - name: Backfill history
         run: |
           python scripts/historical_collector.py ${{ github.event.inputs.collect_from }} ${{ github.event.inputs.collect_to }}
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Commit data
         run: |
