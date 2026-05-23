@@ -1,5 +1,5 @@
 # main.py
-import sys, os, json, threading
+import sys, os, json, threading, subprocess
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -21,7 +21,7 @@ except Exception as e:
 
 app = FastAPI(title="MLB Prediction Hub")
 
-# ==================== 前端 HTML（新增 4 欄） ====================
+# ==================== 前端 HTML（加入训练按钮） ====================
 HTML = """
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -54,9 +54,10 @@ HTML = """
         .loading { text-align:center; padding:32px; color:var(--muted); }
         .footer { margin-top:32px; text-align:center; color:var(--muted); font-size:0.8rem; }
         .error { color:var(--negative); background:#fff5f5; border:1px solid var(--negative); padding:12px; border-radius:8px; margin-bottom:16px; }
-        /* 新增欄位樣式 */
-        .nrfi-high { color: var(--positive); font-weight:600; }
-        .nrfi-low { color: var(--negative); font-weight:600; }
+        /* 新增训练按钮样式 */
+        .train-btn { padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
+        .train-btn:disabled { background: #a0aec0; cursor: not-allowed; }
+        .train-status { margin-left: 15px; color: var(--muted); font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -68,6 +69,12 @@ HTML = """
         </div>
         <div id="error-box"></div>
 
+        <!-- 训练按钮区域 -->
+        <div style="margin-bottom: 20px;">
+            <button id="train-nrfi-btn" class="train-btn" onclick="trainNRFI()">🔄 训练 NRFI 模型</button>
+            <span id="train-status" class="train-status"></span>
+        </div>
+
         <!-- 绩效卡片 -->
         <div class="grid" id="perf-cards">
             <div class="stat-card"><div class="label">Total Predictions</div><div class="value" id="perf-total">—</div></div>
@@ -76,18 +83,14 @@ HTML = """
             <div class="stat-card"><div class="label">Brier Score</div><div class="value" id="perf-brier">—</div></div>
         </div>
 
-        <!-- 预测表格（新增 4 欄） -->
+        <!-- 预测表格 -->
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th>
                         <th>Moneyline</th><th>Spread</th><th>Total</th>
-                        <th>NRFI</th>               <!-- 新增 -->
-                        <th>Glicko2 RD</th>         <!-- 新增 -->
-                        <th>Matchup (H/A)</th>      <!-- 新增 -->
-                        <th>Odds Trend</th>         <!-- 新增 -->
-                        <th>Key Factors</th>
+                        <th>NRFI</th><th>Glicko2 RD</th><th>Matchup (H/A)</th><th>Odds Trend</th><th>Key Factors</th>
                     </tr>
                 </thead>
                 <tbody id="pred-body"><tr><td colspan="13" class="loading">Loading...</td></tr></tbody>
@@ -147,19 +150,13 @@ HTML = """
                 const spread = p.spread_recommendation && p.spread_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.spread_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
                 const total = p.total_recommendation && p.total_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.total_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
 
-                // 新增欄位：NRFI 概率
+                // 新增字段
                 const nrfiProb = p.nrfi_prob != null ? (p.nrfi_prob*100).toFixed(1) + '%' : '—';
                 const nrfiClass = p.nrfi_prob > 0.55 ? 'nrfi-high' : (p.nrfi_prob < 0.45 ? 'nrfi-low' : '');
-
-                // Glicko2 RD Sum
                 const glickoRd = p.glicko_rd_sum != null ? p.glicko_rd_sum.toFixed(0) : '—';
-
-                // Matchup 優勢
                 const matchupHome = p.home_matchup_adv != null ? p.home_matchup_adv.toFixed(3) : '—';
                 const matchupAway = p.away_matchup_adv != null ? p.away_matchup_adv.toFixed(3) : '—';
                 const matchup = `${matchupHome} / ${matchupAway}`;
-
-                // 盤口趨勢
                 const oddsTrend = p.home_odds_trend != null ? p.home_odds_trend.toFixed(3) : '—';
 
                 const factors = (p.top_features || []).join(' · ');
@@ -181,13 +178,36 @@ HTML = """
             }).join('');
         }
 
+        // 训练 NRFI 模型的异步请求
+        async function trainNRFI() {
+            const btn = document.getElementById('train-nrfi-btn');
+            const status = document.getElementById('train-status');
+            btn.disabled = true;
+            btn.textContent = '⏳ 训练中...';
+            status.textContent = '';
+            try {
+                const resp = await fetch('/train-nrfi');
+                const data = await resp.json();
+                if (data.status === 'started') {
+                    status.textContent = '✅ 训练已在后台启动，模型就绪后将自动使用。';
+                } else {
+                    status.textContent = '⚠️ 启动失败：' + JSON.stringify(data);
+                }
+            } catch (err) {
+                status.textContent = '❌ 请求错误：' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔄 训练 NRFI 模型';
+            }
+        }
+
         load();
     </script>
 </body>
 </html>
 """
 
-# ==================== API 端点（全部保留） ====================
+# ==================== API 端点 ====================
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def index():
@@ -269,6 +289,27 @@ def run_background():
             print(f"Background error: {e}")
     threading.Thread(target=task).start()
     return {"status": "started"}
+
+# +++ NEW: 训练 NRFI 模型端点 +++
+@app.get("/train-nrfi")
+def train_nrfi():
+    def task():
+        try:
+            result = subprocess.run(
+                [sys.executable, "scripts/train_nrfi_model.py"],
+                capture_output=True,
+                text=True,
+                cwd=os.path.dirname(os.path.abspath(__file__))
+            )
+            print("NRFI Training Output:\n", result.stdout)
+            if result.returncode != 0:
+                print("NRFI Training Error:\n", result.stderr)
+        except Exception as e:
+            print(f"NRFI training failed: {e}")
+
+    thread = threading.Thread(target=task)
+    thread.start()
+    return {"status": "started", "message": "NRFI model training started in background. Check server logs for progress."}
 
 @app.get("/health")
 def health():
