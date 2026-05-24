@@ -11,7 +11,6 @@ def calculate_lag_features(home_team, away_team, historical_df, game_date, days=
     if historical_df is None or historical_df.empty:
         return 0.0, 0.0
 
-    # 自适应日期列名
     if 'game_date' in historical_df.columns:
         date_col = 'game_date'
     elif 'date' in historical_df.columns:
