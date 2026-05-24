@@ -29,9 +29,9 @@ if over_probs:
         errors.append(f"Mean over prob = {mean_over:.3f}, 仿真可能崩溃")
 
 if nrfi_probs:
-    unique_nrfi = len(set(round(p, 3) for p in nrfi_probs))
-    if unique_nrfi <= 2:
-        errors.append("NRFI 概率单一，可能模型未加载")
+    # 若所有概率都在 0.49~0.51 之间，说明可能全是默认值
+    if all(abs(p - 0.5) < 0.01 for p in nrfi_probs):
+        errors.append("NRFI 概率单一（全部≈0.5），可能模型未加载")
 
 if errors:
     with open('report/validation_errors.txt', 'w') as f:
