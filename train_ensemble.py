@@ -39,7 +39,7 @@ MODEL_OUTPUT = "data/calibrator.pkl"
 TRAINING_LOG = "data/training_log.csv"
 FEATURE_IMPORTANCE_LOG = "data/feature_importance.csv"
 
-# 与最新 prediction.py 完全同步的特征列表（无 market_prob，全部 diff）
+# 与 prediction.py 完全同步的特征列表（无 market_prob，全部 diff）
 EXPECTED_FEATURES = [
     'elo_diff',
     'sp_era_diff', 'sp_fip_diff', 'sp_stuff_plus_diff', 'sp_csw_diff',
@@ -47,7 +47,7 @@ EXPECTED_FEATURES = [
     'dynamic_park_factor',
     'platoon_ops_diff', 'statcast_launch_speed_diff', 'statcast_barrel_diff',
     'statcast_hard_hit_diff', 'statcast_woba_diff',
-    'timezone_diff', 'is_day_game', 'back2back_diff',   # 替换 home_back2back/away_back2back
+    'timezone_diff', 'is_day_game', 'back2back_diff',
     'catcher_era_diff', 'cs_diff', 'wind_effect',
     'temp_effect', 'precip_effect', 'injury_diff',
     'dynamic_pythag_diff', 'log5_prob', 'lag30_winrate_diff', 'lag30_runs_diff',
@@ -58,9 +58,7 @@ EXPECTED_FEATURES = [
     'elo_momentum_7d', 'elo_momentum_30d', 'barrel_pa_diff', 'hardhit_pa_diff',
     'swing_miss_diff', 'csw_diff', 'barrel_bb_pct_diff',
     'sprint_speed_diff', 'pitch_type_matchup_score',
-    'top3_woba_diff',   # 新：前三棒 wOBA 差值
-    'winrate_diff',     # 新：胜率差值
-    'bt_strength_diff',
+    'top3_woba_diff', 'winrate_diff', 'bt_strength_diff',
     # Pitch Usage 特征
     'home_usage_magnitude', 'away_usage_magnitude',
     'home_shift_score', 'away_shift_score',
@@ -165,11 +163,11 @@ def train():
     else:
         final_estimator = LogisticRegression(random_state=42, max_iter=2000)
 
+    # 修正：使用 cv=5 而不是 'prefit'
     stacking = StackingClassifier(estimators=estimators,
                                   final_estimator=final_estimator,
-                                  cv='prefit')
+                                  cv=5)
 
-    # 训练 Stacking
     print("训练 Stacking 模型...")
     stacking.fit(X_train, y_train, sample_weight=w_train)
 
