@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 import os
 
-# 防御性导入 fetch_statcast_data
 try:
     from scripts.savant_client import fetch_statcast_data
 except ImportError:
@@ -11,9 +10,7 @@ except ImportError:
     print("Warning: fetch_statcast_data not available, matchup features disabled.")
 
 def get_matchup_lookup():
-    # 返回空 DataFrame，功能不可用
     return pd.DataFrame(columns=['batter_id', 'pitch_type', 'woba', 'whiff_rate', 'hard_hit_rate', 'avg_run_value'])
 
 def add_matchup_features(features, home_sp_id, away_sp_id, home_top3_ids, away_top3_ids, lookup):
-    # 不做任何操作，返回原 features
     return features
