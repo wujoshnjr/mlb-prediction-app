@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 def calculate_lag_features(home_team, away_team, historical_df, game_date, days=30):
     """
     计算主客队在指定日期前 `days` 天内的胜率差和场均得分差。
-    历史数据必须包含 'home_team', 'away_team', 'home_win', 'home_score', 'away_score'。
-    如果缺少比分，则只返回胜率差（基于 home_win），得分差返回 0。
+    返回 (winrate_diff, runs_diff)，两个均为 float。
+    若数据不足或缺失，返回 (0.0, 0.0)。
     """
     if historical_df is None or historical_df.empty:
         return 0.0, 0.0
@@ -15,7 +15,6 @@ def calculate_lag_features(home_team, away_team, historical_df, game_date, days=
     try:
         game_date = pd.to_datetime(game_date)
         cutoff = game_date - timedelta(days=days)
-        # 筛选在时间窗口内的比赛
         mask = (pd.to_datetime(historical_df['game_date']) >= cutoff) & \
                (pd.to_datetime(historical_df['game_date']) < game_date)
         recent = historical_df[mask]
@@ -27,7 +26,7 @@ def calculate_lag_features(home_team, away_team, historical_df, game_date, days=
         home_games = recent[(recent['home_team'] == home_team) | (recent['away_team'] == home_team)]
         away_games = recent[(recent['home_team'] == away_team) | (recent['away_team'] == away_team)]
 
-        # 计算主队胜率（根据 home_win 列）
+        # 计算胜率（基于 home_win 列）
         if 'home_win' in recent.columns:
             def calc_win_rate(team_games, team):
                 if team_games.empty:
@@ -46,8 +45,7 @@ def calculate_lag_features(home_team, away_team, historical_df, game_date, days=
             away_winrate = 0.5
 
         # 尝试计算得分差（如果列存在）
-        home_runs_avg = 0.0
-        away_runs_avg = 0.0
+        runs_diff = 0.0
         if 'home_score' in recent.columns and 'away_score' in recent.columns:
             home_scores = []
             for _, row in home_games.iterrows():
@@ -63,9 +61,9 @@ def calculate_lag_features(home_team, away_team, historical_df, game_date, days=
                     away_scores.append(row['away_score'])
             home_runs_avg = np.mean(home_scores) if home_scores else 0.0
             away_runs_avg = np.mean(away_scores) if away_scores else 0.0
+            runs_diff = home_runs_avg - away_runs_avg
 
         winrate_diff = home_winrate - away_winrate
-        runs_diff = home_runs_avg - away_runs_avg
         return round(winrate_diff, 4), round(runs_diff, 2)
 
     except Exception as e:
