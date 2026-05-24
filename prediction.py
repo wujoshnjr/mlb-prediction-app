@@ -119,7 +119,7 @@ model = None
 try:
     import joblib
     model = joblib.load("data/calibrator.pkl")
-    print("已加载训练好的 Stacking 集成模型（双阶段校准）")
+    print("已加载训练好的 Stacking 集成模型")
 except Exception as e:
     print(f"模型加载失败: {e}，将使用手工集成")
 
@@ -132,7 +132,7 @@ try:
 except:
     pass
 
-# 加载 NRFI 模型（若启用）
+# 加载 NRFI 模型（若启用，目前关闭）
 nrfi_model = None
 if config.NRFI_USE_ML and NRFIModel is not None:
     nrfi_model_path = 'models/nrf_model.pkl'
@@ -248,7 +248,6 @@ def get_season_phase_adjustment(date_str, pred_prob):
         if pred_prob > 0.7: adj = -0.10
     return adj
 
-# ==================== 主预测函数 ====================
 def generate_predictions(elo_system=None):
     print("开始抓取数据...")
     m = UnifiedSportsModel()
@@ -270,7 +269,7 @@ def generate_predictions(elo_system=None):
     except Exception as e:
         errors.append(f"ELO 快照保存失败: {e}")
 
-    # 球队战力
+    # ---------- 数据预处理 ----------
     teams_df = pd.DataFrame(data.get('sportsipy_teams', []))
     if teams_df.empty:
         teams_df = pd.DataFrame(columns=['name', 'wins', 'losses', 'win_pct'])
@@ -285,7 +284,6 @@ def generate_predictions(elo_system=None):
         if col not in teams_df.columns:
             teams_df[col] = 400 if 'runs' in col else (0.2 if 'k' in col else 0.08)
 
-    # 动态Pythag指数
     league_avg_runs = 4.5
     if not teams_df.empty:
         total_runs = teams_df['runs_scored'].sum()
@@ -295,7 +293,6 @@ def generate_predictions(elo_system=None):
     pythag_exponent = league_avg_runs ** 0.287
     print(f"动态Pythag指数: {pythag_exponent:.3f}")
 
-    # Bradley-Terry 强度
     bt_strengths = {}
     if get_bradley_terry_strengths:
         try:
@@ -303,7 +300,7 @@ def generate_predictions(elo_system=None):
         except Exception as e:
             errors.append(f"Bradley-Terry 失败: {e}")
 
-    # 队名统一映射表（同时用于 schedule 和 odds）
+    # 队名统一映射（同时用于 schedule 和 odds）
     team_name_map = {
         "Arizona Diamondbacks": "D-backs", "Diamondbacks": "D-backs",
         "Atlanta Braves": "Braves", "Baltimore Orioles": "Orioles",
@@ -337,7 +334,7 @@ def generate_predictions(elo_system=None):
         "St. Louis": "Cardinals"
     }
 
-    # 赔率（关键修复：odds 队名统一映射）
+    # 赔率
     odds_df = pd.DataFrame(data.get('odds_data', []))
     odds_dict = {}
     odds_source = "bet365,draftkings" if not odds_df.empty else "none"
@@ -345,7 +342,6 @@ def generate_predictions(elo_system=None):
         for _, row in odds_df.iterrows():
             home_team = row.get('home_team', '')
             away_team = row.get('away_team', '')
-            # 映射赔率队名
             home_team = team_name_map.get(home_team, home_team)
             away_team = team_name_map.get(away_team, away_team)
             key = (home_team, away_team)
@@ -355,14 +351,13 @@ def generate_predictions(elo_system=None):
                     odds_dict[key] = []
                 odds_dict[key].append(odds_val)
         if not odds_dict:
-            errors.append("赔率字典为空，请检查 odds 数据中的队名是否与赛程匹配")
+            errors.append("赔率字典为空，请检查 odds 队名映射")
     else:
         errors.append("赔率数据为空（API 可能额度用尽或 Key 无效）")
 
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
     print(f"当日比赛数量: {len(schedule_df)}")
 
-    # 其他数据...
     pitchers_df = pd.DataFrame(data.get('pitchers', []))
     pitcher_dict = {}
     if not pitchers_df.empty:
@@ -390,8 +385,7 @@ def generate_predictions(elo_system=None):
     platoon_dict = {}
     if not platoon_df.empty:
         for _, row in platoon_df.iterrows():
-            team = row['team_name']
-            split = row['split']
+            team = row['team_name']; split = row['split']
             if team not in platoon_dict: platoon_dict[team] = {}
             platoon_dict[team][split] = {'ops': float(row.get('ops', 0.700)) if row.get('ops') else 0.700}
 
@@ -410,26 +404,115 @@ def generate_predictions(elo_system=None):
             for _, row in grouped.iterrows():
                 statcast_team_stats[row['team_name']] = row.to_dict()
         else:
-            errors.append("Statcast 数据缺少 batter_team 列")
+            errors.append("Statcast 缺少 batter_team 列")
 
-    # ... 其他字典构建（此处省略与之前相同的代码，但必须完整保留在真实文件中）
-    # 由于篇幅限制，以下用注释表示原代码必须保留，实际使用中请保持完整
-    # 实际文件应包含完整的 pitch_movement_dict, bat_speed_dict, sprint_speed_dict, 
-    # pitcher_rating_dict, swing_miss_dict, csw_dict, barrel_against_dict,
-    # weather_df, injuries_df, umpire_df 等所有处理代码（与之前版本一致）
+    pitch_movement_dict = {}
+    if not savant_df.empty and 'pfx_x' in savant_df.columns:
+        pitch_df = savant_df[['home_team', 'pfx_x', 'pfx_z', 'release_spin_rate']].dropna()
+        if not pitch_df.empty:
+            team_pitch = pitch_df.groupby('home_team').agg(
+                avg_pfx_x=('pfx_x', 'mean'), avg_pfx_z=('pfx_z', 'mean'), avg_spin_rate=('release_spin_rate', 'mean')
+            ).reset_index().rename(columns={'home_team': 'team_name'})
+            for _, row in team_pitch.iterrows():
+                pitch_movement_dict[row['team_name']] = row.to_dict()
 
-    # 为节省空间，这里只保留关键修改部分，但提醒：务必在你的文件中补全所有数据预处理代码！
+    bat_speed_dict = {}
+    if not savant_df.empty and 'bat_speed' in savant_df.columns:
+        bat_speed_df = savant_df[['home_team', 'bat_speed']].dropna()
+        if not bat_speed_df.empty:
+            team_bat = bat_speed_df.groupby('home_team')['bat_speed'].mean().reset_index().rename(columns={'home_team': 'team_name'})
+            for _, row in team_bat.iterrows():
+                bat_speed_dict[row['team_name']] = row['bat_speed']
 
-    # 假设以下变量已从上面完整代码中获得，此处仅作示例：
-    # avg_wind_speed, avg_temp, avg_precip, injury_index, historical_df, HIST_FILE 等
+    sprint_speed_dict = {}
+    if not savant_df.empty and 'sprint_speed' in savant_df.columns:
+        sprint_df = savant_df[['home_team', 'sprint_speed']].dropna()
+        if not sprint_df.empty:
+            team_sprint = sprint_df.groupby('home_team')['sprint_speed'].mean().reset_index().rename(columns={'home_team': 'team_name'})
+            for _, row in team_sprint.iterrows():
+                sprint_speed_dict[row['team_name']] = row['sprint_speed']
 
-    # 循环每场比赛
+    pitcher_rating_dict = {}
+    if calculate_pitcher_ratings and not savant_df.empty:
+        try:
+            pitcher_rating_dict = calculate_pitcher_ratings(savant_df)
+        except Exception as e:
+            errors.append(f"投手评分失败: {e}")
+
+    swing_miss_dict = {}
+    csw_dict = {}
+    barrel_against_dict = {}
+    if not savant_df.empty and 'whiff' in savant_df.columns:
+        pitcher_team_col = 'home_team'
+        whiff_rate = savant_df.groupby(pitcher_team_col)['whiff'].mean().reset_index()
+        whiff_rate.rename(columns={pitcher_team_col: 'team_name', 'whiff': 'whiff_rate'}, inplace=True)
+        for _, row in whiff_rate.iterrows():
+            swing_miss_dict[row['team_name']] = row['whiff_rate']
+        if 'csw' in savant_df.columns:
+            csw_rate = savant_df.groupby(pitcher_team_col)['csw'].mean().reset_index()
+            csw_rate.rename(columns={pitcher_team_col: 'team_name', 'csw': 'csw_rate'}, inplace=True)
+            for _, row in csw_rate.iterrows():
+                csw_dict[row['team_name']] = row['csw_rate']
+        faced = savant_df.groupby(pitcher_team_col).size().reset_index(name='faced')
+        barrel_count = savant_df[savant_df['barrel'] == 1].groupby(pitcher_team_col).size().reset_index(name='barrel_count')
+        barrel_rate = faced.merge(barrel_count, on=pitcher_team_col, how='left')
+        barrel_rate['barrel_count'] = barrel_rate['barrel_count'].fillna(0)
+        barrel_rate['barrel_rate_against'] = barrel_rate['barrel_count'] / barrel_rate['faced']
+        barrel_rate.rename(columns={pitcher_team_col: 'team_name'}, inplace=True)
+        for _, row in barrel_rate.iterrows():
+            barrel_against_dict[row['team_name']] = row['barrel_rate_against']
+
+    weather_df = pd.DataFrame(data.get('openmeteo_weather', []))
+    avg_wind_speed = weather_df['wind_speed'].mean() if not weather_df.empty else 0
+    avg_wind_dir = weather_df['wind_direction'].mean() if not weather_df.empty else 0
+    avg_temp = weather_df['temperature_2m'].mean() if not weather_df.empty else 20.0
+    avg_precip = weather_df['precipitation'].mean() if not weather_df.empty else 0.0
+
+    injuries_df = pd.DataFrame(data.get('injuries', []))
+    injury_index = {}
+    if not injuries_df.empty:
+        def injury_severity(status):
+            if not isinstance(status, str): return 0.5
+            sl = status.lower()
+            if '60-day' in sl or '60 day' in sl: return 2.0
+            elif '10-day' in sl or '15-day' in sl: return 1.0
+            else: return 0.5
+        injuries_df['severity_score'] = injuries_df['status'].apply(injury_severity)
+        team_injury = injuries_df.groupby('team_name')['severity_score'].sum().reset_index()
+        for _, row in team_injury.iterrows():
+            injury_index[row['team_name']] = row['severity_score']
+
+    umpire_df = pd.DataFrame(data.get('umpires', []))
+    umpire_dict = {}
+    if not umpire_df.empty:
+        for _, row in umpire_df.iterrows():
+            umpire_dict[row['game_id']] = row.to_dict()
+
+    historical_df = None
+    hist_dir = "data/historical"
+    if os.path.exists(hist_dir):
+        hist_files = [os.path.join(hist_dir, f) for f in os.listdir(hist_dir) if f.endswith(".parquet")]
+        if hist_files:
+            try:
+                historical_df = pd.concat([pd.read_parquet(f) for f in hist_files], ignore_index=True)
+            except Exception as e:
+                errors.append(f"历史数据读取失败: {e}")
+
+    HIST_FILE = "data/historical_predictions.csv"
+    historical_count = 0
+    if os.path.exists(HIST_FILE):
+        try:
+            hist_df = pd.read_csv(HIST_FILE)
+            if 'home_win' in hist_df.columns:
+                hist_df = hist_df[hist_df['home_win'].notna()]
+                historical_count = len(hist_df)
+        except Exception as e:
+            errors.append(f"历史预测文件读取失败: {e}")
+
     predictions = []
     for _, game in schedule_df.iterrows():
-        home = game.get('home_team', '')
-        away = game.get('away_team', '')
-        home = team_name_map.get(home, home)
-        away = team_name_map.get(away, away)
+        home = game.get('home_team', ''); away = game.get('away_team', '')
+        home = team_name_map.get(home, home); away = team_name_map.get(away, away)
         if not home or not away or home == 'Unknown' or away == 'Unknown': continue
 
         home_pct = teams_df[teams_df['name'] == home]['win_pct'].values
@@ -454,7 +537,6 @@ def generate_predictions(elo_system=None):
         if bt_strengths:
             bt_strength_diff = bt_strengths.get(home, 0.0) - bt_strengths.get(away, 0.0)
 
-        # ELO 动量
         elo_momentum_7d = 0.0; elo_momentum_30d = 0.0
         if get_elo_momentum:
             try:
@@ -467,7 +549,6 @@ def generate_predictions(elo_system=None):
             except Exception as e:
                 errors.append(f"ELO 动量失败: {e}")
 
-        # 赔率匹配
         avg_odds = odds_dict.get((home, away), [])
         home_odds = np.mean(avg_odds) if avg_odds else None
         market_prob = implied_prob(home_odds) if home_odds else 0.5
@@ -487,7 +568,6 @@ def generate_predictions(elo_system=None):
             sp_stuff_plus_diff = float(pitcher_data.get('home_stuff_plus', 100) or 100) - float(pitcher_data.get('away_stuff_plus', 100) or 100)
             sp_csw_diff = float(pitcher_data.get('home_csw_pct', 0.28) or 0.28) - float(pitcher_data.get('away_csw_pct', 0.28) or 0.28)
 
-        # 休息、时区等
         rest_diff = 0; timezone_diff = 0; is_day_game = game.get('is_day_game', 0)
         try:
             today = datetime.strptime(date_str, "%Y-%m-%d")
@@ -507,62 +587,230 @@ def generate_predictions(elo_system=None):
         except Exception as e:
             errors.append(f"休息/时区计算失败: {e}")
 
-        # 牛棚、公园因子等（此处简化，但实际文件需要完整代码）
-        # ...
-        back2back_diff = 0  # 示例
-        dynamic_park_factor = 1.0  # 示例
-        # 省略大量中间计算，但真实文件必须保留完整
+        bullpen_ip_diff = 0.0; home_back2back = 0; away_back2back = 0
+        home_id = TEAM_ID_MAP.get(home); away_id = TEAM_ID_MAP.get(away)
+        if home_id and away_id and home_id in bullpen_dict and away_id in bullpen_dict:
+            home_ip = bullpen_dict[home_id].get('bullpen_innings')
+            away_ip = bullpen_dict[away_id].get('bullpen_innings')
+            try:
+                home_val = float(home_ip) if home_ip is not None else 0.0
+                away_val = float(away_ip) if away_ip is not None else 0.0
+                bullpen_ip_diff = home_val - away_val
+            except Exception as e:
+                errors.append(f"牛棚局数解析失败: {e}")
+            home_back2back = int(bullpen_dict[home_id].get('back_to_back', 0))
+            away_back2back = int(bullpen_dict[away_id].get('back_to_back', 0))
+        back2back_diff = home_back2back - away_back2back
 
-        # 构建特征
+        bullpen_availability_diff = 0.0
+        if bullpen_availability_dict:
+            home_avail = bullpen_availability_dict.get(home_id, 50.0)
+            away_avail = bullpen_availability_dict.get(away_id, 50.0)
+            bullpen_availability_diff = home_avail - away_avail
+
+        from scripts.park_factors import get_park_factor
+        static_park = get_park_factor(game.get('venue', ''))
+        temp_f = (avg_temp * 9/5) + 32
+        temp_effect = (temp_f - 70) / 10 * 0.01
+        dynamic_park_factor = static_park * (1 + temp_effect)
+
+        platoon_ops_diff = 0.0
+        if not platoon_df.empty:
+            home_split = "vsLhp" if home_pitch_hand == "L" else "vsRhp"
+            away_split = "vsLhp" if away_pitch_hand == "L" else "vsRhp"
+            home_platoon = platoon_dict.get(home, {}).get(home_split, {})
+            away_platoon = platoon_dict.get(away, {}).get(away_split, {})
+            if home_platoon and away_platoon:
+                platoon_ops_diff = home_platoon['ops'] - away_platoon['ops']
+
+        catcher_era_diff = 0.0; cs_diff = 0.0
+        if calculate_catcher_effect:
+            home_catcher_id = game.get('home_catcher_id')
+            away_catcher_id = game.get('away_catcher_id')
+            if home_catcher_id and away_catcher_id:
+                try:
+                    catcher_era_diff, cs_diff = calculate_catcher_effect(home_catcher_id, away_catcher_id, 2026)
+                except Exception as e:
+                    errors.append(f"捕手效应计算失败: {e}")
+
+        # Statcast 球队打击数据
+        statcast_launch_speed_diff = 0.0; statcast_barrel_diff = 0.0; statcast_hard_hit_diff = 0.0; statcast_woba_diff = 0.0
+        if statcast_team_stats:
+            home_stat = statcast_team_stats.get(home, {})
+            away_stat = statcast_team_stats.get(away, {})
+            if home_stat and away_stat:
+                statcast_launch_speed_diff = home_stat.get('avg_launch_speed', 0) - away_stat.get('avg_launch_speed', 0)
+                statcast_barrel_diff = home_stat.get('barrel_rate', 0) - away_stat.get('barrel_rate', 0)
+                statcast_hard_hit_diff = home_stat.get('hard_hit_rate', 0) - away_stat.get('hard_hit_rate', 0)
+                statcast_woba_diff = home_stat.get('avg_expected_woba', 0) - away_stat.get('avg_expected_woba', 0)
+
+        pitch_movement_diff = 0.0
+        if pitch_movement_dict:
+            home_pitch = pitch_movement_dict.get(home); away_pitch = pitch_movement_dict.get(away)
+            if home_pitch and away_pitch:
+                home_movement = np.sqrt(home_pitch['avg_pfx_x']**2 + home_pitch['avg_pfx_z']**2)
+                away_movement = np.sqrt(away_pitch['avg_pfx_x']**2 + away_pitch['avg_pfx_z']**2)
+                pitch_movement_diff = home_movement - away_movement
+
+        home_k_pct = teams_df[teams_df['name'] == home]['home_k_pct'].values[0]
+        away_k_pct = teams_df[teams_df['name'] == away]['away_k_pct'].values[0]
+        k_pct_diff = home_k_pct - away_k_pct
+        home_bb_pct = teams_df[teams_df['name'] == home]['home_bb_pct'].values[0]
+        away_bb_pct = teams_df[teams_df['name'] == away]['away_bb_pct'].values[0]
+        bb_pct_diff = home_bb_pct - away_bb_pct
+
+        avg_bat_speed_diff = 0.0
+        if bat_speed_dict:
+            home_bs = bat_speed_dict.get(home); away_bs = bat_speed_dict.get(away)
+            if home_bs is not None and away_bs is not None:
+                avg_bat_speed_diff = home_bs - away_bs
+
+        sprint_speed_diff = 0.0
+        if sprint_speed_dict:
+            home_ss = sprint_speed_dict.get(home); away_ss = sprint_speed_dict.get(away)
+            if home_ss is not None and away_ss is not None:
+                sprint_speed_diff = home_ss - away_ss
+
+        pitcher_rating_diff = 0.0
+        if pitcher_rating_dict:
+            home_rating = pitcher_rating_dict.get(home); away_rating = pitcher_rating_dict.get(away)
+            if home_rating is not None and away_rating is not None:
+                pitcher_rating_diff = home_rating - away_rating
+
+        swing_miss_diff = 0.0
+        if swing_miss_dict:
+            h_whiff = swing_miss_dict.get(home); a_whiff = swing_miss_dict.get(away)
+            if h_whiff is not None and a_whiff is not None: swing_miss_diff = h_whiff - a_whiff
+        csw_diff = 0.0
+        if csw_dict:
+            h_csw = csw_dict.get(home); a_csw = csw_dict.get(away)
+            if h_csw is not None and a_csw is not None: csw_diff = h_csw - a_csw
+        barrel_bb_pct_diff = 0.0
+        if barrel_against_dict:
+            h_barrel = barrel_against_dict.get(home); a_barrel = barrel_against_dict.get(away)
+            if h_barrel is not None and a_barrel is not None: barrel_bb_pct_diff = h_barrel - a_barrel
+
+        pitch_type_matchup_score = 0.0
+        if get_pitch_type_matchup_score and pitcher_data is not None:
+            try:
+                home_pitcher_id = pitcher_data.get('home_pitcher_id')
+                away_pitcher_id = pitcher_data.get('away_pitcher_id')
+                pitch_type_matchup_score = get_pitch_type_matchup_score(home_pitcher_id, away_pitcher_id)
+            except Exception as e:
+                errors.append(f"球种对位失败: {e}")
+
+        home_top3_woba = game.get('home_top3_avg_woba', 0.320)
+        away_top3_woba = game.get('away_top3_avg_woba', 0.320)
+
+        temp_effect_raw = 0.0
+        if avg_temp > 25: temp_effect_raw = 0.02 * (avg_temp - 25)
+        precip_effect = -0.01 * avg_precip if avg_precip > 0 else 0.0
+        wind_effect = 0.0
+        if avg_wind_speed > 10:
+            wind_effect = 0.02 * avg_wind_speed * np.sin(np.radians(avg_wind_dir))
+
+        home_injury_impact = injury_index.get(home, 0.0); away_injury_impact = injury_index.get(away, 0.0)
+        injury_diff = home_injury_impact - away_injury_impact
+
+        home_runs_scored = float(teams_df[teams_df['name'] == home]['runs_scored'].values[0])
+        home_runs_allowed = float(teams_df[teams_df['name'] == home]['runs_allowed'].values[0])
+        away_runs_scored = float(teams_df[teams_df['name'] == away]['runs_scored'].values[0])
+        away_runs_allowed = float(teams_df[teams_df['name'] == away]['runs_allowed'].values[0])
+        home_pythag = home_runs_scored**pythag_exponent / (home_runs_scored**pythag_exponent + home_runs_allowed**pythag_exponent) if (home_runs_scored + home_runs_allowed) > 0 else 0.5
+        away_pythag = away_runs_scored**pythag_exponent / (away_runs_scored**pythag_exponent + away_runs_allowed**pythag_exponent) if (away_runs_scored + away_runs_allowed) > 0 else 0.5
+        dynamic_pythag_diff = home_pythag - away_pythag
+
+        log5_home = (home_pct - home_pct * away_pct) / (home_pct + away_pct - 2 * home_pct * away_pct) if (home_pct + away_pct) > 0 else 0.5
+
+        lag30_winrate_diff = 0.0; lag30_runs_diff = 0.0
+        if calculate_lag_features and historical_df is not None:
+            try:
+                home_winrate_30, away_winrate_30, home_runs_30, away_runs_30 = calculate_lag_features(home, away, historical_df, date_str, days=30)
+                lag30_winrate_diff = home_winrate_30 - away_winrate_30
+                lag30_runs_diff = home_runs_30 - away_runs_30
+            except Exception as e:
+                errors.append(f"滞后特征失败: {e}")
+
+        odds_change = 0.0
+        if os.path.exists(HIST_FILE):
+            try:
+                hist = pd.read_csv(HIST_FILE)
+                last_odds = hist[(hist['home_team'] == home) & (hist['away_team'] == away)]['home_odds'].dropna().tail(1).values
+                if len(last_odds) > 0 and home_odds is not None: odds_change = home_odds - last_odds[0]
+            except Exception as e:
+                errors.append(f"赔率变化计算失败: {e}")
+
+        umpire_data = umpire_dict.get(game.get('game_id'), {})
+        zone_size = umpire_data.get("zone_size", 1.0)
+        k_rate = umpire_data.get("k_rate", 0.22)
+
+        barrel_pa_diff = statcast_barrel_diff
+        hardhit_pa_diff = statcast_hard_hit_diff
+
+        # ---------- 特征字典 ----------
         features = {
             'elo_diff': round(elo_diff, 3),
             'sp_era_diff': round(sp_era_diff, 3),
             'sp_fip_diff': round(sp_fip_diff, 3),
             'sp_stuff_plus_diff': round(sp_stuff_plus_diff, 3),
             'sp_csw_diff': round(sp_csw_diff, 3),
-            'bullpen_ip_diff': 0,  # 示例，请用真实计算值
+            'bullpen_ip_diff': round(bullpen_ip_diff, 3),
             'rest_diff': rest_diff,
             'dynamic_park_factor': round(dynamic_park_factor, 3),
-            'platoon_ops_diff': 0,
-            'statcast_launch_speed_diff': 0,
-            'statcast_barrel_diff': 0,
-            'statcast_hard_hit_diff': 0,
-            'statcast_woba_diff': 0,
+            'platoon_ops_diff': round(platoon_ops_diff, 3),
+            'statcast_launch_speed_diff': round(statcast_launch_speed_diff, 3),
+            'statcast_barrel_diff': round(statcast_barrel_diff, 3),
+            'statcast_hard_hit_diff': round(statcast_hard_hit_diff, 3),
+            'statcast_woba_diff': round(statcast_woba_diff, 3),
             'timezone_diff': timezone_diff,
             'is_day_game': is_day_game,
-            'back2back_diff': 0,
-            'catcher_era_diff': 0,
-            'cs_diff': 0,
-            'wind_effect': 0,
-            'temp_effect': 0,
-            'precip_effect': 0,
-            'injury_diff': 0,
-            'dynamic_pythag_diff': 0,
-            'log5_prob': 0.5,
-            'lag30_winrate_diff': 0,
-            'lag30_runs_diff': 0,
-            'pitch_movement_diff': 0,
-            'k_pct_diff': 0,
-            'bb_pct_diff': 0,
-            'avg_bat_speed_diff': 0,
-            'pitcher_rating_diff': 0,
-            'odds_change': 0,
-            'zone_size': 1.0,
-            'k_rate': 0.22,
-            'bullpen_availability_diff': 0,
+            'back2back_diff': back2back_diff,
+            'catcher_era_diff': round(catcher_era_diff, 3),
+            'cs_diff': round(cs_diff, 3),
+            'wind_effect': round(wind_effect, 4),
+            'temp_effect': round(temp_effect_raw, 4),
+            'precip_effect': round(precip_effect, 4),
+            'injury_diff': round(injury_diff, 3),
+            'dynamic_pythag_diff': round(dynamic_pythag_diff, 3),
+            'log5_prob': round(log5_home, 3),
+            'lag30_winrate_diff': round(lag30_winrate_diff, 3),
+            'lag30_runs_diff': round(lag30_runs_diff, 3),
+            'pitch_movement_diff': round(pitch_movement_diff, 3),
+            'k_pct_diff': round(k_pct_diff, 3),
+            'bb_pct_diff': round(bb_pct_diff, 3),
+            'avg_bat_speed_diff': round(avg_bat_speed_diff, 3),
+            'pitcher_rating_diff': round(pitcher_rating_diff, 3),
+            'odds_change': round(odds_change, 4),
+            'zone_size': round(zone_size, 3),
+            'k_rate': round(k_rate, 3),
+            'bullpen_availability_diff': round(bullpen_availability_diff, 3),
             'elo_momentum_7d': round(elo_momentum_7d, 3),
             'elo_momentum_30d': round(elo_momentum_30d, 3),
-            'barrel_pa_diff': 0,
-            'hardhit_pa_diff': 0,
-            'swing_miss_diff': 0,
-            'csw_diff': 0,
-            'barrel_bb_pct_diff': 0,
-            'sprint_speed_diff': 0,
-            'pitch_type_matchup_score': 0,
-            'top3_woba_diff': 0,
+            'barrel_pa_diff': round(barrel_pa_diff, 3),
+            'hardhit_pa_diff': round(hardhit_pa_diff, 3),
+            'swing_miss_diff': round(swing_miss_diff, 3),
+            'csw_diff': round(csw_diff, 3),
+            'barrel_bb_pct_diff': round(barrel_bb_pct_diff, 3),
+            'sprint_speed_diff': round(sprint_speed_diff, 3),
+            'pitch_type_matchup_score': round(pitch_type_matchup_score, 3),
+            'top3_woba_diff': round(home_top3_woba - away_top3_woba, 3),
             'winrate_diff': round(home_pct - away_pct, 3),
             'bt_strength_diff': round(bt_strength_diff, 3)
         }
+
+        # Pitch Usage 特征
+        pitch_usage_feats = {}
+        if compute_pitch_usage_features and savant_df is not None and not savant_df.empty:
+            if 'pitcher' in savant_df.columns:
+                try:
+                    pitch_usage_feats = compute_pitch_usage_features(
+                        savant_df, home, away,
+                        game.get('home_pitcher_id'),
+                        game.get('away_pitcher_id')
+                    )
+                except Exception as e:
+                    errors.append(f"Pitch Usage 失败: {e}")
+        features.update(pitch_usage_feats)
 
         # Glicko2 覆盖
         if config.RATINGS_ENGINE == 'glicko2' and glicko_league is not None:
@@ -570,22 +818,46 @@ def generate_predictions(elo_system=None):
             features['elo_diff'] = round(diff, 3)
             features['glicko_rd_sum'] = round(rd_sum, 3)
 
-        # 手工集成（去除主场优势偏移）
+        # 对位特征（若启用）
+        if config.FEATURE_USE_PITCH_MATCHUP and add_matchup_features is not None and matchup_lookup is not None:
+            home_sp_id = pitcher_data.get('home_pitcher_id') if pitcher_data else None
+            away_sp_id = pitcher_data.get('away_pitcher_id') if pitcher_data else None
+            home_top3_ids = game.get('home_top3_ids', [])
+            away_top3_ids = game.get('away_top3_ids', [])
+            if home_sp_id and away_sp_id:
+                try:
+                    features = add_matchup_features(features, home_sp_id, away_sp_id, home_top3_ids, away_top3_ids, matchup_lookup)
+                except Exception as e:
+                    errors.append(f"对位特征失败: {e}")
+
+        # 盘口曲线特征
+        if config.ODDS_USE_CURVE_FEATURES and extract_odds_curve_features is not None:
+            game_id = game.get('game_id')
+            if game_id:
+                try:
+                    trend, vol, rev = extract_odds_curve_features(game_id)
+                    features['home_odds_trend'] = round(trend, 3)
+                    features['home_odds_volatility'] = round(vol, 3)
+                    features['home_odds_reversals'] = int(rev)
+                except Exception as e:
+                    errors.append(f"盘口曲线失败: {e}")
+
+        # ---------- 手工集成（去除主场优势偏移）----------
         neutral_elo_diff = features['elo_diff']
         if elo_system:
-            neutral_elo_diff -= elo_system.home_adv  # 减去主场优势
+            neutral_elo_diff -= elo_system.home_adv
         elo_prob = 1 / (1 + 10 ** (-neutral_elo_diff / 400)) if elo_system or config.RATINGS_ENGINE == 'glicko2' else 0.5
-        manual_pred = features['log5_prob'] * 0.5 + elo_prob * 0.5
+        manual_pred = log5_home * 0.5 + elo_prob * 0.5
         sp_adj = -0.07 * sp_era_diff
         manual_pred = min(0.95, max(0.05, manual_pred + sp_adj))
 
         if elo_system:
-            no_odds_pred = features['log5_prob'] * 0.4 + elo_prob * 0.6
+            no_odds_pred = log5_home * 0.4 + elo_prob * 0.6
         else:
-            no_odds_pred = features['log5_prob']
+            no_odds_pred = log5_home
         no_odds_pred = min(0.95, max(0.05, no_odds_pred + sp_adj))
 
-        # 机器学习预测（若无模型则跳过）
+        # ---------- 机器学习预测 ----------
         ml_pred = None
         if model is not None:
             feature_order = [
@@ -608,14 +880,12 @@ def generate_predictions(elo_system=None):
                 errors.append(f"ML 预测失败: {e}")
                 ml_pred = None
 
-        # 融合预测
-        if ml_pred is not None and len(df) > 100:  # 简化的历史数量判断
-            ml_weight = 0.3
+        if ml_pred is not None and historical_count > 100:
+            ml_weight = min(0.5, historical_count / 1000)
             pred_home = (1 - ml_weight) * manual_pred + ml_weight * ml_pred
         else:
             pred_home = manual_pred
 
-        # 赛季调整
         season_adj = get_season_phase_adjustment(date_str, pred_home)
         pred_home += season_adj
 
@@ -625,20 +895,16 @@ def generate_predictions(elo_system=None):
         pred_home = min(0.95, max(0.05, pred_home))
         pred_away = 1 - pred_home
 
-        # 蒙特卡洛模拟（使用标准化的进攻/投手因子）
+        # ---------- 蒙特卡洛模拟 ----------
         over_prob = under_prob = home_cover = away_cover = None
         total_mean = diff_mean = None
         if MonteCarloSimulator:
             try:
-                # 联盟平均得分
                 lg_avg = 4.5
-                # 进攻因子（相对于联盟平均）
                 home_off = home_runs_per_game / lg_avg
                 away_off = away_runs_per_game / lg_avg
-                # 投手因子（相对于联盟平均，ERA 越低越好，因此取倒数调整）
                 home_pitch = (4.5 / max(float(pitcher_data.get('away_era', 4.5) if pitcher_data else 4.5), 1.0))
                 away_pitch = (4.5 / max(float(pitcher_data.get('home_era', 4.5) if pitcher_data else 4.5), 1.0))
-                # 期望得分
                 hr_adj = lg_avg * home_off * home_pitch * dynamic_park_factor
                 ar_adj = lg_avg * away_off * away_pitch * dynamic_park_factor
                 hr_adj = np.clip(hr_adj, 2.5, 7.0)
@@ -652,24 +918,29 @@ def generate_predictions(elo_system=None):
             except Exception as e:
                 errors.append(f"Monte Carlo 模拟失败: {e}")
 
-        # 推荐
         ml_rec = "PASS"
-        if home_odds and home_odds > 1:
+        if home_odds:
             kelly_ml = kelly_criterion(pred_home, home_odds)
             if kelly_ml > 0.05:
                 ml_rec = f"Bet {home} ({pred_home:.1%}, {kelly_ml:.1%} Kelly)"
+            else:
+                kelly_ml_away = kelly_criterion(pred_away, 1 / (1 - implied_prob(home_odds)) if implied_prob(home_odds) and implied_prob(home_odds) < 1 else None)
+                if kelly_ml_away > 0.05:
+                    ml_rec = f"Bet {away} ({pred_away:.1%}, {kelly_ml_away:.1%} Kelly)"
+
         spread_rec = "PASS"
         if home_cover is not None and home_cover > 0.55:
             spread_rec = f"Bet {home} -1.5 ({home_cover:.1%} cover)"
         elif away_cover is not None and away_cover > 0.55:
             spread_rec = f"Bet {away} +1.5 ({away_cover:.1%} cover)"
+
         total_rec = "PASS"
         if over_prob is not None and over_prob > 0.55:
             total_rec = f"Bet OVER 8.5 ({over_prob:.1%})"
         elif under_prob is not None and under_prob > 0.55:
             total_rec = f"Bet UNDER 8.5 ({under_prob:.1%})"
 
-        # NRFI 预测（关闭 ML，用手工）
+        # NRFI 预测（手工）
         nrfi_prob = 0.5
         if pitcher_data is not None:
             home_first_era = float(pitcher_data.get('home_first_era', 4.5) or 4.5)
@@ -679,7 +950,16 @@ def generate_predictions(elo_system=None):
             nrfi_prob = min(0.75, max(0.25, base_nrfi * top3_factor))
         nrfi_rec = f"NRFI ({nrfi_prob:.1%})" if nrfi_prob > 0.55 else f"YRFI ({(1-nrfi_prob):.1%})"
 
-        # 收集预测结果
+        # 展示性特征（仅绝对值排序，非SHAP）
+        sorted_features = sorted(features.items(), key=lambda x: abs(x[1]), reverse=True)
+        top_features = []
+        for name, val in sorted_features[:5]:
+            direction = FEATURE_DIRECTION.get(name, 0)
+            if direction == 1: arrow = "▲" if val > 0 else "▼"
+            elif direction == -1: arrow = "▼" if val > 0 else "▲"
+            else: arrow = "•"
+            top_features.append(f"{name}={val}{arrow}")
+
         predictions.append({
             "game_id": game.get("game_id"),
             "game_date": game.get("game_date"),
@@ -689,6 +969,8 @@ def generate_predictions(elo_system=None):
             "predicted_away_win_pct": round(pred_away, 3),
             "home_odds": home_odds,
             "manual_no_odds_pred": round(no_odds_pred, 3),
+            "elo_home": elo_system.elos.get(home, 1500) if elo_system else 1500,
+            "elo_away": elo_system.elos.get(away, 1500) if elo_system else 1500,
             "moneyline_recommendation": ml_rec,
             "spread_recommendation": spread_rec,
             "total_recommendation": total_rec,
@@ -700,7 +982,58 @@ def generate_predictions(elo_system=None):
             "under_prob": round(under_prob, 3) if under_prob is not None else None,
             "home_cover_prob": round(home_cover, 3) if home_cover is not None else None,
             "away_cover_prob": round(away_cover, 3) if away_cover is not None else None,
-            # 加入部分特征供前端展示
+            "kelly_fraction": round(kelly_ml, 4),
+            "elo_diff": features['elo_diff'],
+            "sp_era_diff": features['sp_era_diff'],
+            "sp_fip_diff": features['sp_fip_diff'],
+            "sp_stuff_plus_diff": features['sp_stuff_plus_diff'],
+            "sp_csw_diff": features['sp_csw_diff'],
+            "bullpen_ip_diff": features['bullpen_ip_diff'],
+            "rest_diff": features['rest_diff'],
+            "park_factor": static_park,
+            "dynamic_park_factor": features['dynamic_park_factor'],
+            "platoon_ops_diff": features['platoon_ops_diff'],
+            "statcast_launch_speed_diff": features['statcast_launch_speed_diff'],
+            "statcast_barrel_diff": features['statcast_barrel_diff'],
+            "statcast_hard_hit_diff": features['statcast_hard_hit_diff'],
+            "statcast_woba_diff": features['statcast_woba_diff'],
+            "timezone_diff": features['timezone_diff'],
+            "is_day_game": features['is_day_game'],
+            "back2back_diff": features['back2back_diff'],
+            "catcher_era_diff": features['catcher_era_diff'],
+            "cs_diff": features['cs_diff'],
+            "wind_effect": features['wind_effect'],
+            "temp_effect": features['temp_effect'],
+            "precip_effect": features['precip_effect'],
+            "injury_diff": features['injury_diff'],
+            "dynamic_pythag_diff": features['dynamic_pythag_diff'],
+            "log5_prob": features['log5_prob'],
+            "lag30_winrate_diff": features['lag30_winrate_diff'],
+            "lag30_runs_diff": features['lag30_runs_diff'],
+            "pitch_movement_diff": features['pitch_movement_diff'],
+            "k_pct_diff": features['k_pct_diff'],
+            "bb_pct_diff": features['bb_pct_diff'],
+            "avg_bat_speed_diff": features['avg_bat_speed_diff'],
+            "pitcher_rating_diff": features['pitcher_rating_diff'],
+            "odds_change": features['odds_change'],
+            "zone_size": features['zone_size'],
+            "k_rate": features['k_rate'],
+            "bullpen_availability_diff": features['bullpen_availability_diff'],
+            "elo_momentum_7d": features['elo_momentum_7d'],
+            "elo_momentum_30d": features['elo_momentum_30d'],
+            "barrel_pa_diff": features['barrel_pa_diff'],
+            "hardhit_pa_diff": features['hardhit_pa_diff'],
+            "swing_miss_diff": features['swing_miss_diff'],
+            "csw_diff": features['csw_diff'],
+            "barrel_bb_pct_diff": features['barrel_bb_pct_diff'],
+            "sprint_speed_diff": features['sprint_speed_diff'],
+            "pitch_type_matchup_score": features['pitch_type_matchup_score'],
+            "top3_woba_diff": features['top3_woba_diff'],
+            "winrate_diff": features['winrate_diff'],
+            "bt_strength_diff": features['bt_strength_diff'],
+            "top_features": top_features,
+            "market_divergence": 1 if abs(pred_home - market_prob) > 0.15 else 0,
+            "odds_source": odds_source,
             "glicko_rd_sum": features.get('glicko_rd_sum'),
             "home_matchup_adv": features.get('home_matchup_adv'),
             "away_matchup_adv": features.get('away_matchup_adv'),
@@ -709,7 +1042,7 @@ def generate_predictions(elo_system=None):
             "home_odds_reversals": features.get('home_odds_reversals')
         })
 
-    # 诊断与验证
+    # 诊断
     if predictions:
         home_probs = [p['predicted_home_win_pct'] for p in predictions]
         mean_prob = np.mean(home_probs)
@@ -725,17 +1058,28 @@ def generate_predictions(elo_system=None):
         if missing_odds > len(predictions) * 0.5:
             errors.append(f"⚠️ 超过 50% 比赛无赔率数据")
 
-    # 输出
+    power_rankings = teams_df.sort_values('win_pct', ascending=False).to_dict('records')
+
     output = {
         "generated_at": datetime.now().isoformat(),
+        "power_rankings": power_rankings,
+        "elo_ratings": {k: round(v, 1) for k, v in elo_system.elos.items()} if elo_system else {},
         "today_predictions": predictions,
         "bet_summary": {
             "moneyline_bets": [p for p in predictions if p['moneyline_recommendation'] != 'PASS'],
             "spread_bets": [p for p in predictions if p['spread_recommendation'] != 'PASS'],
-            "total_bets": [p for p in predictions if p['total_recommendation'] != 'PASS']
+            "total_bets": [p for p in predictions if p['total_recommendation'] != 'PASS'],
+            "nrfi_bets": [p for p in predictions if 'NRFI' in p.get('nrfi_recommendation', '')]
         },
         "errors": errors
     }
+
+    if filter_value_bets:
+        try:
+            value_bets = filter_value_bets(predictions)
+            output['value_bets'] = value_bets
+        except Exception as e:
+            errors.append(f"Value bets 失败: {e}")
 
     os.makedirs('report', exist_ok=True)
     with open('report/prediction.json', 'w') as f:
