@@ -24,7 +24,7 @@ def validate():
     nrfi_sources = [p.get('nrfi_source', 'unknown') for p in preds]
     pipeline_errors = data.get('errors', [])
 
-    # 检查概率范围
+    # 概率范围检查
     for p in home_probs:
         if not (0 <= p <= 1):
             errors.append(f"概率超出范围: {p}")
@@ -38,19 +38,17 @@ def validate():
         if mean_over > 0.9:
             errors.append(f"平均 over 概率过高: {mean_over:.3f}")
 
-    # NRFI 检查：只检查有效来源（ml, manual）且概率单一的情况
+    # NRFI 检查：只对有效来源且非 unavailable 的检查
     valid_nrfi = [p for p in preds if p.get('nrfi_source') in ('ml', 'manual') and p.get('nrfi_prob') is not None]
     if valid_nrfi:
         prob_values = [p['nrfi_prob'] for p in valid_nrfi]
         if len(prob_values) > 2 and all(abs(x - 0.5) < 0.01 for x in prob_values):
             errors.append("NRFI 概率单一（全部≈0.5），可能模型未加载")
-    # 如果所有 nrfi 都是 unavailable，不报错
 
     if errors:
         print("❌ 验证失败:")
         for e in errors:
             print(e)
-        # 输出 pipeline errors 摘要
         if pipeline_errors:
             print("最近 pipeline errors:")
             for e in pipeline_errors[-5:]:
