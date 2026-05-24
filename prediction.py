@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from model import UnifiedSportsModel
 
-# 防御性导入配置
+# 防御性导入 config
 try:
     import config
 except:
@@ -24,11 +24,11 @@ except:
         MODEL_USE_MLP = False
         WALKFORWARD_STRICT = False
 
-# 原有模块
+# 原有模块（全部改为打印异常而非静默）
 try:
     from scripts.elo import MLBElosystem
 except Exception as e:
-    print(f"ELO 系统导入失败: {e}")
+    print(f"ELO 导入失败: {e}")
     MLBElosystem = None
 try:
     from scripts.monte_carlo import MonteCarloSimulator
@@ -128,7 +128,7 @@ if config.RATINGS_ENGINE == 'glicko2' and load_glicko2_league is not None:
     except Exception as e:
         print(f"Glicko2 加载失败: {e}")
 
-# 其他全局变量
+# 全局变量
 LAST_GAME_FILE = "data/team_last_game.json"
 if os.path.exists(LAST_GAME_FILE):
     with open(LAST_GAME_FILE) as f:
@@ -223,7 +223,6 @@ def generate_predictions(elo_system=None):
             print("ELO 模块未安装，将使用基础预测")
             elo_system = None
 
-    # ELO 快照保存
     try:
         from scripts.elo_momentum import save_elo_snapshot
         save_elo_snapshot()
@@ -345,7 +344,7 @@ def generate_predictions(elo_system=None):
         except Exception as e:
             errors.append(f"牛棚可用性计算失败: {e}")
 
-    # ---------- 左右投 ----------
+    # ---------- 左右投对位 ----------
     platoon_df = pd.DataFrame(data.get('platoon', []))
     platoon_dict = {}
     if not platoon_df.empty:
@@ -372,17 +371,66 @@ def generate_predictions(elo_system=None):
         else:
             errors.append("Statcast 缺少 batter_team 列")
 
-    # 其他字典（pitch_movement, bat_speed 等）省略，实际需保留完整代码...
-    # 由于篇幅限制，这里用注释表示，实际应包含你的完整数据预处理代码
-    # 假设这些字典已经生成：
+    # 投球位移
     pitch_movement_dict = {}
+    if not savant_df.empty and 'pfx_x' in savant_df.columns:
+        pitch_df = savant_df[['home_team', 'pfx_x', 'pfx_z', 'release_spin_rate']].dropna()
+        if not pitch_df.empty:
+            team_pitch = pitch_df.groupby('home_team').agg(
+                avg_pfx_x=('pfx_x', 'mean'), avg_pfx_z=('pfx_z', 'mean'), avg_spin_rate=('release_spin_rate', 'mean')
+            ).reset_index().rename(columns={'home_team': 'team_name'})
+            for _, row in team_pitch.iterrows():
+                pitch_movement_dict[row['team_name']] = row.to_dict()
+
+    # 挥棒速度
     bat_speed_dict = {}
+    if not savant_df.empty and 'bat_speed' in savant_df.columns:
+        bat_speed_df = savant_df[['home_team', 'bat_speed']].dropna()
+        if not bat_speed_df.empty:
+            team_bat = bat_speed_df.groupby('home_team')['bat_speed'].mean().reset_index().rename(columns={'home_team': 'team_name'})
+            for _, row in team_bat.iterrows():
+                bat_speed_dict[row['team_name']] = row['bat_speed']
+
+    # 跑垒速度
     sprint_speed_dict = {}
+    if not savant_df.empty and 'sprint_speed' in savant_df.columns:
+        sprint_df = savant_df[['home_team', 'sprint_speed']].dropna()
+        if not sprint_df.empty:
+            team_sprint = sprint_df.groupby('home_team')['sprint_speed'].mean().reset_index().rename(columns={'home_team': 'team_name'})
+            for _, row in team_sprint.iterrows():
+                sprint_speed_dict[row['team_name']] = row['sprint_speed']
+
+    # 投手评分
     pitcher_rating_dict = {}
+    if calculate_pitcher_ratings and not savant_df.empty:
+        try:
+            pitcher_rating_dict = calculate_pitcher_ratings(savant_df)
+        except Exception as e:
+            errors.append(f"投手评分失败: {e}")
+
+    # 挥空、CSW、被扎实击球率
     swing_miss_dict = {}
     csw_dict = {}
     barrel_against_dict = {}
-    # ... 省略的代码请根据你的原始文件补全
+    if not savant_df.empty and 'whiff' in savant_df.columns:
+        pitcher_team_col = 'home_team'
+        whiff_rate = savant_df.groupby(pitcher_team_col)['whiff'].mean().reset_index()
+        whiff_rate.rename(columns={pitcher_team_col: 'team_name', 'whiff': 'whiff_rate'}, inplace=True)
+        for _, row in whiff_rate.iterrows():
+            swing_miss_dict[row['team_name']] = row['whiff_rate']
+        if 'csw' in savant_df.columns:
+            csw_rate = savant_df.groupby(pitcher_team_col)['csw'].mean().reset_index()
+            csw_rate.rename(columns={pitcher_team_col: 'team_name', 'csw': 'csw_rate'}, inplace=True)
+            for _, row in csw_rate.iterrows():
+                csw_dict[row['team_name']] = row['csw_rate']
+        faced = savant_df.groupby(pitcher_team_col).size().reset_index(name='faced')
+        barrel_count = savant_df[savant_df['barrel'] == 1].groupby(pitcher_team_col).size().reset_index(name='barrel_count')
+        barrel_rate = faced.merge(barrel_count, on=pitcher_team_col, how='left')
+        barrel_rate['barrel_count'] = barrel_rate['barrel_count'].fillna(0)
+        barrel_rate['barrel_rate_against'] = barrel_rate['barrel_count'] / barrel_rate['faced']
+        barrel_rate.rename(columns={pitcher_team_col: 'team_name'}, inplace=True)
+        for _, row in barrel_rate.iterrows():
+            barrel_against_dict[row['team_name']] = row['barrel_rate_against']
 
     # ---------- 天气 ----------
     weather_df = pd.DataFrame(data.get('openmeteo_weather', []))
@@ -773,7 +821,7 @@ def generate_predictions(elo_system=None):
                 except Exception as e:
                     errors.append(f"盘口曲线失败: {e}")
 
-        # ---------- 手工预测（纯 ELO 概率，去主场优势）----------
+        # ---------- 手工预测（纯 ELO 概率，去除主场优势）----------
         neutral_elo_diff = features['elo_diff']
         if elo_system:
             neutral_elo_diff -= elo_system.home_adv
@@ -786,7 +834,7 @@ def generate_predictions(elo_system=None):
         no_odds_pred = elo_prob + sp_adj
         no_odds_pred = min(0.95, max(0.05, no_odds_pred))
 
-        # 机器学习预测
+        # 机器学习预测（若模型存在）
         ml_pred = None
         if model is not None:
             feature_order = [
@@ -818,7 +866,7 @@ def generate_predictions(elo_system=None):
         season_adj = get_season_phase_adjustment(date_str, pred_home)
         pred_home += season_adj
 
-        # 贝叶斯收缩（适当加强市场锚定，避免纯 ELO 过于极端）
+        # 贝叶斯收缩 (10% 市场锚定)
         shrinkage = 0.10
         pred_home = pred_home * (1 - shrinkage) + (market_prob or 0.5) * shrinkage
         pred_home = min(0.95, max(0.05, pred_home))
