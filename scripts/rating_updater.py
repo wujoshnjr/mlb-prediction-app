@@ -1,10 +1,8 @@
 # scripts/rating_updater.py
 """
-统一评级更新器：根据配置选择 ELO 或 Glicko2 引擎。
-内置简单 ELO 更新，Glicko2 转换时移除主场优势（24 分）。
-新增：基于 game_id 的去重机制，防止同一场比赛重复更新。
+統一評級更新器：根據 config 選擇 ELO 或 Glicko2。
+新增：基於 game_id 的去重機制，防止同一場比賽重複更新。
 """
-
 import sys, os, json, logging, copy
 from datetime import datetime
 
@@ -18,7 +16,8 @@ logging.basicConfig(level=logging.INFO)
 
 ELO_FILE = 'data/elo_ratings.json'
 GLICKO_FILE = 'data/glicko2_ratings.json'
-RATED_GAMES_FILE = 'data/rated_game_ids.json'  # 新增：已处理的 game_id 列表
+RATED_GAMES_FILE = 'data/rated_game_ids.json'
+FINAL_RESULTS_FILE = 'data/new_final_results.json'
 
 def load_elo_ratings():
     if os.path.exists(ELO_FILE):
@@ -69,10 +68,6 @@ def simple_elo_update(elo_dict, home_team, away_team, home_score, away_score, K=
     return elo_dict
 
 def update_ratings(game_results):
-    """
-    game_results: list of dict，必须包含 game_id, home_team, away_team, home_score, away_score
-    只处理尚未更新过的比赛。
-    """
     rated_ids = load_rated_game_ids()
     new_games = []
     skipped = []
@@ -80,7 +75,6 @@ def update_ratings(game_results):
     for game in game_results:
         gid = str(game.get('game_id'))
         if not gid:
-            skipped.append('missing_id')
             continue
         if gid in rated_ids:
             skipped.append(gid)
@@ -113,10 +107,8 @@ def update_ratings(game_results):
             if home not in league.teams: league.add_team(home)
             if away not in league.teams: league.add_team(away)
 
-            # 使用赛前快照，避免顺序污染
             home_team = league.teams[home]
             away_team = league.teams[away]
-            # 深拷贝对手状态
             home_opponent_snapshot = copy.deepcopy(away_team)
             away_opponent_snapshot = copy.deepcopy(home_team)
 
@@ -131,11 +123,24 @@ def update_ratings(game_results):
                 away_team.update(away_opponent_snapshot, 0.5)
         save_glicko2_league(league)
     else:
-        raise ValueError(f"未知的评级引擎: {config.RATINGS_ENGINE}")
+        raise ValueError(f"未知的評級引擎: {config.RATINGS_ENGINE}")
 
-    # 更新已处理集合
     for game in new_games:
         rated_ids.add(str(game['game_id']))
     save_rated_game_ids(rated_ids)
 
-    logger.info(f"评级更新完成，新处理 {len(new_games)} 场比赛")
+    logger.info(f"新处理 rating 比赛数={len(new_games)}，跳过重复={len(skipped)}，rated_game_ids 总数={len(rated_ids)}")
+
+def main():
+    if not os.path.exists(FINAL_RESULTS_FILE):
+        logger.error(f"缺少 {FINAL_RESULTS_FILE}，請先執行 update_results.py")
+        return
+    with open(FINAL_RESULTS_FILE) as f:
+        games = json.load(f)
+    if not games:
+        logger.info("沒有新比賽資料")
+        return
+    update_ratings(games)
+
+if __name__ == '__main__':
+    main()
