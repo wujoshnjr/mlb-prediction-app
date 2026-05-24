@@ -8,7 +8,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from model import UnifiedSportsModel
 
-# 防御性导入 config
 try:
     import config
 except:
@@ -70,7 +69,6 @@ if config.RATINGS_ENGINE == 'glicko2' and load_glicko2_league is not None:
     except Exception as e:
         print(f"Glicko2 加载失败: {e}")
 
-# NRFI 模型加载
 nrfi_model = None
 nrfi_model_loaded = False
 if config.NRFI_USE_ML and NRFIModel is not None:
