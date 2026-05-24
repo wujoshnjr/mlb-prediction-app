@@ -90,12 +90,24 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Force retrain model
+      - name: Train model (if enough data)
         run: |
           python train_ensemble.py
-          if [ ! -f data/calibrator.pkl ]; then
-            echo "ERROR: calibrator.pkl was not generated"
-            exit 1
+          if [ -f data/training_status.json ]; then
+            STATUS=$(python -c "import json; print(json.load(open('data/training_status.json'))['trained'])")
+            if [ "$STATUS" == "False" ]; then
+              echo "模型训练跳过，样本不足。"
+            else
+              if [ ! -f data/calibrator.pkl ]; then
+                echo "ERROR: calibrator.pkl was not generated"
+                exit 1
+              fi
+            fi
+          else
+            if [ ! -f data/calibrator.pkl ]; then
+              echo "ERROR: calibrator.pkl was not generated and status unknown"
+              exit 1
+            fi
           fi
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -115,6 +127,8 @@ jobs:
           if [ -f data/elo_ratings.json ]; then git add -f data/elo_ratings.json; fi
           if [ -f data/glicko2_ratings.json ]; then git add -f data/glicko2_ratings.json; fi
           if [ -f data/calibrator.pkl ]; then git add -f data/calibrator.pkl; fi
+          if [ -f data/rated_game_ids.json ]; then git add -f data/rated_game_ids.json; fi
+          if [ -f data/training_status.json ]; then git add -f data/training_status.json; fi
           git commit -m "Update game results, ratings & model [skip ci]" || echo "No changes"
           git pull --rebase origin main
           git push
@@ -140,8 +154,7 @@ jobs:
         run: pip install pandas requests pyarrow
 
       - name: Collect yesterday's data
-        run: |
-          python scripts/historical_collector.py $(date -d "yesterday" +%Y-%m-%d)
+        run: python scripts/historical_collector.py $(date -d "yesterday" +%Y-%m-%d)
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -177,8 +190,7 @@ jobs:
         run: pip install pandas requests pyarrow
 
       - name: Backfill history
-        run: |
-          python scripts/historical_collector.py ${{ github.event.inputs.collect_from }} ${{ github.event.inputs.collect_to }}
+        run: python scripts/historical_collector.py ${{ github.event.inputs.collect_from }} ${{ github.event.inputs.collect_to }}
         env:
           PYTHONPATH: ${{ github.workspace }}
 
