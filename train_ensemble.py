@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import json
 from datetime import datetime
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
@@ -11,7 +12,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import log_loss, brier_score_loss
 
-# 导入配置（防御性）
+# 導入配置（防禦性）
 try:
     import config
 except ImportError:
@@ -19,7 +20,7 @@ except ImportError:
         MODEL_USE_MLP = False
         MODEL_META = 'lr'
 
-# 可选模块
+# 可選模組
 try:
     from sklearn.neural_network import MLPClassifier
     from sklearn.preprocessing import StandardScaler
@@ -38,8 +39,9 @@ HISTORY_FILE = "data/historical_predictions.csv"
 MODEL_OUTPUT = "data/calibrator.pkl"
 TRAINING_LOG = "data/training_log.csv"
 FEATURE_IMPORTANCE_LOG = "data/feature_importance.csv"
+STATUS_FILE = "data/training_status.json"
 
-# 与 prediction.py 完全同步的特征列表（无 market_prob，全部 diff）
+# 與 prediction.py 完全同步的特徵列表（無 market_prob，全部 diff）
 EXPECTED_FEATURES = [
     'elo_diff',
     'sp_era_diff', 'sp_fip_diff', 'sp_stuff_plus_diff', 'sp_csw_diff',
@@ -59,7 +61,7 @@ EXPECTED_FEATURES = [
     'swing_miss_diff', 'csw_diff', 'barrel_bb_pct_diff',
     'sprint_speed_diff', 'pitch_type_matchup_score',
     'top3_woba_diff', 'winrate_diff', 'bt_strength_diff',
-    # Pitch Usage 特征
+    # Pitch Usage 特徵
     'home_usage_magnitude', 'away_usage_magnitude',
     'home_shift_score', 'away_shift_score',
     'home_delta_FF', 'home_delta_SL', 'home_delta_CH', 'home_delta_CU',
@@ -68,6 +70,21 @@ EXPECTED_FEATURES = [
     'away_delta_FC', 'away_delta_SI', 'away_delta_KC', 'away_delta_FS'
 ]
 
+def write_status(trained, skipped, sample_count, reason=None, brier=None, logloss=None):
+    """輸出訓練狀態 JSON"""
+    status = {
+        "trained": trained,
+        "skipped": skipped,
+        "sample_count": sample_count,
+        "reason": reason,
+        "brier": brier,
+        "logloss": logloss,
+        "timestamp": datetime.now().isoformat()
+    }
+    os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
+    with open(STATUS_FILE, 'w') as f:
+        json.dump(status, f, indent=2)
+
 def prepare_data():
     df = pd.read_csv(HISTORY_FILE)
     if 'game_date' in df.columns:
@@ -75,8 +92,11 @@ def prepare_data():
     df['home_win'] = df['home_win'].replace('', np.nan)
     df = df.dropna(subset=['home_win'])
     df['home_win'] = df['home_win'].astype(int)
-    if len(df) < 50:
-        print(f"数据量不足 ({len(df)})，跳过训练")
+    sample_count = len(df)
+
+    if sample_count < 50:
+        print(f"SKIP_TRAINING: insufficient completed historical predictions ({sample_count} < 50)")
+        write_status(False, True, sample_count, reason=f"Insufficient samples ({sample_count} < 50)")
         return None, None, None, None, None
 
     for col in EXPECTED_FEATURES:
@@ -85,7 +105,7 @@ def prepare_data():
         else:
             df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
 
-    # 时效性衰减权重
+    # 時效性衰減權重
     if 'game_date' in df.columns:
         max_date = pd.to_datetime(df['game_date']).max()
         df['days_ago'] = (max_date - pd.to_datetime(df['game_date'])).dt.days
@@ -98,28 +118,29 @@ def prepare_data():
     y = df['home_win'].values
     w = df['sample_weight'].values
 
-    # 移除低方差特征
+    # 移除低方差特徵
     var = np.var(X, axis=0)
     keep_mask = var > 1e-8
     if not np.any(keep_mask):
-        print("所有特征均无方差，跳过训练")
+        print("所有特徵均無方差，跳過訓練")
+        write_status(False, True, sample_count, reason="All features have zero variance")
         return None, None, None, None, None
 
     X = X[:, keep_mask]
     kept_features = [f for f, k in zip(EXPECTED_FEATURES, keep_mask) if k]
     removed_features = [f for f, k in zip(EXPECTED_FEATURES, keep_mask) if not k]
     if removed_features:
-        print(f"已移除无方差特征: {removed_features}")
+        print(f"已移除無方差特徵: {removed_features}")
 
-    return X, y, w, df, kept_features
+    return X, y, w, df, kept_features, sample_count
 
 def train():
     data = prepare_data()
     if data is None or data[0] is None:
         return
-    X, y, w, df_all, used_features = data
+    X, y, w, df_all, used_features, sample_count = data
 
-    # 严格时间切分：70% 训练 / 15% 校准 / 15% 测试
+    # 嚴格時間切分：70% 訓練 / 15% 校準 / 15% 測試
     n = len(X)
     train_end = int(n * 0.7)
     calib_end = int(n * 0.85)
@@ -136,9 +157,9 @@ def train():
     y_test = y[calib_end:]
     w_test = w[calib_end:]
 
-    print(f"训练集: {len(X_train)}  校准集: {len(X_calib)}  测试集: {len(X_test)}")
+    print(f"訓練集: {len(X_train)}  校準集: {len(X_calib)}  測試集: {len(X_test)}")
 
-    # 基础学习器
+    # 基礎學習器
     xgb = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
                          importance_type='gain', random_state=42,
                          eval_metric='logloss', use_label_encoder=False)
@@ -147,7 +168,7 @@ def train():
     rf = RandomForestClassifier(n_estimators=300, max_depth=5, random_state=42)
     estimators = [('xgb', xgb), ('lgb', lgb), ('rf', rf)]
 
-    # 可选 MLP
+    # 可選 MLP
     if config.MODEL_USE_MLP:
         if MLPClassifier is not None and StandardScaler is not None and Pipeline is not None:
             mlp = MLPClassifier(hidden_layer_sizes=(64, 32), activation='relu',
@@ -155,7 +176,7 @@ def train():
             mlp_pipe = Pipeline([('scaler', StandardScaler()), ('mlp', mlp)])
             estimators.append(('mlp', mlp_pipe))
 
-    # 元学习器
+    # 元學習器
     if config.MODEL_META == 'elasticnet' and SGDClassifier is not None:
         final_estimator = SGDClassifier(loss='log_loss', penalty='elasticnet',
                                         l1_ratio=0.5, alpha=0.0001,
@@ -163,31 +184,34 @@ def train():
     else:
         final_estimator = LogisticRegression(random_state=42, max_iter=2000)
 
-    # 修正：使用 cv=5 而不是 'prefit'
+    # 使用 cv=5 而非 'prefit'
     stacking = StackingClassifier(estimators=estimators,
                                   final_estimator=final_estimator,
                                   cv=5)
 
-    print("训练 Stacking 模型...")
+    print("訓練 Stacking 模型...")
     stacking.fit(X_train, y_train, sample_weight=w_train)
 
-    # 在独立校准集上做 sigmoid 校准
-    print("进行 sigmoid 校准...")
+    # 在獨立校準集上做 sigmoid 校準
+    print("進行 sigmoid 校準...")
     calibrated_model = CalibratedClassifierCV(estimator=stacking, method='sigmoid',
                                               cv='prefit')
     calibrated_model.fit(X_calib, y_calib, sample_weight=w_calib)
 
-    # 保存最终模型
+    # 保存最終模型
     joblib.dump(calibrated_model, MODEL_OUTPUT)
     print("模型已保存至", MODEL_OUTPUT)
 
-    # 测试集评估
+    # 測試集評估
     test_probs = calibrated_model.predict_proba(X_test)[:, 1]
     test_brier = brier_score_loss(y_test, test_probs)
     test_logloss = log_loss(y_test, test_probs)
-    print(f"测试集 Brier: {test_brier:.4f}, LogLoss: {test_logloss:.4f}")
+    print(f"測試集 Brier: {test_brier:.4f}, LogLoss: {test_logloss:.4f}")
 
-    # 训练日志
+    # 寫入狀態文件
+    write_status(True, False, sample_count, brier=round(test_brier, 4), logloss=round(test_logloss, 4))
+
+    # 訓練日誌
     log_entry = {"timestamp": datetime.now().isoformat(),
                  "num_samples": len(df_all),
                  "brier": round(test_brier, 4),
@@ -198,7 +222,7 @@ def train():
     else:
         log_df.to_csv(TRAINING_LOG, index=False)
 
-    # 特征重要性（基于 XGBoost gain）
+    # 特徵重要性（基於 XGBoost gain）
     xgb_for_imp = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
                                 importance_type='gain', random_state=42,
                                 eval_metric='logloss', use_label_encoder=False)
@@ -214,7 +238,7 @@ def train():
         imp_df.to_csv(FEATURE_IMPORTANCE_LOG, index=False)
 
     sorted_idx = np.argsort(importances)
-    print("\n⚠️ 重要性最低的5个特征:")
+    print("\n⚠️ 重要性最低的5個特徵:")
     for i in sorted_idx[:5]:
         if i < len(feat_names):
             print(f"  {feat_names[i]}: {importances[i]:.6f}")
