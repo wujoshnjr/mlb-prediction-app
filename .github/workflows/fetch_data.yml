@@ -77,12 +77,22 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Upload repair diagnostic reports
+        if: ${{ always() && github.event_name == 'workflow_dispatch' && (github.event.inputs.backfill_final_scores == 'true' || github.event.inputs.rebuild_ratings == 'true') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: repair-diagnostic-reports
+          path: |
+            report/final_score_backfill_report.json
+            report/rating_rebuild_report.json
+          if-no-files-found: warn
+
       - name: Incrementally update ratings
         if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.rebuild_ratings == 'true') }}
         run: python scripts/rating_updater.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-
+          
       - name: Train model if enough finalized samples are available
         run: python train_ensemble.py
         env:
