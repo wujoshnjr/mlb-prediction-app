@@ -1,3 +1,4 @@
+# scripts/savant_client.py
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
@@ -31,7 +32,7 @@ def fetch_savant_statcast(date_str: str = None, errors: list = None) -> pd.DataF
             'pfx_x', 'pfx_z', 'release_spin_rate',
             'plate_x', 'plate_z', 'whiff', 'csw', 'bat_speed',
             'sprint_speed',
-            'pitcher'                # 投手ID
+            'pitcher'
         ]
         cols = [c for c in desired if c in df.columns]
         return df[cols].head(3000)
