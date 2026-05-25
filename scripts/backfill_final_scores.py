@@ -5,7 +5,9 @@ Only games confirmed as Final by the MLB Stats API are written. Non-final games
 and API failures are tracked separately and never overwrite existing records.
 
 The repair run is intentionally bounded so a workflow_dispatch job does not
-spend a very long time scanning multiple historical seasons.
+scan multiple historical seasons without a stop condition.
+
+Runtime text is ASCII-only to avoid encoding damage during browser edits.
 """
 
 from __future__ import annotations
@@ -27,13 +29,22 @@ REPORT_FILE = Path("report/final_score_backfill_report.json")
 REQUEST_TIMEOUT_SECONDS = 10
 REQUEST_SLEEP_SECONDS = 0.05
 
-MINIMUM_BACKFILL_DATE = pd.Timestamp("2026-05-01")
-TARGET_FINAL_GAMES = 250
-MAX_UNDATED_CSV_ROWS = 500
+# Repair only recent historical files that actually exist in this repository.
+# The current historical parquet data includes 2025 files, so using a 2026
+# cutoff would incorrectly skip all usable repair sources.
+MINIMUM_BACKFILL_DATE = pd.Timestamp("2025-08-01")
+
+# Enough finalized games to cover all MLB teams while remaining bounded.
+TARGET_FINAL_GAMES = 500
+
+# Used only when the CSV does not contain a usable date column.
+MAX_UNDATED_CSV_ROWS = 1000
 
 
 @dataclass(frozen=True)
 class ScoreFetchResult:
+    """Result returned after requesting one MLB game final score."""
+
     status: str
     home_win: int | None = None
     home_score: int | None = None
@@ -54,14 +65,14 @@ def normalize_game_id(value: Any) -> str | None:
         pass
 
     text = str(value).strip()
-    if not text or text.lower() in {"nan", "none"}:
+    if not text or text.lower() in {"nan", "none", "null", "<na>"}:
         return None
 
     return text
 
 
 def fetch_final_score(game_id: str) -> ScoreFetchResult:
-    """Fetch a game result only if the MLB API confirms the game is Final."""
+    """Fetch a result only when MLB confirms the game is Final."""
     url = f"https://statsapi.mlb.com/api/v1.1/game/{game_id}/feed/live"
 
     try:
@@ -69,7 +80,10 @@ def fetch_final_score(game_id: str) -> ScoreFetchResult:
         response.raise_for_status()
         payload = response.json()
     except (requests.RequestException, ValueError) as exc:
-        return ScoreFetchResult(status="api_error", detail=str(exc))
+        return ScoreFetchResult(
+            status="api_error",
+            detail=str(exc),
+        )
 
     game_status = payload.get("gameData", {}).get("status", {})
     abstract_state = str(game_status.get("abstractGameState", ""))
@@ -93,18 +107,17 @@ def fetch_final_score(game_id: str) -> ScoreFetchResult:
 
     home_score = int(home_runs)
     away_score = int(away_runs)
-    home_win = 1 if home_score > away_score else 0
 
     return ScoreFetchResult(
         status="final_success",
-        home_win=home_win,
+        home_win=1 if home_score > away_score else 0,
         home_score=home_score,
         away_score=away_score,
     )
 
 
 def ensure_score_columns(frame: pd.DataFrame) -> pd.DataFrame:
-    """Ensure columns required by rating rebuild exist."""
+    """Ensure output columns needed by rating rebuild exist."""
     output = frame.copy()
 
     for column in ("home_win", "home_score", "away_score"):
@@ -115,10 +128,16 @@ def ensure_score_columns(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def frame_missing_score_mask(frame: pd.DataFrame) -> pd.Series:
-    """Return rows with a game id that still require finalized scores."""
+    """Return rows that have a game id but still need final scores."""
+    if "game_id" not in frame.columns:
+        return pd.Series(False, index=frame.index)
+
     return (
         frame["game_id"].notna()
-        & (frame["home_score"].isna() | frame["away_score"].isna())
+        & (
+            frame["home_score"].isna()
+            | frame["away_score"].isna()
+        )
     )
 
 
@@ -128,7 +147,7 @@ def update_frame(
     stats: dict[str, int],
     source_name: str,
 ) -> tuple[pd.DataFrame, bool]:
-    """Backfill one data frame without writing any non-final game result."""
+    """Backfill one data frame without writing any non-final result."""
     if "game_id" not in frame.columns:
         print(f"Skipping {source_name}: missing game_id column.")
         stats["files_missing_game_id_column"] += 1
@@ -181,13 +200,22 @@ def update_frame(
     return output, changed
 
 
-def select_recent_csv_rows(frame: pd.DataFrame) -> pd.DataFrame:
-    """Select a bounded recent repair window while retaining original indexes."""
+def get_date_column(frame: pd.DataFrame) -> str | None:
+    """Return the available date column name."""
     if "game_date" in frame.columns:
-        date_column = "game_date"
-    elif "date" in frame.columns:
-        date_column = "date"
-    else:
+        return "game_date"
+
+    if "date" in frame.columns:
+        return "date"
+
+    return None
+
+
+def select_recent_csv_rows(frame: pd.DataFrame) -> pd.DataFrame:
+    """Select recent CSV rows while retaining original row indexes."""
+    date_column = get_date_column(frame)
+
+    if date_column is None:
         print(
             "Historical CSV has no date column; "
             f"using the last {MAX_UNDATED_CSV_ROWS} rows only."
@@ -197,16 +225,22 @@ def select_recent_csv_rows(frame: pd.DataFrame) -> pd.DataFrame:
     parsed_dates = pd.to_datetime(frame[date_column], errors="coerce")
     selected = frame.loc[parsed_dates >= MINIMUM_BACKFILL_DATE].copy()
 
-    if not selected.empty:
-        selected["_repair_date"] = parsed_dates.loc[selected.index]
-        selected = selected.sort_values("_repair_date", ascending=False)
-        selected = selected.drop(columns=["_repair_date"])
+    if selected.empty:
+        print(
+            "Historical CSV contains no rows on or after "
+            f"{MINIMUM_BACKFILL_DATE.date()}."
+        )
+        return selected
+
+    selected["_repair_date"] = parsed_dates.loc[selected.index]
+    selected = selected.sort_values("_repair_date", ascending=False)
+    selected = selected.drop(columns=["_repair_date"])
 
     return selected
 
 
-def write_report(stats: dict[str, int]) -> None:
-    """Write a compact repair diagnostic report."""
+def write_report(stats: dict[str, Any]) -> None:
+    """Write a diagnostic report for GitHub Actions artifacts."""
     REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
     REPORT_FILE.write_text(
         json.dumps(stats, indent=2),
@@ -214,9 +248,114 @@ def write_report(stats: dict[str, int]) -> None:
     )
 
 
+def process_history_csv(
+    already_fetched: dict[str, ScoreFetchResult],
+    stats: dict[str, Any],
+) -> None:
+    """Backfill recent rows in the main historical CSV file."""
+    if not HISTORY_FILE.exists():
+        stats["csv_file_exists"] = False
+        return
+
+    stats["csv_file_exists"] = True
+
+    try:
+        csv_frame = pd.read_csv(HISTORY_FILE)
+    except Exception as exc:
+        stats["files_read_failed"] += 1
+        print(f"Unable to process {HISTORY_FILE}: {exc}")
+        return
+
+    recent_csv = select_recent_csv_rows(csv_frame)
+    stats["csv_recent_rows_selected"] = int(len(recent_csv))
+
+    if recent_csv.empty:
+        return
+
+    recent_csv, changed = update_frame(
+        recent_csv,
+        already_fetched,
+        stats,
+        str(HISTORY_FILE),
+    )
+
+    if not changed:
+        return
+
+    for column in ("home_win", "home_score", "away_score"):
+        if column not in csv_frame.columns:
+            csv_frame[column] = np.nan
+
+        csv_frame.loc[recent_csv.index, column] = recent_csv[column]
+
+    csv_frame.to_csv(HISTORY_FILE, index=False, encoding="utf-8")
+    stats["files_updated"] += 1
+    print(f"Updated {HISTORY_FILE}.")
+
+
+def process_historical_parquet(
+    already_fetched: dict[str, ScoreFetchResult],
+    stats: dict[str, Any],
+) -> None:
+    """Backfill recent dated parquet files from newest date backwards."""
+    if not HISTORICAL_DIR.exists():
+        stats["historical_directory_exists"] = False
+        return
+
+    stats["historical_directory_exists"] = True
+
+    parquet_paths = sorted(
+        HISTORICAL_DIR.glob("*.parquet"),
+        reverse=True,
+    )
+
+    stats["parquet_files_seen"] = int(len(parquet_paths))
+
+    for parquet_path in parquet_paths:
+        if stats["final_games_found"] >= TARGET_FINAL_GAMES:
+            print(
+                f"Target reached: {stats['final_games_found']} finalized games found."
+            )
+            break
+
+        file_date = pd.to_datetime(parquet_path.stem, errors="coerce")
+
+        if pd.notna(file_date) and file_date < MINIMUM_BACKFILL_DATE:
+            stats["parquet_files_before_cutoff_skipped"] += 1
+            continue
+
+        stats["parquet_files_attempted"] += 1
+
+        try:
+            parquet_frame = pd.read_parquet(parquet_path)
+        except Exception as exc:
+            stats["files_read_failed"] += 1
+            print(f"Unable to read {parquet_path}: {exc}")
+            continue
+
+        parquet_frame, changed = update_frame(
+            parquet_frame,
+            already_fetched,
+            stats,
+            str(parquet_path),
+        )
+
+        if changed:
+            try:
+                parquet_frame.to_parquet(parquet_path, index=False)
+                stats["files_updated"] += 1
+                stats["parquet_files_updated"] += 1
+                print(f"Updated {parquet_path}.")
+            except Exception as exc:
+                stats["files_write_failed"] += 1
+                print(f"Unable to write {parquet_path}: {exc}")
+
+
 def backfill() -> None:
-    """Backfill a bounded set of recent finalized MLB results."""
-    stats = {
+    """Backfill a bounded recent window of finalized MLB game results."""
+    stats: dict[str, Any] = {
+        "minimum_backfill_date": str(MINIMUM_BACKFILL_DATE.date()),
+        "target_final_games": TARGET_FINAL_GAMES,
         "rows_scanned": 0,
         "rows_backfilled": 0,
         "unique_games_requested": 0,
@@ -229,64 +368,20 @@ def backfill() -> None:
         "files_missing_game_id_column": 0,
         "files_updated": 0,
         "files_read_failed": 0,
+        "files_write_failed": 0,
+        "parquet_files_seen": 0,
+        "parquet_files_attempted": 0,
+        "parquet_files_updated": 0,
+        "parquet_files_before_cutoff_skipped": 0,
+        "csv_recent_rows_selected": 0,
     }
 
     already_fetched: dict[str, ScoreFetchResult] = {}
 
-    if HISTORY_FILE.exists():
-        try:
-            csv_frame = pd.read_csv(HISTORY_FILE)
-            recent_csv = select_recent_csv_rows(csv_frame)
-            recent_csv, changed = update_frame(
-                recent_csv,
-                already_fetched,
-                stats,
-                str(HISTORY_FILE),
-            )
+    process_history_csv(already_fetched, stats)
 
-            if changed:
-                for column in ("home_win", "home_score", "away_score"):
-                    if column not in csv_frame.columns:
-                        csv_frame[column] = np.nan
-                    csv_frame.loc[recent_csv.index, column] = recent_csv[column]
-
-                csv_frame.to_csv(HISTORY_FILE, index=False, encoding="utf-8")
-                stats["files_updated"] += 1
-                print(f"Updated {HISTORY_FILE}.")
-        except Exception as exc:
-            stats["files_read_failed"] += 1
-            print(f"Unable to process {HISTORY_FILE}: {exc}")
-
-    if HISTORICAL_DIR.exists():
-        parquet_paths = sorted(HISTORICAL_DIR.glob("*.parquet"), reverse=True)
-
-        for parquet_path in parquet_paths:
-            if stats["final_games_found"] >= TARGET_FINAL_GAMES:
-                print(
-                    f"Target reached: {stats['final_games_found']} finalized games found."
-                )
-                break
-
-            try:
-                file_date = pd.to_datetime(parquet_path.stem, errors="coerce")
-                if pd.notna(file_date) and file_date < MINIMUM_BACKFILL_DATE:
-                    continue
-
-                parquet_frame = pd.read_parquet(parquet_path)
-                parquet_frame, changed = update_frame(
-                    parquet_frame,
-                    already_fetched,
-                    stats,
-                    str(parquet_path),
-                )
-
-                if changed:
-                    parquet_frame.to_parquet(parquet_path, index=False)
-                    stats["files_updated"] += 1
-                    print(f"Updated {parquet_path}.")
-            except Exception as exc:
-                stats["files_read_failed"] += 1
-                print(f"Unable to process {parquet_path}: {exc}")
+    if stats["final_games_found"] < TARGET_FINAL_GAMES:
+        process_historical_parquet(already_fetched, stats)
 
     write_report(stats)
 
