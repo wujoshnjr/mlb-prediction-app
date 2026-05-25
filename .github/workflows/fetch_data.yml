@@ -6,15 +6,23 @@ on:
   workflow_dispatch:
     inputs:
       collect_from:
-        description: '开始日期 (YYYY-MM-DD)'
+        description: '歷史資料回補開始日期 (YYYY-MM-DD)'
         required: false
+        type: string
       collect_to:
-        description: '结束日期 (YYYY-MM-DD)'
+        description: '歷史資料回補結束日期 (YYYY-MM-DD)'
         required: false
-      rebuild_ratings:
-        description: '手动重建评级 (输入 true)'
+        type: string
+      backfill_final_scores:
+        description: '回補歷史正式比分（輸入 true）'
         required: false
         default: 'false'
+        type: string
+      rebuild_ratings:
+        description: '從 finalized games 安全重建 rating（輸入 true）'
+        required: false
+        default: 'false'
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,46 +35,67 @@ jobs:
   update-and-predict:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-python@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
+          cache: 'pip'
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: (Optional) Rebuild ratings
-        if: github.event.inputs.rebuild_ratings == 'true'
-        run: python scripts/rebuild_ratings.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+      - name: Compile critical Python files
+        run: |
+          python -m py_compile \
+            prediction.py \
+            train_ensemble.py \
+            scripts/feature_schema.py \
+            scripts/backfill_final_scores.py \
+            scripts/rebuild_ratings.py \
+            scripts/rating_updater.py \
+            scripts/validate_predictions.py
 
-      - name: Update game results
+      - name: Update finalized game results
         run: python scripts/update_results.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Update ratings
+      - name: Backfill historical final scores
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.backfill_final_scores == 'true' }}
+        run: python scripts/backfill_final_scores.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Rebuild ratings from finalized history
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.rebuild_ratings == 'true' }}
+        run: python scripts/rebuild_ratings.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Incrementally update ratings
+        if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.rebuild_ratings == 'true') }}
         run: python scripts/rating_updater.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Train model (if needed)
+      - name: Train model if enough finalized samples are available
         run: python train_ensemble.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Generate prediction
+      - name: Generate prediction report
         run: python prediction.py
         env:
           BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Validate predictions
+      - name: Validate prediction report and rating state
         run: python scripts/validate_predictions.py
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -76,23 +105,37 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git add -f report/prediction.json
-          if [ -f data/historical_predictions.csv ]; then git add -f data/historical_predictions.csv; fi
-          if [ -f data/new_final_results.json ]; then git add -f data/new_final_results.json; fi
-          if [ -f data/elo_ratings.json ]; then git add -f data/elo_ratings.json; fi
-          if [ -f data/glicko2_ratings.json ]; then git add -f data/glicko2_ratings.json; fi
-          if [ -f data/calibrator.pkl ]; then git add -f data/calibrator.pkl; fi
-          if [ -f data/rated_game_ids.json ]; then git add -f data/rated_game_ids.json; fi
-          if [ -f data/training_status.json ]; then git add -f data/training_status.json; fi
-          git commit -m "Update prediction & ratings [skip ci]" || echo "No changes"
+
+          if [ -f report/prediction.json ]; then git add -f report/prediction.json; fi
+
+          for path in \
+            report/rating_rebuild_report.json \
+            data/historical_predictions.csv \
+            data/new_final_results.json \
+            data/elo_ratings.json \
+            data/glicko2_ratings.json \
+            data/calibrator.pkl \
+            data/rated_game_ids.json \
+            data/training_status.json \
+            data/training_log.csv \
+            data/feature_importance.csv \
+            data/team_last_game.json; do
+            if [ -f "$path" ]; then git add -f "$path"; fi
+          done
+
+          if [ -d data/historical ]; then git add -f data/historical/; fi
+
+          git commit -m "Update prediction, training and ratings [skip ci]" || echo "No changes"
           git pull --rebase origin main
           git push
 
   collect-history:
     runs-on: ubuntu-latest
     needs: update-and-predict
+    if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.collect_from == '' && github.event.inputs.collect_to == '') }}
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -101,15 +144,17 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git pull --rebase origin main
 
-      - uses: actions/setup-python@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
+          cache: 'pip'
 
       - name: Install dependencies
-        run: pip install pandas requests pyarrow
+        run: pip install -r requirements.txt
 
-      - name: Collect yesterday's data
-        run: python scripts/historical_collector.py $(date -d "yesterday" +%Y-%m-%d)
+      - name: Collect yesterday historical features
+        run: python scripts/historical_collector.py $(date -u -d "yesterday" +%Y-%m-%d)
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -118,42 +163,44 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git add -f data/historical/
-          git commit -m "Add historical data for $(date -d 'yesterday' +%Y-%m-%d)" || echo "No changes"
+
+          if [ -d data/historical ]; then git add -f data/historical/; fi
+
+          git commit -m "Add historical data for $(date -u -d 'yesterday' +%Y-%m-%d) [skip ci]" || echo "No changes"
           git pull --rebase origin main
           git push
 
   backfill-history:
     runs-on: ubuntu-latest
-    if: github.event.inputs.collect_from && github.event.inputs.collect_to
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.collect_from != '' && github.event.inputs.collect_to != '' }}
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull latest changes
-        run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git pull --rebase origin main
-
-      - uses: actions/setup-python@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
+          cache: 'pip'
 
       - name: Install dependencies
-        run: pip install pandas requests pyarrow
+        run: pip install -r requirements.txt
 
-      - name: Backfill history
-        run: python scripts/historical_collector.py ${{ github.event.inputs.collect_from }} ${{ github.event.inputs.collect_to }}
+      - name: Backfill historical features
+        run: python scripts/historical_collector.py "${{ github.event.inputs.collect_from }}" "${{ github.event.inputs.collect_to }}"
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Commit data
+      - name: Commit historical data
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git add -f data/historical/
-          git commit -m "Backfill historical data ${{ github.event.inputs.collect_from }} to ${{ github.event.inputs.collect_to }}" || echo "No changes"
+
+          if [ -d data/historical ]; then git add -f data/historical/; fi
+
+          git commit -m "Backfill historical data ${{ github.event.inputs.collect_from }} to ${{ github.event.inputs.collect_to }} [skip ci]" || echo "No changes"
           git pull --rebase origin main
           git push
