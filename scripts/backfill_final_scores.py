@@ -139,10 +139,10 @@ def update_frame(
     changed = False
 
      for index, row in output.loc[missing_mask].iterrows():
-        if stats["final_games_found"] >= TARGET_FINAL_GAMES:
-            break
+         if stats["final_games_found"] >= TARGET_FINAL_GAMES:
+             break
 
-        stats["rows_scanned"] += 1
+         stats["rows_scanned"] += 1
 
         game_id = normalize_game_id(row.get("game_id"))
         if not game_id:
