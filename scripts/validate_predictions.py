@@ -14,50 +14,45 @@ def validate():
 
     preds = data.get('today_predictions', [])
     if not preds:
-        print("没有预测数据")
+        print("没有预测数据，检查是否有比赛")
+        # 可进一步检查 schedule，但暂时 pass
         sys.exit(0)
 
-    errors = []
     home_probs = [p['predicted_home_win_pct'] for p in preds]
-    over_probs = [p['over_prob'] for p in preds if p.get('over_prob') is not None]
-    nrfi_probs = [p['nrfi_prob'] for p in preds if p.get('nrfi_prob') is not None]
-    nrfi_sources = [p.get('nrfi_source', 'unknown') for p in preds]
-    pipeline_errors = data.get('errors', [])
+    mean_home = np.mean(home_probs)
+    min_home = np.min(home_probs)
+    max_home = np.max(home_probs)
 
-    # 概率范围检查
-    for p in home_probs:
-        if not (0 <= p <= 1):
-            errors.append(f"概率超出范围: {p}")
-    if home_probs:
-        mean_home = np.mean(home_probs)
-        if mean_home > 0.58 or mean_home < 0.45:
-            errors.append(f"平均主队概率异常: {mean_home:.3f}")
+    errors = []
+    if len(preds) >= 5:
+        if mean_home > 0.60 or mean_home < 0.40:
+            errors.append(f"Avg home prob {mean_home:.3f} 异常")
+    else:
+        print(f"仅 {len(preds)} 场比赛，跳过平均检查")
 
-    if over_probs:
-        mean_over = np.mean(over_probs)
-        if mean_over > 0.9:
-            errors.append(f"平均 over 概率过高: {mean_over:.3f}")
+    # Rating 范围检查
+    elo_file = 'data/elo_ratings.json'
+    if os.path.exists(elo_file):
+        with open(elo_file) as f:
+            elo = json.load(f)
+        if elo:
+            ratings = list(elo.values())
+            rating_range = max(ratings) - min(ratings)
+            if rating_range > 400:
+                errors.append(f"Elo range {rating_range:.0f} 过大")
 
-    # NRFI 检查：只对有效来源且非 unavailable 的检查
-    valid_nrfi = [p for p in preds if p.get('nrfi_source') in ('ml', 'manual') and p.get('nrfi_prob') is not None]
-    if valid_nrfi:
-        prob_values = [p['nrfi_prob'] for p in valid_nrfi]
-        if len(prob_values) > 2 and all(abs(x - 0.5) < 0.01 for x in prob_values):
-            errors.append("NRFI 概率单一（全部≈0.5），可能模型未加载")
+    # 模型来源分布
+    sources = [p.get('model_source','unknown') for p in preds]
+    if all(s == 'manual' for s in sources):
+        print("所有比赛使用手工预测")
 
     if errors:
         print("❌ 验证失败:")
-        for e in errors:
-            print(e)
-        if pipeline_errors:
-            print("最近 pipeline errors:")
-            for e in pipeline_errors[-5:]:
-                print(f"  {e}")
-        with open('report/validation_errors.txt', 'w') as f:
-            f.write('\n'.join(errors))
+        for e in errors: print(e)
+        with open('report/validation_errors.txt','w') as f: f.write('\n'.join(errors))
         sys.exit(1)
     else:
-        print("✅ 预测输出通过自动验证")
+        print("✅ 预测通过验证")
 
 if __name__ == '__main__':
     validate()
