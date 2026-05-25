@@ -1,9 +1,7 @@
 # train_ensemble.py
 import pandas as pd
 import numpy as np
-import joblib
-import os
-import json
+import joblib, os, json
 from datetime import datetime
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
@@ -13,34 +11,16 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import log_loss, brier_score_loss
 from scripts.feature_schema import EXPECTED_FEATURES
 
-# 导入配置（防御性）
-try:
-    import config
-except ImportError:
-    class config:
-        MODEL_USE_MLP = False
-        MODEL_META = 'lr'
-
-# 可选模块
-try:
-    from sklearn.neural_network import MLPClassifier
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.pipeline import Pipeline
-except ImportError:
-    MLPClassifier = None
-    StandardScaler = None
-    Pipeline = None
-
-try:
-    from sklearn.linear_model import SGDClassifier
-except ImportError:
-    SGDClassifier = None
+try: import config
+except: class config: MODEL_USE_MLP=False; MODEL_META='lr'
 
 HISTORY_FILE = "data/historical_predictions.csv"
 MODEL_OUTPUT = "data/calibrator.pkl"
+STATUS_FILE = "data/training_status.json"
 TRAINING_LOG = "data/training_log.csv"
 FEATURE_IMPORTANCE_LOG = "data/feature_importance.csv"
-STATUS_FILE = "data/training_status.json"
+
+MIN_TRAIN_SAMPLES = 100
 
 def write_status(trained, skipped, sample_count, reason=None, brier=None, logloss=None):
     status = {
@@ -52,9 +32,7 @@ def write_status(trained, skipped, sample_count, reason=None, brier=None, loglos
         "logloss": logloss,
         "timestamp": datetime.now().isoformat()
     }
-    os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
-    with open(STATUS_FILE, 'w') as f:
-        json.dump(status, f, indent=2)
+    with open(STATUS_FILE,'w') as f: json.dump(status, f, indent=2)
 
 def prepare_data():
     df = pd.read_csv(HISTORY_FILE)
@@ -64,10 +42,8 @@ def prepare_data():
     df = df.dropna(subset=['home_win'])
     df['home_win'] = df['home_win'].astype(int)
     sample_count = len(df)
-
-    if sample_count < 50:
-        print(f"SKIP_TRAINING: insufficient samples ({sample_count} < 50)")
-        write_status(False, True, sample_count, reason=f"Insufficient samples ({sample_count} < 50)")
+    if sample_count < MIN_TRAIN_SAMPLES:
+        write_status(False, True, sample_count, reason=f"Insufficient samples ({sample_count} < {MIN_TRAIN_SAMPLES})")
         return None, None, None, None, None
 
     for col in EXPECTED_FEATURES:
@@ -91,15 +67,13 @@ def prepare_data():
     var = np.var(X, axis=0)
     keep = var > 1e-8
     if not np.any(keep):
-        print("所有特征均无方差，跳过训练")
-        write_status(False, True, sample_count, reason="All features have zero variance")
+        write_status(False, True, sample_count, reason="All features zero variance")
         return None, None, None, None, None
 
     X = X[:, keep]
     kept_features = [f for f, k in zip(EXPECTED_FEATURES, keep) if k]
-    removed_features = [f for f, k in zip(EXPECTED_FEATURES, keep) if not k]
-    if removed_features:
-        print(f"已移除无方差特征: {removed_features}")
+    removed = [f for f, k in zip(EXPECTED_FEATURES, keep) if not k]
+    if removed: print(f"Removed low variance features: {removed}")
 
     return X, y, w, df, kept_features, sample_count
 
@@ -121,84 +95,57 @@ def train():
     y_calib = y[train_end:calib_end]
     w_calib = w[train_end:calib_end]
 
-    X_test = X[calib_end:]
-    y_test = y[calib_end:]
-    w_test = w[calib_end:]
+    print(f"训练集: {len(X_train)}  校准集: {len(X_calib)}")
 
-    print(f"训练集: {len(X_train)}  校准集: {len(X_calib)}  测试集: {len(X_test)}")
-
-    xgb = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
-                         importance_type='gain', random_state=42,
-                         eval_metric='logloss', use_label_encoder=False)
-    lgb = LGBMClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
-                          random_state=42, verbose=-1)
+    xgb = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01, importance_type='gain', random_state=42, eval_metric='logloss')
+    lgb = LGBMClassifier(n_estimators=300, max_depth=5, learning_rate=0.01, random_state=42, verbose=-1)
     rf = RandomForestClassifier(n_estimators=300, max_depth=5, random_state=42)
     estimators = [('xgb', xgb), ('lgb', lgb), ('rf', rf)]
 
-    if config.MODEL_USE_MLP:
-        if MLPClassifier is not None and StandardScaler is not None and Pipeline is not None:
-            mlp = MLPClassifier(hidden_layer_sizes=(64, 32), activation='relu',
-                                alpha=0.001, early_stopping=True, random_state=42)
-            mlp_pipe = Pipeline([('scaler', StandardScaler()), ('mlp', mlp)])
-            estimators.append(('mlp', mlp_pipe))
+    final_estimator = LogisticRegression(random_state=42, max_iter=2000)
 
-    if config.MODEL_META == 'elasticnet' and SGDClassifier is not None:
-        final_estimator = SGDClassifier(loss='log_loss', penalty='elasticnet',
-                                        l1_ratio=0.5, alpha=0.0001,
-                                        random_state=42, max_iter=2000, tol=1e-3)
-    else:
-        final_estimator = LogisticRegression(random_state=42, max_iter=2000)
-
-    stacking = StackingClassifier(estimators=estimators,
-                                  final_estimator=final_estimator,
-                                  cv=5)
-
-    print("训练 Stacking 模型...")
+    stacking = StackingClassifier(estimators=estimators, final_estimator=final_estimator, cv=5)
     stacking.fit(X_train, y_train, sample_weight=w_train)
 
-    print("进行 sigmoid 校准...")
-    calibrated_model = CalibratedClassifierCV(estimator=stacking, method='sigmoid', cv=5)
-    calibrated_model.fit(X_calib, y_calib, sample_weight=w_calib)
+    calibrated = CalibratedClassifierCV(estimator=stacking, method='sigmoid', cv='prefit')
+    calibrated.fit(X_calib, y_calib, sample_weight=w_calib)
 
-    joblib.dump(calibrated_model, MODEL_OUTPUT)
-    print("模型已保存至", MODEL_OUTPUT)
+    # Smoke test
+    try:
+        _ = calibrated.predict_proba(X_calib[:1])
+        print("Smoke test passed")
+    except Exception as e:
+        write_status(False, True, sample_count, reason=f"Smoke test failed: {e}")
+        return
 
-    test_probs = calibrated_model.predict_proba(X_test)[:, 1]
-    test_brier = brier_score_loss(y_test, test_probs)
-    test_logloss = log_loss(y_test, test_probs)
-    print(f"测试集 Brier: {test_brier:.4f}, LogLoss: {test_logloss:.4f}")
+    artifact = {
+        "model": calibrated,
+        "features": used_features,
+        "schema_version": "v1",
+        "trained_at": datetime.now().isoformat(),
+        "training_sample_count": sample_count
+    }
+    joblib.dump(artifact, MODEL_OUTPUT)
 
-    write_status(True, False, sample_count, brier=round(test_brier, 4), logloss=round(test_logloss, 4))
+    # 评估
+    test_probs = calibrated.predict_proba(X_calib)[:, 1]
+    test_brier = brier_score_loss(y_calib, test_probs)
+    test_logloss = log_loss(y_calib, test_probs)
+    write_status(True, False, sample_count, brier=round(test_brier,4), logloss=round(test_logloss,4))
+    print(f"Model saved, features: {len(used_features)}")
 
-    log_entry = {"timestamp": datetime.now().isoformat(),
-                 "num_samples": len(df_all),
-                 "brier": round(test_brier, 4),
-                 "logloss": round(test_logloss, 4)}
-    log_df = pd.DataFrame([log_entry])
-    if os.path.exists(TRAINING_LOG):
-        log_df.to_csv(TRAINING_LOG, mode='a', header=False, index=False)
-    else:
-        log_df.to_csv(TRAINING_LOG, index=False)
+    # 日志
+    log_entry = {"timestamp": datetime.now().isoformat(), "num_samples": len(df_all), "brier": round(test_brier,4), "logloss": round(test_logloss,4)}
+    pd.DataFrame([log_entry]).to_csv(TRAINING_LOG, mode='a', header=not os.path.exists(TRAINING_LOG), index=False)
 
-    xgb_imp = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
-                            importance_type='gain', random_state=42,
-                            eval_metric='logloss', use_label_encoder=False)
+    # 特征重要性
+    xgb_imp = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01, importance_type='gain', random_state=42)
     xgb_imp.fit(X_train, y_train, sample_weight=w_train)
     importances = xgb_imp.feature_importances_
-
-    feat_names = used_features[:len(importances)] if len(importances) <= len(used_features) else used_features
+    feat_names = used_features[:len(importances)]
     imp_df = pd.DataFrame([importances], columns=feat_names)
     imp_df['timestamp'] = datetime.now().isoformat()
-    if os.path.exists(FEATURE_IMPORTANCE_LOG):
-        imp_df.to_csv(FEATURE_IMPORTANCE_LOG, mode='a', header=False, index=False)
-    else:
-        imp_df.to_csv(FEATURE_IMPORTANCE_LOG, index=False)
-
-    sorted_idx = np.argsort(importances)
-    print("\n⚠️ 重要性最低的5个特征:")
-    for i in sorted_idx[:5]:
-        if i < len(feat_names):
-            print(f"  {feat_names[i]}: {importances[i]:.6f}")
+    imp_df.to_csv(FEATURE_IMPORTANCE_LOG, mode='a', header=not os.path.exists(FEATURE_IMPORTANCE_LOG), index=False)
 
 if __name__ == "__main__":
     train()
