@@ -22,7 +22,11 @@ HISTORICAL_DIR = Path("data/historical")
 REPORT_FILE = Path("report/final_score_backfill_report.json")
 
 REQUEST_TIMEOUT_SECONDS = 10
-REQUEST_SLEEP_SECONDS = 0.30
+REQUEST_SLEEP_SECONDS = 0.00
+
+
+MINIMUM_BACKFILL_DATE = pd.Timestamp("2026-05-01")
+TARGET_FINAL_GAMES = 250
 
 
 @dataclass(frozen=True)
@@ -134,7 +138,10 @@ def update_frame(
     missing_mask = frame_missing_score_mask(output)
     changed = False
 
-    for index, row in output.loc[missing_mask].iterrows():
+     for index, row in output.loc[missing_mask].iterrows():
+        if stats["final_games_found"] >= TARGET_FINAL_GAMES:
+            break
+
         stats["rows_scanned"] += 1
 
         game_id = normalize_game_id(row.get("game_id"))
@@ -203,30 +210,61 @@ def backfill() -> None:
     if HISTORY_FILE.exists():
         try:
             csv_frame = pd.read_csv(HISTORY_FILE)
-            csv_frame, changed = update_frame(
-                csv_frame,
+
+            csv_date_column = None
+            if "game_date" in csv_frame.columns:
+                csv_date_column = "game_date"
+            elif "date" in csv_frame.columns:
+                csv_date_column = "date"
+
+            if csv_date_column is not None:
+                parsed_dates = pd.to_datetime(
+                    csv_frame[csv_date_column],
+                    errors="coerce",
+                )
+                recent_mask = parsed_dates >= MINIMUM_BACKFILL_DATE
+                recent_frame = csv_frame.loc[recent_mask].copy()
+            else:
+                recent_frame = csv_frame.copy()
+
+            recent_frame, changed = update_frame(
+                recent_frame,
                 already_fetched,
                 stats,
                 str(HISTORY_FILE),
             )
 
             if changed:
+                for column in ("home_win", "home_score", "away_score"):
+                    if column not in csv_frame.columns:
+                        csv_frame[column] = np.nan
+                    csv_frame.loc[recent_frame.index, column] = recent_frame[column]
+
                 csv_frame.to_csv(HISTORY_FILE, index=False, encoding="utf-8")
                 stats["files_updated"] += 1
                 print(f"Updated {HISTORY_FILE}.")
+
         except Exception as exc:
             stats["files_read_failed"] += 1
             print(f"Unable to process {HISTORY_FILE}: {exc}")
 
     if HISTORICAL_DIR.exists():
-        minimum_backfill_date = pd.Timestamp("2025-01-01")
+        parquet_paths = sorted(
+            HISTORICAL_DIR.glob("*.parquet"),
+            reverse=True,
+        )
 
-        for parquet_path in sorted(HISTORICAL_DIR.glob("*.parquet")):
+        for parquet_path in parquet_paths:
+            if stats["final_games_found"] >= TARGET_FINAL_GAMES:
+                print(
+                    f"Target reached: {stats['final_games_found']} finalized games found."
+                )
+                break
+
             try:
-                file_date_text = parquet_path.stem
-                file_date = pd.to_datetime(file_date_text, errors="coerce")
+                file_date = pd.to_datetime(parquet_path.stem, errors="coerce")
 
-                if pd.notna(file_date) and file_date < minimum_backfill_date:
+                if pd.notna(file_date) and file_date < MINIMUM_BACKFILL_DATE:
                     continue
 
                 parquet_frame = pd.read_parquet(parquet_path)
@@ -244,7 +282,6 @@ def backfill() -> None:
             except Exception as exc:
                 stats["files_read_failed"] += 1
                 print(f"Unable to process {parquet_path}: {exc}")
-
     write_report(stats)
 
     print("Final score backfill summary:")
