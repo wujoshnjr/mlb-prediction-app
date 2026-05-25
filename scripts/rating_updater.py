@@ -1,213 +1,258 @@
-# scripts/validate_predictions.py
-"""Validate an already-generated prediction report.
-
-This script must not fetch data or generate new predictions. It only verifies
-the output written by prediction.py and fails CI when the report contains
-strong signals of broken upstream data or implausible prediction distributions.
-"""
+# scripts/rebuild_ratings.py
+"""Safely rebuild Elo and Glicko2 rating state from finalized historical games."""
 
 from __future__ import annotations
 
+import copy
 import json
-import math
-from collections import Counter
+import os
+import sys
 from pathlib import Path
 from typing import Any
 
-import numpy as np
+import pandas as pd
 
-REPORT = Path("report/prediction.json")
-VALIDATION_ERRORS_FILE = Path("report/validation_errors.txt")
-ELO_FILE = Path("data/elo_ratings.json")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-MIN_GAMES_FOR_DAILY_MEAN_CHECK = 5
-MIN_ALLOWED_MEAN_HOME_PROB = 0.40
-MAX_ALLOWED_MEAN_HOME_PROB = 0.60
-MAX_ALLOWED_ELO_RANGE = 400.0
-EXTREME_HIGH_PROB = 0.80
-EXTREME_LOW_PROB = 0.20
+from scripts.glicko2_ratings import Glicko2League
+from scripts.rating_updater import simple_elo_update
 
-CRITICAL_ERROR_TOKENS = (
-    "traceback",
-    "嚴重錯誤",
-    "严重错误",
-    "critical",
-    "fatal",
-    "nameerror",
-    "truth value of a series is ambiguous",
-    "not enough values to unpack",
-    "lag_features error",
-)
+CSV_FILE = Path("data/historical_predictions.csv")
+HIST_DIR = Path("data/historical")
+ELO_OUTPUT = Path("data/elo_ratings.json")
+GLICKO_OUTPUT = Path("data/glicko2_ratings.json")
+RATED_IDS_OUTPUT = Path("data/rated_game_ids.json")
+REPORT_OUTPUT = Path("report/rating_rebuild_report.json")
+
+MIN_GAMES = 100
+MIN_TEAMS = 30
+MAX_ELO_RANGE = 400.0
+MAX_GLICKO_RANGE = 400.0
+
+TEAM_NAME_MAP = {
+    "Arizona Diamondbacks": "D-backs", "Diamondbacks": "D-backs", "Arizona": "D-backs",
+    "Atlanta Braves": "Braves", "Atlanta": "Braves",
+    "Baltimore Orioles": "Orioles", "Baltimore": "Orioles",
+    "Boston Red Sox": "Red Sox", "Boston": "Red Sox",
+    "Chicago Cubs": "Cubs", "Chicago (NL)": "Cubs",
+    "Chicago White Sox": "White Sox", "Chicago (AL)": "White Sox",
+    "Cincinnati Reds": "Reds", "Cincinnati": "Reds",
+    "Cleveland Guardians": "Guardians", "Cleveland": "Guardians",
+    "Colorado Rockies": "Rockies", "Colorado": "Rockies",
+    "Detroit Tigers": "Tigers", "Detroit": "Tigers",
+    "Houston Astros": "Astros", "Houston": "Astros",
+    "Kansas City Royals": "Royals", "Kansas City": "Royals",
+    "Los Angeles Angels": "Angels", "Los Angeles (AL)": "Angels",
+    "Los Angeles Dodgers": "Dodgers", "Los Angeles (NL)": "Dodgers",
+    "Miami Marlins": "Marlins", "Miami": "Marlins",
+    "Milwaukee Brewers": "Brewers", "Milwaukee": "Brewers",
+    "Minnesota Twins": "Twins", "Minnesota": "Twins",
+    "New York Mets": "Mets", "New York (NL)": "Mets",
+    "New York Yankees": "Yankees", "New York (AL)": "Yankees",
+    "Oakland Athletics": "Athletics", "Oakland": "Athletics", "Athletics": "Athletics",
+    "Philadelphia Phillies": "Phillies", "Philadelphia": "Phillies",
+    "Pittsburgh Pirates": "Pirates", "Pittsburgh": "Pirates",
+    "San Diego Padres": "Padres", "San Diego": "Padres",
+    "San Francisco Giants": "Giants", "San Francisco": "Giants",
+    "Seattle Mariners": "Mariners", "Seattle": "Mariners",
+    "St. Louis Cardinals": "Cardinals", "St. Louis": "Cardinals",
+    "Tampa Bay Rays": "Rays", "Tampa Bay": "Rays",
+    "Texas Rangers": "Rangers", "Texas": "Rangers",
+    "Toronto Blue Jays": "Blue Jays", "Toronto": "Blue Jays",
+    "Washington Nationals": "Nationals", "Washington": "Nationals",
+    "D-backs": "D-backs", "Braves": "Braves", "Orioles": "Orioles",
+    "Red Sox": "Red Sox", "Cubs": "Cubs", "White Sox": "White Sox",
+    "Reds": "Reds", "Guardians": "Guardians", "Rockies": "Rockies",
+    "Tigers": "Tigers", "Astros": "Astros", "Royals": "Royals",
+    "Angels": "Angels", "Dodgers": "Dodgers", "Marlins": "Marlins",
+    "Brewers": "Brewers", "Twins": "Twins", "Mets": "Mets",
+    "Yankees": "Yankees", "Athletics": "Athletics", "Phillies": "Phillies",
+    "Pirates": "Pirates", "Padres": "Padres", "Giants": "Giants",
+    "Mariners": "Mariners", "Cardinals": "Cardinals", "Rays": "Rays",
+    "Rangers": "Rangers", "Blue Jays": "Blue Jays", "Nationals": "Nationals",
+}
 
 
-def _write_failure(errors: list[str], pipeline_errors: list[str]) -> None:
-    VALIDATION_ERRORS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    output = list(errors)
-    if pipeline_errors:
-        output.extend(["", "Pipeline errors:"])
-        output.extend(f"- {item}" for item in pipeline_errors)
-    VALIDATION_ERRORS_FILE.write_text("\n".join(output), encoding="utf-8")
-
-
-def _fail(errors: list[str], pipeline_errors: list[str] | None = None) -> None:
-    pipeline_errors = pipeline_errors or []
-    print("❌ 驗證失敗:")
-    for error in errors:
-        print(f"  - {error}")
-    if pipeline_errors:
-        print("pipeline errors 摘要:")
-        for error in pipeline_errors[-10:]:
-            print(f"  - {error}")
-    _write_failure(errors, pipeline_errors)
-    raise SystemExit(1)
-
-
-def _as_finite_probability(value: Any, label: str, errors: list[str]) -> float | None:
+def normalize_game_id(value: Any) -> str | None:
+    if value is None or pd.isna(value):
+        return None
     try:
-        prob = float(value)
+        number = float(value)
+        if number.is_integer():
+            return str(int(number))
     except (TypeError, ValueError):
-        errors.append(f"{label} 缺少有效數值: {value!r}")
-        return None
-    if not math.isfinite(prob) or prob < 0.0 or prob > 1.0:
-        errors.append(f"{label} 超出 [0, 1] 範圍: {prob}")
-        return None
-    return prob
+        pass
+    text = str(value).strip()
+    return text if text and text.lower() not in {"nan", "none"} else None
 
 
-def _read_json(path: Path) -> dict[str, Any]:
-    try:
-        with path.open("r", encoding="utf-8") as file:
-            value = json.load(file)
-    except FileNotFoundError:
-        raise SystemExit(f"❌ {path} 不存在")
-    except json.JSONDecodeError as exc:
-        raise SystemExit(f"❌ {path} JSON 無法解析: {exc}") from exc
-    if not isinstance(value, dict):
-        raise SystemExit(f"❌ {path} 內容必須是 JSON object")
-    return value
+def normalize_game_frame(frame: pd.DataFrame, source: str) -> pd.DataFrame:
+    required_columns = {"game_id", "home_team", "away_team", "home_score", "away_score"}
+    missing_columns = sorted(required_columns.difference(frame.columns))
+    if missing_columns:
+        print(f"è·³é {source}: ç¼ºå°æ¬ä½ {missing_columns}")
+        return pd.DataFrame()
 
-
-def validate() -> None:
-    data = _read_json(REPORT)
-    predictions = data.get("today_predictions", [])
-    pipeline_errors = [str(item) for item in data.get("errors", []) if item is not None]
-    schedule_fetch_ok = data.get("schedule_fetch_ok")
-    scheduled_game_count = data.get("scheduled_game_count")
-
-    if not isinstance(predictions, list):
-        _fail(["today_predictions 必須為 list"], pipeline_errors)
-
-    if not predictions:
-        if schedule_fetch_ok is True and scheduled_game_count == 0:
-            print("✅ 賽程來源確認今日無比賽，無預測屬正常情況")
-            return
-        _fail([
-            "預測為空，但 report 未明確確認 schedule_fetch_ok=true 且 "
-            "scheduled_game_count=0；不得將 API/管線失敗誤判為休賽日"
-        ], pipeline_errors)
-
-    validation_errors: list[str] = []
-    if schedule_fetch_ok is not True:
-        validation_errors.append("已有預測，但 schedule_fetch_ok 不是 true")
-    if scheduled_game_count is not None and scheduled_game_count < len(predictions):
-        validation_errors.append("預測場數大於排程場數")
-
-    critical_pipeline_errors = [
-        error for error in pipeline_errors
-        if any(token in error.lower() for token in CRITICAL_ERROR_TOKENS)
-    ]
-    if critical_pipeline_errors:
-        validation_errors.append(f"存在 {len(critical_pipeline_errors)} 條關鍵 pipeline 錯誤")
-
-    home_probs: list[float] = []
-    for index, prediction in enumerate(predictions):
-        if not isinstance(prediction, dict):
-            validation_errors.append(f"第 {index + 1} 場預測不是 object")
-            continue
-        probability = _as_finite_probability(
-            prediction.get("predicted_home_win_pct"),
-            f"第 {index + 1} 場 predicted_home_win_pct",
-            validation_errors,
-        )
-        if probability is not None:
-            home_probs.append(probability)
-
-    if len(home_probs) != len(predictions):
-        _fail(validation_errors, pipeline_errors)
-
-    mean_home = float(np.mean(home_probs))
-    min_home = float(np.min(home_probs))
-    max_home = float(np.max(home_probs))
-    extreme_games = sum(prob > EXTREME_HIGH_PROB or prob < EXTREME_LOW_PROB for prob in home_probs)
-
-    print(
-        "Home probability diagnostics: "
-        f"games={len(home_probs)}, mean={mean_home:.3f}, "
-        f"min={min_home:.3f}, max={max_home:.3f}, extreme_games={extreme_games}"
-    )
-
-    if len(home_probs) >= MIN_GAMES_FOR_DAILY_MEAN_CHECK:
-        if mean_home > MAX_ALLOWED_MEAN_HOME_PROB or mean_home < MIN_ALLOWED_MEAN_HOME_PROB:
-            validation_errors.append(f"Avg home prob {mean_home:.3f} 異常")
+    if "game_date" in frame.columns:
+        date_column = "game_date"
+    elif "date" in frame.columns:
+        date_column = "date"
     else:
-        print(f"僅 {len(home_probs)} 場比賽，跳過 daily mean 檢查")
+        print(f"è·³é {source}: ç¼ºå° date/game_date")
+        return pd.DataFrame()
 
-    if ELO_FILE.exists():
-        try:
-            elo = _read_json(ELO_FILE)
-            numeric_ratings = [float(value) for value in elo.values()]
-            if numeric_ratings:
-                elo_min = min(numeric_ratings)
-                elo_max = max(numeric_ratings)
-                elo_range = elo_max - elo_min
-                print(
-                    "Elo diagnostics: "
-                    f"teams={len(numeric_ratings)}, min={elo_min:.1f}, "
-                    f"max={elo_max:.1f}, range={elo_range:.1f}"
-                )
-                if elo_range > MAX_ALLOWED_ELO_RANGE:
-                    validation_errors.append(f"Elo range {elo_range:.1f} 過大")
-        except (TypeError, ValueError) as exc:
-            validation_errors.append(f"Elo rating 檔案含非數值資料: {exc}")
+    normalized = frame[["game_id", date_column, "home_team", "away_team", "home_score", "away_score"]].copy()
+    normalized = normalized.rename(columns={date_column: "game_date"})
+    normalized = normalized.dropna(subset=["game_id", "home_team", "away_team", "home_score", "away_score"])
+    if normalized.empty:
+        return normalized
 
-    model_sources = Counter(
-        str(prediction.get("model_source", "unknown"))
-        for prediction in predictions if isinstance(prediction, dict)
-    )
-    print(f"Model source distribution: {dict(model_sources)}")
-    if model_sources and model_sources.get("manual", 0) == len(predictions):
-        print("ℹ️ 所有比賽目前使用手工預測 baseline")
+    normalized["game_id"] = normalized["game_id"].map(normalize_game_id)
+    normalized = normalized.dropna(subset=["game_id"])
+    normalized["home_team"] = normalized["home_team"].map(TEAM_NAME_MAP).fillna(normalized["home_team"])
+    normalized["away_team"] = normalized["away_team"].map(TEAM_NAME_MAP).fillna(normalized["away_team"])
+    normalized["home_score"] = pd.to_numeric(normalized["home_score"], errors="coerce")
+    normalized["away_score"] = pd.to_numeric(normalized["away_score"], errors="coerce")
+    normalized["game_date"] = pd.to_datetime(normalized["game_date"], errors="coerce")
+    normalized = normalized.dropna(subset=["home_score", "away_score", "game_date"])
+    return normalized
 
-    valid_nrfi = [
-        prediction for prediction in predictions
-        if isinstance(prediction, dict)
-        and prediction.get("nrfi_source") in {"ml", "manual"}
-        and prediction.get("nrfi_prob") is not None
-    ]
-    nrfi_sources = Counter(
-        str(prediction.get("nrfi_source", "unknown"))
-        for prediction in predictions if isinstance(prediction, dict)
-    )
-    print(f"NRFI source distribution: {dict(nrfi_sources)}")
 
-    nrfi_probs: list[float] = []
-    for index, prediction in enumerate(valid_nrfi):
-        probability = _as_finite_probability(
-            prediction.get("nrfi_prob"),
-            f"有效 NRFI 第 {index + 1} 場 nrfi_prob",
-            validation_errors,
+def load_historical_games() -> tuple[pd.DataFrame, dict[str, int]]:
+    frames: list[pd.DataFrame] = []
+    stats = {"source_files_read": 0, "source_files_skipped": 0}
+
+    if CSV_FILE.exists():
+        stats["source_files_read"] += 1
+        csv_frame = normalize_game_frame(pd.read_csv(CSV_FILE), str(CSV_FILE))
+        if not csv_frame.empty:
+            frames.append(csv_frame)
+        else:
+            stats["source_files_skipped"] += 1
+
+    if HIST_DIR.exists():
+        for path in sorted(HIST_DIR.glob("*.parquet")):
+            stats["source_files_read"] += 1
+            try:
+                frame = pd.read_parquet(path)
+            except Exception as exc:
+                print(f"è·³é {path}: ç¡æ³è®å ({exc})")
+                stats["source_files_skipped"] += 1
+                continue
+            normalized = normalize_game_frame(frame, str(path))
+            if not normalized.empty:
+                frames.append(normalized)
+            else:
+                stats["source_files_skipped"] += 1
+
+    if not frames:
+        return pd.DataFrame(), stats
+
+    all_games = pd.concat(frames, ignore_index=True)
+    pre_dedup_count = len(all_games)
+    all_games = all_games.sort_values(["game_date", "game_id"])
+    all_games = all_games.drop_duplicates(subset=["game_id"], keep="last")
+    stats["duplicate_rows_removed"] = pre_dedup_count - len(all_games)
+    return all_games.reset_index(drop=True), stats
+
+
+def serialize_glicko(league: Glicko2League, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    league.save(str(path))
+
+
+def rebuild() -> None:
+    games, load_stats = load_historical_games()
+    if games.empty or len(games) < MIN_GAMES:
+        raise SystemExit(
+            f"é¯èª¤: åªæ {len(games)} å ´å·ææ­£å¼æ¯åç final gamesï¼"
+            f"å°æ¼æä½è¦æ± {MIN_GAMES}ï¼æçµéå»º"
         )
-        if probability is not None:
-            nrfi_probs.append(probability)
-    if len(nrfi_probs) > 2 and all(abs(prob - 0.5) < 0.01 for prob in nrfi_probs):
-        validation_errors.append("NRFI 機率單一（全部≈0.5）")
 
-    if validation_errors:
-        _fail(validation_errors, pipeline_errors)
-    if VALIDATION_ERRORS_FILE.exists():
-        VALIDATION_ERRORS_FILE.unlink()
-    print("✅ 預測輸出通過自動驗證")
+    all_teams = sorted(set(games["home_team"]).union(set(games["away_team"])))
+    if len(all_teams) < MIN_TEAMS:
+        raise SystemExit(
+            f"é¯èª¤: åè¦è {len(all_teams)} æ¯çéï¼å°æ¼ {MIN_TEAMS}ï¼æçµéå»º"
+        )
+
+    elo_ratings = {team: 1500.0 for team in all_teams}
+    league = Glicko2League()
+    for team in all_teams:
+        league.add_team(team, 1500.0, 350.0, 0.06)
+
+    processed_ids: set[str] = set()
+    skipped_invalid_score = 0
+
+    for _, row in games.iterrows():
+        game_id = normalize_game_id(row["game_id"])
+        if not game_id or game_id in processed_ids:
+            continue
+
+        try:
+            home_score = int(row["home_score"])
+            away_score = int(row["away_score"])
+        except (TypeError, ValueError):
+            skipped_invalid_score += 1
+            continue
+
+        home_team = str(row["home_team"])
+        away_team = str(row["away_team"])
+        simple_elo_update(elo_ratings, home_team, away_team, home_score, away_score)
+
+        home_rating = league.teams[home_team]
+        away_rating = league.teams[away_team]
+        home_opponent_snapshot = copy.deepcopy(away_rating)
+        away_opponent_snapshot = copy.deepcopy(home_rating)
+        if home_score > away_score:
+            home_result, away_result = 1.0, 0.0
+        elif home_score < away_score:
+            home_result, away_result = 0.0, 1.0
+        else:
+            home_result = away_result = 0.5
+        home_rating.update(home_opponent_snapshot, home_result)
+        away_rating.update(away_opponent_snapshot, away_result)
+        processed_ids.add(game_id)
+
+    elo_values = list(elo_ratings.values())
+    glicko_values = [team.rating for team in league.teams.values()]
+    elo_range = max(elo_values) - min(elo_values)
+    glicko_range = max(glicko_values) - min(glicko_values)
+
+    report = {
+        "processed": len(processed_ids),
+        "skipped_invalid_score": skipped_invalid_score,
+        "team_count": len(all_teams),
+        "elo_min": min(elo_values),
+        "elo_max": max(elo_values),
+        "elo_range": elo_range,
+        "glicko_min": min(glicko_values),
+        "glicko_max": max(glicko_values),
+        "glicko_range": glicko_range,
+        "teams": all_teams,
+        **load_stats,
+    }
+
+    REPORT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_OUTPUT.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    if elo_range > MAX_ELO_RANGE or glicko_range > MAX_GLICKO_RANGE:
+        raise SystemExit(
+            "é¯èª¤: éå»ºçµæ rating ç¯åç°å¸¸ "
+            f"(Elo={elo_range:.1f}, Glicko2={glicko_range:.1f})ï¼"
+            "å·²ä¿å­å ±åï¼ä½æçµè¦èæ­£å¼ rating state"
+        )
+
+    ELO_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    ELO_OUTPUT.write_text(json.dumps(elo_ratings, indent=2, ensure_ascii=False), encoding="utf-8")
+    serialize_glicko(league, GLICKO_OUTPUT)
+    RATED_IDS_OUTPUT.write_text(
+        json.dumps(sorted(processed_ids), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    print("â Rating éå»ºæå")
+    print(json.dumps(report, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
-    validate()
+    rebuild()
