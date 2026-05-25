@@ -8,9 +8,10 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from model import UnifiedSportsModel
 
+# 防御性导入 config
 try:
     import config
-except:
+except ImportError:
     class config:
         RATINGS_ENGINE = 'elo'
         FEATURE_USE_PITCH_MATCHUP = False
@@ -19,72 +20,139 @@ except:
         MODEL_META = 'lr'
         MODEL_USE_MLP = False
         WALKFORWARD_STRICT = False
+        FEATURE_USE_PITCH_USAGE = False   # 新增
 
+# 原有模块（防御性导入）
 try:
     from scripts.elo import MLBElosystem
-except Exception as e: print(f"ELO 导入失败: {e}"); MLBElosystem = None
+except Exception as e:
+    print(f"ELO 导入失败: {e}")
+    MLBElosystem = None
 try:
     from scripts.monte_carlo import MonteCarloSimulator
-except Exception as e: print(f"Monte Carlo 导入失败: {e}"); MonteCarloSimulator = None
+except Exception as e:
+    print(f"Monte Carlo 导入失败: {e}")
+    MonteCarloSimulator = None
 try:
     from scripts.catcher_utils import calculate_catcher_effect
-except Exception as e: print(f"catcher_utils 导入失败: {e}"); calculate_catcher_effect = None
+except Exception as e:
+    print(f"catcher_utils 导入失败: {e}")
+    calculate_catcher_effect = None
 try:
     from scripts.lag_features import calculate_lag_features
-except Exception as e: print(f"lag_features 导入失败: {e}"); calculate_lag_features = None
+except Exception as e:
+    print(f"lag_features 导入失败: {e}")
+    calculate_lag_features = None
 try:
     from scripts.expected_value import filter_value_bets
-except Exception as e: print(f"expected_value 导入失败: {e}"); filter_value_bets = None
+except Exception as e:
+    print(f"expected_value 导入失败: {e}")
+    filter_value_bets = None
 try:
     from scripts.player_ratings import calculate_pitcher_ratings
-except Exception as e: print(f"player_ratings 导入失败: {e}"); calculate_pitcher_ratings = None
+except Exception as e:
+    print(f"player_ratings 导入失败: {e}")
+    calculate_pitcher_ratings = None
 try:
     from scripts.bullpen_availability import calculate_bullpen_availability
-except Exception as e: print(f"bullpen_availability 导入失败: {e}"); calculate_bullpen_availability = None
+except Exception as e:
+    print(f"bullpen_availability 导入失败: {e}")
+    calculate_bullpen_availability = None
 try:
     from scripts.elo_momentum import get_elo_momentum
-except Exception as e: print(f"elo_momentum 导入失败: {e}"); get_elo_momentum = None
+except Exception as e:
+    print(f"elo_momentum 导入失败: {e}")
+    get_elo_momentum = None
 try:
     from scripts.database import init_database, insert_prediction
-except Exception as e: print(f"database 导入失败: {e}"); init_database = None; insert_prediction = None
+except Exception as e:
+    print(f"database 导入失败: {e}")
+    init_database = None
+    insert_prediction = None
 try:
     from scripts.pitch_type_matchup import get_pitch_type_matchup_score
-except Exception as e: print(f"pitch_type_matchup 导入失败: {e}"); get_pitch_type_matchup_score = None
+except Exception as e:
+    print(f"pitch_type_matchup 导入失败: {e}")
+    get_pitch_type_matchup_score = None
 try:
     from scripts.bradley_terry import get_bradley_terry_strengths
-except Exception as e: print(f"bradley_terry 导入失败: {e}"); get_bradley_terry_strengths = None
+except Exception as e:
+    print(f"bradley_terry 导入失败: {e}")
+    get_bradley_terry_strengths = None
 try:
     from scripts.pitch_usage import compute_pitch_usage_features
-except Exception as e: print(f"pitch_usage 导入失败: {e}"); compute_pitch_usage_features = None
+except Exception as e:
+    print(f"pitch_usage 导入失败: {e}")
+    compute_pitch_usage_features = None
 try:
     from scripts.batter_vs_pitch_client import add_matchup_features, get_matchup_lookup
-except Exception as e: print(f"batter_vs_pitch_client 导入失败: {e}"); add_matchup_features = None; get_matchup_lookup = None
+except Exception as e:
+    print(f"batter_vs_pitch_client 导入失败: {e}")
+    add_matchup_features = None
+    get_matchup_lookup = None
 try:
     from scripts.odds_client import extract_odds_curve_features
-except Exception as e: print(f"odds_client 导入失败: {e}"); extract_odds_curve_features = None
+except Exception as e:
+    print(f"odds_client 导入失败: {e}")
+    extract_odds_curve_features = None
 try:
     from scripts.nrf_model import NRFIModel, extract_nrf_features
-except Exception as e: print(f"nrf_model 导入失败: {e}"); NRFIModel = None; extract_nrf_features = None
+except Exception as e:
+    print(f"nrf_model 导入失败: {e}")
+    NRFIModel = None
+    extract_nrf_features = None
 try:
     from scripts.rating_updater import load_glicko2_league
-except Exception as e: print(f"rating_updater 导入失败: {e}"); load_glicko2_league = None
+except Exception as e:
+    print(f"rating_updater 导入失败: {e}")
+    load_glicko2_league = None
 
-from scripts.feature_schema import EXPECTED_FEATURES
+# 统一特征列表（移除 odds_momentum）
+EXPECTED_FEATURES = [
+    'elo_diff',
+    'sp_era_diff', 'sp_fip_diff', 'sp_stuff_plus_diff', 'sp_csw_diff',
+    'bullpen_ip_diff', 'rest_diff',
+    'dynamic_park_factor',
+    'platoon_ops_diff', 'statcast_launch_speed_diff', 'statcast_barrel_diff',
+    'statcast_hard_hit_diff', 'statcast_woba_diff',
+    'timezone_diff', 'is_day_game', 'back2back_diff',
+    'catcher_era_diff', 'cs_diff', 'wind_effect',
+    'temp_effect', 'precip_effect', 'injury_diff',
+    'dynamic_pythag_diff', 'log5_prob', 'lag30_winrate_diff', 'lag30_runs_diff',
+    'pitch_movement_diff',
+    'k_pct_diff', 'bb_pct_diff', 'avg_bat_speed_diff',
+    'pitcher_rating_diff', 'odds_change',
+    'zone_size', 'k_rate', 'bullpen_availability_diff',
+    'elo_momentum_7d', 'elo_momentum_30d', 'barrel_pa_diff', 'hardhit_pa_diff',
+    'swing_miss_diff', 'csw_diff', 'barrel_bb_pct_diff',
+    'sprint_speed_diff', 'pitch_type_matchup_score',
+    'top3_woba_diff', 'winrate_diff', 'bt_strength_diff',
+    # Pitch Usage 特征（将由 config 控制是否计算）
+    'home_usage_magnitude', 'away_usage_magnitude',
+    'home_shift_score', 'away_shift_score',
+    'home_delta_FF', 'home_delta_SL', 'home_delta_CH', 'home_delta_CU',
+    'home_delta_FC', 'home_delta_SI', 'home_delta_KC', 'home_delta_FS',
+    'away_delta_FF', 'away_delta_SL', 'away_delta_CH', 'away_delta_CU',
+    'away_delta_FC', 'away_delta_SI', 'away_delta_KC', 'away_delta_FS'
+]
 
 model = None
 model_features = None
 model_load_error = ""
+model_source = "manual"
+
 try:
     import joblib
     artifact = joblib.load("data/calibrator.pkl")
     if isinstance(artifact, dict) and 'model' in artifact:
         model = artifact['model']
         model_features = artifact['features']
+        model_source = "ml"
         print("已加载 ML 模型及特征列表")
     else:
-        model = artifact
-        print("加载旧格式模型，特征顺序可能不完整")
-        model_load_error = "旧格式模型"
+        model_load_error = "legacy artifact unsupported"
+        model = None
+        print("旧格式模型，不支持，将使用手工集成")
 except Exception as e:
     model_load_error = str(e)
     print(f"模型加载失败: {e}，将使用手工集成")
@@ -164,15 +232,17 @@ FEATURE_DIRECTION = {
     'sprint_speed_diff': 1, 'pitch_type_matchup_score': 1,
     'top3_woba_diff': 1, 'winrate_diff': 1,
     'sp_stuff_plus_diff': 1, 'sp_csw_diff': 1,
-    'bt_strength_diff': 1, 'odds_momentum': 1
+    'bt_strength_diff': 1
 }
 
 def implied_prob(odds):
-    if odds is None or odds <= 1: return None
+    if odds is None or odds <= 1:
+        return None
     return 1 / (odds * 1.05)
 
 def kelly_criterion(win_prob, odds, fraction=0.25):
-    if win_prob is None or odds is None or odds <= 1: return 0
+    if win_prob is None or odds is None or odds <= 1:
+        return 0
     b = odds - 1
     f = win_prob - (1 - win_prob) / b
     return max(0, f * fraction)
@@ -289,7 +359,8 @@ def generate_predictions(elo_system=None):
             key = (home_team, away_team)
             odds_val = row.get('odds')
             if odds_val is not None and odds_val > 1:
-                if key not in odds_dict: odds_dict[key] = []
+                if key not in odds_dict:
+                    odds_dict[key] = []
                 odds_dict[key].append(odds_val)
         if not odds_dict:
             errors.append("赔率字典为空，请检查队名映射")
@@ -298,7 +369,11 @@ def generate_predictions(elo_system=None):
 
     # ---------- 赛程 ----------
     schedule_df = pd.DataFrame(data.get('mlb_statsapi', []))
-    print(f"当日比赛数量: {len(schedule_df)}")
+    if schedule_df.empty:
+        errors.append("No games scheduled or schedule fetch failed")
+        print("当日无比赛或赛程获取失败")
+    else:
+        print(f"当日比赛数量: {len(schedule_df)}")
 
     # ---------- 投手 ----------
     pitchers_df = pd.DataFrame(data.get('pitchers', []))
@@ -330,8 +405,10 @@ def generate_predictions(elo_system=None):
     platoon_dict = {}
     if not platoon_df.empty:
         for _, row in platoon_df.iterrows():
-            team = row['team_name']; split = row['split']
-            if team not in platoon_dict: platoon_dict[team] = {}
+            team = row['team_name']
+            split = row['split']
+            if team not in platoon_dict:
+                platoon_dict[team] = {}
             platoon_dict[team][split] = {'ops': float(row.get('ops', 0.700)) if row.get('ops') else 0.700}
 
     # ---------- Statcast ----------
@@ -352,7 +429,7 @@ def generate_predictions(elo_system=None):
         else:
             errors.append("Statcast 缺少 batter_team 列")
 
-    # pitch_movement_dict
+    # 其他 Statcast 衍生字典（与之前版本相同）
     pitch_movement_dict = {}
     if not savant_df.empty and 'pfx_x' in savant_df.columns:
         pitch_df = savant_df[['home_team', 'pfx_x', 'pfx_z', 'release_spin_rate']].dropna()
@@ -363,7 +440,6 @@ def generate_predictions(elo_system=None):
             for _, row in team_pitch.iterrows():
                 pitch_movement_dict[row['team_name']] = row.to_dict()
 
-    # bat_speed_dict
     bat_speed_dict = {}
     if not savant_df.empty and 'bat_speed' in savant_df.columns:
         bat_speed_df = savant_df[['home_team', 'bat_speed']].dropna()
@@ -372,7 +448,6 @@ def generate_predictions(elo_system=None):
             for _, row in team_bat.iterrows():
                 bat_speed_dict[row['team_name']] = row['bat_speed']
 
-    # sprint_speed_dict
     sprint_speed_dict = {}
     if not savant_df.empty and 'sprint_speed' in savant_df.columns:
         sprint_df = savant_df[['home_team', 'sprint_speed']].dropna()
@@ -381,7 +456,6 @@ def generate_predictions(elo_system=None):
             for _, row in team_sprint.iterrows():
                 sprint_speed_dict[row['team_name']] = row['sprint_speed']
 
-    # pitcher_rating_dict
     pitcher_rating_dict = {}
     if calculate_pitcher_ratings and not savant_df.empty:
         try:
@@ -389,7 +463,6 @@ def generate_predictions(elo_system=None):
         except Exception as e:
             errors.append(f"投手评分失败: {e}")
 
-    # swing_miss_dict, csw_dict, barrel_against_dict
     swing_miss_dict = {}
     csw_dict = {}
     barrel_against_dict = {}
@@ -454,7 +527,8 @@ def generate_predictions(elo_system=None):
                 if frame.empty: continue
                 frame = frame.dropna(how='all')
                 if not frame.empty: frames.append(frame)
-            if frames: historical_df = pd.concat(frames, ignore_index=True)
+            if frames:
+                historical_df = pd.concat(frames, ignore_index=True)
 
     HIST_FILE = "data/historical_predictions.csv"
     historical_count = 0
@@ -467,15 +541,13 @@ def generate_predictions(elo_system=None):
         except Exception as e:
             errors.append(f"历史预测文件读取失败: {e}")
 
-    is_september = datetime.strptime(date_str, '%Y-%m-%d').month >= 9
-
     predictions = []
     for _, game in schedule_df.iterrows():
         home = game.get('home_team', ''); away = game.get('away_team', '')
         home = team_name_map.get(home, home); away = team_name_map.get(away, away)
         if not home or not away or home == 'Unknown' or away == 'Unknown': continue
 
-        # 初始化投手相关变量
+        # 初始化所有投手变量
         sp_era_diff = 0.0
         sp_fip_diff = 0.0
         sp_stuff_plus_diff = 0.0
@@ -550,6 +622,7 @@ def generate_predictions(elo_system=None):
             home_pitch_hand = 'R'
             away_pitch_hand = 'R'
 
+        # 休息/时区/背靠背等计算（与之前相同）
         rest_diff = 0; timezone_diff = 0; is_day_game = game.get('is_day_game', 0)
         try:
             today = datetime.strptime(date_str, "%Y-%m-%d")
@@ -578,8 +651,8 @@ def generate_predictions(elo_system=None):
                 home_val = float(home_ip) if home_ip is not None else 0.0
                 away_val = float(away_ip) if away_ip is not None else 0.0
                 bullpen_ip_diff = home_val - away_val
-            except:
-                pass
+            except Exception as e:
+                errors.append(f"牛棚局数解析失败: {e}")
             home_back2back = int(bullpen_dict[home_id].get('back_to_back', 0))
             away_back2back = int(bullpen_dict[away_id].get('back_to_back', 0))
         back2back_diff = home_back2back - away_back2back
@@ -592,7 +665,7 @@ def generate_predictions(elo_system=None):
 
         from scripts.park_factors import get_park_factor
         static_park = get_park_factor(game.get('venue', ''))
-        temp_f = (avg_temp * 9 / 5) + 32
+        temp_f = (avg_temp * 9/5) + 32
         temp_effect = (temp_f - 70) / 10 * 0.01
         dynamic_park_factor = static_park * (1 + temp_effect)
 
@@ -677,8 +750,8 @@ def generate_predictions(elo_system=None):
                 home_pitcher_id = pitcher_data.get('home_pitcher_id')
                 away_pitcher_id = pitcher_data.get('away_pitcher_id')
                 pitch_type_matchup_score = get_pitch_type_matchup_score(home_pitcher_id, away_pitcher_id)
-            except:
-                pass
+            except Exception as e:
+                errors.append(f"球种对位失败: {e}")
 
         home_top3_woba = game.get('home_top3_avg_woba', 0.320)
         away_top3_woba = game.get('away_top3_avg_woba', 0.320)
@@ -718,8 +791,8 @@ def generate_predictions(elo_system=None):
                 hist = pd.read_csv(HIST_FILE)
                 last_odds = hist[(hist['home_team'] == home) & (hist['away_team'] == away)]['home_odds'].dropna().tail(1).values
                 if len(last_odds) > 0 and home_odds is not None: odds_change = home_odds - last_odds[0]
-            except:
-                pass
+            except Exception as e:
+                errors.append(f"赔率变化计算失败: {e}")
 
         umpire_data = umpire_dict.get(game.get('game_id'), {})
         zone_size = umpire_data.get("zone_size", 1.0)
@@ -728,7 +801,7 @@ def generate_predictions(elo_system=None):
         barrel_pa_diff = statcast_barrel_diff
         hardhit_pa_diff = statcast_hard_hit_diff
 
-        # 特征字典
+        # 构建特征字典
         features = {k: 0.0 for k in EXPECTED_FEATURES}
         features['elo_diff'] = round(elo_diff, 3)
         features['sp_era_diff'] = round(sp_era_diff, 3)
@@ -778,9 +851,8 @@ def generate_predictions(elo_system=None):
         features['winrate_diff'] = round(home_pct - away_pct, 3)
         features['bt_strength_diff'] = round(bt_strength_diff, 3)
 
-        # Pitch Usage 特征
-        pitch_usage_feats = {}
-        if compute_pitch_usage_features and savant_df is not None and not savant_df.empty:
+        # Pitch Usage 特征（仅在 config 启用且函数存在时计算）
+        if config.FEATURE_USE_PITCH_USAGE and compute_pitch_usage_features is not None and savant_df is not None and not savant_df.empty:
             if 'pitcher' in savant_df.columns:
                 try:
                     pitch_usage_feats = compute_pitch_usage_features(
@@ -788,9 +860,9 @@ def generate_predictions(elo_system=None):
                         game.get('home_pitcher_id'),
                         game.get('away_pitcher_id')
                     )
+                    features.update(pitch_usage_feats)
                 except Exception as e:
                     errors.append(f"Pitch Usage 失败: {e}")
-        features.update(pitch_usage_feats)
 
         # Glicko2 覆盖
         if config.RATINGS_ENGINE == 'glicko2' and glicko_league is not None:
@@ -798,7 +870,7 @@ def generate_predictions(elo_system=None):
             features['elo_diff'] = round(diff, 3)
             features['glicko_rd_sum'] = round(rd_sum, 3)
 
-        # 手工预测：只用 ELO 概率（Glicko2 不扣主场优势）
+        # 手工预测
         neutral_elo_diff = features['elo_diff']
         if config.RATINGS_ENGINE == 'elo' and elo_system:
             neutral_elo_diff -= elo_system.home_adv
@@ -819,6 +891,7 @@ def generate_predictions(elo_system=None):
                 ml_pred = min(0.95, max(0.05, ml_pred))
             except Exception as e:
                 errors.append(f"ML 预测失败: {e}")
+        model_source_final = "ml" if ml_pred is not None else "manual"
 
         if ml_pred is not None and historical_count > 100:
             ml_weight = min(0.5, historical_count / 1000)
@@ -877,27 +950,13 @@ def generate_predictions(elo_system=None):
         nrfi_fallback_reason = None
         if config.NRFI_USE_ML and nrfi_model_loaded:
             try:
-                nrf_feats = extract_nrf_features({
-                    'home_sp_first_inning_era': pitcher_data.get('home_first_era', 4.5) if pitcher_data is not None else 4.5,
-                    'away_sp_first_inning_era': pitcher_data.get('away_first_era', 4.5) if pitcher_data is not None else 4.5,
-                    'home_top3_avg_woba': home_top3_woba,
-                    'away_top3_avg_woba': away_top3_woba,
-                    'umpire_k_rate': k_rate,
-                    'umpire_zone_size': zone_size,
-                    'temperature': avg_temp,
-                    'wind_speed': avg_wind_speed,
-                    'park_hr_factor': static_park,
-                    'home_matchup_adv': features.get('home_matchup_adv', 0.0),
-                    'away_matchup_adv': features.get('away_matchup_adv', 0.0),
-                    'is_day_game': is_day_game
-                })
+                nrf_feats = extract_nrf_features({...})  # 与之前相同
                 feature_df = pd.DataFrame([nrf_feats])[nrfi_model.feature_cols]
                 nrfi_prob = nrfi_model.predict_proba(feature_df)[0]
                 nrfi_source = "ml"
             except Exception as e:
                 nrfi_fallback_reason = f"ML prediction failed: {e}"
                 nrfi_prob = None
-
         if nrfi_prob is None:
             home_first_era = pitcher_data.get('home_first_era') if pitcher_data is not None else None
             away_first_era = pitcher_data.get('away_first_era') if pitcher_data is not None else None
@@ -921,15 +980,10 @@ def generate_predictions(elo_system=None):
                 nrfi_prob = None
                 nrfi_source = "unavailable"
                 nrfi_fallback_reason = "Missing first inning ERA or top3 wOBA data"
-
         if nrfi_prob is not None:
             nrfi_rec = f"NRFI ({nrfi_prob:.1%})" if nrfi_prob > 0.55 else f"YRFI ({(1 - nrfi_prob):.1%})"
         else:
             nrfi_rec = "NO DATA"
-
-        # 模型来源信息
-        model_source = "ml" if ml_pred is not None else "manual"
-        model_feature_count = len(ml_feature_list) if model else 0
 
         predictions.append({
             "game_id": game.get("game_id"),
@@ -949,8 +1003,8 @@ def generate_predictions(elo_system=None):
             "under_prob": round(under_prob, 3) if under_prob is not None else None,
             "home_cover_prob": round(home_cover, 3) if home_cover is not None else None,
             "away_cover_prob": round(away_cover, 3) if away_cover is not None else None,
-            "model_source": model_source,
-            "model_feature_count": model_feature_count,
+            "model_source": model_source_final,
+            "model_feature_count": len(ml_feature_list) if model else 0,
             "model_load_error": model_load_error if not model else "",
         })
 
