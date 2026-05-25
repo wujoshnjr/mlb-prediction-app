@@ -7,8 +7,10 @@ from sklearn.metrics import brier_score_loss
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import HTMLResponse, JSONResponse
+
+ADMIN_TOKEN = os.getenv("ADMIN_API_TOKEN", "changeme")
 
 try:
     from prediction import generate_predictions
@@ -21,7 +23,7 @@ except Exception as e:
 
 app = FastAPI(title="MLB Prediction Hub")
 
-# ==================== 前端 HTML（加入训练按钮） ====================
+# ==================== 前端 HTML（移除训练按钮）====================
 HTML = """
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -54,10 +56,6 @@ HTML = """
         .loading { text-align:center; padding:32px; color:var(--muted); }
         .footer { margin-top:32px; text-align:center; color:var(--muted); font-size:0.8rem; }
         .error { color:var(--negative); background:#fff5f5; border:1px solid var(--negative); padding:12px; border-radius:8px; margin-bottom:16px; }
-        /* 新增训练按钮样式 */
-        .train-btn { padding: 10px 20px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem; }
-        .train-btn:disabled { background: #a0aec0; cursor: not-allowed; }
-        .train-status { margin-left: 15px; color: var(--muted); font-size: 0.85rem; }
     </style>
 </head>
 <body>
@@ -68,12 +66,6 @@ HTML = """
             <p id="update-time" style="font-size:0.8rem; margin-top:8px;">Loading...</p>
         </div>
         <div id="error-box"></div>
-
-        <!-- 训练按钮区域 -->
-        <div style="margin-bottom: 20px;">
-            <button id="train-nrfi-btn" class="train-btn" onclick="trainNRFI()">🔄 训练 NRFI 模型</button>
-            <span id="train-status" class="train-status"></span>
-        </div>
 
         <!-- 绩效卡片 -->
         <div class="grid" id="perf-cards">
@@ -90,10 +82,10 @@ HTML = """
                     <tr>
                         <th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th>
                         <th>Moneyline</th><th>Spread</th><th>Total</th>
-                        <th>NRFI</th><th>Glicko2 RD</th><th>Matchup (H/A)</th><th>Odds Trend</th><th>Key Factors</th>
+                        <th>NRFI</th><th>Key Factors</th>
                     </tr>
                 </thead>
-                <tbody id="pred-body"><tr><td colspan="13" class="loading">Loading...</td></tr></tbody>
+                <tbody id="pred-body"><tr><td colspan="10" class="loading">Loading...</td></tr></tbody>
             </table>
         </div>
 
@@ -139,7 +131,7 @@ HTML = """
             const preds = data.today_predictions || [];
             const tbody = document.getElementById('pred-body');
             if (preds.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="13">今日暂无比赛</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10">今日暂无比赛</td></tr>';
                 return;
             }
             tbody.innerHTML = preds.map(p => {
@@ -149,16 +141,8 @@ HTML = """
                 const ml = p.moneyline_recommendation && p.moneyline_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.moneyline_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
                 const spread = p.spread_recommendation && p.spread_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.spread_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
                 const total = p.total_recommendation && p.total_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.total_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
-
-                // 新增字段
                 const nrfiProb = p.nrfi_prob != null ? (p.nrfi_prob*100).toFixed(1) + '%' : '—';
                 const nrfiClass = p.nrfi_prob > 0.55 ? 'nrfi-high' : (p.nrfi_prob < 0.45 ? 'nrfi-low' : '');
-                const glickoRd = p.glicko_rd_sum != null ? p.glicko_rd_sum.toFixed(0) : '—';
-                const matchupHome = p.home_matchup_adv != null ? p.home_matchup_adv.toFixed(3) : '—';
-                const matchupAway = p.away_matchup_adv != null ? p.away_matchup_adv.toFixed(3) : '—';
-                const matchup = `${matchupHome} / ${matchupAway}`;
-                const oddsTrend = p.home_odds_trend != null ? p.home_odds_trend.toFixed(3) : '—';
-
                 const factors = (p.top_features || []).join(' · ');
                 return `<tr>
                     <td>${time}</td>
@@ -170,35 +154,9 @@ HTML = """
                     <td>${spread}</td>
                     <td>${total}</td>
                     <td class="${nrfiClass}">${nrfiProb}</td>
-                    <td>${glickoRd}</td>
-                    <td>${matchup}</td>
-                    <td>${oddsTrend}</td>
                     <td style="font-size:0.75rem;color:var(--muted)">${factors}</td>
                 </tr>`;
             }).join('');
-        }
-
-        // 训练 NRFI 模型的异步请求
-        async function trainNRFI() {
-            const btn = document.getElementById('train-nrfi-btn');
-            const status = document.getElementById('train-status');
-            btn.disabled = true;
-            btn.textContent = '⏳ 训练中...';
-            status.textContent = '';
-            try {
-                const resp = await fetch('/train-nrfi');
-                const data = await resp.json();
-                if (data.status === 'started') {
-                    status.textContent = '✅ 训练已在后台启动，模型就绪后将自动使用。';
-                } else {
-                    status.textContent = '⚠️ 启动失败：' + JSON.stringify(data);
-                }
-            } catch (err) {
-                status.textContent = '❌ 请求错误：' + err.message;
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '🔄 训练 NRFI 模型';
-            }
         }
 
         load();
@@ -235,7 +193,6 @@ def get_predictions():
 
 @app.get("/api/performance")
 def get_performance():
-    """从 historical_predictions.csv 计算真实绩效指标"""
     history_file = "data/historical_predictions.csv"
     result = {"total": 0, "roi": 0.0, "win_rate": 0.0, "brier": 0.0}
 
@@ -251,13 +208,13 @@ def get_performance():
 
         result["total"] = len(df)
 
-        bets = df[df['ml_rec'].notna() & (df['ml_rec'] != '')]
-        bets_with_rec = bets[bets['ml_rec'].str.contains('Bet', na=False)]
+        bets = df[df['moneyline_recommendation'].notna() & (df['moneyline_recommendation'] != '')]
+        bets_with_rec = bets[bets['moneyline_recommendation'].str.contains('Bet', na=False)]
         if len(bets_with_rec) > 0:
             result["win_rate"] = bets_with_rec['home_win'].mean()
 
         def calc_profit(row):
-            if 'Bet' not in str(row.get('ml_rec', '')):
+            if 'Bet' not in str(row.get('moneyline_recommendation', '')):
                 return 0
             odds = row.get('home_odds', 2.0)
             if pd.isna(odds) or odds <= 1:
@@ -270,17 +227,19 @@ def get_performance():
         if total_bets > 0:
             result["roi"] = total_profit / total_bets
 
-        clean = df[['home_win', 'pred_home_win']].dropna()
+        clean = df[['home_win', 'predicted_home_win_pct']].dropna()
         if len(clean) > 0:
-            result["brier"] = brier_score_loss(clean['home_win'], clean['pred_home_win'])
+            result["brier"] = brier_score_loss(clean['home_win'], clean['predicted_home_win_pct'])
 
     except Exception as e:
         print(f"Performance calculation error: {e}")
 
     return result
 
-@app.get("/run")
-def run_background():
+@app.post("/run")
+def run_background(authorization: str = Header(None)):
+    if not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
+        raise HTTPException(status_code=401, detail="Unauthorized")
     def task():
         try:
             if generate_predictions:
@@ -290,26 +249,11 @@ def run_background():
     threading.Thread(target=task).start()
     return {"status": "started"}
 
-# +++ NEW: 训练 NRFI 模型端点 +++
-@app.get("/train-nrfi")
-def train_nrfi():
-    def task():
-        try:
-            result = subprocess.run(
-                [sys.executable, "scripts/train_nrfi_model.py"],
-                capture_output=True,
-                text=True,
-                cwd=os.path.dirname(os.path.abspath(__file__))
-            )
-            print("NRFI Training Output:\n", result.stdout)
-            if result.returncode != 0:
-                print("NRFI Training Error:\n", result.stderr)
-        except Exception as e:
-            print(f"NRFI training failed: {e}")
-
-    thread = threading.Thread(target=task)
-    thread.start()
-    return {"status": "started", "message": "NRFI model training started in background. Check server logs for progress."}
+@app.post("/train-nrfi")
+def train_nrfi(authorization: str = Header(None)):
+    if not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return {"status": "disabled", "message": "NRFI training is currently disabled"}
 
 @app.get("/health")
 def health():
