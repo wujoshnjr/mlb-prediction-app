@@ -11,6 +11,10 @@ on:
       collect_to:
         description: '结束日期 (YYYY-MM-DD)'
         required: false
+      rebuild_ratings:
+        description: '手动重建评级 (输入 true)'
+        required: false
+        default: 'false'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,6 +37,12 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r requirements.txt
+
+      - name: (Optional) Rebuild ratings
+        if: github.event.inputs.rebuild_ratings == 'true'
+        run: python scripts/rebuild_ratings.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Update game results
         run: python scripts/update_results.py
@@ -67,11 +77,13 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git add -f report/prediction.json
-          git add -f data/elo_ratings.json
-          git add -f data/glicko2_ratings.json
-          git add -f data/calibrator.pkl
-          git add -f data/rated_game_ids.json
-          git add -f data/training_status.json
+          if [ -f data/historical_predictions.csv ]; then git add -f data/historical_predictions.csv; fi
+          if [ -f data/new_final_results.json ]; then git add -f data/new_final_results.json; fi
+          if [ -f data/elo_ratings.json ]; then git add -f data/elo_ratings.json; fi
+          if [ -f data/glicko2_ratings.json ]; then git add -f data/glicko2_ratings.json; fi
+          if [ -f data/calibrator.pkl ]; then git add -f data/calibrator.pkl; fi
+          if [ -f data/rated_game_ids.json ]; then git add -f data/rated_game_ids.json; fi
+          if [ -f data/training_status.json ]; then git add -f data/training_status.json; fi
           git commit -m "Update prediction & ratings [skip ci]" || echo "No changes"
           git pull --rebase origin main
           git push
