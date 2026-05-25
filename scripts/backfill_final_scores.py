@@ -219,8 +219,16 @@ def backfill() -> None:
             print(f"Unable to process {HISTORY_FILE}: {exc}")
 
     if HISTORICAL_DIR.exists():
+        minimum_backfill_date = pd.Timestamp("2025-01-01")
+
         for parquet_path in sorted(HISTORICAL_DIR.glob("*.parquet")):
             try:
+                file_date_text = parquet_path.stem
+                file_date = pd.to_datetime(file_date_text, errors="coerce")
+
+                if pd.notna(file_date) and file_date < minimum_backfill_date:
+                    continue
+
                 parquet_frame = pd.read_parquet(parquet_path)
                 parquet_frame, changed = update_frame(
                     parquet_frame,
