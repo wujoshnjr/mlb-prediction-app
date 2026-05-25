@@ -1,5 +1,5 @@
 # main.py
-import sys, os, json, threading, subprocess
+import sys, os, json, threading
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -10,7 +10,10 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import HTMLResponse, JSONResponse
 
-ADMIN_TOKEN = os.getenv("ADMIN_API_TOKEN", "changeme")
+ADMIN_TOKEN = os.getenv("ADMIN_API_TOKEN")
+if not ADMIN_TOKEN:
+    print("FATAL: ADMIN_API_TOKEN environment variable not set. Exiting.")
+    sys.exit(1)
 
 try:
     from prediction import generate_predictions
@@ -23,7 +26,7 @@ except Exception as e:
 
 app = FastAPI(title="MLB Prediction Hub")
 
-# ==================== 前端 HTML（移除训练按钮）====================
+# ==================== 前端 HTML（无训练按钮） ====================
 HTML = """
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -67,7 +70,6 @@ HTML = """
         </div>
         <div id="error-box"></div>
 
-        <!-- 绩效卡片 -->
         <div class="grid" id="perf-cards">
             <div class="stat-card"><div class="label">Total Predictions</div><div class="value" id="perf-total">—</div></div>
             <div class="stat-card"><div class="label">ROI (1/4 Kelly)</div><div class="value" id="perf-roi">—</div></div>
@@ -75,7 +77,6 @@ HTML = """
             <div class="stat-card"><div class="label">Brier Score</div><div class="value" id="perf-brier">—</div></div>
         </div>
 
-        <!-- 预测表格 -->
         <div class="table-container">
             <table>
                 <thead>
