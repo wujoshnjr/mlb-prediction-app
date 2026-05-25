@@ -1,8 +1,4 @@
 # scripts/feature_schema.py
-"""
-共用特徵清單，prediction.py 與 train_ensemble.py 均由此導入，
-確保訓練與推論維度一致。
-"""
 EXPECTED_FEATURES = [
     'elo_diff',
     'sp_era_diff', 'sp_fip_diff', 'sp_stuff_plus_diff', 'sp_csw_diff',
@@ -22,7 +18,6 @@ EXPECTED_FEATURES = [
     'swing_miss_diff', 'csw_diff', 'barrel_bb_pct_diff',
     'sprint_speed_diff', 'pitch_type_matchup_score',
     'top3_woba_diff', 'winrate_diff', 'bt_strength_diff',
-    # Pitch Usage 特征（暂时保留，若未启用数据源则为零）
     'home_usage_magnitude', 'away_usage_magnitude',
     'home_shift_score', 'away_shift_score',
     'home_delta_FF', 'home_delta_SL', 'home_delta_CH', 'home_delta_CU',
