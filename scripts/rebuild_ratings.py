@@ -49,7 +49,7 @@ TEAM_NAME_MAP = {
     "Minnesota Twins": "Twins", "Minnesota": "Twins",
     "New York Mets": "Mets", "New York (NL)": "Mets",
     "New York Yankees": "Yankees", "New York (AL)": "Yankees",
-    "Oakland Athletics": "Athletics", "Athletics": "Athletics",
+    "Oakland Athletics": "Athletics", "Oakland": "Athletics", "Athletics": "Athletics",
     "Philadelphia Phillies": "Phillies", "Philadelphia": "Phillies",
     "Pittsburgh Pirates": "Pirates", "Pittsburgh": "Pirates",
     "San Diego Padres": "Padres", "San Diego": "Padres",
@@ -66,10 +66,10 @@ TEAM_NAME_MAP = {
     "Tigers": "Tigers", "Astros": "Astros", "Royals": "Royals",
     "Angels": "Angels", "Dodgers": "Dodgers", "Marlins": "Marlins",
     "Brewers": "Brewers", "Twins": "Twins", "Mets": "Mets",
-    "Yankees": "Yankees", "Phillies": "Phillies", "Pirates": "Pirates",
-    "Padres": "Padres", "Giants": "Giants", "Mariners": "Mariners",
-    "Cardinals": "Cardinals", "Rays": "Rays", "Rangers": "Rangers",
-    "Blue Jays": "Blue Jays", "Nationals": "Nationals",
+    "Yankees": "Yankees", "Athletics": "Athletics", "Phillies": "Phillies",
+    "Pirates": "Pirates", "Padres": "Padres", "Giants": "Giants",
+    "Mariners": "Mariners", "Cardinals": "Cardinals", "Rays": "Rays",
+    "Rangers": "Rangers", "Blue Jays": "Blue Jays", "Nationals": "Nationals",
 }
 
 
@@ -90,21 +90,18 @@ def normalize_game_frame(frame: pd.DataFrame, source: str) -> pd.DataFrame:
     required_columns = {"game_id", "home_team", "away_team", "home_score", "away_score"}
     missing_columns = sorted(required_columns.difference(frame.columns))
     if missing_columns:
-        print(f"è·³è¿ {source}: ç¼ºå°å {missing_columns}")
+        print(f"è·³é {source}: ç¼ºå°æ¬ä½ {missing_columns}")
         return pd.DataFrame()
 
-    date_column = None
     if "game_date" in frame.columns:
         date_column = "game_date"
     elif "date" in frame.columns:
         date_column = "date"
     else:
-        print(f"è·³è¿ {source}: ç¼ºå° date/game_date")
+        print(f"è·³é {source}: ç¼ºå° date/game_date")
         return pd.DataFrame()
 
-    normalized = frame[
-        ["game_id", date_column, "home_team", "away_team", "home_score", "away_score"]
-    ].copy()
+    normalized = frame[["game_id", date_column, "home_team", "away_team", "home_score", "away_score"]].copy()
     normalized = normalized.rename(columns={date_column: "game_date"})
     normalized = normalized.dropna(subset=["game_id", "home_team", "away_team", "home_score", "away_score"])
     if normalized.empty:
@@ -139,7 +136,7 @@ def load_historical_games() -> tuple[pd.DataFrame, dict[str, int]]:
             try:
                 frame = pd.read_parquet(path)
             except Exception as exc:
-                print(f"è·³è¿ {path}: æ æ³è¯»å ({exc})")
+                print(f"è·³é {path}: ç¡æ³è®å ({exc})")
                 stats["source_files_skipped"] += 1
                 continue
             normalized = normalize_game_frame(frame, str(path))
@@ -160,7 +157,6 @@ def load_historical_games() -> tuple[pd.DataFrame, dict[str, int]]:
 
 
 def serialize_glicko(league: Glicko2League, path: Path) -> None:
-    # Use the league's own serializer to maintain the repository's expected schema.
     path.parent.mkdir(parents=True, exist_ok=True)
     league.save(str(path))
 
@@ -169,14 +165,14 @@ def rebuild() -> None:
     games, load_stats = load_historical_games()
     if games.empty or len(games) < MIN_GAMES:
         raise SystemExit(
-            f"éè¯¯: åªæ {len(games)} åºå·ææ­£å¼æ¯åç final gamesï¼"
-            f"å°äºæä½è¦æ± {MIN_GAMES}ï¼æç»éå»º"
+            f"é¯èª¤: åªæ {len(games)} å ´å·ææ­£å¼æ¯åç final gamesï¼"
+            f"å°æ¼æä½è¦æ± {MIN_GAMES}ï¼æçµéå»º"
         )
 
     all_teams = sorted(set(games["home_team"]).union(set(games["away_team"])))
     if len(all_teams) < MIN_TEAMS:
         raise SystemExit(
-            f"éè¯¯: ä»è¦ç {len(all_teams)} æ¯çéï¼å°äº {MIN_TEAMS}ï¼æç»éå»º"
+            f"é¯èª¤: åè¦è {len(all_teams)} æ¯çéï¼å°æ¼ {MIN_TEAMS}ï¼æçµéå»º"
         )
 
     elo_ratings = {team: 1500.0 for team in all_teams}
@@ -201,21 +197,18 @@ def rebuild() -> None:
 
         home_team = str(row["home_team"])
         away_team = str(row["away_team"])
-
         simple_elo_update(elo_ratings, home_team, away_team, home_score, away_score)
 
         home_rating = league.teams[home_team]
         away_rating = league.teams[away_team]
         home_opponent_snapshot = copy.deepcopy(away_rating)
         away_opponent_snapshot = copy.deepcopy(home_rating)
-
         if home_score > away_score:
             home_result, away_result = 1.0, 0.0
         elif home_score < away_score:
             home_result, away_result = 0.0, 1.0
         else:
             home_result = away_result = 0.5
-
         home_rating.update(home_opponent_snapshot, home_result)
         away_rating.update(away_opponent_snapshot, away_result)
         processed_ids.add(game_id)
@@ -240,25 +233,25 @@ def rebuild() -> None:
     }
 
     REPORT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_OUTPUT.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    REPORT_OUTPUT.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
 
     if elo_range > MAX_ELO_RANGE or glicko_range > MAX_GLICKO_RANGE:
         raise SystemExit(
-            "éè¯¯: éå»ºç»æ rating èå´å¼å¸¸ "
+            "é¯èª¤: éå»ºçµæ rating ç¯åç°å¸¸ "
             f"(Elo={elo_range:.1f}, Glicko2={glicko_range:.1f})ï¼"
-            "å·²ä¿å­æ¥åï¼ä½æç»è¦çæ­£å¼ rating state"
+            "å·²ä¿å­å ±åï¼ä½æçµè¦èæ­£å¼ rating state"
         )
 
     ELO_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    ELO_OUTPUT.write_text(json.dumps(elo_ratings, indent=2), encoding="utf-8")
+    ELO_OUTPUT.write_text(json.dumps(elo_ratings, indent=2, ensure_ascii=False), encoding="utf-8")
     serialize_glicko(league, GLICKO_OUTPUT)
     RATED_IDS_OUTPUT.write_text(
-        json.dumps(sorted(processed_ids), indent=2),
+        json.dumps(sorted(processed_ids), indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
 
     print("â Rating éå»ºæå")
-    print(json.dumps(report, indent=2))
+    print(json.dumps(report, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":
