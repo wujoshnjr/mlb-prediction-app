@@ -53,6 +53,8 @@ except Exception as e: print(f"nrf_model 导入失败: {e}"); NRFIModel = None; 
 try: from scripts.rating_updater import load_glicko2_league
 except Exception as e: print(f"rating_updater 导入失败: {e}"); load_glicko2_league = None
 
+from scripts.feature_schema import EXPECTED_FEATURES
+
 model = None
 try:
     import joblib
@@ -446,7 +448,8 @@ def generate_predictions(elo_system=None):
                 home_mom_30 = get_elo_momentum(home,30)
                 away_mom_30 = get_elo_momentum(away,30)
                 elo_momentum_30d = home_mom_30 - away_mom_30
-            except: pass
+            except Exception as e:
+                errors.append(f"ELO 动量失败: {e}")
 
         avg_odds = odds_dict.get((home, away), [])
         home_odds = np.mean(avg_odds) if avg_odds else None
@@ -490,7 +493,8 @@ def generate_predictions(elo_system=None):
                 home_val = float(home_ip) if home_ip is not None else 0.0
                 away_val = float(away_ip) if away_ip is not None else 0.0
                 bullpen_ip_diff = home_val - away_val
-            except: pass
+            except Exception as e:
+                errors.append(f"牛棚局数解析失败: {e}")
             home_back2back = int(bullpen_dict[home_id].get('back_to_back',0))
             away_back2back = int(bullpen_dict[away_id].get('back_to_back',0))
         back2back_diff = home_back2back - away_back2back
@@ -526,7 +530,8 @@ def generate_predictions(elo_system=None):
             away_catcher_id = game.get('away_catcher_id')
             if home_catcher_id and away_catcher_id:
                 try: catcher_era_diff, cs_diff = calculate_catcher_effect(home_catcher_id, away_catcher_id, 2026)
-                except: pass
+                except Exception as e:
+                    errors.append(f"捕手效应失败: {e}")
 
         statcast_launch_speed_diff=0.0; statcast_barrel_diff=0.0; statcast_hard_hit_diff=0.0; statcast_woba_diff=0.0
         if statcast_team_stats:
@@ -590,7 +595,8 @@ def generate_predictions(elo_system=None):
                 home_pitcher_id = pitcher_data.get('home_pitcher_id')
                 away_pitcher_id = pitcher_data.get('away_pitcher_id')
                 pitch_type_matchup_score = get_pitch_type_matchup_score(home_pitcher_id, away_pitcher_id)
-            except: pass
+            except Exception as e:
+                errors.append(f"球种对位失败: {e}")
 
         home_top3_woba = game.get('home_top3_avg_woba',0.320)
         away_top3_woba = game.get('away_top3_avg_woba',0.320)
@@ -629,7 +635,8 @@ def generate_predictions(elo_system=None):
                 hist = pd.read_csv(HIST_FILE)
                 last_odds = hist[(hist['home_team']==home)&(hist['away_team']==away)]['home_odds'].dropna().tail(1).values
                 if len(last_odds)>0 and home_odds is not None: odds_change = home_odds - last_odds[0]
-            except: pass
+            except Exception as e:
+                errors.append(f"赔率变化计算失败: {e}")
 
         umpire_data = umpire_dict.get(game.get('game_id'),{})
         zone_size = umpire_data.get("zone_size",1.0)
@@ -638,56 +645,56 @@ def generate_predictions(elo_system=None):
         barrel_pa_diff = statcast_barrel_diff
         hardhit_pa_diff = statcast_hard_hit_diff
 
-        features = {
-            'elo_diff': round(elo_diff,3),
-            'sp_era_diff': round(sp_era_diff,3),
-            'sp_fip_diff': round(sp_fip_diff,3),
-            'sp_stuff_plus_diff': round(sp_stuff_plus_diff,3),
-            'sp_csw_diff': round(sp_csw_diff,3),
-            'bullpen_ip_diff': round(bullpen_ip_diff,3),
-            'rest_diff': rest_diff,
-            'dynamic_park_factor': round(dynamic_park_factor,3),
-            'platoon_ops_diff': round(platoon_ops_diff,3),
-            'statcast_launch_speed_diff': round(statcast_launch_speed_diff,3),
-            'statcast_barrel_diff': round(statcast_barrel_diff,3),
-            'statcast_hard_hit_diff': round(statcast_hard_hit_diff,3),
-            'statcast_woba_diff': round(statcast_woba_diff,3),
-            'timezone_diff': timezone_diff,
-            'is_day_game': is_day_game,
-            'back2back_diff': back2back_diff,
-            'catcher_era_diff': round(catcher_era_diff,3),
-            'cs_diff': round(cs_diff,3),
-            'wind_effect': round(wind_effect,4),
-            'temp_effect': round(temp_effect_raw,4),
-            'precip_effect': round(precip_effect,4),
-            'injury_diff': round(injury_diff,3),
-            'dynamic_pythag_diff': round(dynamic_pythag_diff,3),
-            'log5_prob': round(log5_home,3),
-            'lag30_winrate_diff': round(lag30_winrate_diff,3),
-            'lag30_runs_diff': round(lag30_runs_diff,3),
-            'pitch_movement_diff': round(pitch_movement_diff,3),
-            'k_pct_diff': round(k_pct_diff,3),
-            'bb_pct_diff': round(bb_pct_diff,3),
-            'avg_bat_speed_diff': round(avg_bat_speed_diff,3),
-            'pitcher_rating_diff': round(pitcher_rating_diff,3),
-            'odds_change': round(odds_change,4),
-            'zone_size': round(zone_size,3),
-            'k_rate': round(k_rate,3),
-            'bullpen_availability_diff': round(bullpen_availability_diff,3),
-            'elo_momentum_7d': round(elo_momentum_7d,3),
-            'elo_momentum_30d': round(elo_momentum_30d,3),
-            'barrel_pa_diff': round(barrel_pa_diff,3),
-            'hardhit_pa_diff': round(hardhit_pa_diff,3),
-            'swing_miss_diff': round(swing_miss_diff,3),
-            'csw_diff': round(csw_diff,3),
-            'barrel_bb_pct_diff': round(barrel_bb_pct_diff,3),
-            'sprint_speed_diff': round(sprint_speed_diff,3),
-            'pitch_type_matchup_score': round(pitch_type_matchup_score,3),
-            'top3_woba_diff': round(home_top3_woba - away_top3_woba,3),
-            'winrate_diff': round(home_pct - away_pct,3),
-            'bt_strength_diff': round(bt_strength_diff,3)
-        }
+        features = {k: 0.0 for k in EXPECTED_FEATURES}
+        features['elo_diff'] = round(elo_diff,3)
+        features['sp_era_diff'] = round(sp_era_diff,3)
+        features['sp_fip_diff'] = round(sp_fip_diff,3)
+        features['sp_stuff_plus_diff'] = round(sp_stuff_plus_diff,3)
+        features['sp_csw_diff'] = round(sp_csw_diff,3)
+        features['bullpen_ip_diff'] = round(bullpen_ip_diff,3)
+        features['rest_diff'] = rest_diff
+        features['dynamic_park_factor'] = round(dynamic_park_factor,3)
+        features['platoon_ops_diff'] = round(platoon_ops_diff,3)
+        features['statcast_launch_speed_diff'] = round(statcast_launch_speed_diff,3)
+        features['statcast_barrel_diff'] = round(statcast_barrel_diff,3)
+        features['statcast_hard_hit_diff'] = round(statcast_hard_hit_diff,3)
+        features['statcast_woba_diff'] = round(statcast_woba_diff,3)
+        features['timezone_diff'] = timezone_diff
+        features['is_day_game'] = is_day_game
+        features['back2back_diff'] = back2back_diff
+        features['catcher_era_diff'] = round(catcher_era_diff,3)
+        features['cs_diff'] = round(cs_diff,3)
+        features['wind_effect'] = round(wind_effect,4)
+        features['temp_effect'] = round(temp_effect_raw,4)
+        features['precip_effect'] = round(precip_effect,4)
+        features['injury_diff'] = round(injury_diff,3)
+        features['dynamic_pythag_diff'] = round(dynamic_pythag_diff,3)
+        features['log5_prob'] = round(log5_home,3)
+        features['lag30_winrate_diff'] = round(lag30_winrate_diff,3)
+        features['lag30_runs_diff'] = round(lag30_runs_diff,3)
+        features['pitch_movement_diff'] = round(pitch_movement_diff,3)
+        features['k_pct_diff'] = round(k_pct_diff,3)
+        features['bb_pct_diff'] = round(bb_pct_diff,3)
+        features['avg_bat_speed_diff'] = round(avg_bat_speed_diff,3)
+        features['pitcher_rating_diff'] = round(pitcher_rating_diff,3)
+        features['odds_change'] = round(odds_change,4)
+        features['zone_size'] = round(zone_size,3)
+        features['k_rate'] = round(k_rate,3)
+        features['bullpen_availability_diff'] = round(bullpen_availability_diff,3)
+        features['elo_momentum_7d'] = round(elo_momentum_7d,3)
+        features['elo_momentum_30d'] = round(elo_momentum_30d,3)
+        features['barrel_pa_diff'] = round(barrel_pa_diff,3)
+        features['hardhit_pa_diff'] = round(hardhit_pa_diff,3)
+        features['swing_miss_diff'] = round(swing_miss_diff,3)
+        features['csw_diff'] = round(csw_diff,3)
+        features['barrel_bb_pct_diff'] = round(barrel_bb_pct_diff,3)
+        features['sprint_speed_diff'] = round(sprint_speed_diff,3)
+        features['pitch_type_matchup_score'] = round(pitch_type_matchup_score,3)
+        features['top3_woba_diff'] = round(home_top3_woba - away_top3_woba,3)
+        features['winrate_diff'] = round(home_pct - away_pct,3)
+        features['bt_strength_diff'] = round(bt_strength_diff,3)
 
+        # Pitch Usage 特征（目前功能关闭，保持默认0）
         pitch_usage_feats = {}
         if compute_pitch_usage_features and savant_df is not None and not savant_df.empty:
             if 'pitcher' in savant_df.columns:
@@ -721,18 +728,7 @@ def generate_predictions(elo_system=None):
 
         ml_pred = None
         if model is not None:
-            feature_order = [
-                'elo_diff','sp_era_diff','sp_fip_diff','sp_stuff_plus_diff','sp_csw_diff',
-                'bullpen_ip_diff','rest_diff','dynamic_park_factor','platoon_ops_diff',
-                'statcast_launch_speed_diff','statcast_barrel_diff','statcast_hard_hit_diff','statcast_woba_diff',
-                'timezone_diff','is_day_game','back2back_diff',
-                'catcher_era_diff','cs_diff','wind_effect','temp_effect','precip_effect','injury_diff',
-                'dynamic_pythag_diff','log5_prob','lag30_winrate_diff','lag30_runs_diff','pitch_movement_diff',
-                'k_pct_diff','bb_pct_diff','avg_bat_speed_diff','pitcher_rating_diff','odds_change',
-                'zone_size','k_rate','bullpen_availability_diff','elo_momentum_7d','elo_momentum_30d',
-                'barrel_pa_diff','hardhit_pa_diff','swing_miss_diff','csw_diff','barrel_bb_pct_diff',
-                'sprint_speed_diff','pitch_type_matchup_score','top3_woba_diff','winrate_diff','bt_strength_diff'
-            ]
+            feature_order = EXPECTED_FEATURES  # 使用统一特征列表
             feature_array = np.array([[features.get(k,0) for k in feature_order]])
             try:
                 ml_pred = model.predict_proba(feature_array)[0,1]
@@ -792,11 +788,9 @@ def generate_predictions(elo_system=None):
         elif under_prob is not None and under_prob > 0.55:
             total_rec = f"Bet UNDER 8.5 ({under_prob:.1%})"
 
-        # NRFI 预测
         nrfi_prob = None
         nrfi_source = "manual_fallback"
         nrfi_fallback_reason = None
-
         if config.NRFI_USE_ML and nrfi_model_loaded:
             try:
                 nrf_feats = extract_nrf_features({
@@ -819,8 +813,6 @@ def generate_predictions(elo_system=None):
             except Exception as e:
                 nrfi_fallback_reason = f"ML prediction failed: {e}"
                 nrfi_prob = None
-
-        # 手工 fallback
         if nrfi_prob is None:
             home_first_era = pitcher_data.get('home_first_era') if pitcher_data is not None else None
             away_first_era = pitcher_data.get('away_first_era') if pitcher_data is not None else None
@@ -844,7 +836,6 @@ def generate_predictions(elo_system=None):
                 nrfi_prob = None
                 nrfi_source = "unavailable"
                 nrfi_fallback_reason = "Missing first inning ERA or top3 wOBA data"
-
         if nrfi_prob is not None:
             nrfi_rec = f"NRFI ({nrfi_prob:.1%})" if nrfi_prob > 0.55 else f"YRFI ({(1 - nrfi_prob):.1%})"
         else:
