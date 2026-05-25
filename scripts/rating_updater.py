@@ -1,116 +1,213 @@
-# scripts/rating_updater.py
-import sys, os, json, logging, copy
-from datetime import datetime
+# scripts/validate_predictions.py
+"""Validate an already-generated prediction report.
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+This script must not fetch data or generate new predictions. It only verifies
+the output written by prediction.py and fails CI when the report contains
+strong signals of broken upstream data or implausible prediction distributions.
+"""
 
-import config
-from scripts.glicko2_ratings import Glicko2League
+from __future__ import annotations
 
-logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+import json
+import math
+from collections import Counter
+from pathlib import Path
+from typing import Any
 
-ELO_FILE = 'data/elo_ratings.json'
-GLICKO_FILE = 'data/glicko2_ratings.json'
-RATED_GAMES_FILE = 'data/rated_game_ids.json'
-FINAL_RESULTS_FILE = 'data/new_final_results.json'
+import numpy as np
 
-def load_elo_ratings():
-    if os.path.exists(ELO_FILE):
-        with open(ELO_FILE) as f: return json.load(f)
-    return {}
+REPORT = Path("report/prediction.json")
+VALIDATION_ERRORS_FILE = Path("report/validation_errors.txt")
+ELO_FILE = Path("data/elo_ratings.json")
 
-def save_elo_ratings(ratings):
-    with open(ELO_FILE,'w') as f: json.dump(ratings, f, indent=2)
+MIN_GAMES_FOR_DAILY_MEAN_CHECK = 5
+MIN_ALLOWED_MEAN_HOME_PROB = 0.40
+MAX_ALLOWED_MEAN_HOME_PROB = 0.60
+MAX_ALLOWED_ELO_RANGE = 400.0
+EXTREME_HIGH_PROB = 0.80
+EXTREME_LOW_PROB = 0.20
 
-def load_glicko2_league():
-    if os.path.exists(GLICKO_FILE):
-        return Glicko2League.load(GLICKO_FILE)
-    else:
-        league = Glicko2League()
-        elo = load_elo_ratings()
-        for team_id, elo_val in elo.items():
-            league.add_team(team_id, rating=elo_val-24, rd=350, vol=0.06)
-        return league
+CRITICAL_ERROR_TOKENS = (
+    "traceback",
+    "嚴重錯誤",
+    "严重错误",
+    "critical",
+    "fatal",
+    "nameerror",
+    "truth value of a series is ambiguous",
+    "not enough values to unpack",
+    "lag_features error",
+)
 
-def save_glicko2_league(league):
-    league.save(GLICKO_FILE)
 
-def load_rated_game_ids():
-    if os.path.exists(RATED_GAMES_FILE):
-        with open(RATED_GAMES_FILE) as f: return set(json.load(f))
-    return set()
+def _write_failure(errors: list[str], pipeline_errors: list[str]) -> None:
+    VALIDATION_ERRORS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    output = list(errors)
+    if pipeline_errors:
+        output.extend(["", "Pipeline errors:"])
+        output.extend(f"- {item}" for item in pipeline_errors)
+    VALIDATION_ERRORS_FILE.write_text("\n".join(output), encoding="utf-8")
 
-def save_rated_game_ids(game_ids):
-    with open(RATED_GAMES_FILE,'w') as f: json.dump(list(game_ids), f)
 
-def simple_elo_update(elo, home_team, away_team, home_score, away_score, K=32, home_adv=24):
-    r_home = elo.get(home_team, 1500)
-    r_away = elo.get(away_team, 1500)
-    expected_home = 1 / (1 + 10 ** ((r_away - (r_home + home_adv)) / 400))
-    if home_score > away_score: actual_home = 1.0
-    elif home_score < away_score: actual_home = 0.0
-    else: actual_home = 0.5
-    elo[home_team] = r_home + K * (actual_home - expected_home)
-    elo[away_team] = r_away + K * ((1 - actual_home) - (1 - expected_home))
-    return elo
+def _fail(errors: list[str], pipeline_errors: list[str] | None = None) -> None:
+    pipeline_errors = pipeline_errors or []
+    print("❌ 驗證失敗:")
+    for error in errors:
+        print(f"  - {error}")
+    if pipeline_errors:
+        print("pipeline errors 摘要:")
+        for error in pipeline_errors[-10:]:
+            print(f"  - {error}")
+    _write_failure(errors, pipeline_errors)
+    raise SystemExit(1)
 
-def update_ratings(game_results):
-    rated_ids = load_rated_game_ids()
-    new_games = []
-    skipped = []
-    seen_batch = set()
-    for game in game_results:
-        gid = str(game.get('game_id'))
-        if not gid or gid in {'None','nan'}: continue
-        if gid in rated_ids or gid in seen_batch:
-            skipped.append(gid)
+
+def _as_finite_probability(value: Any, label: str, errors: list[str]) -> float | None:
+    try:
+        prob = float(value)
+    except (TypeError, ValueError):
+        errors.append(f"{label} 缺少有效數值: {value!r}")
+        return None
+    if not math.isfinite(prob) or prob < 0.0 or prob > 1.0:
+        errors.append(f"{label} 超出 [0, 1] 範圍: {prob}")
+        return None
+    return prob
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            value = json.load(file)
+    except FileNotFoundError:
+        raise SystemExit(f"❌ {path} 不存在")
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"❌ {path} JSON 無法解析: {exc}") from exc
+    if not isinstance(value, dict):
+        raise SystemExit(f"❌ {path} 內容必須是 JSON object")
+    return value
+
+
+def validate() -> None:
+    data = _read_json(REPORT)
+    predictions = data.get("today_predictions", [])
+    pipeline_errors = [str(item) for item in data.get("errors", []) if item is not None]
+    schedule_fetch_ok = data.get("schedule_fetch_ok")
+    scheduled_game_count = data.get("scheduled_game_count")
+
+    if not isinstance(predictions, list):
+        _fail(["today_predictions 必須為 list"], pipeline_errors)
+
+    if not predictions:
+        if schedule_fetch_ok is True and scheduled_game_count == 0:
+            print("✅ 賽程來源確認今日無比賽，無預測屬正常情況")
+            return
+        _fail([
+            "預測為空，但 report 未明確確認 schedule_fetch_ok=true 且 "
+            "scheduled_game_count=0；不得將 API/管線失敗誤判為休賽日"
+        ], pipeline_errors)
+
+    validation_errors: list[str] = []
+    if schedule_fetch_ok is not True:
+        validation_errors.append("已有預測，但 schedule_fetch_ok 不是 true")
+    if scheduled_game_count is not None and scheduled_game_count < len(predictions):
+        validation_errors.append("預測場數大於排程場數")
+
+    critical_pipeline_errors = [
+        error for error in pipeline_errors
+        if any(token in error.lower() for token in CRITICAL_ERROR_TOKENS)
+    ]
+    if critical_pipeline_errors:
+        validation_errors.append(f"存在 {len(critical_pipeline_errors)} 條關鍵 pipeline 錯誤")
+
+    home_probs: list[float] = []
+    for index, prediction in enumerate(predictions):
+        if not isinstance(prediction, dict):
+            validation_errors.append(f"第 {index + 1} 場預測不是 object")
             continue
-        seen_batch.add(gid)
-        new_games.append(game)
+        probability = _as_finite_probability(
+            prediction.get("predicted_home_win_pct"),
+            f"第 {index + 1} 場 predicted_home_win_pct",
+            validation_errors,
+        )
+        if probability is not None:
+            home_probs.append(probability)
 
-    if skipped: logger.info(f"跳过 {len(skipped)} 场")
-    if not new_games:
-        logger.info("无新比赛")
-        return
+    if len(home_probs) != len(predictions):
+        _fail(validation_errors, pipeline_errors)
 
-    logger.info(f"更新 {len(new_games)} 场")
-    if config.RATINGS_ENGINE == 'elo':
-        elo = load_elo_ratings()
-        for game in new_games:
-            simple_elo_update(elo, game['home_team'], game['away_team'],
-                              game['home_score'], game['away_score'])
-        save_elo_ratings(elo)
-    elif config.RATINGS_ENGINE == 'glicko2':
-        league = load_glicko2_league()
-        for game in new_games:
-            home = game['home_team']; away = game['away_team']
-            if home not in league.teams: league.add_team(home)
-            if away not in league.teams: league.add_team(away)
-            hteam = league.teams[home]; ateam = league.teams[away]
-            h_snap = copy.deepcopy(ateam)
-            a_snap = copy.deepcopy(hteam)
-            if game['home_score'] > game['away_score']:
-                hteam.update(h_snap, 1.0); ateam.update(a_snap, 0.0)
-            elif game['home_score'] < game['away_score']:
-                hteam.update(h_snap, 0.0); ateam.update(a_snap, 1.0)
-            else:
-                hteam.update(h_snap, 0.5); ateam.update(a_snap, 0.5)
-        save_glicko2_league(league)
+    mean_home = float(np.mean(home_probs))
+    min_home = float(np.min(home_probs))
+    max_home = float(np.max(home_probs))
+    extreme_games = sum(prob > EXTREME_HIGH_PROB or prob < EXTREME_LOW_PROB for prob in home_probs)
 
-    for game in new_games:
-        rated_ids.add(str(game['game_id']))
-    save_rated_game_ids(rated_ids)
-    logger.info(f"新处理 {len(new_games)}，rated total {len(rated_ids)}")
+    print(
+        "Home probability diagnostics: "
+        f"games={len(home_probs)}, mean={mean_home:.3f}, "
+        f"min={min_home:.3f}, max={max_home:.3f}, extreme_games={extreme_games}"
+    )
 
-def main():
-    if not os.path.exists(FINAL_RESULTS_FILE):
-        logger.error(f"缺少 {FINAL_RESULTS_FILE}")
-        return
-    with open(FINAL_RESULTS_FILE) as f:
-        games = json.load(f)
-    if games:
-        update_ratings(games)
+    if len(home_probs) >= MIN_GAMES_FOR_DAILY_MEAN_CHECK:
+        if mean_home > MAX_ALLOWED_MEAN_HOME_PROB or mean_home < MIN_ALLOWED_MEAN_HOME_PROB:
+            validation_errors.append(f"Avg home prob {mean_home:.3f} 異常")
+    else:
+        print(f"僅 {len(home_probs)} 場比賽，跳過 daily mean 檢查")
 
-if __name__ == '__main__':
-    main()
+    if ELO_FILE.exists():
+        try:
+            elo = _read_json(ELO_FILE)
+            numeric_ratings = [float(value) for value in elo.values()]
+            if numeric_ratings:
+                elo_min = min(numeric_ratings)
+                elo_max = max(numeric_ratings)
+                elo_range = elo_max - elo_min
+                print(
+                    "Elo diagnostics: "
+                    f"teams={len(numeric_ratings)}, min={elo_min:.1f}, "
+                    f"max={elo_max:.1f}, range={elo_range:.1f}"
+                )
+                if elo_range > MAX_ALLOWED_ELO_RANGE:
+                    validation_errors.append(f"Elo range {elo_range:.1f} 過大")
+        except (TypeError, ValueError) as exc:
+            validation_errors.append(f"Elo rating 檔案含非數值資料: {exc}")
+
+    model_sources = Counter(
+        str(prediction.get("model_source", "unknown"))
+        for prediction in predictions if isinstance(prediction, dict)
+    )
+    print(f"Model source distribution: {dict(model_sources)}")
+    if model_sources and model_sources.get("manual", 0) == len(predictions):
+        print("ℹ️ 所有比賽目前使用手工預測 baseline")
+
+    valid_nrfi = [
+        prediction for prediction in predictions
+        if isinstance(prediction, dict)
+        and prediction.get("nrfi_source") in {"ml", "manual"}
+        and prediction.get("nrfi_prob") is not None
+    ]
+    nrfi_sources = Counter(
+        str(prediction.get("nrfi_source", "unknown"))
+        for prediction in predictions if isinstance(prediction, dict)
+    )
+    print(f"NRFI source distribution: {dict(nrfi_sources)}")
+
+    nrfi_probs: list[float] = []
+    for index, prediction in enumerate(valid_nrfi):
+        probability = _as_finite_probability(
+            prediction.get("nrfi_prob"),
+            f"有效 NRFI 第 {index + 1} 場 nrfi_prob",
+            validation_errors,
+        )
+        if probability is not None:
+            nrfi_probs.append(probability)
+    if len(nrfi_probs) > 2 and all(abs(prob - 0.5) < 0.01 for prob in nrfi_probs):
+        validation_errors.append("NRFI 機率單一（全部≈0.5）")
+
+    if validation_errors:
+        _fail(validation_errors, pipeline_errors)
+    if VALIDATION_ERRORS_FILE.exists():
+        VALIDATION_ERRORS_FILE.unlink()
+    print("✅ 預測輸出通過自動驗證")
+
+
+if __name__ == "__main__":
+    validate()
