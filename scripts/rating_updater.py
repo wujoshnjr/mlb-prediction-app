@@ -1,258 +1,359 @@
-# scripts/rebuild_ratings.py
-"""Safely rebuild Elo and Glicko2 rating state from finalized historical games."""
+# scripts/rating_updater.py
+"""Update Elo or Glicko2 ratings from newly finalized MLB games.
+
+This module is used by:
+- prediction.py to load Glicko2 rating state.
+- rebuild_ratings.py to reuse the Elo update formula.
+- GitHub Actions for incremental daily rating updates.
+
+Runtime text is ASCII-only to avoid encoding damage during browser edits.
+"""
 
 from __future__ import annotations
 
 import copy
 import json
+import logging
 import os
 import sys
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import config
 from scripts.glicko2_ratings import Glicko2League
-from scripts.rating_updater import simple_elo_update
 
-CSV_FILE = Path("data/historical_predictions.csv")
-HIST_DIR = Path("data/historical")
-ELO_OUTPUT = Path("data/elo_ratings.json")
-GLICKO_OUTPUT = Path("data/glicko2_ratings.json")
-RATED_IDS_OUTPUT = Path("data/rated_game_ids.json")
-REPORT_OUTPUT = Path("report/rating_rebuild_report.json")
+LOGGER = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-MIN_GAMES = 100
-MIN_TEAMS = 30
-MAX_ELO_RANGE = 400.0
-MAX_GLICKO_RANGE = 400.0
+ELO_FILE = Path("data/elo_ratings.json")
+GLICKO_FILE = Path("data/glicko2_ratings.json")
+RATED_GAMES_FILE = Path("data/rated_game_ids.json")
+FINAL_RESULTS_FILE = Path("data/new_final_results.json")
 
-TEAM_NAME_MAP = {
-    "Arizona Diamondbacks": "D-backs", "Diamondbacks": "D-backs", "Arizona": "D-backs",
-    "Atlanta Braves": "Braves", "Atlanta": "Braves",
-    "Baltimore Orioles": "Orioles", "Baltimore": "Orioles",
-    "Boston Red Sox": "Red Sox", "Boston": "Red Sox",
-    "Chicago Cubs": "Cubs", "Chicago (NL)": "Cubs",
-    "Chicago White Sox": "White Sox", "Chicago (AL)": "White Sox",
-    "Cincinnati Reds": "Reds", "Cincinnati": "Reds",
-    "Cleveland Guardians": "Guardians", "Cleveland": "Guardians",
-    "Colorado Rockies": "Rockies", "Colorado": "Rockies",
-    "Detroit Tigers": "Tigers", "Detroit": "Tigers",
-    "Houston Astros": "Astros", "Houston": "Astros",
-    "Kansas City Royals": "Royals", "Kansas City": "Royals",
-    "Los Angeles Angels": "Angels", "Los Angeles (AL)": "Angels",
-    "Los Angeles Dodgers": "Dodgers", "Los Angeles (NL)": "Dodgers",
-    "Miami Marlins": "Marlins", "Miami": "Marlins",
-    "Milwaukee Brewers": "Brewers", "Milwaukee": "Brewers",
-    "Minnesota Twins": "Twins", "Minnesota": "Twins",
-    "New York Mets": "Mets", "New York (NL)": "Mets",
-    "New York Yankees": "Yankees", "New York (AL)": "Yankees",
-    "Oakland Athletics": "Athletics", "Oakland": "Athletics", "Athletics": "Athletics",
-    "Philadelphia Phillies": "Phillies", "Philadelphia": "Phillies",
-    "Pittsburgh Pirates": "Pirates", "Pittsburgh": "Pirates",
-    "San Diego Padres": "Padres", "San Diego": "Padres",
-    "San Francisco Giants": "Giants", "San Francisco": "Giants",
-    "Seattle Mariners": "Mariners", "Seattle": "Mariners",
-    "St. Louis Cardinals": "Cardinals", "St. Louis": "Cardinals",
-    "Tampa Bay Rays": "Rays", "Tampa Bay": "Rays",
-    "Texas Rangers": "Rangers", "Texas": "Rangers",
-    "Toronto Blue Jays": "Blue Jays", "Toronto": "Blue Jays",
-    "Washington Nationals": "Nationals", "Washington": "Nationals",
-    "D-backs": "D-backs", "Braves": "Braves", "Orioles": "Orioles",
-    "Red Sox": "Red Sox", "Cubs": "Cubs", "White Sox": "White Sox",
-    "Reds": "Reds", "Guardians": "Guardians", "Rockies": "Rockies",
-    "Tigers": "Tigers", "Astros": "Astros", "Royals": "Royals",
-    "Angels": "Angels", "Dodgers": "Dodgers", "Marlins": "Marlins",
-    "Brewers": "Brewers", "Twins": "Twins", "Mets": "Mets",
-    "Yankees": "Yankees", "Athletics": "Athletics", "Phillies": "Phillies",
-    "Pirates": "Pirates", "Padres": "Padres", "Giants": "Giants",
-    "Mariners": "Mariners", "Cardinals": "Cardinals", "Rays": "Rays",
-    "Rangers": "Rangers", "Blue Jays": "Blue Jays", "Nationals": "Nationals",
-}
+DEFAULT_RATING = 1500.0
+DEFAULT_RD = 350.0
+DEFAULT_VOL = 0.06
+DEFAULT_ELO_K = 32.0
+DEFAULT_HOME_ADVANTAGE = 24.0
 
 
 def normalize_game_id(value: Any) -> str | None:
-    if value is None or pd.isna(value):
+    """Return a stable string game id, or None when the value is invalid."""
+    if value is None:
         return None
+
     try:
-        number = float(value)
-        if number.is_integer():
-            return str(int(number))
+        numeric = float(value)
+        if numeric.is_integer():
+            return str(int(numeric))
     except (TypeError, ValueError):
         pass
+
     text = str(value).strip()
-    return text if text and text.lower() not in {"nan", "none"} else None
+    if not text or text.lower() in {"none", "nan", "null"}:
+        return None
+
+    return text
 
 
-def normalize_game_frame(frame: pd.DataFrame, source: str) -> pd.DataFrame:
-    required_columns = {"game_id", "home_team", "away_team", "home_score", "away_score"}
-    missing_columns = sorted(required_columns.difference(frame.columns))
-    if missing_columns:
-        print(f"è·³é {source}: ç¼ºå°æ¬ä½ {missing_columns}")
-        return pd.DataFrame()
+def load_elo_ratings() -> dict[str, float]:
+    """Load Elo rating state from disk."""
+    if not ELO_FILE.exists():
+        return {}
 
-    if "game_date" in frame.columns:
-        date_column = "game_date"
-    elif "date" in frame.columns:
-        date_column = "date"
-    else:
-        print(f"è·³é {source}: ç¼ºå° date/game_date")
-        return pd.DataFrame()
+    try:
+        payload = json.loads(ELO_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        LOGGER.error("Unable to read %s: %s", ELO_FILE, exc)
+        return {}
 
-    normalized = frame[["game_id", date_column, "home_team", "away_team", "home_score", "away_score"]].copy()
-    normalized = normalized.rename(columns={date_column: "game_date"})
-    normalized = normalized.dropna(subset=["game_id", "home_team", "away_team", "home_score", "away_score"])
-    if normalized.empty:
-        return normalized
+    if not isinstance(payload, dict):
+        LOGGER.error("%s does not contain a JSON object.", ELO_FILE)
+        return {}
 
-    normalized["game_id"] = normalized["game_id"].map(normalize_game_id)
-    normalized = normalized.dropna(subset=["game_id"])
-    normalized["home_team"] = normalized["home_team"].map(TEAM_NAME_MAP).fillna(normalized["home_team"])
-    normalized["away_team"] = normalized["away_team"].map(TEAM_NAME_MAP).fillna(normalized["away_team"])
-    normalized["home_score"] = pd.to_numeric(normalized["home_score"], errors="coerce")
-    normalized["away_score"] = pd.to_numeric(normalized["away_score"], errors="coerce")
-    normalized["game_date"] = pd.to_datetime(normalized["game_date"], errors="coerce")
-    normalized = normalized.dropna(subset=["home_score", "away_score", "game_date"])
-    return normalized
-
-
-def load_historical_games() -> tuple[pd.DataFrame, dict[str, int]]:
-    frames: list[pd.DataFrame] = []
-    stats = {"source_files_read": 0, "source_files_skipped": 0}
-
-    if CSV_FILE.exists():
-        stats["source_files_read"] += 1
-        csv_frame = normalize_game_frame(pd.read_csv(CSV_FILE), str(CSV_FILE))
-        if not csv_frame.empty:
-            frames.append(csv_frame)
-        else:
-            stats["source_files_skipped"] += 1
-
-    if HIST_DIR.exists():
-        for path in sorted(HIST_DIR.glob("*.parquet")):
-            stats["source_files_read"] += 1
-            try:
-                frame = pd.read_parquet(path)
-            except Exception as exc:
-                print(f"è·³é {path}: ç¡æ³è®å ({exc})")
-                stats["source_files_skipped"] += 1
-                continue
-            normalized = normalize_game_frame(frame, str(path))
-            if not normalized.empty:
-                frames.append(normalized)
-            else:
-                stats["source_files_skipped"] += 1
-
-    if not frames:
-        return pd.DataFrame(), stats
-
-    all_games = pd.concat(frames, ignore_index=True)
-    pre_dedup_count = len(all_games)
-    all_games = all_games.sort_values(["game_date", "game_id"])
-    all_games = all_games.drop_duplicates(subset=["game_id"], keep="last")
-    stats["duplicate_rows_removed"] = pre_dedup_count - len(all_games)
-    return all_games.reset_index(drop=True), stats
-
-
-def serialize_glicko(league: Glicko2League, path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    league.save(str(path))
-
-
-def rebuild() -> None:
-    games, load_stats = load_historical_games()
-    if games.empty or len(games) < MIN_GAMES:
-        raise SystemExit(
-            f"é¯èª¤: åªæ {len(games)} å ´å·ææ­£å¼æ¯åç final gamesï¼"
-            f"å°æ¼æä½è¦æ± {MIN_GAMES}ï¼æçµéå»º"
-        )
-
-    all_teams = sorted(set(games["home_team"]).union(set(games["away_team"])))
-    if len(all_teams) < MIN_TEAMS:
-        raise SystemExit(
-            f"é¯èª¤: åè¦è {len(all_teams)} æ¯çéï¼å°æ¼ {MIN_TEAMS}ï¼æçµéå»º"
-        )
-
-    elo_ratings = {team: 1500.0 for team in all_teams}
-    league = Glicko2League()
-    for team in all_teams:
-        league.add_team(team, 1500.0, 350.0, 0.06)
-
-    processed_ids: set[str] = set()
-    skipped_invalid_score = 0
-
-    for _, row in games.iterrows():
-        game_id = normalize_game_id(row["game_id"])
-        if not game_id or game_id in processed_ids:
-            continue
-
+    ratings: dict[str, float] = {}
+    for team, value in payload.items():
         try:
-            home_score = int(row["home_score"])
-            away_score = int(row["away_score"])
+            ratings[str(team)] = float(value)
         except (TypeError, ValueError):
-            skipped_invalid_score += 1
-            continue
+            LOGGER.warning("Skipping non-numeric Elo value for team %s.", team)
 
-        home_team = str(row["home_team"])
-        away_team = str(row["away_team"])
-        simple_elo_update(elo_ratings, home_team, away_team, home_score, away_score)
+    return ratings
 
-        home_rating = league.teams[home_team]
-        away_rating = league.teams[away_team]
-        home_opponent_snapshot = copy.deepcopy(away_rating)
-        away_opponent_snapshot = copy.deepcopy(home_rating)
-        if home_score > away_score:
-            home_result, away_result = 1.0, 0.0
-        elif home_score < away_score:
-            home_result, away_result = 0.0, 1.0
-        else:
-            home_result = away_result = 0.5
-        home_rating.update(home_opponent_snapshot, home_result)
-        away_rating.update(away_opponent_snapshot, away_result)
-        processed_ids.add(game_id)
 
-    elo_values = list(elo_ratings.values())
-    glicko_values = [team.rating for team in league.teams.values()]
-    elo_range = max(elo_values) - min(elo_values)
-    glicko_range = max(glicko_values) - min(glicko_values)
-
-    report = {
-        "processed": len(processed_ids),
-        "skipped_invalid_score": skipped_invalid_score,
-        "team_count": len(all_teams),
-        "elo_min": min(elo_values),
-        "elo_max": max(elo_values),
-        "elo_range": elo_range,
-        "glicko_min": min(glicko_values),
-        "glicko_max": max(glicko_values),
-        "glicko_range": glicko_range,
-        "teams": all_teams,
-        **load_stats,
-    }
-
-    REPORT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_OUTPUT.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
-
-    if elo_range > MAX_ELO_RANGE or glicko_range > MAX_GLICKO_RANGE:
-        raise SystemExit(
-            "é¯èª¤: éå»ºçµæ rating ç¯åç°å¸¸ "
-            f"(Elo={elo_range:.1f}, Glicko2={glicko_range:.1f})ï¼"
-            "å·²ä¿å­å ±åï¼ä½æçµè¦èæ­£å¼ rating state"
-        )
-
-    ELO_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    ELO_OUTPUT.write_text(json.dumps(elo_ratings, indent=2, ensure_ascii=False), encoding="utf-8")
-    serialize_glicko(league, GLICKO_OUTPUT)
-    RATED_IDS_OUTPUT.write_text(
-        json.dumps(sorted(processed_ids), indent=2, ensure_ascii=False),
+def save_elo_ratings(ratings: dict[str, float]) -> None:
+    """Write Elo rating state to disk."""
+    ELO_FILE.parent.mkdir(parents=True, exist_ok=True)
+    ELO_FILE.write_text(
+        json.dumps(ratings, indent=2, sort_keys=True),
         encoding="utf-8",
     )
 
-    print("â Rating éå»ºæå")
-    print(json.dumps(report, indent=2, ensure_ascii=False))
+
+def load_glicko2_league() -> Glicko2League:
+    """Load Glicko2 state, or initialize it from current Elo state."""
+    if GLICKO_FILE.exists():
+        return Glicko2League.load(str(GLICKO_FILE))
+
+    league = Glicko2League()
+    elo_ratings = load_elo_ratings()
+
+    for team_id, elo_value in elo_ratings.items():
+        adjusted_rating = float(elo_value) - DEFAULT_HOME_ADVANTAGE
+        league.add_team(
+            team_id,
+            rating=adjusted_rating,
+            rd=DEFAULT_RD,
+            vol=DEFAULT_VOL,
+        )
+
+    return league
+
+
+def save_glicko2_league(league: Glicko2League) -> None:
+    """Write Glicko2 rating state to disk."""
+    GLICKO_FILE.parent.mkdir(parents=True, exist_ok=True)
+    league.save(str(GLICKO_FILE))
+
+
+def load_rated_game_ids() -> set[str]:
+    """Load game ids that have already affected rating state."""
+    if not RATED_GAMES_FILE.exists():
+        return set()
+
+    try:
+        payload = json.loads(RATED_GAMES_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        LOGGER.error("Unable to read %s: %s", RATED_GAMES_FILE, exc)
+        return set()
+
+    if not isinstance(payload, list):
+        LOGGER.error("%s does not contain a JSON list.", RATED_GAMES_FILE)
+        return set()
+
+    return {
+        game_id
+        for value in payload
+        if (game_id := normalize_game_id(value)) is not None
+    }
+
+
+def save_rated_game_ids(game_ids: set[str]) -> None:
+    """Write processed rating game ids to disk."""
+    RATED_GAMES_FILE.parent.mkdir(parents=True, exist_ok=True)
+    RATED_GAMES_FILE.write_text(
+        json.dumps(sorted(game_ids), indent=2),
+        encoding="utf-8",
+    )
+
+
+def simple_elo_update(
+    elo_dict: dict[str, float],
+    home_team: str,
+    away_team: str,
+    home_score: int | float,
+    away_score: int | float,
+    k_factor: float = DEFAULT_ELO_K,
+    home_advantage: float = DEFAULT_HOME_ADVANTAGE,
+) -> dict[str, float]:
+    """Update two Elo ratings from one final game result."""
+    home_rating = float(elo_dict.get(home_team, DEFAULT_RATING))
+    away_rating = float(elo_dict.get(away_team, DEFAULT_RATING))
+
+    expected_home = 1.0 / (
+        1.0
+        + 10.0
+        ** ((away_rating - (home_rating + home_advantage)) / 400.0)
+    )
+
+    if home_score > away_score:
+        actual_home = 1.0
+    elif home_score < away_score:
+        actual_home = 0.0
+    else:
+        actual_home = 0.5
+
+    adjustment = k_factor * (actual_home - expected_home)
+    elo_dict[home_team] = home_rating + adjustment
+    elo_dict[away_team] = away_rating - adjustment
+
+    return elo_dict
+
+
+def filter_new_games(
+    game_results: list[dict[str, Any]],
+    rated_ids: set[str],
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """Return unprocessed finalized games and duplicate ids."""
+    new_games: list[dict[str, Any]] = []
+    skipped_ids: list[str] = []
+
+    for game in game_results:
+        if not isinstance(game, dict):
+            LOGGER.warning("Skipping malformed final game payload: %r", game)
+            continue
+
+        game_id = normalize_game_id(game.get("game_id"))
+        if game_id is None:
+            LOGGER.warning("Skipping final game payload without a valid game_id.")
+            continue
+
+        if game_id in rated_ids:
+            skipped_ids.append(game_id)
+            continue
+
+        required_fields = ("home_team", "away_team", "home_score", "away_score")
+        missing_fields = [
+            field for field in required_fields if game.get(field) is None
+        ]
+        if missing_fields:
+            LOGGER.warning(
+                "Skipping game %s because fields are missing: %s",
+                game_id,
+                missing_fields,
+            )
+            continue
+
+        normalized_game = dict(game)
+        normalized_game["game_id"] = game_id
+        normalized_game["home_team"] = str(game["home_team"])
+        normalized_game["away_team"] = str(game["away_team"])
+
+        try:
+            normalized_game["home_score"] = int(game["home_score"])
+            normalized_game["away_score"] = int(game["away_score"])
+        except (TypeError, ValueError):
+            LOGGER.warning("Skipping game %s because score values are invalid.", game_id)
+            continue
+
+        new_games.append(normalized_game)
+
+    return new_games, skipped_ids
+
+
+def update_elo_ratings(new_games: list[dict[str, Any]]) -> None:
+    """Apply incremental Elo updates."""
+    ratings = load_elo_ratings()
+
+    for game in new_games:
+        simple_elo_update(
+            ratings,
+            game["home_team"],
+            game["away_team"],
+            game["home_score"],
+            game["away_score"],
+        )
+
+    save_elo_ratings(ratings)
+
+
+def update_glicko2_ratings(new_games: list[dict[str, Any]]) -> None:
+    """Apply incremental Glicko2 updates using opponent snapshots."""
+    league = load_glicko2_league()
+
+    for game in new_games:
+        home_team_id = game["home_team"]
+        away_team_id = game["away_team"]
+
+        if home_team_id not in league.teams:
+            league.add_team(home_team_id)
+        if away_team_id not in league.teams:
+            league.add_team(away_team_id)
+
+        home_team = league.teams[home_team_id]
+        away_team = league.teams[away_team_id]
+
+        home_opponent_snapshot = copy.deepcopy(away_team)
+        away_opponent_snapshot = copy.deepcopy(home_team)
+
+        if game["home_score"] > game["away_score"]:
+            home_result = 1.0
+            away_result = 0.0
+        elif game["home_score"] < game["away_score"]:
+            home_result = 0.0
+            away_result = 1.0
+        else:
+            home_result = 0.5
+            away_result = 0.5
+
+        home_team.update(home_opponent_snapshot, home_result)
+        away_team.update(away_opponent_snapshot, away_result)
+
+    save_glicko2_league(league)
+
+
+def update_ratings(game_results: list[dict[str, Any]]) -> None:
+    """Update configured rating engine once for each previously unseen game."""
+    rated_ids = load_rated_game_ids()
+    new_games, skipped_ids = filter_new_games(game_results, rated_ids)
+
+    if skipped_ids:
+        LOGGER.info(
+            "Skipped %d previously rated games.",
+            len(skipped_ids),
+        )
+
+    if not new_games:
+        LOGGER.info("No new finalized games require rating updates.")
+        return
+
+    LOGGER.info("Updating ratings from %d new finalized games.", len(new_games))
+
+    rating_engine = str(getattr(config, "RATINGS_ENGINE", "elo")).lower()
+
+    if rating_engine == "elo":
+        update_elo_ratings(new_games)
+    elif rating_engine == "glicko2":
+        update_glicko2_ratings(new_games)
+    else:
+        raise ValueError(f"Unknown rating engine: {rating_engine}")
+
+    for game in new_games:
+        rated_ids.add(game["game_id"])
+
+    save_rated_game_ids(rated_ids)
+
+    LOGGER.info(
+        "Rating update complete. new_games=%d skipped_duplicates=%d rated_game_ids=%d",
+        len(new_games),
+        len(skipped_ids),
+        len(rated_ids),
+    )
+
+
+def load_final_results() -> list[dict[str, Any]]:
+    """Load newly finalized games produced by update_results.py."""
+    if not FINAL_RESULTS_FILE.exists():
+        LOGGER.warning(
+            "%s does not exist. Run update_results.py before rating update.",
+            FINAL_RESULTS_FILE,
+        )
+        return []
+
+    try:
+        payload = json.loads(FINAL_RESULTS_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        LOGGER.error("Unable to read %s: %s", FINAL_RESULTS_FILE, exc)
+        return []
+
+    if not isinstance(payload, list):
+        LOGGER.error("%s does not contain a JSON list.", FINAL_RESULTS_FILE)
+        return []
+
+    return payload
+
+
+def main() -> None:
+    game_results = load_final_results()
+
+    if not game_results:
+        LOGGER.info("No finalized games were provided for incremental rating update.")
+        return
+
+    update_ratings(game_results)
 
 
 if __name__ == "__main__":
-    rebuild()
+    main()
