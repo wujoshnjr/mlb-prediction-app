@@ -1,119 +1,199 @@
 # scripts/backfill_final_scores.py
-import pandas as pd
-import numpy as np
-import requests
-import time
+"""Backfill finalized MLB scores into historical CSV and parquet datasets.
+
+Only games confirmed as Final by the MLB Stats API are written. Non-final games
+and API failures are counted separately and never overwrite existing records.
+"""
+
+from __future__ import annotations
+
 import os
-import json
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
-HISTORY_FILE = "data/historical_predictions.csv"
-HIST_DIR = "data/historical"
+import numpy as np
+import pandas as pd
+import requests
 
-def fetch_final_score(game_id):
-    """返回 (home_win, home_score, away_score) 或 None"""
+HISTORY_FILE = Path("data/historical_predictions.csv")
+HIST_DIR = Path("data/historical")
+REQUEST_TIMEOUT_SECONDS = 10
+REQUEST_SLEEP_SECONDS = 0.30
+
+
+@dataclass(frozen=True)
+class ScoreFetchResult:
+    status: str
+    home_win: int | None = None
+    home_score: int | None = None
+    away_score: int | None = None
+    detail: str = ""
+
+
+def normalize_game_id(value: Any) -> str | None:
+    if value is None or pd.isna(value):
+        return None
+    try:
+        numeric = float(value)
+        if numeric.is_integer():
+            return str(int(numeric))
+    except (TypeError, ValueError):
+        pass
+    text = str(value).strip()
+    return text if text and text.lower() not in {"nan", "none"} else None
+
+
+def fetch_final_score(game_id: str) -> ScoreFetchResult:
     url = f"https://statsapi.mlb.com/api/v1.1/game/{game_id}/feed/live"
     try:
-        resp = requests.get(url, timeout=10)
-        data = resp.json()
-        status = data.get("gameData", {}).get("status", {})
-        if status.get("abstractGameState") != "Final":
-            return None
-        home_runs = data.get("liveData", {}).get("linescore", {}).get("teams", {}).get("home", {}).get("runs")
-        away_runs = data.get("liveData", {}).get("linescore", {}).get("teams", {}).get("away", {}).get("runs")
-        if home_runs is not None and away_runs is not None:
-            return 1 if home_runs > away_runs else 0, int(home_runs), int(away_runs)
-    except:
-        pass
-    return None
+        response = requests.get(url, timeout=REQUEST_TIMEOUT_SECONDS)
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError) as exc:
+        return ScoreFetchResult("api_error", detail=str(exc))
 
-def backfill():
-    scanned = 0
-    backfilled = 0
-    skipped_non_final = 0
-    api_failed = 0
-    duplicates = set()
+    status = data.get("gameData", {}).get("status", {})
+    abstract_state = str(status.get("abstractGameState", ""))
+    detailed_state = str(status.get("detailedState", ""))
 
-    # 处理 CSV
-    if os.path.exists(HISTORY_FILE):
-        df = pd.read_csv(HISTORY_FILE)
-        if 'home_score' not in df.columns:
-            df['home_score'] = np.nan
-        if 'away_score' not in df.columns:
-            df['away_score'] = np.nan
-        if 'home_win' not in df.columns:
-            df['home_win'] = np.nan
+    if abstract_state != "Final":
+        return ScoreFetchResult(
+            "non_final",
+            detail=f"{abstract_state or 'Unknown'} / {detailed_state or 'Unknown'}",
+        )
 
-        missing_mask = df['home_score'].isna() & df['game_id'].notna()
-        missing = df[missing_mask]
-        print(f"CSV missing scores: {len(missing)} rows")
-        for idx, row in missing.iterrows():
-            game_id = row['game_id']
-            if game_id in duplicates:
-                continue
-            scanned += 1
+    teams = (
+        data.get("liveData", {})
+        .get("linescore", {})
+        .get("teams", {})
+    )
+    home_runs = teams.get("home", {}).get("runs")
+    away_runs = teams.get("away", {}).get("runs")
+    if home_runs is None or away_runs is None:
+        return ScoreFetchResult("missing_score", detail="Final game missing linescore runs")
+
+    home_score = int(home_runs)
+    away_score = int(away_runs)
+    home_win = 1 if home_score > away_score else 0
+    return ScoreFetchResult(
+        "final_success",
+        home_win=home_win,
+        home_score=home_score,
+        away_score=away_score,
+    )
+
+
+def ensure_score_columns(frame: pd.DataFrame) -> pd.DataFrame:
+    output = frame.copy()
+    for column in ("home_win", "home_score", "away_score"):
+        if column not in output.columns:
+            output[column] = np.nan
+    return output
+
+
+def update_frame(
+    frame: pd.DataFrame,
+    already_fetched: dict[str, ScoreFetchResult],
+    stats: dict[str, int],
+) -> tuple[pd.DataFrame, bool]:
+    if "game_id" not in frame.columns:
+        print("è·³è¿ç¼ºå° game_id çèµæè¡¨")
+        stats["missing_game_id_column"] += 1
+        return frame, False
+
+    output = ensure_score_columns(frame)
+    missing_mask = (
+        output["game_id"].notna()
+        & (output["home_score"].isna() | output["away_score"].isna())
+    )
+    changed = False
+
+    for index, row in output[missing_mask].iterrows():
+        game_id = normalize_game_id(row.get("game_id"))
+        if not game_id:
+            stats["invalid_game_id"] += 1
+            continue
+
+        if game_id in already_fetched:
+            stats["duplicate_rows"] += 1
+            result = already_fetched[game_id]
+        else:
+            stats["unique_games_requested"] += 1
             result = fetch_final_score(game_id)
-            if result is not None:
-                home_win, home_score, away_score = result
-                df.at[idx, 'home_win'] = home_win
-                df.at[idx, 'home_score'] = home_score
-                df.at[idx, 'away_score'] = away_score
-                backfilled += 1
-                duplicates.add(game_id)
-            elif result is None:
-                # 可能是非 Final 或 API 失败，通过再次查询状态区分
-                # 简单处理：未拿到有效结果视为 API 失败
-                api_failed += 1
-            time.sleep(0.3)
-        df.to_csv(HISTORY_FILE, index=False)
-        print(f"CSV backfilled: {backfilled}")
+            already_fetched[game_id] = result
+            time.sleep(REQUEST_SLEEP_SECONDS)
 
-    # 处理 parquet 文件
-    if os.path.exists(HIST_DIR):
-        for fname in os.listdir(HIST_DIR):
-            if fname.endswith('.parquet'):
-                path = os.path.join(HIST_DIR, fname)
-                pdf = pd.read_parquet(path)
-                date_col = None
-                if 'game_date' in pdf.columns:
-                    date_col = 'game_date'
-                elif 'date' in pdf.columns:
-                    date_col = 'date'
-                # 确保必要列存在
-                if 'home_score' not in pdf.columns:
-                    pdf['home_score'] = np.nan
-                if 'away_score' not in pdf.columns:
-                    pdf['away_score'] = np.nan
-                if 'home_win' not in pdf.columns:
-                    pdf['home_win'] = np.nan
+            if result.status == "final_success":
+                stats["final_success"] += 1
+            elif result.status == "non_final":
+                stats["non_final"] += 1
+            elif result.status == "api_error":
+                stats["api_error"] += 1
+            elif result.status == "missing_score":
+                stats["missing_score"] += 1
 
-                missing = pdf['home_score'].isna() & pdf['game_id'].notna()
-                changed = False
-                for idx, row in pdf[missing].iterrows():
-                    game_id = row['game_id']
-                    if game_id in duplicates:
-                        continue
-                    scanned += 1
-                    result = fetch_final_score(game_id)
-                    if result is not None:
-                        home_win, home_score, away_score = result
-                        pdf.at[idx, 'home_win'] = home_win
-                        pdf.at[idx, 'home_score'] = home_score
-                        pdf.at[idx, 'away_score'] = away_score
-                        backfilled += 1
-                        changed = True
-                        duplicates.add(game_id)
-                    else:
-                        api_failed += 1
-                    time.sleep(0.3)
-                if changed:
-                    pdf.to_parquet(path, index=False)
-                    print(f"Parquet {fname} updated")
+        stats["rows_scanned"] += 1
+        if result.status != "final_success":
+            continue
+
+        output.at[index, "home_win"] = result.home_win
+        output.at[index, "home_score"] = result.home_score
+        output.at[index, "away_score"] = result.away_score
+        stats["rows_backfilled"] += 1
+        changed = True
+
+    return output, changed
+
+
+def backfill() -> None:
+    stats = {
+        "rows_scanned": 0,
+        "rows_backfilled": 0,
+        "unique_games_requested": 0,
+        "final_success": 0,
+        "non_final": 0,
+        "api_error": 0,
+        "missing_score": 0,
+        "duplicate_rows": 0,
+        "invalid_game_id": 0,
+        "missing_game_id_column": 0,
+        "files_updated": 0,
+    }
+    already_fetched: dict[str, ScoreFetchResult] = {}
+
+    if HISTORY_FILE.exists():
+        csv_frame = pd.read_csv(HISTORY_FILE)
+        csv_frame, changed = update_frame(csv_frame, already_fetched, stats)
+        if changed:
+            csv_frame.to_csv(HISTORY_FILE, index=False)
+            stats["files_updated"] += 1
+            print(f"å·²æ´æ° {HISTORY_FILE}")
+
+    if HIST_DIR.exists():
+        for parquet_path in sorted(HIST_DIR.glob("*.parquet")):
+            try:
+                parquet_frame = pd.read_parquet(parquet_path)
+            except Exception as exc:
+                stats["api_error"] += 1
+                print(f"è¯»å {parquet_path} å¤±è´¥: {exc}")
+                continue
+
+            parquet_frame, changed = update_frame(
+                parquet_frame,
+                already_fetched,
+                stats,
+            )
+            if changed:
+                parquet_frame.to_parquet(parquet_path, index=False)
+                stats["files_updated"] += 1
+                print(f"å·²æ´æ° {parquet_path}")
 
     print("===== Backfill Summary =====")
-    print(f"Scanned: {scanned}")
-    print(f"Backfilled: {backfilled}")
-    print(f"Skipped non-final/API failed: {api_failed}")
-    print(f"Duplicates ignored: {len(duplicates)}")
+    for key, value in stats.items():
+        print(f"{key}: {value}")
+
 
 if __name__ == "__main__":
     backfill()
