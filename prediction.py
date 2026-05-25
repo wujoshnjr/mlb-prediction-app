@@ -773,7 +773,7 @@ def calculate_manual_nrfi(
     nrfi_probability = float(np.clip(nrfi_probability, 0.05, 0.95))
 
     recommendation = "NRFI" if nrfi_probability >= 0.55 else "NO BET"
-        return nrfi_probability, recommendation, "manual", ""
+    return nrfi_probability, recommendation, "manual", ""
 
 
 def generate_predictions() -> dict[str, Any]:
