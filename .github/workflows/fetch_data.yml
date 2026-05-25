@@ -12,57 +12,20 @@ on:
         description: '结束日期 (YYYY-MM-DD)'
         required: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
 jobs:
-  predict:
+  update-and-predict:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Run prediction
-        run: python prediction.py
-        env:
-          BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Commit prediction & history
-        if: always()
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git add -f report/prediction.json
-          if [ -f data/historical_predictions.csv ]; then git add -f data/historical_predictions.csv; fi
-          if [ -f data/elo_ratings.json ]; then git add -f data/elo_ratings.json; fi
-          if [ -f data/glicko2_ratings.json ]; then git add -f data/glicko2_ratings.json; fi
-          git commit -m "Update prediction & history [skip ci]" || echo "No changes"
-          git pull --rebase origin main
-          git push
-
-  update-results:
-    runs-on: ubuntu-latest
-    needs: predict
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Pull latest changes
-        run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git pull --rebase origin main
 
       - uses: actions/setup-python@v6
         with:
@@ -76,40 +39,21 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Update ratings (Glicko2/ELO)
+      - name: Update ratings
         run: python scripts/rating_updater.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Run backtest
-        id: backtest
-        run: |
-          python scripts/backtest.py 2>&1 | tee backtest_output.txt
-          BRIER=$(grep -oP 'Brier Score:\s*\K[\d.]+' backtest_output.txt || echo "0.25")
-          echo "BRIER=$BRIER" >> $GITHUB_ENV
+      - name: Train model (if needed)
+        run: python train_ensemble.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Train model (if enough data)
-        run: |
-          python train_ensemble.py
-          if [ -f data/training_status.json ]; then
-            STATUS=$(python -c "import json; print(json.load(open('data/training_status.json'))['trained'])")
-            if [ "$STATUS" == "False" ]; then
-              echo "模型训练跳过，样本不足。"
-            else
-              if [ ! -f data/calibrator.pkl ]; then
-                echo "ERROR: calibrator.pkl was not generated"
-                exit 1
-              fi
-            fi
-          else
-            if [ ! -f data/calibrator.pkl ]; then
-              echo "ERROR: calibrator.pkl was not generated and status unknown"
-              exit 1
-            fi
-          fi
+      - name: Generate prediction
+        run: python prediction.py
         env:
+          BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Validate predictions
@@ -117,25 +61,24 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Commit results, ratings & model
-        if: always()
+      - name: Commit validated outputs
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          if [ -f data/historical_predictions.csv ]; then git add -f data/historical_predictions.csv; fi
-          if [ -f data/elo_ratings.json ]; then git add -f data/elo_ratings.json; fi
-          if [ -f data/glicko2_ratings.json ]; then git add -f data/glicko2_ratings.json; fi
-          if [ -f data/calibrator.pkl ]; then git add -f data/calibrator.pkl; fi
-          if [ -f data/rated_game_ids.json ]; then git add -f data/rated_game_ids.json; fi
-          if [ -f data/training_status.json ]; then git add -f data/training_status.json; fi
-          git commit -m "Update game results, ratings & model [skip ci]" || echo "No changes"
+          git add -f report/prediction.json
+          git add -f data/elo_ratings.json
+          git add -f data/glicko2_ratings.json
+          git add -f data/calibrator.pkl
+          git add -f data/rated_game_ids.json
+          git add -f data/training_status.json
+          git commit -m "Update prediction & ratings [skip ci]" || echo "No changes"
           git pull --rebase origin main
           git push
 
   collect-history:
     runs-on: ubuntu-latest
-    needs: update-results
+    needs: update-and-predict
     steps:
       - uses: actions/checkout@v5
         with:
@@ -159,7 +102,6 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Commit historical data
-        if: always()
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
