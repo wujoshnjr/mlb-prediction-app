@@ -7,7 +7,6 @@ and API failures are counted separately and never overwrite existing records.
 
 from __future__ import annotations
 
-import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -64,11 +63,7 @@ def fetch_final_score(game_id: str) -> ScoreFetchResult:
             detail=f"{abstract_state or 'Unknown'} / {detailed_state or 'Unknown'}",
         )
 
-    teams = (
-        data.get("liveData", {})
-        .get("linescore", {})
-        .get("teams", {})
-    )
+    teams = data.get("liveData", {}).get("linescore", {}).get("teams", {})
     home_runs = teams.get("home", {}).get("runs")
     away_runs = teams.get("away", {}).get("runs")
     if home_runs is None or away_runs is None:
@@ -99,7 +94,7 @@ def update_frame(
     stats: dict[str, int],
 ) -> tuple[pd.DataFrame, bool]:
     if "game_id" not in frame.columns:
-        print("è·³è¿ç¼ºå° game_id çèµæè¡¨")
+        print("è·³éç¼ºå° game_id çè³æè¡¨")
         stats["missing_game_id_column"] += 1
         return frame, False
 
@@ -125,14 +120,8 @@ def update_frame(
             already_fetched[game_id] = result
             time.sleep(REQUEST_SLEEP_SECONDS)
 
-            if result.status == "final_success":
-                stats["final_success"] += 1
-            elif result.status == "non_final":
-                stats["non_final"] += 1
-            elif result.status == "api_error":
-                stats["api_error"] += 1
-            elif result.status == "missing_score":
-                stats["missing_score"] += 1
+            if result.status in stats:
+                stats[result.status] += 1
 
         stats["rows_scanned"] += 1
         if result.status != "final_success":
@@ -177,14 +166,10 @@ def backfill() -> None:
                 parquet_frame = pd.read_parquet(parquet_path)
             except Exception as exc:
                 stats["api_error"] += 1
-                print(f"è¯»å {parquet_path} å¤±è´¥: {exc}")
+                print(f"è®å {parquet_path} å¤±æ: {exc}")
                 continue
 
-            parquet_frame, changed = update_frame(
-                parquet_frame,
-                already_fetched,
-                stats,
-            )
+            parquet_frame, changed = update_frame(parquet_frame, already_fetched, stats)
             if changed:
                 parquet_frame.to_parquet(parquet_path, index=False)
                 stats["files_updated"] += 1
