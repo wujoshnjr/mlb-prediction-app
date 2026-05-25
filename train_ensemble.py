@@ -1,32 +1,53 @@
 # train_ensemble.py
-import pandas as pd
-import numpy as np
-import joblib, os, json
+"""Train and calibrate the MLB ensemble model using finalized historical games.
+
+The training and prediction paths use scripts.feature_schema.EXPECTED_FEATURES
+as their single feature-order contract. Metrics are calculated on a held-out
+test segment rather than on the calibration set.
+"""
+
+from __future__ import annotations
+
+import json
 from datetime import datetime
-from xgboost import XGBClassifier
+from pathlib import Path
+from typing import Any
+
+import joblib
+import numpy as np
+import pandas as pd
 from lightgbm import LGBMClassifier
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.ensemble import RandomForestClassifier, StackingClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.calibration import CalibratedClassifierCV
-from sklearn.metrics import log_loss, brier_score_loss
+from sklearn.metrics import brier_score_loss, log_loss
+from xgboost import XGBClassifier
+
 from scripts.feature_schema import EXPECTED_FEATURES
 
 try:
     import config
 except ImportError:
-    class config:
+    class config:  # type: ignore[no-redef]
         MODEL_USE_MLP = False
-        MODEL_META = 'lr'
+        MODEL_META = "lr"
 
-HISTORY_FILE = "data/historical_predictions.csv"
-MODEL_OUTPUT = "data/calibrator.pkl"
-STATUS_FILE = "data/training_status.json"
-TRAINING_LOG = "data/training_log.csv"
-FEATURE_IMPORTANCE_LOG = "data/feature_importance.csv"
-
+HISTORY_FILE = Path("data/historical_predictions.csv")
+MODEL_OUTPUT = Path("data/calibrator.pkl")
+STATUS_FILE = Path("data/training_status.json")
+TRAINING_LOG = Path("data/training_log.csv")
+FEATURE_IMPORTANCE_LOG = Path("data/feature_importance.csv")
 MIN_TRAIN_SAMPLES = 100
 
-def write_status(trained, skipped, sample_count, reason=None, brier=None, logloss=None):
+
+def write_status(
+    trained: bool,
+    skipped: bool,
+    sample_count: int,
+    reason: str | None = None,
+    brier: float | None = None,
+    logloss: float | None = None,
+) -> None:
     status = {
         "trained": trained,
         "skipped": skipped,
@@ -34,171 +55,218 @@ def write_status(trained, skipped, sample_count, reason=None, brier=None, loglos
         "reason": reason,
         "brier": brier,
         "logloss": logloss,
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
     }
-    os.makedirs(os.path.dirname(STATUS_FILE), exist_ok=True)
-    with open(STATUS_FILE, 'w') as f:
-        json.dump(status, f, indent=2)
+    STATUS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    STATUS_FILE.write_text(
+        json.dumps(status, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
 
-def prepare_data():
-    if not os.path.exists(HISTORY_FILE):
-        return None, None, None, None, None
 
-    df = pd.read_csv(HISTORY_FILE)
-    if 'game_date' in df.columns:
-        df = df.sort_values('game_date').reset_index(drop=True)
-    df['home_win'] = df['home_win'].replace('', np.nan)
-    df = df.dropna(subset=['home_win'])
-    df['home_win'] = df['home_win'].astype(int)
-    sample_count = len(df)
+def prepare_data() -> tuple[np.ndarray, np.ndarray, np.ndarray, pd.DataFrame, list[str], int] | None:
+    if not HISTORY_FILE.exists():
+        write_status(False, True, 0, reason="æ¾ä¸å°æ­·å²é æ¸¬æªæ¡")
+        return None
+
+    frame = pd.read_csv(HISTORY_FILE)
+    if "home_win" not in frame.columns:
+        write_status(False, True, 0, reason="æ­·å²é æ¸¬æªæ¡ç¼ºå° home_win")
+        return None
+
+    if "game_date" in frame.columns:
+        frame["game_date"] = pd.to_datetime(frame["game_date"], errors="coerce")
+        frame = frame.sort_values("game_date").reset_index(drop=True)
+
+    frame["home_win"] = pd.to_numeric(frame["home_win"], errors="coerce")
+    frame = frame.dropna(subset=["home_win"])
+    frame = frame[frame["home_win"].isin([0, 1])].copy()
+    frame["home_win"] = frame["home_win"].astype(int)
+    sample_count = len(frame)
 
     if sample_count < MIN_TRAIN_SAMPLES:
-        write_status(False, True, sample_count, reason=f"Insufficient samples ({sample_count} < {MIN_TRAIN_SAMPLES})")
-        return None, None, None, None, None
+        write_status(
+            False,
+            True,
+            sample_count,
+            reason=f"å¯è¨ç·´æ¨£æ¬ä¸è¶³ ({sample_count} < {MIN_TRAIN_SAMPLES})",
+        )
+        return None
 
-    for col in EXPECTED_FEATURES:
-        if col not in df.columns:
-            df[col] = 0.0
-        else:
-            df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
+    for column in EXPECTED_FEATURES:
+        if column not in frame.columns:
+            frame[column] = 0.0
+        frame[column] = pd.to_numeric(frame[column], errors="coerce").fillna(0.0)
 
-    if 'game_date' in df.columns:
-        max_date = pd.to_datetime(df['game_date']).max()
-        df['days_ago'] = (max_date - pd.to_datetime(df['game_date'])).dt.days
-        df['sample_weight'] = np.exp(-df['days_ago'] / 365 * np.log(2))
-        df['sample_weight'] = df['sample_weight'].clip(lower=0.1)
+    if "game_date" in frame.columns and frame["game_date"].notna().any():
+        max_date = frame["game_date"].max()
+        frame["days_ago"] = (max_date - frame["game_date"]).dt.days.fillna(0)
+        frame["sample_weight"] = np.exp(-frame["days_ago"] / 365 * np.log(2)).clip(lower=0.1)
     else:
-        df['sample_weight'] = 1.0
+        frame["sample_weight"] = 1.0
 
-    X = df[EXPECTED_FEATURES].values
-    y = df['home_win'].values
-    w = df['sample_weight'].values
+    matrix = frame[EXPECTED_FEATURES].to_numpy(dtype=float)
+    target = frame["home_win"].to_numpy(dtype=int)
+    weights = frame["sample_weight"].to_numpy(dtype=float)
 
-    # 移除零方差特征
-    var = np.var(X, axis=0)
-    keep = var > 1e-8
+    variance = np.var(matrix, axis=0)
+    keep = variance > 1e-8
     if not np.any(keep):
-        write_status(False, True, sample_count, reason="All features zero variance")
-        return None, None, None, None, None
+        write_status(False, True, sample_count, reason="å¨é¨ç¹å¾µççºé¶æ¹å·®")
+        return None
 
-    X = X[:, keep]
-    used_features = [f for f, k in zip(EXPECTED_FEATURES, keep) if k]
-    removed = [f for f, k in zip(EXPECTED_FEATURES, keep) if not k]
-    if removed:
-        print(f"Removed low variance features: {removed}")
+    removed_features = [feature for feature, retained in zip(EXPECTED_FEATURES, keep) if not retained]
+    if removed_features:
+        print(f"ç§»é¤ä½æ¹å·®ç¹å¾µ: {removed_features}")
+    used_features = [feature for feature, retained in zip(EXPECTED_FEATURES, keep) if retained]
+    return matrix[:, keep], target, weights, frame, used_features, sample_count
 
-    return X, y, w, df, used_features, sample_count
 
-def train():
-    data = prepare_data()
-    if data is None or data[0] is None:
+def make_calibrator(stacking: StackingClassifier) -> CalibratedClassifierCV:
+    """Support both newer and older scikit-learn calibration APIs."""
+    try:
+        from sklearn.frozen import FrozenEstimator
+
+        return CalibratedClassifierCV(FrozenEstimator(stacking), method="sigmoid")
+    except ImportError:
+        return CalibratedClassifierCV(estimator=stacking, method="sigmoid", cv="prefit")
+
+
+def append_csv(path: Path, row: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame([row]).to_csv(
+        path,
+        mode="a",
+        header=not path.exists(),
+        index=False,
+        encoding="utf-8",
+    )
+
+
+def train() -> None:
+    prepared = prepare_data()
+    if prepared is None:
         return
-    X, y, w, df_all, used_features, sample_count = data
+    matrix, target, weights, all_rows, used_features, sample_count = prepared
 
-    n = len(X)
-    train_end = int(n * 0.7)
-    calib_end = int(n * 0.85)
+    row_count = len(matrix)
+    train_end = int(row_count * 0.70)
+    calibration_end = int(row_count * 0.85)
+    if train_end < 20 or calibration_end <= train_end or calibration_end >= row_count:
+        write_status(False, True, sample_count, reason="è³æåå²å¾æ¨£æ¬ä¸è¶³")
+        return
 
-    X_train = X[:train_end]
-    y_train = y[:train_end]
-    w_train = w[:train_end]
+    x_train, y_train, w_train = matrix[:train_end], target[:train_end], weights[:train_end]
+    x_calib, y_calib, w_calib = matrix[train_end:calibration_end], target[train_end:calibration_end], weights[train_end:calibration_end]
+    x_test, y_test = matrix[calibration_end:], target[calibration_end:]
 
-    X_calib = X[train_end:calib_end]
-    y_calib = y[train_end:calib_end]
-    w_calib = w[train_end:calib_end]
-
-    X_test = X[calib_end:]
-    y_test = y[calib_end:]
-    w_test = w[calib_end:]
-
-    # 检查 train/calib/test 是否都包含两类目标
-    for name, y_set in [("train", y_train), ("calib", y_calib), ("test", y_test)]:
-        unique = np.unique(y_set)
-        if len(unique) < 2:
-            write_status(False, True, sample_count, reason=f"{name} set contains only one class, skipped")
+    for name, subset in (("train", y_train), ("calib", y_calib), ("test", y_test)):
+        if len(np.unique(subset)) < 2:
+            write_status(False, True, sample_count, reason=f"{name} set ååå«å®ä¸é¡å¥ï¼è·³éè¨ç·´")
             return
 
-    print(f"训练集: {len(X_train)}  校准集: {len(X_calib)}  测试集: {len(X_test)}")
+    print(f"è¨ç·´é: {len(x_train)}  æ ¡æºé: {len(x_calib)}  æ¸¬è©¦é: {len(x_test)}")
 
-    xgb = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
-                         importance_type='gain', random_state=42,
-                         eval_metric='logloss', use_label_encoder=False)
-    lgb = LGBMClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
-                          random_state=42, verbose=-1)
-    rf = RandomForestClassifier(n_estimators=300, max_depth=5, random_state=42)
-    estimators = [('xgb', xgb), ('lgb', lgb), ('rf', rf)]
+    xgb = XGBClassifier(
+        n_estimators=300,
+        max_depth=5,
+        learning_rate=0.01,
+        importance_type="gain",
+        random_state=42,
+        eval_metric="logloss",
+    )
+    lgb = LGBMClassifier(
+        n_estimators=300,
+        max_depth=5,
+        learning_rate=0.01,
+        random_state=42,
+        verbose=-1,
+    )
+    forest = RandomForestClassifier(n_estimators=300, max_depth=5, random_state=42)
+    estimators: list[tuple[str, Any]] = [("xgb", xgb), ("lgb", lgb), ("rf", forest)]
 
-    if config.MODEL_USE_MLP:
+    if getattr(config, "MODEL_USE_MLP", False):
         from sklearn.neural_network import MLPClassifier
-        from sklearn.preprocessing import StandardScaler
         from sklearn.pipeline import Pipeline
-        mlp = MLPClassifier(hidden_layer_sizes=(64, 32), activation='relu',
-                            alpha=0.001, early_stopping=True, random_state=42)
-        mlp_pipe = Pipeline([('scaler', StandardScaler()), ('mlp', mlp)])
-        estimators.append(('mlp', mlp_pipe))
+        from sklearn.preprocessing import StandardScaler
 
-    if config.MODEL_META == 'elasticnet':
+        mlp = MLPClassifier(
+            hidden_layer_sizes=(64, 32),
+            activation="relu",
+            alpha=0.001,
+            early_stopping=True,
+            random_state=42,
+        )
+        estimators.append(("mlp", Pipeline([("scaler", StandardScaler()), ("mlp", mlp)])))
+
+    if getattr(config, "MODEL_META", "lr") == "elasticnet":
         from sklearn.linear_model import SGDClassifier
-        final_estimator = SGDClassifier(loss='log_loss', penalty='elasticnet',
-                                        l1_ratio=0.5, alpha=0.0001,
-                                        random_state=42, max_iter=2000, tol=1e-3)
+
+        meta_model: Any = SGDClassifier(
+            loss="log_loss",
+            penalty="elasticnet",
+            l1_ratio=0.5,
+            alpha=0.0001,
+            random_state=42,
+            max_iter=2000,
+            tol=1e-3,
+        )
     else:
-        final_estimator = LogisticRegression(random_state=42, max_iter=2000)
+        meta_model = LogisticRegression(random_state=42, max_iter=2000)
 
-    stacking = StackingClassifier(estimators=estimators, final_estimator=final_estimator, cv=5)
-    stacking.fit(X_train, y_train, sample_weight=w_train)
+    stacking = StackingClassifier(estimators=estimators, final_estimator=meta_model, cv=5)
+    stacking.fit(x_train, y_train, sample_weight=w_train)
 
-    calibrated = CalibratedClassifierCV(estimator=stacking, method='sigmoid', cv='prefit')
-    calibrated.fit(X_calib, y_calib, sample_weight=w_calib)
+    calibrated = make_calibrator(stacking)
+    calibrated.fit(x_calib, y_calib, sample_weight=w_calib)
+    probabilities = calibrated.predict_proba(x_test)[:, 1]
+    test_brier = float(brier_score_loss(y_test, probabilities))
+    test_logloss = float(log_loss(y_test, probabilities))
 
-    # 测试集评估
-    test_probs = calibrated.predict_proba(X_test)[:, 1]
-    test_brier = brier_score_loss(y_test, test_probs)
-    test_logloss = log_loss(y_test, test_probs)
-
-    # 保存 artifact
     artifact = {
         "model": calibrated,
         "features": used_features,
-        "schema_version": "v1",
+        "schema_version": "v2-shared-schema",
         "trained_at": datetime.now().isoformat(),
-        "training_sample_count": sample_count
+        "training_sample_count": sample_count,
+        "test_brier": round(test_brier, 4),
+        "test_logloss": round(test_logloss, 4),
     }
+    MODEL_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(artifact, MODEL_OUTPUT)
+    write_status(True, False, sample_count, brier=round(test_brier, 4), logloss=round(test_logloss, 4))
 
-    write_status(True, False, sample_count,
-                 brier=round(test_brier, 4),
-                 logloss=round(test_logloss, 4))
+    append_csv(
+        TRAINING_LOG,
+        {
+            "timestamp": datetime.now().isoformat(),
+            "num_samples": len(all_rows),
+            "used_feature_count": len(used_features),
+            "brier": round(test_brier, 4),
+            "logloss": round(test_logloss, 4),
+        },
+    )
 
-    # 日志
-    log_entry = {
-        "timestamp": datetime.now().isoformat(),
-        "num_samples": len(df_all),
-        "brier": round(test_brier, 4),
-        "logloss": round(test_logloss, 4)
-    }
-    pd.DataFrame([log_entry]).to_csv(TRAINING_LOG,
-                                     mode='a',
-                                     header=not os.path.exists(TRAINING_LOG),
-                                     index=False)
+    importance_model = XGBClassifier(
+        n_estimators=300,
+        max_depth=5,
+        learning_rate=0.01,
+        importance_type="gain",
+        random_state=42,
+        eval_metric="logloss",
+    )
+    importance_model.fit(x_train, y_train, sample_weight=w_train)
+    importances = importance_model.feature_importances_
+    importance_row = {feature: float(value) for feature, value in zip(used_features, importances)}
+    importance_row["timestamp"] = datetime.now().isoformat()
+    append_csv(FEATURE_IMPORTANCE_LOG, importance_row)
 
-    # 特征重要性
-    xgb_imp = XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.01,
-                            importance_type='gain', random_state=42)
-    xgb_imp.fit(X_train, y_train, sample_weight=w_train)
-    importances = xgb_imp.feature_importances_
-    feat_names = used_features[:len(importances)]
-    imp_df = pd.DataFrame([importances], columns=feat_names)
-    imp_df['timestamp'] = datetime.now().isoformat()
-    imp_df.to_csv(FEATURE_IMPORTANCE_LOG,
-                  mode='a',
-                  header=not os.path.exists(FEATURE_IMPORTANCE_LOG),
-                  index=False)
+    sorted_indices = np.argsort(importances)
+    print("\néè¦æ§æä½ç 5 åç¹å¾µ:")
+    for index in sorted_indices[:5]:
+        print(f"  {used_features[index]}: {importances[index]:.6f}")
+    print(f"æ¸¬è©¦é Brier={test_brier:.4f}, LogLoss={test_logloss:.4f}")
 
-    sorted_idx = np.argsort(importances)
-    print("\n重要性最低的5个特征:")
-    for i in sorted_idx[:5]:
-        print(f"  {feat_names[i]}: {importances[i]:.6f}")
 
 if __name__ == "__main__":
     train()
