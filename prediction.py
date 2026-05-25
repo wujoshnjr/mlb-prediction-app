@@ -420,7 +420,9 @@ def load_nrfi_model() -> tuple[Any | None, bool]:
     except Exception as exc:
         print(f"Unable to load NRFI model: {exc}")
         return None, False
-      def build_schedule_frame(raw_rows: Any) -> pd.DataFrame:
+
+
+def build_schedule_frame(raw_rows: Any) -> pd.DataFrame:
     """Normalize scheduled games into the columns used by the predictor."""
     frame = pd.DataFrame(raw_rows or [])
 
@@ -771,7 +773,9 @@ def calculate_manual_nrfi(
     nrfi_probability = float(np.clip(nrfi_probability, 0.05, 0.95))
 
     recommendation = "NRFI" if nrfi_probability >= 0.55 else "NO BET"
-    return nrfi_probability, recommendation, "manual", ""
+        return nrfi_probability, recommendation, "manual", ""
+
+
 def generate_predictions() -> dict[str, Any]:
     """Gather inputs, create daily predictions, and return the output report."""
     errors: list[str] = []
