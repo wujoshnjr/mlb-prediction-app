@@ -1,8 +1,10 @@
 # scripts/rating_updater.py
 """
-統一評級更新器：根據 config 選擇 ELO 或 Glicko2。
-新增：基於 game_id 的去重機制，防止同一場比賽重複更新。
+统一评级更新器：根据配置选择 ELO 或 Glicko2 引擎。
+内置简单 ELO 更新，Glicko2 转换时移除主场优势（24 分）。
+新增：基于 game_id 的去重机制，防止同一场比赛重复更新（含批次内去重）。
 """
+
 import sys, os, json, logging, copy
 from datetime import datetime
 
@@ -71,18 +73,20 @@ def update_ratings(game_results):
     rated_ids = load_rated_game_ids()
     new_games = []
     skipped = []
+    seen_this_batch = set()
 
     for game in game_results:
         gid = str(game.get('game_id'))
-        if not gid:
+        if not gid or gid in {'None', 'nan'}:
             continue
-        if gid in rated_ids:
+        if gid in rated_ids or gid in seen_this_batch:
             skipped.append(gid)
-        else:
-            new_games.append(game)
+            continue
+        seen_this_batch.add(gid)
+        new_games.append(game)
 
     if skipped:
-        logger.info(f"跳过 {len(skipped)} 场已处理比赛: {skipped[:5]}...")
+        logger.info(f"跳过 {len(skipped)} 场已处理/重复比赛: {skipped[:5]}...")
 
     if not new_games:
         logger.info("没有新的比赛需要更新")
@@ -123,7 +127,7 @@ def update_ratings(game_results):
                 away_team.update(away_opponent_snapshot, 0.5)
         save_glicko2_league(league)
     else:
-        raise ValueError(f"未知的評級引擎: {config.RATINGS_ENGINE}")
+        raise ValueError(f"未知的评级引擎: {config.RATINGS_ENGINE}")
 
     for game in new_games:
         rated_ids.add(str(game['game_id']))
@@ -133,13 +137,14 @@ def update_ratings(game_results):
 
 def main():
     if not os.path.exists(FINAL_RESULTS_FILE):
-        logger.error(f"缺少 {FINAL_RESULTS_FILE}，請先執行 update_results.py")
+        logger.error(f"缺少 {FINAL_RESULTS_FILE}，请先执行 update_results.py")
         return
     with open(FINAL_RESULTS_FILE) as f:
         games = json.load(f)
     if not games:
         logger.info("沒有新比賽資料")
         return
+    # 也可在 update_results.py 中去重，此处再保一次
     update_ratings(games)
 
 if __name__ == '__main__':
