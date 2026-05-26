@@ -34,6 +34,7 @@ permissions:
 jobs:
   update-and-predict:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -52,12 +53,16 @@ jobs:
       - name: Compile critical Python files
         run: |
           python -m py_compile \
+            model.py \
             prediction.py \
             train_ensemble.py \
             scripts/feature_schema.py \
+            scripts/update_results.py \
             scripts/backfill_final_scores.py \
             scripts/rebuild_ratings.py \
             scripts/rating_updater.py \
+            scripts/glicko2_ratings.py \
+            scripts/historical_collector.py \
             scripts/validate_predictions.py
 
       - name: Update finalized game results
@@ -92,7 +97,7 @@ jobs:
         run: python scripts/rating_updater.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-          
+
       - name: Train model if enough finalized samples are available
         run: python train_ensemble.py
         env:
@@ -116,7 +121,9 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
-          if [ -f report/prediction.json ]; then git add -f report/prediction.json; fi
+          if [ -f report/prediction.json ]; then
+            git add -f report/prediction.json
+          fi
 
           for path in \
             report/rating_rebuild_report.json \
@@ -131,10 +138,14 @@ jobs:
             data/training_log.csv \
             data/feature_importance.csv \
             data/team_last_game.json; do
-            if [ -f "$path" ]; then git add -f "$path"; fi
+            if [ -f "$path" ]; then
+              git add -f "$path"
+            fi
           done
 
-          if [ -d data/historical ]; then git add -f data/historical/; fi
+          if [ -d data/historical ]; then
+            git add -f data/historical/
+          fi
 
           git commit -m "Update prediction, training and ratings [skip ci]" || echo "No changes"
           git pull --rebase origin main
@@ -144,6 +155,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: update-and-predict
     if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.collect_from == '' && github.event.inputs.collect_to == '') }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -164,6 +176,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Compile historical collector
+        run: |
+          python -m py_compile \
+            model.py \
+            scripts/historical_collector.py
+
       - name: Collect yesterday historical features
         run: python scripts/historical_collector.py $(date -u -d "yesterday" +%Y-%m-%d)
         env:
@@ -175,7 +193,9 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
-          if [ -d data/historical ]; then git add -f data/historical/; fi
+          if [ -d data/historical ]; then
+            git add -f data/historical/
+          fi
 
           git commit -m "Add historical data for $(date -u -d 'yesterday' +%Y-%m-%d) [skip ci]" || echo "No changes"
           git pull --rebase origin main
@@ -184,6 +204,7 @@ jobs:
   backfill-history:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.collect_from != '' && github.event.inputs.collect_to != '' }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -199,6 +220,12 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Compile historical backfill files
+        run: |
+          python -m py_compile \
+            model.py \
+            scripts/historical_collector.py
+
       - name: Backfill historical features
         run: python scripts/historical_collector.py "${{ github.event.inputs.collect_from }}" "${{ github.event.inputs.collect_to }}"
         env:
@@ -210,7 +237,9 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
-          if [ -d data/historical ]; then git add -f data/historical/; fi
+          if [ -d data/historical ]; then
+            git add -f data/historical/
+          fi
 
           git commit -m "Backfill historical data ${{ github.event.inputs.collect_from }} to ${{ github.event.inputs.collect_to }} [skip ci]" || echo "No changes"
           git pull --rebase origin main
