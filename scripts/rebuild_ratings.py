@@ -1,12 +1,9 @@
 # scripts/rebuild_ratings.py
-"""Safely rebuild Elo and Glicko2 rating state from finalized historical games.
+"""Safely rebuild Elo and Glicko2 rating state from finalized MLB games.
 
-This repair script:
-- Reads finalized historical games from CSV and parquet files.
-- Normalizes team names and game identifiers.
-- Normalizes all game dates to UTC before sorting.
-- Removes duplicate games before rebuilding ratings.
-- Writes production rating files only when safety checks pass.
+The primary source for repair is data/finalized_games.csv, created directly
+from the MLB Stats API by backfill_final_scores.py. Older feature parquet files
+are only a fallback because they may not contain matchup identifiers or scores.
 """
 
 from __future__ import annotations
@@ -25,8 +22,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from scripts.glicko2_ratings import Glicko2League
 from scripts.rating_updater import simple_elo_update
 
-CSV_FILE = Path("data/historical_predictions.csv")
-HIST_DIR = Path("data/historical")
+PRIMARY_FINALIZED_FILE = Path("data/finalized_games.csv")
+LEGACY_CSV_FILE = Path("data/historical_predictions.csv")
+LEGACY_HIST_DIR = Path("data/historical")
 
 ELO_OUTPUT = Path("data/elo_ratings.json")
 GLICKO_OUTPUT = Path("data/glicko2_ratings.json")
@@ -39,46 +37,68 @@ MAX_ELO_RANGE = 400.0
 MAX_GLICKO_RANGE = 400.0
 
 TEAM_NAME_MAP = {
-    "Arizona Diamondbacks": "D-backs", "Diamondbacks": "D-backs", "Arizona": "D-backs",
-    "Atlanta Braves": "Braves", "Atlanta": "Braves",
-    "Baltimore Orioles": "Orioles", "Baltimore": "Orioles",
-    "Boston Red Sox": "Red Sox", "Boston": "Red Sox",
-    "Chicago Cubs": "Cubs", "Chicago (NL)": "Cubs",
-    "Chicago White Sox": "White Sox", "Chicago (AL)": "White Sox",
-    "Cincinnati Reds": "Reds", "Cincinnati": "Reds",
-    "Cleveland Guardians": "Guardians", "Cleveland": "Guardians",
-    "Colorado Rockies": "Rockies", "Colorado": "Rockies",
-    "Detroit Tigers": "Tigers", "Detroit": "Tigers",
-    "Houston Astros": "Astros", "Houston": "Astros",
-    "Kansas City Royals": "Royals", "Kansas City": "Royals",
-    "Los Angeles Angels": "Angels", "Los Angeles (AL)": "Angels",
-    "Los Angeles Dodgers": "Dodgers", "Los Angeles (NL)": "Dodgers",
-    "Miami Marlins": "Marlins", "Miami": "Marlins",
-    "Milwaukee Brewers": "Brewers", "Milwaukee": "Brewers",
-    "Minnesota Twins": "Twins", "Minnesota": "Twins",
-    "New York Mets": "Mets", "New York (NL)": "Mets",
-    "New York Yankees": "Yankees", "New York (AL)": "Yankees",
-    "Oakland Athletics": "Athletics", "Oakland": "Athletics",
-    "Philadelphia Phillies": "Phillies", "Philadelphia": "Phillies",
-    "Pittsburgh Pirates": "Pirates", "Pittsburgh": "Pirates",
-    "San Diego Padres": "Padres", "San Diego": "Padres",
-    "San Francisco Giants": "Giants", "San Francisco": "Giants",
-    "Seattle Mariners": "Mariners", "Seattle": "Mariners",
-    "St. Louis Cardinals": "Cardinals", "St. Louis": "Cardinals",
-    "Tampa Bay Rays": "Rays", "Tampa Bay": "Rays",
-    "Texas Rangers": "Rangers", "Texas": "Rangers",
-    "Toronto Blue Jays": "Blue Jays", "Toronto": "Blue Jays",
-    "Washington Nationals": "Nationals", "Washington": "Nationals",
-    "D-backs": "D-backs", "Braves": "Braves", "Orioles": "Orioles",
-    "Red Sox": "Red Sox", "Cubs": "Cubs", "White Sox": "White Sox",
-    "Reds": "Reds", "Guardians": "Guardians", "Rockies": "Rockies",
-    "Tigers": "Tigers", "Astros": "Astros", "Royals": "Royals",
-    "Angels": "Angels", "Dodgers": "Dodgers", "Marlins": "Marlins",
-    "Brewers": "Brewers", "Twins": "Twins", "Mets": "Mets",
-    "Yankees": "Yankees", "Athletics": "Athletics", "Phillies": "Phillies",
-    "Pirates": "Pirates", "Padres": "Padres", "Giants": "Giants",
-    "Mariners": "Mariners", "Cardinals": "Cardinals", "Rays": "Rays",
-    "Rangers": "Rangers", "Blue Jays": "Blue Jays", "Nationals": "Nationals",
+    "Arizona Diamondbacks": "D-backs",
+    "Diamondbacks": "D-backs",
+    "Arizona": "D-backs",
+    "Atlanta Braves": "Braves",
+    "Atlanta": "Braves",
+    "Baltimore Orioles": "Orioles",
+    "Baltimore": "Orioles",
+    "Boston Red Sox": "Red Sox",
+    "Boston": "Red Sox",
+    "Chicago Cubs": "Cubs",
+    "Chicago (NL)": "Cubs",
+    "Chicago White Sox": "White Sox",
+    "Chicago (AL)": "White Sox",
+    "Cincinnati Reds": "Reds",
+    "Cincinnati": "Reds",
+    "Cleveland Guardians": "Guardians",
+    "Cleveland": "Guardians",
+    "Colorado Rockies": "Rockies",
+    "Colorado": "Rockies",
+    "Detroit Tigers": "Tigers",
+    "Detroit": "Tigers",
+    "Houston Astros": "Astros",
+    "Houston": "Astros",
+    "Kansas City Royals": "Royals",
+    "Kansas City": "Royals",
+    "Los Angeles Angels": "Angels",
+    "Los Angeles (AL)": "Angels",
+    "Los Angeles Dodgers": "Dodgers",
+    "Los Angeles (NL)": "Dodgers",
+    "Miami Marlins": "Marlins",
+    "Miami": "Marlins",
+    "Milwaukee Brewers": "Brewers",
+    "Milwaukee": "Brewers",
+    "Minnesota Twins": "Twins",
+    "Minnesota": "Twins",
+    "New York Mets": "Mets",
+    "New York (NL)": "Mets",
+    "New York Yankees": "Yankees",
+    "New York (AL)": "Yankees",
+    "Oakland Athletics": "Athletics",
+    "Sacramento Athletics": "Athletics",
+    "Athletics": "Athletics",
+    "Philadelphia Phillies": "Phillies",
+    "Philadelphia": "Phillies",
+    "Pittsburgh Pirates": "Pirates",
+    "Pittsburgh": "Pirates",
+    "San Diego Padres": "Padres",
+    "San Diego": "Padres",
+    "San Francisco Giants": "Giants",
+    "San Francisco": "Giants",
+    "Seattle Mariners": "Mariners",
+    "Seattle": "Mariners",
+    "St. Louis Cardinals": "Cardinals",
+    "St. Louis": "Cardinals",
+    "Tampa Bay Rays": "Rays",
+    "Tampa Bay": "Rays",
+    "Texas Rangers": "Rangers",
+    "Texas": "Rangers",
+    "Toronto Blue Jays": "Blue Jays",
+    "Toronto": "Blue Jays",
+    "Washington Nationals": "Nationals",
+    "Washington": "Nationals",
 }
 
 
@@ -99,7 +119,7 @@ def normalize_game_id(value: Any) -> str | None:
 
 
 def normalize_team_name(value: Any) -> str | None:
-    """Return a canonical MLB team name or None for invalid input."""
+    """Return a canonical MLB team name or None."""
     if value is None or pd.isna(value):
         return None
     text = str(value).strip()
@@ -109,12 +129,7 @@ def normalize_team_name(value: Any) -> str | None:
 
 
 def normalize_dates_to_utc(values: pd.Series) -> pd.Series:
-    """Return UTC-aware datetimes so mixed naive/aware sources are sortable.
-
-    Pandas 2.x requires format="mixed" when a Series combines date-only,
-    Z-suffixed and offset timestamp strings. The scalar fallback keeps this
-    compatible with older pandas releases that do not support format="mixed".
-    """
+    """Return UTC-aware datetimes for stable chronological sorting."""
     try:
         return pd.to_datetime(values, errors="coerce", utc=True, format="mixed")
     except (TypeError, ValueError):
@@ -124,110 +139,117 @@ def normalize_dates_to_utc(values: pd.Series) -> pd.Series:
 
 
 def normalize_game_frame(frame: pd.DataFrame, source: str) -> pd.DataFrame:
-    """Normalize one historical data source into the rebuild schema."""
-    required_columns = {"game_id", "home_team", "away_team", "home_score", "away_score"}
-    missing_columns = sorted(required_columns.difference(frame.columns))
-    if missing_columns:
-        print(f"Skipping {source}: missing columns {missing_columns}")
+    """Normalize a finalized-game data source into the rebuild schema."""
+    required = {"game_id", "home_team", "away_team", "home_score", "away_score"}
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        print(f"Skipping {source}: missing columns {missing}")
         return pd.DataFrame()
 
-    if "game_date" in frame.columns:
-        date_column = "game_date"
-    elif "date" in frame.columns:
-        date_column = "date"
-    else:
+    date_column = "game_date" if "game_date" in frame.columns else (
+        "date" if "date" in frame.columns else None
+    )
+    if date_column is None:
         print(f"Skipping {source}: missing date/game_date column")
         return pd.DataFrame()
 
-    normalized = frame[
+    output = frame[
         ["game_id", date_column, "home_team", "away_team", "home_score", "away_score"]
     ].copy()
-    normalized = normalized.rename(columns={date_column: "game_date"})
-
-    normalized["game_id"] = normalized["game_id"].map(normalize_game_id)
-    normalized["home_team"] = normalized["home_team"].map(normalize_team_name)
-    normalized["away_team"] = normalized["away_team"].map(normalize_team_name)
-    normalized["home_score"] = pd.to_numeric(normalized["home_score"], errors="coerce")
-    normalized["away_score"] = pd.to_numeric(normalized["away_score"], errors="coerce")
-    normalized["game_date"] = normalize_dates_to_utc(normalized["game_date"])
-
-    normalized = normalized.dropna(
-        subset=["game_id", "home_team", "away_team", "home_score", "away_score", "game_date"]
+    output = output.rename(columns={date_column: "game_date"})
+    output["game_id"] = output["game_id"].map(normalize_game_id)
+    output["home_team"] = output["home_team"].map(normalize_team_name)
+    output["away_team"] = output["away_team"].map(normalize_team_name)
+    output["home_score"] = pd.to_numeric(output["home_score"], errors="coerce")
+    output["away_score"] = pd.to_numeric(output["away_score"], errors="coerce")
+    output["game_date"] = normalize_dates_to_utc(output["game_date"])
+    output = output.dropna(
+        subset=["game_id", "game_date", "home_team", "away_team", "home_score", "away_score"]
     )
-    normalized = normalized[
-        (normalized["home_team"] != "")
-        & (normalized["away_team"] != "")
-        & (normalized["home_team"] != normalized["away_team"])
+    output = output[
+        (output["home_team"] != output["away_team"])
+        & (output["home_team"] != "")
+        & (output["away_team"] != "")
     ]
-    return normalized.reset_index(drop=True)
+    return output.reset_index(drop=True)
 
 
-def load_historical_games() -> tuple[pd.DataFrame, dict[str, int]]:
-    """Load, normalize, merge and safely sort finalized historical games."""
-    frames: list[pd.DataFrame] = []
-    stats = {
+def merge_and_deduplicate(frames: list[pd.DataFrame], stats: dict[str, Any]) -> pd.DataFrame:
+    """Merge normalized frames and remove duplicate MLB game identifiers."""
+    if not frames:
+        return pd.DataFrame()
+
+    games = pd.concat(frames, ignore_index=True)
+    games["game_id"] = games["game_id"].astype("string")
+    games["home_team"] = games["home_team"].astype("string")
+    games["away_team"] = games["away_team"].astype("string")
+    games["game_date"] = normalize_dates_to_utc(games["game_date"])
+    games["home_score"] = pd.to_numeric(games["home_score"], errors="coerce")
+    games["away_score"] = pd.to_numeric(games["away_score"], errors="coerce")
+    games = games.dropna(
+        subset=["game_id", "game_date", "home_team", "away_team", "home_score", "away_score"]
+    )
+    before = len(games)
+    games = games.sort_values(["game_date", "game_id"], kind="mergesort")
+    games = games.drop_duplicates(subset=["game_id"], keep="last")
+    stats["duplicate_rows_removed"] = before - len(games)
+    return games.reset_index(drop=True)
+
+
+def read_source(path: Path, stats: dict[str, Any]) -> pd.DataFrame:
+    """Read and normalize one CSV or parquet input source defensively."""
+    stats["source_files_read"] += 1
+    try:
+        raw = pd.read_csv(path) if path.suffix.lower() == ".csv" else pd.read_parquet(path)
+        normalized = normalize_game_frame(raw, str(path))
+        if normalized.empty:
+            stats["source_files_skipped"] += 1
+        return normalized
+    except Exception as exc:
+        stats["source_files_skipped"] += 1
+        print(f"Skipping {path}: unable to read file ({exc})")
+        return pd.DataFrame()
+
+
+def load_historical_games() -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Load primary finalized history and use legacy data only as fallback."""
+    stats: dict[str, Any] = {
+        "primary_source": str(PRIMARY_FINALIZED_FILE),
+        "primary_games_loaded": 0,
+        "legacy_fallback_used": False,
         "source_files_read": 0,
         "source_files_skipped": 0,
         "duplicate_rows_removed": 0,
     }
 
-    if CSV_FILE.exists():
-        stats["source_files_read"] += 1
-        try:
-            csv_frame = normalize_game_frame(pd.read_csv(CSV_FILE), str(CSV_FILE))
-            if not csv_frame.empty:
-                frames.append(csv_frame)
-            else:
-                stats["source_files_skipped"] += 1
-        except Exception as exc:
-            stats["source_files_skipped"] += 1
-            print(f"Skipping {CSV_FILE}: unable to read file ({exc})")
+    frames: list[pd.DataFrame] = []
+    if PRIMARY_FINALIZED_FILE.exists():
+        primary = read_source(PRIMARY_FINALIZED_FILE, stats)
+        if not primary.empty:
+            frames.append(primary)
+            stats["primary_games_loaded"] = int(len(primary))
 
-    if HIST_DIR.exists():
-        for parquet_path in sorted(HIST_DIR.glob("*.parquet")):
-            stats["source_files_read"] += 1
-            try:
-                parquet_frame = normalize_game_frame(pd.read_parquet(parquet_path), str(parquet_path))
-                if not parquet_frame.empty:
-                    frames.append(parquet_frame)
-                else:
-                    stats["source_files_skipped"] += 1
-            except Exception as exc:
-                stats["source_files_skipped"] += 1
-                print(f"Skipping {parquet_path}: unable to read file ({exc})")
+    primary_games = merge_and_deduplicate(frames, stats)
+    if len(primary_games) >= MIN_GAMES:
+        return primary_games, stats
 
-    if not frames:
-        return pd.DataFrame(), stats
+    stats["legacy_fallback_used"] = True
+    if LEGACY_CSV_FILE.exists():
+        legacy_csv = read_source(LEGACY_CSV_FILE, stats)
+        if not legacy_csv.empty:
+            frames.append(legacy_csv)
 
-    all_games = pd.concat(frames, ignore_index=True)
+    if LEGACY_HIST_DIR.exists():
+        for parquet_path in sorted(LEGACY_HIST_DIR.glob("*.parquet")):
+            legacy_parquet = read_source(parquet_path, stats)
+            if not legacy_parquet.empty:
+                frames.append(legacy_parquet)
 
-    # After concat, force stable comparable dtypes. In particular, all timestamps
-    # must be UTC-aware before sort_values sees mixed historical source formats.
-    all_games["game_id"] = all_games["game_id"].astype("string")
-    all_games["home_team"] = all_games["home_team"].astype("string")
-    all_games["away_team"] = all_games["away_team"].astype("string")
-    all_games["game_date"] = normalize_dates_to_utc(all_games["game_date"])
-    all_games["home_score"] = pd.to_numeric(all_games["home_score"], errors="coerce")
-    all_games["away_score"] = pd.to_numeric(all_games["away_score"], errors="coerce")
-
-    all_games = all_games.dropna(
-        subset=["game_id", "home_team", "away_team", "game_date", "home_score", "away_score"]
-    )
-    all_games = all_games[
-        (all_games["home_team"] != "")
-        & (all_games["away_team"] != "")
-        & (all_games["home_team"] != all_games["away_team"])
-    ]
-
-    pre_dedup_count = len(all_games)
-    all_games = all_games.sort_values(["game_date", "game_id"], kind="mergesort")
-    all_games = all_games.drop_duplicates(subset=["game_id"], keep="last")
-    stats["duplicate_rows_removed"] = pre_dedup_count - len(all_games)
-    return all_games.reset_index(drop=True), stats
+    return merge_and_deduplicate(frames, stats), stats
 
 
 def save_glicko_league(league: Glicko2League, path: Path) -> None:
-    """Write Glicko2 rating state to disk."""
+    """Write Glicko2 state in the format supported by the ratings class."""
     path.parent.mkdir(parents=True, exist_ok=True)
     if hasattr(league, "save"):
         league.save(str(path))
@@ -236,31 +258,40 @@ def save_glicko_league(league: Glicko2League, path: Path) -> None:
         league.save_ratings(str(path))
         return
 
-    teams_payload: dict[str, dict[str, float]] = {}
-    for name, team in league.teams.items():
-        teams_payload[name] = {
+    payload = {
+        name: {
             "mu": float(getattr(team, "rating", 1500.0)),
             "phi": float(getattr(team, "rd", 350.0)),
             "sigma": float(getattr(team, "vol", 0.06)),
         }
-    path.write_text(json.dumps(teams_payload, indent=2), encoding="utf-8")
+        for name, team in league.teams.items()
+    }
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def write_report(report: dict[str, Any]) -> None:
+    REPORT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_OUTPUT.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
 
 def rebuild() -> None:
     """Rebuild and validate Elo/Glicko2 rating state."""
     games, load_stats = load_historical_games()
+    early_report = {"processed_games": 0, "team_count": 0, **load_stats}
+
     if games.empty or len(games) < MIN_GAMES:
+        write_report(early_report)
         raise SystemExit(
             f"ERROR: only {len(games)} finalized games with valid scores were found; "
             f"at least {MIN_GAMES} are required. Rating files were not overwritten."
         )
 
-    all_teams = sorted(
-        set(games["home_team"].astype(str)).union(set(games["away_team"].astype(str)))
-    )
+    all_teams = sorted(set(games["home_team"].astype(str)).union(games["away_team"].astype(str)))
+    early_report["team_count"] = len(all_teams)
     if len(all_teams) < MIN_TEAMS:
+        write_report(early_report)
         raise SystemExit(
-            f"ERROR: historical data covers only {len(all_teams)} teams; "
+            f"ERROR: finalized history covers only {len(all_teams)} teams; "
             f"at least {MIN_TEAMS} are required. Rating files were not overwritten."
         )
 
@@ -276,7 +307,6 @@ def rebuild() -> None:
         game_id = normalize_game_id(row["game_id"])
         if not game_id or game_id in processed_ids:
             continue
-
         try:
             home_score = int(row["home_score"])
             away_score = int(row["away_score"])
@@ -286,42 +316,24 @@ def rebuild() -> None:
 
         home_team = str(row["home_team"])
         away_team = str(row["away_team"])
-        elo_ratings.setdefault(home_team, 1500.0)
-        elo_ratings.setdefault(away_team, 1500.0)
         simple_elo_update(elo_ratings, home_team, away_team, home_score, away_score)
-
-        if home_team not in league.teams:
-            league.add_team(home_team, rating=1500.0, rd=350.0, vol=0.06)
-        if away_team not in league.teams:
-            league.add_team(away_team, rating=1500.0, rd=350.0, vol=0.06)
 
         home_rating = league.teams[home_team]
         away_rating = league.teams[away_team]
-        home_opponent_snapshot = copy.deepcopy(away_rating)
-        away_opponent_snapshot = copy.deepcopy(home_rating)
-
+        home_opponent = copy.deepcopy(away_rating)
+        away_opponent = copy.deepcopy(home_rating)
         if home_score > away_score:
             home_result, away_result = 1.0, 0.0
         elif home_score < away_score:
             home_result, away_result = 0.0, 1.0
         else:
             home_result, away_result = 0.5, 0.5
-
-        home_rating.update(home_opponent_snapshot, home_result)
-        away_rating.update(away_opponent_snapshot, away_result)
+        home_rating.update(home_opponent, home_result)
+        away_rating.update(away_opponent, away_result)
         processed_ids.add(game_id)
 
-    if len(processed_ids) < MIN_GAMES:
-        raise SystemExit(
-            f"ERROR: only {len(processed_ids)} unique finalized games were processed "
-            f"after de-duplication; at least {MIN_GAMES} are required. "
-            "Rating files were not overwritten."
-        )
-
     elo_values = [float(value) for value in elo_ratings.values()]
-    glicko_values = [
-        float(getattr(team, "rating", 1500.0)) for team in league.teams.values()
-    ]
+    glicko_values = [float(getattr(team, "rating", 1500.0)) for team in league.teams.values()]
     elo_range = max(elo_values) - min(elo_values)
     glicko_range = max(glicko_values) - min(glicko_values)
 
@@ -338,21 +350,22 @@ def rebuild() -> None:
         "teams": all_teams,
         **load_stats,
     }
-    REPORT_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    REPORT_OUTPUT.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    write_report(report)
 
+    if len(processed_ids) < MIN_GAMES:
+        raise SystemExit(
+            f"ERROR: only {len(processed_ids)} unique finalized games were processed; "
+            f"at least {MIN_GAMES} are required. Rating files were not overwritten."
+        )
     if elo_range > MAX_ELO_RANGE or glicko_range > MAX_GLICKO_RANGE:
         raise SystemExit(
             "ERROR: rebuilt rating range is unsafe "
             f"(Elo={elo_range:.1f}, Glicko2={glicko_range:.1f}). "
-            "A report was written, but production rating files were not overwritten."
+            "Production rating files were not overwritten."
         )
 
     ELO_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    ELO_OUTPUT.write_text(
-        json.dumps(elo_ratings, indent=2, sort_keys=True),
-        encoding="utf-8",
-    )
+    ELO_OUTPUT.write_text(json.dumps(elo_ratings, indent=2, sort_keys=True), encoding="utf-8")
     save_glicko_league(league, GLICKO_OUTPUT)
     RATED_IDS_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     RATED_IDS_OUTPUT.write_text(json.dumps(sorted(processed_ids), indent=2), encoding="utf-8")
