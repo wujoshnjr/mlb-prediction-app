@@ -9,8 +9,10 @@ import json
 import os
 import sys
 import threading
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
+import requests
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from sklearn.metrics import brier_score_loss
@@ -104,6 +106,34 @@ th { color:var(--muted); font-size:.75rem; text-transform:uppercase; background:
 .no-data { background:#feebc8; color:#744210; }
 .factors { font-size:.75rem; color:var(--muted); white-space:normal; min-width:180px; }
 .footer { margin-top:26px; color:var(--muted); font-size:.8rem; text-align:center; }
+.mobile-list { display:none; }
+.game-card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:14px;
+  margin-bottom:12px;
+}
+.game-head { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:12px; }
+.matchup { font-size:1.05rem; font-weight:650; }
+.game-time { color:var(--muted); font-size:.83rem; margin-top:4px; }
+.probability { font-size:1.35rem; font-weight:700; white-space:nowrap; }
+.probability small { display:block; color:var(--muted); font-size:.68rem; font-weight:500; text-align:right; }
+.market-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+.market { background:#f8fafc; border-radius:8px; padding:9px; min-height:62px; }
+.market-label { display:block; color:var(--muted); font-size:.66rem; text-transform:uppercase; margin-bottom:5px; }
+.market-value { font-size:.86rem; font-weight:550; }
+.mobile-factors { margin-top:10px; color:var(--muted); font-size:.74rem; line-height:1.4; }
+@media (max-width: 760px) {
+  body { padding:10px; }
+  h1 { font-size:1.55rem; }
+  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0; }
+  .card { padding:12px; }
+  .value { font-size:1.2rem; }
+  .label { font-size:.68rem; }
+  .table-wrap { display:none; }
+  .mobile-list { display:block; }
+}
 </style>
 </head>
 <body>
@@ -131,6 +161,7 @@ th { color:var(--muted); font-size:.75rem; text-transform:uppercase; background:
       <tbody id="predictions"><tr><td colspan="10">Loading...</td></tr></tbody>
     </table>
   </div>
+  <div id="mobile-predictions" class="mobile-list"></div>
   <div class="footer">Data updated hourly - Past performance does not guarantee future results</div>
 </div>
 <script>
@@ -160,7 +191,13 @@ function displayTime(prediction) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "Time pending";
   const parsed = new Date(raw);
   if (Number.isNaN(parsed.valueOf())) return "--";
-  return parsed.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  return parsed.toLocaleString("zh-TW", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
 }
 
 function displayOdds(prediction) {
@@ -203,9 +240,43 @@ function renderPerformance(data) {
     data.brier == null ? "No settled samples" : Number(data.brier).toFixed(3);
 }
 
+function renderMobileCards(rows) {
+  const target = document.getElementById("mobile-predictions");
+  if (!rows.length) {
+    target.innerHTML = '<div class="game-card">No game data available today.</div>';
+    return;
+  }
+  target.innerHTML = rows.map(prediction => {
+    const homeWin = prediction.predicted_home_win_pct == null
+      ? "--"
+      : `${(Number(prediction.predicted_home_win_pct) * 100).toFixed(1)}%`;
+    const nrfi = prediction.nrfi_prob == null
+      ? "NO DATA"
+      : `${(Number(prediction.nrfi_prob) * 100).toFixed(1)}%`;
+    return `<div class="game-card">
+      <div class="game-head">
+        <div>
+          <div class="matchup">${escapeText(prediction.away_team || "--")} @ ${escapeText(prediction.home_team || "--")}</div>
+          <div class="game-time">${displayTime(prediction)}</div>
+        </div>
+        <div class="probability">${homeWin}<small>HOME WIN</small></div>
+      </div>
+      <div class="market-grid">
+        <div class="market"><span class="market-label">Odds</span><span class="market-value">${displayOdds(prediction)}</span></div>
+        <div class="market"><span class="market-label">Moneyline</span>${badge(prediction.moneyline_recommendation)}</div>
+        <div class="market"><span class="market-label">Spread</span>${badge(prediction.spread_recommendation)}</div>
+        <div class="market"><span class="market-label">Total</span>${badge(prediction.total_recommendation)}</div>
+        <div class="market"><span class="market-label">NRFI</span><span class="market-value">${nrfi}</span></div>
+      </div>
+      <div class="mobile-factors">${keyFactors(prediction) || "No additional factors available."}</div>
+    </div>`;
+  }).join("");
+}
+
 function renderPredictions(data) {
   const rows = data.today_predictions || [];
   const tbody = document.getElementById("predictions");
+  renderMobileCards(rows);
 
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="10">No game data available today.</td></tr>';
@@ -279,11 +350,68 @@ def index():
     return HTMLResponse(HTML)
 
 
+_SCHEDULE_TIME_CACHE: dict[str, tuple[datetime, dict[str, str]]] = {}
+_SCHEDULE_TIME_CACHE_TTL = timedelta(minutes=30)
+
+
+def _fetch_schedule_start_times(date_str: str) -> dict[str, str]:
+    """Retrieve MLB game start times for display only, with a short cache."""
+    now = datetime.now(timezone.utc)
+    cached = _SCHEDULE_TIME_CACHE.get(date_str)
+    if cached is not None and now - cached[0] < _SCHEDULE_TIME_CACHE_TTL:
+        return cached[1]
+
+    values: dict[str, str] = {}
+    try:
+        response = requests.get(
+            "https://statsapi.mlb.com/api/v1/schedule",
+            params={"sportId": 1, "date": date_str},
+            timeout=8,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        for date_payload in payload.get("dates", []):
+            for game in date_payload.get("games", []):
+                game_id = game.get("gamePk")
+                start_time = game.get("gameDate")
+                if game_id is not None and start_time:
+                    values[str(game_id)] = str(start_time)
+    except Exception as exc:
+        print(f"Start time enrichment failed for {date_str}: {exc}")
+
+    _SCHEDULE_TIME_CACHE[date_str] = (now, values)
+    return values
+
+
+def _enrich_start_times(payload: dict) -> dict:
+    """Attach start_time for display when an older prediction report omitted it."""
+    rows = payload.get("today_predictions", [])
+    if not isinstance(rows, list) or not rows:
+        return payload
+
+    lookup: dict[str, str] = {}
+    dates = {
+        str(row.get("game_date", ""))[:10]
+        for row in rows
+        if isinstance(row, dict) and row.get("game_date")
+    }
+    for date_str in sorted(dates):
+        lookup.update(_fetch_schedule_start_times(date_str))
+
+    for row in rows:
+        if not isinstance(row, dict) or row.get("start_time"):
+            continue
+        start_time = lookup.get(str(row.get("game_id")))
+        if start_time:
+            row["start_time"] = start_time
+    return payload
+
+
 @app.get("/api/predictions")
 def get_predictions():
     try:
         with open("report/prediction.json", "r", encoding="utf-8") as file_obj:
-            return json.load(file_obj)
+            return _enrich_start_times(json.load(file_obj))
     except FileNotFoundError:
         pass
     except Exception as exc:
@@ -293,7 +421,7 @@ def get_predictions():
         return JSONResponse({"error": "Prediction module not loaded"}, status_code=503)
 
     try:
-        return generate_predictions()
+        return _enrich_start_times(generate_predictions())
     except Exception as exc:
         return JSONResponse({"error": f"Real-time generation failed: {exc}"}, status_code=500)
 
