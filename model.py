@@ -107,6 +107,10 @@ class UnifiedSportsModel:
             'openmeteo_weather': [], 'balldontlie_teams': [], 'odds_data': [],
             'pitchers': [], 'injuries': [], 'bullpen': [], 'platoon': [],
             'umpires': [],
+            # Consumer-facing aliases expected by prediction.py.
+            'mlb_team_stats': [], 'pitcher_data': [], 'odds': [],
+            'weather': [], 'bullpen_data': [], 'platoon_data': [],
+            'umpire_data': [],
             'errors': errors
         }
 
@@ -154,10 +158,36 @@ class UnifiedSportsModel:
         result['platoon'] = platoon.to_dict(orient='records') if not platoon.empty else []
         result['umpires'] = umpire.to_dict(orient='records') if not umpire.empty else []
 
+        # Backward-compatible contract aliases: prediction.py consumes these names.
+        # Original producer keys are retained above so other callers remain stable.
+        result['mlb_team_stats'] = result['sportsipy_teams']
+        result['pitcher_data'] = result['pitchers']
+        result['odds'] = result['odds_data']
+        result['weather'] = result['openmeteo_weather']
+        result['bullpen_data'] = result['bullpen']
+        result['platoon_data'] = result['platoon']
+        result['umpire_data'] = result['umpires']
+
         if os.path.isfile('report'):
             os.remove('report')
         os.makedirs('report', exist_ok=True)
-        with open(f'report/{date_str}.json', 'w') as f:
+        with open(f'report/{date_str}.json', 'w', encoding='utf-8') as f:
             json.dump(result, f, indent=2, default=str)
+
+        # A legitimate MLB off-day may return an empty schedule with no error.
+        # A failed schedule provider must stop prediction.py from publishing an
+        # empty report as though there simply were no scheduled games.
+        schedule_error_messages = [
+            str(message) for message in errors
+            if 'mlb_statsapi' in str(message).lower()
+            and (
+                'fetch error' in str(message).lower()
+                or 'module not loaded' in str(message).lower()
+            )
+        ]
+        if not result['mlb_statsapi'] and schedule_error_messages:
+            raise RuntimeError(
+                'schedule fetch failed: ' + '; '.join(schedule_error_messages)
+            )
 
         return result
