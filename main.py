@@ -1,13 +1,19 @@
 # main.py
+"""FastAPI dashboard for MLB predictions.
+
+This file intentionally uses ASCII-only source text so it can be safely edited
+through browser-based GitHub editors without encoding damage.
+"""
+
 import json
 import os
 import sys
 import threading
 
 import pandas as pd
-from sklearn.metrics import brier_score_loss
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
+from sklearn.metrics import brier_score_loss
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -26,130 +32,241 @@ app = FastAPI(title="MLB Prediction Hub")
 
 HTML = r"""
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MLB Prediction Hub</title>
 <style>
-:root{--bg:#f9fafb;--card:#fff;--text:#1a202c;--muted:#718096;--border:#e2e8f0;--positive:#38a169;--negative:#e53e3e;--warn:#b7791f}
-*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:18px}
-.container{max-width:1500px;margin:auto}.header{border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:22px}
-h1{margin:0;font-size:2rem}.subtitle,.updated{color:var(--muted);margin:8px 0 0}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:20px 0}
-.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px}
-.label{font-size:.8rem;color:var(--muted);text-transform:uppercase}.value{font-size:1.85rem;font-weight:650;margin-top:7px}
-.positive{color:var(--positive)}.negative{color:var(--negative)}.warning{color:var(--warn)}
-.notice{background:#fffaf0;border:1px solid #f6e05e;border-radius:8px;padding:12px;margin:14px 0;color:#744210;font-size:.88rem}
-.error{background:#fff5f5;border:1px solid #feb2b2;border-radius:8px;padding:12px;margin:14px 0;color:#9b2c2c;font-size:.88rem}
-.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{padding:12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
-th{color:var(--muted);font-size:.75rem;text-transform:uppercase;background:#f8fafc}
-.rec{display:inline-block;padding:4px 9px;border-radius:5px;font-weight:650;font-size:.76rem}
-.bet{background:#c6f6d5;color:#22543d}.pass{background:#edf2f7;color:#4a5568}.no-data{background:#feebc8;color:#744210}
-.factors{font-size:.75rem;color:var(--muted);white-space:normal;min-width:180px}
-.footer{margin-top:26px;color:var(--muted);font-size:.8rem;text-align:center}
+:root {
+  --bg:#f9fafb;
+  --card:#ffffff;
+  --text:#1a202c;
+  --muted:#718096;
+  --border:#e2e8f0;
+  --positive:#38a169;
+  --negative:#e53e3e;
+  --warn:#b7791f;
+}
+* { box-sizing:border-box; }
+body {
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  margin:0;
+  padding:18px;
+}
+.container { max-width:1500px; margin:0 auto; }
+.header { border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:22px; }
+h1 { margin:0; font-size:2rem; }
+.subtitle,.updated { color:var(--muted); margin:8px 0 0; }
+.grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;
+  margin:20px 0;
+}
+.card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px; }
+.label { font-size:.8rem; color:var(--muted); text-transform:uppercase; }
+.value { font-size:1.85rem; font-weight:650; margin-top:7px; }
+.positive { color:var(--positive); }
+.negative { color:var(--negative); }
+.notice {
+  background:#fffaf0;
+  border:1px solid #f6e05e;
+  border-radius:8px;
+  padding:12px;
+  margin:14px 0;
+  color:#744210;
+  font-size:.88rem;
+}
+.error {
+  background:#fff5f5;
+  border:1px solid #feb2b2;
+  border-radius:8px;
+  padding:12px;
+  margin:14px 0;
+  color:#9b2c2c;
+  font-size:.88rem;
+}
+.table-wrap {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  overflow-x:auto;
+}
+table { border-collapse:collapse; width:100%; font-size:.9rem; }
+th,td { padding:12px; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; }
+th { color:var(--muted); font-size:.75rem; text-transform:uppercase; background:#f8fafc; }
+.rec { display:inline-block; padding:4px 9px; border-radius:5px; font-weight:650; font-size:.76rem; }
+.bet { background:#c6f6d5; color:#22543d; }
+.pass { background:#edf2f7; color:#4a5568; }
+.no-data { background:#feebc8; color:#744210; }
+.factors { font-size:.75rem; color:var(--muted); white-space:normal; min-width:180px; }
+.footer { margin-top:26px; color:var(--muted); font-size:.8rem; text-align:center; }
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <h1>â¾ MLB Prediction Hub</h1>
-    <p class="subtitle">Probabilistic forecasts Â· Backtested Â· Transparent</p>
-    <p id="update-time" class="updated">è¼å¥ä¸­...</p>
+    <h1>MLB Prediction Hub</h1>
+    <p class="subtitle">Probabilistic forecasts - Backtested - Transparent</p>
+    <p id="update-time" class="updated">Loading...</p>
   </div>
   <div id="messages"></div>
   <div class="grid">
-    <div class="card"><div class="label">Settled Predictions</div><div id="total" class="value">â</div></div>
-    <div class="card"><div class="label">ROI (Moneyline)</div><div id="roi" class="value">â</div></div>
-    <div class="card"><div class="label">Win Rate (Bets)</div><div id="win-rate" class="value">â</div></div>
-    <div class="card"><div class="label">Brier Score</div><div id="brier" class="value">â</div></div>
+    <div class="card"><div class="label">Settled Predictions</div><div id="total" class="value">--</div></div>
+    <div class="card"><div class="label">ROI (Moneyline)</div><div id="roi" class="value">--</div></div>
+    <div class="card"><div class="label">Win Rate (Bets)</div><div id="win-rate" class="value">--</div></div>
+    <div class="card"><div class="label">Brier Score</div><div id="brier" class="value">--</div></div>
   </div>
   <div class="table-wrap">
     <table>
-      <thead><tr>
-        <th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th>
-        <th>Moneyline</th><th>Spread</th><th>Total</th><th>NRFI</th><th>Key Factors</th>
-      </tr></thead>
-      <tbody id="predictions"><tr><td colspan="10">è¼å¥ä¸­...</td></tr></tbody>
+      <thead>
+        <tr>
+          <th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th>
+          <th>Moneyline</th><th>Spread</th><th>Total</th><th>NRFI</th><th>Key Factors</th>
+        </tr>
+      </thead>
+      <tbody id="predictions"><tr><td colspan="10">Loading...</td></tr></tbody>
     </table>
   </div>
-  <div class="footer">Data updated hourly Â· Past performance does not guarantee future results</div>
+  <div class="footer">Data updated hourly - Past performance does not guarantee future results</div>
 </div>
 <script>
+function escapeText(value) {
+  return String(value == null ? "" : value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 function badge(value) {
-  if (!value || value === "PASS" || value === "NO BET") return `<span class="rec pass">${value || "â"}</span>`;
-  if (value === "NO DATA") return `<span class="rec no-data">NO DATA</span>`;
-  return `<span class="rec bet">${value}</span>`;
+  const label = value || "--";
+  if (!value || value === "NO BET" || value === "PASS") {
+    return `<span class="rec pass">${escapeText(label)}</span>`;
+  }
+  if (value === "NO DATA") {
+    return `<span class="rec no-data">NO DATA</span>`;
+  }
+  return `<span class="rec bet">${escapeText(label)}</span>`;
 }
-function displayTime(p) {
-  const raw = p.start_time || p.game_datetime || p.game_time || p.game_date;
-  if (!raw) return "â";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "æéå¾æ´æ°";
+
+function displayTime(prediction) {
+  const raw = prediction.start_time || prediction.game_datetime || prediction.game_time || prediction.game_date;
+  if (!raw) return "--";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "Time pending";
   const parsed = new Date(raw);
-  return isNaN(parsed.valueOf()) ? "â" : parsed.toLocaleTimeString("zh-TW", {hour:"2-digit", minute:"2-digit"});
+  if (Number.isNaN(parsed.valueOf())) return "--";
+  return parsed.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 }
-function displayOdds(p) {
-  const home = p.home_moneyline_odds ?? p.home_odds;
-  const away = p.away_moneyline_odds ?? p.away_odds;
-  if (home == null && away == null) return "â";
-  const h = home == null ? "â" : Number(home).toFixed(2);
-  const a = away == null ? "â" : Number(away).toFixed(2);
-  return `H ${h} / A ${a}`;
+
+function displayOdds(prediction) {
+  const home = prediction.home_moneyline_odds ?? prediction.home_odds;
+  const away = prediction.away_moneyline_odds ?? prediction.away_odds;
+  if (home == null && away == null) return "--";
+  const homeText = home == null ? "--" : Number(home).toFixed(2);
+  const awayText = away == null ? "--" : Number(away).toFixed(2);
+  return `H ${homeText} / A ${awayText}`;
 }
-function keyFactors(p) {
-  if (Array.isArray(p.top_features) && p.top_features.length) return p.top_features.join(" Â· ");
-  const source = p.features || {};
-  return Object.entries(source)
+
+function keyFactors(prediction) {
+  if (Array.isArray(prediction.top_features) && prediction.top_features.length) {
+    return prediction.top_features.map(escapeText).join(" - ");
+  }
+  const features = prediction.features || {};
+  return Object.entries(features)
     .filter(([_, value]) => typeof value === "number" && Math.abs(value) > 0.0001)
-    .sort((a,b) => Math.abs(b[1]) - Math.abs(a[1]))
-    .slice(0,3)
-    .map(([key,value]) => `${key}=${Number(value).toFixed(2)}`)
-    .join(" Â· ");
+    .sort((left, right) => Math.abs(right[1]) - Math.abs(left[1]))
+    .slice(0, 3)
+    .map(([key, value]) => `${escapeText(key)}=${Number(value).toFixed(2)}`)
+    .join(" - ");
 }
+
 function renderPerformance(data) {
-  document.getElementById("total").textContent = data.total ?? "â";
+  document.getElementById("total").textContent = data.total ?? "--";
+
   const roiEl = document.getElementById("roi");
-  const winEl = document.getElementById("win-rate");
-  const brierEl = document.getElementById("brier");
-  if (data.roi == null) roiEl.textContent = "ç¡ææææ³¨";
-  else { roiEl.textContent = `${data.roi >= 0 ? "+" : ""}${(data.roi*100).toFixed(1)}%`; roiEl.className = `value ${data.roi >= 0 ? "positive" : "negative"}`; }
-  winEl.textContent = data.win_rate == null ? "ç¡ææææ³¨" : `${(data.win_rate*100).toFixed(1)}%`;
-  brierEl.textContent = data.brier == null ? "å°ç¡çµç®æ¨£æ¬" : Number(data.brier).toFixed(3);
+  if (data.roi == null) {
+    roiEl.textContent = "No valid bets";
+    roiEl.className = "value";
+  } else {
+    roiEl.textContent = `${data.roi >= 0 ? "+" : ""}${(data.roi * 100).toFixed(1)}%`;
+    roiEl.className = `value ${data.roi >= 0 ? "positive" : "negative"}`;
+  }
+
+  document.getElementById("win-rate").textContent =
+    data.win_rate == null ? "No valid bets" : `${(data.win_rate * 100).toFixed(1)}%`;
+  document.getElementById("brier").textContent =
+    data.brier == null ? "No settled samples" : Number(data.brier).toFixed(3);
 }
+
 function renderPredictions(data) {
   const rows = data.today_predictions || [];
   const tbody = document.getElementById("predictions");
-  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="10">ä»æ¥ç¡è³½äºè³æ</td></tr>`; return; }
-  tbody.innerHTML = rows.map(p => {
-    const pred = p.predicted_home_win_pct == null ? "â" : `${(Number(p.predicted_home_win_pct)*100).toFixed(1)}%`;
-    const nrfi = p.nrfi_prob == null ? "â" : `${(Number(p.nrfi_prob)*100).toFixed(1)}%`;
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="10">No game data available today.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(prediction => {
+    const homeWin = prediction.predicted_home_win_pct == null
+      ? "--"
+      : `${(Number(prediction.predicted_home_win_pct) * 100).toFixed(1)}%`;
+    const nrfi = prediction.nrfi_prob == null
+      ? "--"
+      : `${(Number(prediction.nrfi_prob) * 100).toFixed(1)}%`;
+
     return `<tr>
-      <td>${displayTime(p)}</td><td><strong>${p.home_team || "â"}</strong></td><td>${p.away_team || "â"}</td>
-      <td>${pred}</td><td>${displayOdds(p)}</td><td>${badge(p.moneyline_recommendation)}</td>
-      <td>${badge(p.spread_recommendation)}</td><td>${badge(p.total_recommendation)}</td>
-      <td>${nrfi}</td><td class="factors">${keyFactors(p)}</td>
+      <td>${displayTime(prediction)}</td>
+      <td><strong>${escapeText(prediction.home_team || "--")}</strong></td>
+      <td>${escapeText(prediction.away_team || "--")}</td>
+      <td>${homeWin}</td>
+      <td>${displayOdds(prediction)}</td>
+      <td>${badge(prediction.moneyline_recommendation)}</td>
+      <td>${badge(prediction.spread_recommendation)}</td>
+      <td>${badge(prediction.total_recommendation)}</td>
+      <td>${nrfi}</td>
+      <td class="factors">${keyFactors(prediction)}</td>
     </tr>`;
   }).join("");
+
   const errors = data.errors || [];
   if (errors.length) {
     document.getElementById("messages").innerHTML =
-      `<div class="notice">ç®åé æ¸¬ä»æ ${errors.length} ç­è³æåè³ªï¼åè½è­¦åï¼è«ä»¥é æ¸¬æªè¨ºæ·çºæºã</div>`;
+      `<div class="notice">Current report contains ${errors.length} data-quality or feature warnings. Review report diagnostics before relying on recommendations.</div>`;
   }
 }
+
 async function loadDashboard() {
   try {
-    const [predResponse, perfResponse] = await Promise.all([fetch("/api/predictions"), fetch("/api/performance")]);
-    if (!predResponse.ok) throw new Error(`Predictions API ${predResponse.status}`);
-    const pred = await predResponse.json();
-    renderPredictions(pred);
-    document.getElementById("update-time").textContent =
-      `Updated: ${pred.generated_at ? new Date(pred.generated_at).toLocaleString("zh-TW") : "â"}`;
-    if (perfResponse.ok) renderPerformance(await perfResponse.json());
+    const [predictionResponse, performanceResponse] = await Promise.all([
+      fetch("/api/predictions"),
+      fetch("/api/performance")
+    ]);
+    if (!predictionResponse.ok) {
+      throw new Error(`Predictions API returned ${predictionResponse.status}`);
+    }
+    const predictions = await predictionResponse.json();
+    renderPredictions(predictions);
+
+    const updated = predictions.generated_at
+      ? new Date(predictions.generated_at).toLocaleString("en-US")
+      : "--";
+    document.getElementById("update-time").textContent = `Updated: ${updated}`;
+
+    if (performanceResponse.ok) {
+      renderPerformance(await performanceResponse.json());
+    }
   } catch (error) {
-    document.getElementById("messages").innerHTML = `<div class="error">è¼å¥å¤±æï¼${error.message}</div>`;
+    document.getElementById("messages").innerHTML =
+      `<div class="error">Dashboard load failed: ${escapeText(error.message)}</div>`;
   }
 }
+
 loadDashboard();
 </script>
 </body>
@@ -174,16 +291,41 @@ def get_predictions():
 
     if generate_predictions is None:
         return JSONResponse({"error": "Prediction module not loaded"}, status_code=503)
+
     try:
         return generate_predictions()
     except Exception as exc:
         return JSONResponse({"error": f"Real-time generation failed: {exc}"}, status_code=500)
 
 
-def _first_column(df: pd.DataFrame, candidates: list[str]) -> str | None:
+def _first_column(frame: pd.DataFrame, candidates: list[str]) -> str | None:
     for candidate in candidates:
-        if candidate in df.columns:
+        if candidate in frame.columns:
             return candidate
+    return None
+
+
+def _recommendation_side(
+    recommendation: str,
+    home_team: str,
+    away_team: str,
+) -> str | None:
+    text = str(recommendation or "").strip().lower()
+    if not text or text in {"no bet", "pass", "no data"}:
+        return None
+
+    home_text = str(home_team or "").strip().lower()
+    away_text = str(away_team or "").strip().lower()
+
+    if away_text and away_text in text:
+        return "away"
+    if home_text and home_text in text:
+        return "home"
+    if "away" in text:
+        return "away"
+    if "home" in text:
+        return "home"
+
     return None
 
 
@@ -201,19 +343,23 @@ def get_performance():
         return result
 
     try:
-        df = pd.read_csv(history_file)
-        result_col = _first_column(df, ["home_win"])
-        prediction_col = _first_column(df, ["pred_home_win", "predicted_home_win_pct"])
-        recommendation_col = _first_column(df, ["ml_rec", "moneyline_recommendation"])
-        odds_col = _first_column(df, ["home_odds", "home_moneyline_odds"])
+        frame = pd.read_csv(history_file)
+        result_col = _first_column(frame, ["home_win"])
+        prediction_col = _first_column(frame, ["pred_home_win", "predicted_home_win_pct"])
+        recommendation_col = _first_column(frame, ["ml_rec", "moneyline_recommendation"])
+        home_odds_col = _first_column(frame, ["home_odds", "home_moneyline_odds"])
+        away_odds_col = _first_column(frame, ["away_odds", "away_moneyline_odds"])
+        home_team_col = _first_column(frame, ["home_team"])
+        away_team_col = _first_column(frame, ["away_team"])
 
         if result_col is None:
             return result
 
-        df[result_col] = pd.to_numeric(df[result_col], errors="coerce")
-        settled = df[df[result_col].notna()].copy()
+        frame[result_col] = pd.to_numeric(frame[result_col], errors="coerce")
+        settled = frame[frame[result_col].notna()].copy()
         if settled.empty:
             return result
+
         settled[result_col] = settled[result_col].astype(int)
         result["total"] = int(len(settled))
 
@@ -221,26 +367,46 @@ def get_performance():
             settled[prediction_col] = pd.to_numeric(settled[prediction_col], errors="coerce")
             scored = settled[[result_col, prediction_col]].dropna()
             if not scored.empty:
-                result["brier"] = float(brier_score_loss(scored[result_col], scored[prediction_col]))
+                result["brier"] = float(
+                    brier_score_loss(scored[result_col], scored[prediction_col])
+                )
 
-        if recommendation_col is not None and odds_col is not None:
-            rec_text = settled[recommendation_col].fillna("").astype(str)
-            bets = settled[rec_text.str.contains("Bet", case=False, na=False)].copy()
-            bets[odds_col] = pd.to_numeric(bets[odds_col], errors="coerce")
-            bets = bets[bets[odds_col].notna() & (bets[odds_col] > 1.0)]
-            if not bets.empty:
-                def home_side(row):
-                    return "home" in str(row[recommendation_col]).lower() or str(row[recommendation_col]).lower().startswith("bet ")
-                wins = []
-                profits = []
-                for _, row in bets.iterrows():
-                    is_home = home_side(row)
-                    won = int(row[result_col] == 1) if is_home else int(row[result_col] == 0)
-                    wins.append(won)
-                    profits.append((float(row[odds_col]) - 1.0) if won else -1.0)
+        can_score_bets = (
+            recommendation_col is not None
+            and home_team_col is not None
+            and away_team_col is not None
+            and (home_odds_col is not None or away_odds_col is not None)
+        )
+        if can_score_bets:
+            wins = []
+            profits = []
+
+            for _, row in settled.iterrows():
+                side = _recommendation_side(
+                    row.get(recommendation_col, ""),
+                    row.get(home_team_col, ""),
+                    row.get(away_team_col, ""),
+                )
+                if side is None:
+                    continue
+
+                odds_col = home_odds_col if side == "home" else away_odds_col
+                if odds_col is None:
+                    continue
+
+                odds = pd.to_numeric(row.get(odds_col), errors="coerce")
+                if pd.isna(odds) or float(odds) <= 1.0:
+                    continue
+
+                won = int(row[result_col] == 1) if side == "home" else int(row[result_col] == 0)
+                wins.append(won)
+                profits.append((float(odds) - 1.0) if won else -1.0)
+
+            if profits:
                 result["moneyline_bets"] = int(len(profits))
                 result["win_rate"] = float(sum(wins) / len(wins))
                 result["roi"] = float(sum(profits) / len(profits))
+
     except Exception as exc:
         print(f"Performance calculation error: {exc}")
 
