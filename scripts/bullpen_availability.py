@@ -1,33 +1,84 @@
-"""
-牛棚可用性评估器
-基于学术研究「Out of gas: quantifying fatigue in MLB relievers」的发现：
-- 救援投手投球超过15球后，下一场球速会轻微下降
-- 超过20球后，下降幅度进一步放大
-- 疲劳效应每天约减半
-"""
+"""Bullpen availability scoring with backward-compatible calling conventions."""
+
+from __future__ import annotations
+
+from typing import Any
+
 import pandas as pd
 
-def calculate_bullpen_availability(bullpen_usage_df):
-    """
-    计算每支球队的牛棚可用性评分。
-    返回 {team_id: availability_score} 字典。
-    availability_score 范围 0-100，越高表示牛棚越充沛。
-    """
+
+def _text(value: Any) -> str:
+    if value is None or pd.isna(value):
+        return ""
+    return str(value).strip().lower()
+
+
+def _row_team_keys(row: pd.Series) -> list[str]:
+    keys = []
+    for column in ("team", "team_name", "club", "name", "team_id"):
+        if column in row and _text(row.get(column)):
+            keys.append(_text(row.get(column)))
+    return keys
+
+
+def _calculate_scores(bullpen_usage_df: pd.DataFrame) -> dict[str, float]:
     if bullpen_usage_df is None or bullpen_usage_df.empty:
         return {}
 
-    availability_dict = {}
+    scores: dict[str, float] = {}
     for _, row in bullpen_usage_df.iterrows():
-        team_id = row.get("team_id")
-        pitches = float(row.get("bullpen_pitches", 0) or 0)
-        innings = float(row.get("bullpen_innings", 0) or 0)
-        back_to_back = int(row.get("back_to_back", 0) or 0)
+        pitches = pd.to_numeric(row.get("bullpen_pitches", row.get("pitches", 0)), errors="coerce")
+        innings = pd.to_numeric(row.get("bullpen_innings", row.get("innings", 0)), errors="coerce")
+        back_to_back = pd.to_numeric(row.get("back_to_back", 0), errors="coerce")
 
-        # 疲劳度计算：每15球扣10分，每局扣5分，背靠背额外扣15分
-        fatigue = (pitches / 15) * 10 + innings * 5 + back_to_back * 15
+        pitches = 0.0 if pd.isna(pitches) else float(pitches)
+        innings = 0.0 if pd.isna(innings) else float(innings)
+        back_to_back = 0.0 if pd.isna(back_to_back) else float(back_to_back)
 
-        # 可用性 = 100 - 疲劳度，最低0
-        availability = max(0, 100 - fatigue)
-        availability_dict[team_id] = round(availability, 1)
+        # Higher means fresher bullpen. This preserves the original intent while
+        # making the score bounded and stable.
+        score = max(0.0, min(100.0, 100.0 - pitches * 0.6 - innings * 3.0 - back_to_back * 15.0))
+        for key in _row_team_keys(row):
+            scores[key] = score
 
-    return availability_dict
+    return scores
+
+
+def _lookup(scores: dict[str, float], team: Any) -> float:
+    key = _text(team)
+    if key in scores:
+        return scores[key]
+
+    # Support full-team-name versus short-name joins, e.g. Cleveland Guardians
+    # versus Guardians.
+    for candidate, score in scores.items():
+        if candidate.endswith(key) or key.endswith(candidate):
+            return score
+    return 50.0
+
+
+def calculate_bullpen_availability(
+    bullpen_usage_df: pd.DataFrame,
+    home_team: Any = None,
+    away_team: Any = None,
+):
+    """Return team scores or a home-away comparison.
+
+    Original callers may pass only a DataFrame and receive a score dictionary.
+    prediction.py passes (DataFrame, home_team, away_team), so that path now
+    returns a feature dictionary including bullpen_availability_diff.
+    """
+    scores = _calculate_scores(bullpen_usage_df)
+
+    if home_team is None and away_team is None:
+        return scores
+
+    home_score = _lookup(scores, home_team)
+    away_score = _lookup(scores, away_team)
+    return {
+        "home_availability": home_score,
+        "away_availability": away_score,
+        "home_score": home_score,
+        "away_score": away_score,
+        "bullpen_availability_diff": float(home_score - away_score),
+    }
