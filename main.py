@@ -1,14 +1,15 @@
 # main.py
-import sys, os, json, threading
-from datetime import datetime
+import json
+import os
+import sys
+import threading
+
 import pandas as pd
-import numpy as np
 from sklearn.metrics import brier_score_loss
+from fastapi import FastAPI, Header, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from fastapi import FastAPI, HTTPException, Header
-from fastapi.responses import HTMLResponse, JSONResponse
 
 ADMIN_TOKEN = os.getenv("ADMIN_API_TOKEN")
 if not ADMIN_TOKEN:
@@ -17,244 +18,257 @@ if not ADMIN_TOKEN:
 
 try:
     from prediction import generate_predictions
-    from scripts.elo import MLBElosystem
-    elo_system = MLBElosystem()
-except Exception as e:
-    print(f"Warning: {e}")
+except Exception as exc:
+    print(f"Warning: prediction module failed to import: {exc}")
     generate_predictions = None
-    elo_system = None
 
 app = FastAPI(title="MLB Prediction Hub")
 
-# ==================== 前端 HTML（无训练按钮） ====================
-HTML = """
+HTML = r"""
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MLB Prediction Hub</title>
-    <style>
-        :root { --bg:#f9fafb; --card:#fff; --text:#1a202c; --muted:#718096; --border:#e2e8f0; --accent:#2b6cb0; --positive:#38a169; --negative:#e53e3e; }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); padding:20px; }
-        .container { max-width:1600px; margin:0 auto; }
-        .header { border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:24px; }
-        .header h1 { font-size:1.8rem; font-weight:600; }
-        .header p { color:var(--muted); margin-top:4px; }
-        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-bottom:24px; }
-        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:18px; }
-        .stat-card .label { font-size:0.8rem; color:var(--muted); text-transform:uppercase; }
-        .stat-card .value { font-size:1.8rem; font-weight:600; margin-top:4px; }
-        .positive { color:var(--positive); } .negative { color:var(--negative); }
-        .table-container { background:var(--card); border:1px solid var(--border); border-radius:8px; overflow-x:auto; margin-bottom:24px; }
-        table { width:100%; border-collapse:collapse; font-size:0.85rem; }
-        th,td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--border); }
-        th { font-weight:600; color:var(--muted); font-size:0.75rem; text-transform:uppercase; background:#f8fafc; }
-        tr:last-child td { border-bottom:none; }
-        tr:hover { background:#f0f4ff; }
-        .rec { display:inline-block; padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:600; }
-        .rec-bet { background:#c6f6d5; color:#22543d; }
-        .rec-pass { background:#edf2f7; color:#718096; }
-        .loading { text-align:center; padding:32px; color:var(--muted); }
-        .footer { margin-top:32px; text-align:center; color:var(--muted); font-size:0.8rem; }
-        .error { color:var(--negative); background:#fff5f5; border:1px solid var(--negative); padding:12px; border-radius:8px; margin-bottom:16px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLB Prediction Hub</title>
+<style>
+:root{--bg:#f9fafb;--card:#fff;--text:#1a202c;--muted:#718096;--border:#e2e8f0;--positive:#38a169;--negative:#e53e3e;--warn:#b7791f}
+*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:18px}
+.container{max-width:1500px;margin:auto}.header{border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:22px}
+h1{margin:0;font-size:2rem}.subtitle,.updated{color:var(--muted);margin:8px 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:20px 0}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px}
+.label{font-size:.8rem;color:var(--muted);text-transform:uppercase}.value{font-size:1.85rem;font-weight:650;margin-top:7px}
+.positive{color:var(--positive)}.negative{color:var(--negative)}.warning{color:var(--warn)}
+.notice{background:#fffaf0;border:1px solid #f6e05e;border-radius:8px;padding:12px;margin:14px 0;color:#744210;font-size:.88rem}
+.error{background:#fff5f5;border:1px solid #feb2b2;border-radius:8px;padding:12px;margin:14px 0;color:#9b2c2c;font-size:.88rem}
+.table-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}th,td{padding:12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+th{color:var(--muted);font-size:.75rem;text-transform:uppercase;background:#f8fafc}
+.rec{display:inline-block;padding:4px 9px;border-radius:5px;font-weight:650;font-size:.76rem}
+.bet{background:#c6f6d5;color:#22543d}.pass{background:#edf2f7;color:#4a5568}.no-data{background:#feebc8;color:#744210}
+.factors{font-size:.75rem;color:var(--muted);white-space:normal;min-width:180px}
+.footer{margin-top:26px;color:var(--muted);font-size:.8rem;text-align:center}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>⚾ MLB Prediction Hub</h1>
-            <p>Probabilistic forecasts · Backtested · Transparent</p>
-            <p id="update-time" style="font-size:0.8rem; margin-top:8px;">Loading...</p>
-        </div>
-        <div id="error-box"></div>
-
-        <div class="grid" id="perf-cards">
-            <div class="stat-card"><div class="label">Total Predictions</div><div class="value" id="perf-total">—</div></div>
-            <div class="stat-card"><div class="label">ROI (1/4 Kelly)</div><div class="value" id="perf-roi">—</div></div>
-            <div class="stat-card"><div class="label">Win Rate</div><div class="value" id="perf-winrate">—</div></div>
-            <div class="stat-card"><div class="label">Brier Score</div><div class="value" id="perf-brier">—</div></div>
-        </div>
-
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th>
-                        <th>Moneyline</th><th>Spread</th><th>Total</th>
-                        <th>NRFI</th><th>Key Factors</th>
-                    </tr>
-                </thead>
-                <tbody id="pred-body"><tr><td colspan="10" class="loading">Loading...</td></tr></tbody>
-            </table>
-        </div>
-
-        <div class="footer">Data updated hourly · Past performance does not guarantee future results</div>
-    </div>
-
-    <script>
-        async function load() {
-            const errorBox = document.getElementById('error-box');
-            try {
-                const [predResp, perfResp] = await Promise.all([
-                    fetch('/api/predictions'),
-                    fetch('/api/performance')
-                ]);
-                if (!predResp.ok) throw new Error('Predictions API ' + predResp.status);
-                const predData = await predResp.json();
-                renderPredictions(predData);
-
-                if (perfResp.ok) {
-                    const perfData = await perfResp.json();
-                    renderPerformance(perfData);
-                }
-                document.getElementById('update-time').innerText = 'Updated: ' + (predData.generated_at ? new Date(predData.generated_at).toLocaleString() : '—');
-            } catch (err) {
-                errorBox.innerHTML = `<div class="error">Failed to load: ${err.message}</div>`;
-            }
-        }
-
-        function renderPerformance(data) {
-            document.getElementById('perf-total').innerText = data.total || '—';
-            const roiEl = document.getElementById('perf-roi');
-            const roi = data.roi;
-            if (roi != null) {
-                roiEl.innerHTML = roi > 0 ? `<span class="positive">+${(roi*100).toFixed(1)}%</span>` : `<span class="negative">${(roi*100).toFixed(1)}%</span>`;
-            } else {
-                roiEl.innerText = '—';
-            }
-            document.getElementById('perf-winrate').innerText = data.win_rate != null ? (data.win_rate*100).toFixed(1)+'%' : '—';
-            document.getElementById('perf-brier').innerText = data.brier != null ? data.brier.toFixed(3) : '—';
-        }
-
-        function renderPredictions(data) {
-            const preds = data.today_predictions || [];
-            const tbody = document.getElementById('pred-body');
-            if (preds.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10">今日暂无比赛</td></tr>';
-                return;
-            }
-            tbody.innerHTML = preds.map(p => {
-                const time = p.game_date ? new Date(p.game_date).toLocaleTimeString('zh-TW', {hour:'2-digit',minute:'2-digit'}) : '—';
-                const pred = p.predicted_home_win_pct != null ? (p.predicted_home_win_pct*100).toFixed(1)+'%' : '—';
-                const odds = p.home_odds ? p.home_odds.toFixed(2) : '—';
-                const ml = p.moneyline_recommendation && p.moneyline_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.moneyline_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
-                const spread = p.spread_recommendation && p.spread_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.spread_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
-                const total = p.total_recommendation && p.total_recommendation !== 'PASS' ? `<span class="rec rec-bet">${p.total_recommendation}</span>` : `<span class="rec rec-pass">PASS</span>`;
-                const nrfiProb = p.nrfi_prob != null ? (p.nrfi_prob*100).toFixed(1) + '%' : '—';
-                const nrfiClass = p.nrfi_prob > 0.55 ? 'nrfi-high' : (p.nrfi_prob < 0.45 ? 'nrfi-low' : '');
-                const factors = (p.top_features || []).join(' · ');
-                return `<tr>
-                    <td>${time}</td>
-                    <td><strong>${p.home_team}</strong></td>
-                    <td>${p.away_team}</td>
-                    <td>${pred}</td>
-                    <td>${odds}</td>
-                    <td>${ml}</td>
-                    <td>${spread}</td>
-                    <td>${total}</td>
-                    <td class="${nrfiClass}">${nrfiProb}</td>
-                    <td style="font-size:0.75rem;color:var(--muted)">${factors}</td>
-                </tr>`;
-            }).join('');
-        }
-
-        load();
-    </script>
+<div class="container">
+  <div class="header">
+    <h1>â¾ MLB Prediction Hub</h1>
+    <p class="subtitle">Probabilistic forecasts Â· Backtested Â· Transparent</p>
+    <p id="update-time" class="updated">è¼å¥ä¸­...</p>
+  </div>
+  <div id="messages"></div>
+  <div class="grid">
+    <div class="card"><div class="label">Settled Predictions</div><div id="total" class="value">â</div></div>
+    <div class="card"><div class="label">ROI (Moneyline)</div><div id="roi" class="value">â</div></div>
+    <div class="card"><div class="label">Win Rate (Bets)</div><div id="win-rate" class="value">â</div></div>
+    <div class="card"><div class="label">Brier Score</div><div id="brier" class="value">â</div></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th>
+        <th>Moneyline</th><th>Spread</th><th>Total</th><th>NRFI</th><th>Key Factors</th>
+      </tr></thead>
+      <tbody id="predictions"><tr><td colspan="10">è¼å¥ä¸­...</td></tr></tbody>
+    </table>
+  </div>
+  <div class="footer">Data updated hourly Â· Past performance does not guarantee future results</div>
+</div>
+<script>
+function badge(value) {
+  if (!value || value === "PASS" || value === "NO BET") return `<span class="rec pass">${value || "â"}</span>`;
+  if (value === "NO DATA") return `<span class="rec no-data">NO DATA</span>`;
+  return `<span class="rec bet">${value}</span>`;
+}
+function displayTime(p) {
+  const raw = p.start_time || p.game_datetime || p.game_time || p.game_date;
+  if (!raw) return "â";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "æéå¾æ´æ°";
+  const parsed = new Date(raw);
+  return isNaN(parsed.valueOf()) ? "â" : parsed.toLocaleTimeString("zh-TW", {hour:"2-digit", minute:"2-digit"});
+}
+function displayOdds(p) {
+  const home = p.home_moneyline_odds ?? p.home_odds;
+  const away = p.away_moneyline_odds ?? p.away_odds;
+  if (home == null && away == null) return "â";
+  const h = home == null ? "â" : Number(home).toFixed(2);
+  const a = away == null ? "â" : Number(away).toFixed(2);
+  return `H ${h} / A ${a}`;
+}
+function keyFactors(p) {
+  if (Array.isArray(p.top_features) && p.top_features.length) return p.top_features.join(" Â· ");
+  const source = p.features || {};
+  return Object.entries(source)
+    .filter(([_, value]) => typeof value === "number" && Math.abs(value) > 0.0001)
+    .sort((a,b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .slice(0,3)
+    .map(([key,value]) => `${key}=${Number(value).toFixed(2)}`)
+    .join(" Â· ");
+}
+function renderPerformance(data) {
+  document.getElementById("total").textContent = data.total ?? "â";
+  const roiEl = document.getElementById("roi");
+  const winEl = document.getElementById("win-rate");
+  const brierEl = document.getElementById("brier");
+  if (data.roi == null) roiEl.textContent = "ç¡ææææ³¨";
+  else { roiEl.textContent = `${data.roi >= 0 ? "+" : ""}${(data.roi*100).toFixed(1)}%`; roiEl.className = `value ${data.roi >= 0 ? "positive" : "negative"}`; }
+  winEl.textContent = data.win_rate == null ? "ç¡ææææ³¨" : `${(data.win_rate*100).toFixed(1)}%`;
+  brierEl.textContent = data.brier == null ? "å°ç¡çµç®æ¨£æ¬" : Number(data.brier).toFixed(3);
+}
+function renderPredictions(data) {
+  const rows = data.today_predictions || [];
+  const tbody = document.getElementById("predictions");
+  if (!rows.length) { tbody.innerHTML = `<tr><td colspan="10">ä»æ¥ç¡è³½äºè³æ</td></tr>`; return; }
+  tbody.innerHTML = rows.map(p => {
+    const pred = p.predicted_home_win_pct == null ? "â" : `${(Number(p.predicted_home_win_pct)*100).toFixed(1)}%`;
+    const nrfi = p.nrfi_prob == null ? "â" : `${(Number(p.nrfi_prob)*100).toFixed(1)}%`;
+    return `<tr>
+      <td>${displayTime(p)}</td><td><strong>${p.home_team || "â"}</strong></td><td>${p.away_team || "â"}</td>
+      <td>${pred}</td><td>${displayOdds(p)}</td><td>${badge(p.moneyline_recommendation)}</td>
+      <td>${badge(p.spread_recommendation)}</td><td>${badge(p.total_recommendation)}</td>
+      <td>${nrfi}</td><td class="factors">${keyFactors(p)}</td>
+    </tr>`;
+  }).join("");
+  const errors = data.errors || [];
+  if (errors.length) {
+    document.getElementById("messages").innerHTML =
+      `<div class="notice">ç®åé æ¸¬ä»æ ${errors.length} ç­è³æåè³ªï¼åè½è­¦åï¼è«ä»¥é æ¸¬æªè¨ºæ·çºæºã</div>`;
+  }
+}
+async function loadDashboard() {
+  try {
+    const [predResponse, perfResponse] = await Promise.all([fetch("/api/predictions"), fetch("/api/performance")]);
+    if (!predResponse.ok) throw new Error(`Predictions API ${predResponse.status}`);
+    const pred = await predResponse.json();
+    renderPredictions(pred);
+    document.getElementById("update-time").textContent =
+      `Updated: ${pred.generated_at ? new Date(pred.generated_at).toLocaleString("zh-TW") : "â"}`;
+    if (perfResponse.ok) renderPerformance(await perfResponse.json());
+  } catch (error) {
+    document.getElementById("messages").innerHTML = `<div class="error">è¼å¥å¤±æï¼${error.message}</div>`;
+  }
+}
+loadDashboard();
+</script>
 </body>
 </html>
 """
 
-# ==================== API 端点 ====================
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def index():
     return HTMLResponse(HTML)
 
+
 @app.get("/api/predictions")
 def get_predictions():
     try:
-        with open("report/prediction.json", "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data
+        with open("report/prediction.json", "r", encoding="utf-8") as file_obj:
+            return json.load(file_obj)
     except FileNotFoundError:
         pass
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"Static prediction report read failed: {exc}")
 
-    if generate_predictions:
-        try:
-            data = generate_predictions(elo_system) if elo_system else generate_predictions()
-            return data
-        except Exception as e:
-            return JSONResponse({"error": f"Real-time generation failed: {str(e)}"}, status_code=500)
-    else:
+    if generate_predictions is None:
         return JSONResponse({"error": "Prediction module not loaded"}, status_code=503)
+    try:
+        return generate_predictions()
+    except Exception as exc:
+        return JSONResponse({"error": f"Real-time generation failed: {exc}"}, status_code=500)
+
+
+def _first_column(df: pd.DataFrame, candidates: list[str]) -> str | None:
+    for candidate in candidates:
+        if candidate in df.columns:
+            return candidate
+    return None
+
 
 @app.get("/api/performance")
 def get_performance():
+    result = {
+        "total": 0,
+        "roi": None,
+        "win_rate": None,
+        "brier": None,
+        "moneyline_bets": 0,
+    }
     history_file = "data/historical_predictions.csv"
-    result = {"total": 0, "roi": 0.0, "win_rate": 0.0, "brier": 0.0}
-
     if not os.path.exists(history_file):
         return result
 
     try:
         df = pd.read_csv(history_file)
-        df = df[df['home_win'].notna()]
-        df['home_win'] = df['home_win'].astype(int)
-        if len(df) == 0:
+        result_col = _first_column(df, ["home_win"])
+        prediction_col = _first_column(df, ["pred_home_win", "predicted_home_win_pct"])
+        recommendation_col = _first_column(df, ["ml_rec", "moneyline_recommendation"])
+        odds_col = _first_column(df, ["home_odds", "home_moneyline_odds"])
+
+        if result_col is None:
             return result
 
-        result["total"] = len(df)
+        df[result_col] = pd.to_numeric(df[result_col], errors="coerce")
+        settled = df[df[result_col].notna()].copy()
+        if settled.empty:
+            return result
+        settled[result_col] = settled[result_col].astype(int)
+        result["total"] = int(len(settled))
 
-        bets = df[df['moneyline_recommendation'].notna() & (df['moneyline_recommendation'] != '')]
-        bets_with_rec = bets[bets['moneyline_recommendation'].str.contains('Bet', na=False)]
-        if len(bets_with_rec) > 0:
-            result["win_rate"] = bets_with_rec['home_win'].mean()
+        if prediction_col is not None:
+            settled[prediction_col] = pd.to_numeric(settled[prediction_col], errors="coerce")
+            scored = settled[[result_col, prediction_col]].dropna()
+            if not scored.empty:
+                result["brier"] = float(brier_score_loss(scored[result_col], scored[prediction_col]))
 
-        def calc_profit(row):
-            if 'Bet' not in str(row.get('moneyline_recommendation', '')):
-                return 0
-            odds = row.get('home_odds', 2.0)
-            if pd.isna(odds) or odds <= 1:
-                odds = 2.0
-            return (odds - 1) if row['home_win'] == 1 else -1
-
-        df['profit'] = df.apply(calc_profit, axis=1)
-        total_bets = (df['profit'] != 0).sum()
-        total_profit = df['profit'].sum()
-        if total_bets > 0:
-            result["roi"] = total_profit / total_bets
-
-        clean = df[['home_win', 'predicted_home_win_pct']].dropna()
-        if len(clean) > 0:
-            result["brier"] = brier_score_loss(clean['home_win'], clean['predicted_home_win_pct'])
-
-    except Exception as e:
-        print(f"Performance calculation error: {e}")
+        if recommendation_col is not None and odds_col is not None:
+            rec_text = settled[recommendation_col].fillna("").astype(str)
+            bets = settled[rec_text.str.contains("Bet", case=False, na=False)].copy()
+            bets[odds_col] = pd.to_numeric(bets[odds_col], errors="coerce")
+            bets = bets[bets[odds_col].notna() & (bets[odds_col] > 1.0)]
+            if not bets.empty:
+                def home_side(row):
+                    return "home" in str(row[recommendation_col]).lower() or str(row[recommendation_col]).lower().startswith("bet ")
+                wins = []
+                profits = []
+                for _, row in bets.iterrows():
+                    is_home = home_side(row)
+                    won = int(row[result_col] == 1) if is_home else int(row[result_col] == 0)
+                    wins.append(won)
+                    profits.append((float(row[odds_col]) - 1.0) if won else -1.0)
+                result["moneyline_bets"] = int(len(profits))
+                result["win_rate"] = float(sum(wins) / len(wins))
+                result["roi"] = float(sum(profits) / len(profits))
+    except Exception as exc:
+        print(f"Performance calculation error: {exc}")
 
     return result
+
 
 @app.post("/run")
 def run_background(authorization: str = Header(None)):
     if not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
         raise HTTPException(status_code=401, detail="Unauthorized")
+
     def task():
         try:
-            if generate_predictions:
-                generate_predictions(elo_system) if elo_system else generate_predictions()
-        except Exception as e:
-            print(f"Background error: {e}")
-    threading.Thread(target=task).start()
+            if generate_predictions is not None:
+                generate_predictions()
+        except Exception as exc:
+            print(f"Background prediction error: {exc}")
+
+    threading.Thread(target=task, daemon=True).start()
     return {"status": "started"}
+
 
 @app.post("/train-nrfi")
 def train_nrfi(authorization: str = Header(None)):
     if not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
         raise HTTPException(status_code=401, detail="Unauthorized")
     return {"status": "disabled", "message": "NRFI training is currently disabled"}
+
 
 @app.get("/health")
 def health():
