@@ -1505,7 +1505,8 @@ def generate_predictions() -> dict[str, Any]:
         }
 
         predictions.append(prediction_item)
-            output = {
+
+    output = {
         "generated_at": datetime.now().isoformat(),
         "schedule_fetch_ok": schedule_fetch_ok,
         "scheduled_game_count": scheduled_game_count,
