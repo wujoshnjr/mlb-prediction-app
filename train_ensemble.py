@@ -226,18 +226,18 @@ def prepare_data() -> (
 
     return matrix[:, keep], target, weights, frame, used_features, sample_count
 
-def make_calibrator(stacking: StackingClassifier) -> CalibratedClassifierCV:
-    """Support newer and older scikit-learn calibration APIs."""
+def make_calibrator(estimator: Any) -> CalibratedClassifierCV:
+    """Create a sigmoid calibrator around an already fitted estimator."""
     try:
         from sklearn.frozen import FrozenEstimator
 
         return CalibratedClassifierCV(
-            FrozenEstimator(stacking),
+            FrozenEstimator(estimator),
             method="sigmoid",
         )
     except ImportError:
         return CalibratedClassifierCV(
-            estimator=stacking,
+            estimator=estimator,
             method="sigmoid",
             cv="prefit",
         )
@@ -298,7 +298,7 @@ def train() -> None:
         f"test samples: {len(x_test)}"
     )
 
-      base_model = Pipeline(
+    base_model = Pipeline(
         [
             ("scaler", StandardScaler()),
             (
