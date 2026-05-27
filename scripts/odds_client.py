@@ -226,8 +226,8 @@ def _bookmaker_quote(
                         quote["total_line"] = point
                     quote["under_odds"] = price
 
-    return quote
-    def fetch_odds(
+    return quotedef 
+fetch_odds(
     api_key: str = None,
     date_str: str = None,
     errors: list = None,
