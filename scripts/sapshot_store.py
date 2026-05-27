@@ -186,6 +186,19 @@ def as_probability(value: Any) -> float | None:
     return parsed if 0.0 <= parsed <= 1.0 else None
 
 
+def as_float_or_none(value: Any) -> float | None:
+    """Return a finite numeric value, including negative values, or None."""
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    if pd.isna(parsed) or parsed in (float("inf"), float("-inf")):
+        return None
+
+    return parsed
+
+
 def compute_market_no_vig_home_prob(
     home_odds: Any,
     away_odds: Any,
@@ -311,7 +324,7 @@ def build_snapshot_row(
             prediction.get("predicted_home_win_pct")
         )
 
-    model_edge = as_probability(prediction.get("model_edge_home"))
+      model_edge = as_float_or_none(prediction.get("model_edge_home"))
     if model_edge is None and (
         premarket_probability is not None and market_probability is not None
     ):
