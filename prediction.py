@@ -414,22 +414,46 @@ def prepare_team_frame(raw_rows: Any) -> pd.DataFrame:
 
 
 def load_ml_model() -> tuple[Any | None, list[str] | None, str]:
+    """Load only a model artifact trained for the active clean pipeline."""
     if not MODEL_FILE.exists():
         return None, None, "Model artifact does not exist."
+
+    required_pipeline_version = getattr(
+        config,
+        "PIPELINE_VERSION",
+        "baseline_v2_clean",
+    )
 
     try:
         import joblib
 
         artifact = joblib.load(MODEL_FILE)
-        if (
+        if not (
             isinstance(artifact, dict)
             and "model" in artifact
             and "features" in artifact
         ):
-            print("Loaded ML model artifact and feature list.")
-            return artifact["model"], list(artifact["features"]), ""
+            return None, None, "Legacy model artifact is unsupported."
 
-        return None, None, "Legacy model artifact is unsupported."
+        artifact_pipeline_version = artifact.get("pipeline_version")
+        if artifact_pipeline_version != required_pipeline_version:
+            found_version = artifact_pipeline_version or "missing"
+            return (
+                None,
+                None,
+                (
+                    "Model artifact pipeline version mismatch: "
+                    f"expected {required_pipeline_version}, "
+                    f"found {found_version}."
+                ),
+            )
+
+        print(
+            "Loaded ML model artifact for pipeline "
+            f"{required_pipeline_version}."
+        )
+        return artifact["model"], list(artifact["features"]), ""
+
     except Exception as exc:
         return None, None, str(exc)
 
