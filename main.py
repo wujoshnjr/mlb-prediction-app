@@ -106,6 +106,8 @@ th { color:var(--muted); font-size:.75rem; text-transform:uppercase; background:
 .no-data { background:#feebc8; color:#744210; }
 .factors { font-size:.75rem; color:var(--muted); white-space:normal; min-width:180px; }
 .footer { margin-top:26px; color:var(--muted); font-size:.8rem; text-align:center; }
+.market-help { background:#ebf8ff; border:1px solid #bee3f8; color:#2a4365; border-radius:8px; padding:10px 12px; margin:12px 0 16px; font-size:.8rem; line-height:1.4; }
+.line-missing { color:#975a16; font-size:.72rem; display:block; margin-top:4px; }
 .mobile-list { display:none; }
 .game-card {
   background:var(--card);
@@ -144,6 +146,7 @@ th { color:var(--muted); font-size:.75rem; text-transform:uppercase; background:
     <p id="update-time" class="updated">Loading...</p>
   </div>
   <div id="messages"></div>
+  <div class="market-help">ML = winner only. Spread and Total need a recorded betting line. When a line is not stored, this dashboard now labels it explicitly instead of implying a complete bet.</div>
   <div class="grid">
     <div class="card"><div class="label">Settled Predictions</div><div id="total" class="value">--</div></div>
     <div class="card"><div class="label">ROI (Moneyline)</div><div id="roi" class="value">--</div></div>
@@ -206,13 +209,69 @@ function displayOdds(prediction) {
   if (home == null && away == null) return "--";
   const homeText = home == null ? "--" : Number(home).toFixed(2);
   const awayText = away == null ? "--" : Number(away).toFixed(2);
-  return `H ${homeText} / A ${awayText}`;
+  return `${escapeText(prediction.home_team || "HOME")} ${homeText} / ${escapeText(prediction.away_team || "AWAY")} ${awayText}`;
+}
+
+function signedLine(value) {
+  if (value == null || value === "") return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return `${numeric > 0 ? "+" : ""}${numeric.toFixed(1)}`;
+}
+
+function displayMoneyline(prediction) {
+  const recommendation = prediction.moneyline_recommendation;
+  if (!recommendation || recommendation === "NO BET") {
+    return badge(recommendation);
+  }
+  return `${badge(recommendation)}<span class="line-missing">Winner only</span>`;
+}
+
+function displaySpread(prediction) {
+  const recommendation = prediction.spread_recommendation;
+  if (!recommendation || recommendation === "NO BET" || recommendation === "NO DATA") {
+    return badge(recommendation);
+  }
+
+  const homeLine = signedLine(prediction.spread_line);
+  if (homeLine == null) {
+    return `${badge(recommendation)}<span class="line-missing">Line not recorded</span>`;
+  }
+
+  const recommendationText = String(recommendation).toLowerCase();
+  const homeTeamText = String(prediction.home_team || "").toLowerCase();
+  const isHome = homeTeamText && recommendationText.includes(homeTeamText);
+  const recommendedLine = isHome
+    ? homeLine
+    : signedLine(-Number(prediction.spread_line));
+  const team = recommendation.replace(/\s+spread$/i, "");
+
+  return badge(`${team} ${recommendedLine}`);
+}
+
+function displayTotal(prediction) {
+  const recommendation = prediction.total_recommendation;
+  if (!recommendation || recommendation === "NO BET" || recommendation === "NO DATA") {
+    return badge(recommendation);
+  }
+
+  if (prediction.total_line == null || prediction.total_line === "") {
+    return `${badge(recommendation)}<span class="line-missing">Line not recorded</span>`;
+  }
+
+  const line = Number(prediction.total_line);
+  if (!Number.isFinite(line)) {
+    return `${badge(recommendation)}<span class="line-missing">Line not recorded</span>`;
+  }
+
+  return badge(`${recommendation} ${line.toFixed(1)}`);
 }
 
 function keyFactors(prediction) {
   if (Array.isArray(prediction.top_features) && prediction.top_features.length) {
     return prediction.top_features.map(escapeText).join(" - ");
   }
+
   const features = prediction.features || {};
   return Object.entries(features)
     .filter(([_, value]) => typeof value === "number" && Math.abs(value) > 0.0001)
@@ -236,37 +295,57 @@ function renderPerformance(data) {
 
   document.getElementById("win-rate").textContent =
     data.win_rate == null ? "No valid bets" : `${(data.win_rate * 100).toFixed(1)}%`;
+
   document.getElementById("brier").textContent =
     data.brier == null ? "No settled samples" : Number(data.brier).toFixed(3);
 }
 
 function renderMobileCards(rows) {
   const target = document.getElementById("mobile-predictions");
+
   if (!rows.length) {
     target.innerHTML = '<div class="game-card">No game data available today.</div>';
     return;
   }
+
   target.innerHTML = rows.map(prediction => {
     const homeWin = prediction.predicted_home_win_pct == null
       ? "--"
       : `${(Number(prediction.predicted_home_win_pct) * 100).toFixed(1)}%`;
+
     const nrfi = prediction.nrfi_prob == null
       ? "NO DATA"
       : `${(Number(prediction.nrfi_prob) * 100).toFixed(1)}%`;
+
     return `<div class="game-card">
       <div class="game-head">
         <div>
           <div class="matchup">${escapeText(prediction.away_team || "--")} @ ${escapeText(prediction.home_team || "--")}</div>
           <div class="game-time">${displayTime(prediction)}</div>
         </div>
-        <div class="probability">${homeWin}<small>HOME WIN</small></div>
+        <div class="probability">${homeWin}<small>${escapeText(prediction.home_team || "HOME")} WIN</small></div>
       </div>
       <div class="market-grid">
-        <div class="market"><span class="market-label">Odds</span><span class="market-value">${displayOdds(prediction)}</span></div>
-        <div class="market"><span class="market-label">Moneyline</span>${badge(prediction.moneyline_recommendation)}</div>
-        <div class="market"><span class="market-label">Spread</span>${badge(prediction.spread_recommendation)}</div>
-        <div class="market"><span class="market-label">Total</span>${badge(prediction.total_recommendation)}</div>
-        <div class="market"><span class="market-label">NRFI</span><span class="market-value">${nrfi}</span></div>
+        <div class="market">
+          <span class="market-label">Odds</span>
+          <span class="market-value">${displayOdds(prediction)}</span>
+        </div>
+        <div class="market">
+          <span class="market-label">Moneyline</span>
+          ${displayMoneyline(prediction)}
+        </div>
+        <div class="market">
+          <span class="market-label">Spread</span>
+          ${displaySpread(prediction)}
+        </div>
+        <div class="market">
+          <span class="market-label">Total</span>
+          ${displayTotal(prediction)}
+        </div>
+        <div class="market">
+          <span class="market-label">NRFI</span>
+          <span class="market-value">${nrfi}</span>
+        </div>
       </div>
       <div class="mobile-factors">${keyFactors(prediction) || "No additional factors available."}</div>
     </div>`;
@@ -276,6 +355,7 @@ function renderMobileCards(rows) {
 function renderPredictions(data) {
   const rows = data.today_predictions || [];
   const tbody = document.getElementById("predictions");
+
   renderMobileCards(rows);
 
   if (!rows.length) {
@@ -287,6 +367,7 @@ function renderPredictions(data) {
     const homeWin = prediction.predicted_home_win_pct == null
       ? "--"
       : `${(Number(prediction.predicted_home_win_pct) * 100).toFixed(1)}%`;
+
     const nrfi = prediction.nrfi_prob == null
       ? "--"
       : `${(Number(prediction.nrfi_prob) * 100).toFixed(1)}%`;
@@ -297,9 +378,9 @@ function renderPredictions(data) {
       <td>${escapeText(prediction.away_team || "--")}</td>
       <td>${homeWin}</td>
       <td>${displayOdds(prediction)}</td>
-      <td>${badge(prediction.moneyline_recommendation)}</td>
-      <td>${badge(prediction.spread_recommendation)}</td>
-      <td>${badge(prediction.total_recommendation)}</td>
+      <td>${displayMoneyline(prediction)}</td>
+      <td>${displaySpread(prediction)}</td>
+      <td>${displayTotal(prediction)}</td>
       <td>${nrfi}</td>
       <td class="factors">${keyFactors(prediction)}</td>
     </tr>`;
@@ -318,15 +399,18 @@ async function loadDashboard() {
       fetch("/api/predictions"),
       fetch("/api/performance")
     ]);
+
     if (!predictionResponse.ok) {
       throw new Error(`Predictions API returned ${predictionResponse.status}`);
     }
+
     const predictions = await predictionResponse.json();
     renderPredictions(predictions);
 
     const updated = predictions.generated_at
       ? new Date(predictions.generated_at).toLocaleString("en-US")
       : "--";
+
     document.getElementById("update-time").textContent = `Updated: ${updated}`;
 
     if (performanceResponse.ok) {
@@ -343,8 +427,6 @@ loadDashboard();
 </body>
 </html>
 """
-
-
 @app.api_route("/", methods=["GET", "HEAD"])
 def index():
     return HTMLResponse(HTML)
@@ -370,12 +452,14 @@ def _fetch_schedule_start_times(date_str: str) -> dict[str, str]:
         )
         response.raise_for_status()
         payload = response.json()
+
         for date_payload in payload.get("dates", []):
             for game in date_payload.get("games", []):
                 game_id = game.get("gamePk")
                 start_time = game.get("gameDate")
                 if game_id is not None and start_time:
                     values[str(game_id)] = str(start_time)
+
     except Exception as exc:
         print(f"Start time enrichment failed for {date_str}: {exc}")
 
@@ -384,7 +468,7 @@ def _fetch_schedule_start_times(date_str: str) -> dict[str, str]:
 
 
 def _enrich_start_times(payload: dict) -> dict:
-    """Attach start_time for display when an older prediction report omitted it."""
+    """Attach start_time for display when a prediction report omitted it."""
     rows = payload.get("today_predictions", [])
     if not isinstance(rows, list) or not rows:
         return payload
@@ -395,15 +479,18 @@ def _enrich_start_times(payload: dict) -> dict:
         for row in rows
         if isinstance(row, dict) and row.get("game_date")
     }
+
     for date_str in sorted(dates):
         lookup.update(_fetch_schedule_start_times(date_str))
 
     for row in rows:
         if not isinstance(row, dict) or row.get("start_time"):
             continue
+
         start_time = lookup.get(str(row.get("game_id")))
         if start_time:
             row["start_time"] = start_time
+
     return payload
 
 
@@ -418,12 +505,18 @@ def get_predictions():
         print(f"Static prediction report read failed: {exc}")
 
     if generate_predictions is None:
-        return JSONResponse({"error": "Prediction module not loaded"}, status_code=503)
+        return JSONResponse(
+            {"error": "Prediction module not loaded"},
+            status_code=503,
+        )
 
     try:
         return _enrich_start_times(generate_predictions())
     except Exception as exc:
-        return JSONResponse({"error": f"Real-time generation failed: {exc}"}, status_code=500)
+        return JSONResponse(
+            {"error": f"Real-time generation failed: {exc}"},
+            status_code=500,
+        )
 
 
 def _first_column(frame: pd.DataFrame, candidates: list[str]) -> str | None:
@@ -466,17 +559,31 @@ def get_performance():
         "brier": None,
         "moneyline_bets": 0,
     }
+
     history_file = "data/historical_predictions.csv"
     if not os.path.exists(history_file):
         return result
 
     try:
         frame = pd.read_csv(history_file)
+
         result_col = _first_column(frame, ["home_win"])
-        prediction_col = _first_column(frame, ["pred_home_win", "predicted_home_win_pct"])
-        recommendation_col = _first_column(frame, ["ml_rec", "moneyline_recommendation"])
-        home_odds_col = _first_column(frame, ["home_odds", "home_moneyline_odds"])
-        away_odds_col = _first_column(frame, ["away_odds", "away_moneyline_odds"])
+        prediction_col = _first_column(
+            frame,
+            ["pred_home_win", "predicted_home_win_pct"],
+        )
+        recommendation_col = _first_column(
+            frame,
+            ["ml_rec", "moneyline_recommendation"],
+        )
+        home_odds_col = _first_column(
+            frame,
+            ["home_odds", "home_moneyline_odds"],
+        )
+        away_odds_col = _first_column(
+            frame,
+            ["away_odds", "away_moneyline_odds"],
+        )
         home_team_col = _first_column(frame, ["home_team"])
         away_team_col = _first_column(frame, ["away_team"])
 
@@ -485,6 +592,7 @@ def get_performance():
 
         frame[result_col] = pd.to_numeric(frame[result_col], errors="coerce")
         settled = frame[frame[result_col].notna()].copy()
+
         if settled.empty:
             return result
 
@@ -492,11 +600,18 @@ def get_performance():
         result["total"] = int(len(settled))
 
         if prediction_col is not None:
-            settled[prediction_col] = pd.to_numeric(settled[prediction_col], errors="coerce")
+            settled[prediction_col] = pd.to_numeric(
+                settled[prediction_col],
+                errors="coerce",
+            )
             scored = settled[[result_col, prediction_col]].dropna()
+
             if not scored.empty:
                 result["brier"] = float(
-                    brier_score_loss(scored[result_col], scored[prediction_col])
+                    brier_score_loss(
+                        scored[result_col],
+                        scored[prediction_col],
+                    )
                 )
 
         can_score_bets = (
@@ -505,9 +620,10 @@ def get_performance():
             and away_team_col is not None
             and (home_odds_col is not None or away_odds_col is not None)
         )
+
         if can_score_bets:
-            wins = []
-            profits = []
+            wins: list[int] = []
+            profits: list[float] = []
 
             for _, row in settled.iterrows():
                 side = _recommendation_side(
@@ -515,6 +631,7 @@ def get_performance():
                     row.get(home_team_col, ""),
                     row.get(away_team_col, ""),
                 )
+
                 if side is None:
                     continue
 
@@ -526,9 +643,17 @@ def get_performance():
                 if pd.isna(odds) or float(odds) <= 1.0:
                     continue
 
-                won = int(row[result_col] == 1) if side == "home" else int(row[result_col] == 0)
+                won = (
+                    int(row[result_col] == 1)
+                    if side == "home"
+                    else int(row[result_col] == 0)
+                )
                 wins.append(won)
-                profits.append((float(odds) - 1.0) if won else -1.0)
+                profits.append(
+                    (float(odds) - 1.0)
+                    if won
+                    else -1.0
+                )
 
             if profits:
                 result["moneyline_bets"] = int(len(profits))
@@ -561,7 +686,11 @@ def run_background(authorization: str = Header(None)):
 def train_nrfi(authorization: str = Header(None)):
     if not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
         raise HTTPException(status_code=401, detail="Unauthorized")
-    return {"status": "disabled", "message": "NRFI training is currently disabled"}
+
+    return {
+        "status": "disabled",
+        "message": "NRFI training is currently disabled",
+    }
 
 
 @app.get("/health")
