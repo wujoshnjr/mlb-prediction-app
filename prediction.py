@@ -690,7 +690,7 @@ def extract_odds_values(
         odds_source,
         bookmaker_quotes,
     )
-    def calculate_elo_features(
+def calculate_elo_features(
     home_team: str,
     away_team: str,
     errors: list[str],
@@ -1122,7 +1122,7 @@ def generate_predictions() -> dict[str, Any]:
             errors,
         )
         features.update(statcast_features)
-                (
+        (
             home_odds,
             away_odds,
             total_line,
