@@ -11,31 +11,47 @@ from typing import Any
 import joblib
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMClassifier
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.ensemble import RandomForestClassifier, StackingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss, log_loss
-from xgboost import XGBClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from scripts.feature_schema import EXPECTED_FEATURES
-
+from scripts.snapshot_store import read_snapshot_rows
 try:
     import config
 except ImportError:
     class config:  # type: ignore[no-redef]
-        MODEL_USE_MLP = False
-        MODEL_META = "lr"
+        PIPELINE_VERSION = "baseline_v2_clean"
+        SNAPSHOT_STORE_FILE = "data/prediction_snapshots.csv"
+        ALLOW_LEGACY_TRAINING_DATA = False
+        MIN_CLEAN_TRAIN_SAMPLES = 300
 
 
-HISTORY_FILE = Path("data/historical_predictions.csv")
+PIPELINE_VERSION = str(
+    getattr(config, "PIPELINE_VERSION", "baseline_v2_clean")
+)
+SNAPSHOT_FILE = Path(
+    str(
+        getattr(
+            config,
+            "SNAPSHOT_STORE_FILE",
+            "data/prediction_snapshots.csv",
+        )
+    )
+)
+ALLOW_LEGACY_TRAINING_DATA = bool(
+    getattr(config, "ALLOW_LEGACY_TRAINING_DATA", False)
+)
+MIN_TRAIN_SAMPLES = int(
+    getattr(config, "MIN_CLEAN_TRAIN_SAMPLES", 300)
+)
+
 MODEL_OUTPUT = Path("data/calibrator.pkl")
 STATUS_FILE = Path("data/training_status.json")
 TRAINING_LOG = Path("data/training_log.csv")
 FEATURE_IMPORTANCE_LOG = Path("data/feature_importance.csv")
-
-MIN_TRAIN_SAMPLES = 100
-
 
 def write_status(
     trained: bool,
@@ -46,6 +62,11 @@ def write_status(
     logloss: float | None = None,
 ) -> None:
     status = {
+        "pipeline_version": PIPELINE_VERSION,
+        "training_source": "clean_prediction_snapshots",
+        "allow_legacy_training_data": ALLOW_LEGACY_TRAINING_DATA,
+        "model_type": "calibrated_logistic_regression",
+        "minimum_clean_train_samples": MIN_TRAIN_SAMPLES,
         "trained": trained,
         "skipped": skipped,
         "sample_count": sample_count,
@@ -77,49 +98,72 @@ def prepare_data() -> (
     tuple[np.ndarray, np.ndarray, np.ndarray, pd.DataFrame, list[str], int]
     | None
 ):
-    if not HISTORY_FILE.exists():
+    """Load forward-collected, settled clean snapshots only."""
+    if ALLOW_LEGACY_TRAINING_DATA:
         write_status(
             False,
             True,
             0,
-            reason="Historical prediction file does not exist.",
+            reason=(
+                "Legacy training data is enabled, but baseline_v2_clean "
+                "training refuses legacy rows to prevent leakage."
+            ),
+        )
+        return None
+
+    if not SNAPSHOT_FILE.exists():
+        write_status(
+            False,
+            True,
+            0,
+            reason="Clean prediction snapshot file does not exist.",
         )
         return None
 
     try:
-        frame = pd.read_csv(HISTORY_FILE)
+        frame = read_snapshot_rows(
+            pipeline_version=PIPELINE_VERSION,
+            valid_only=True,
+            settled_only=True,
+            path=SNAPSHOT_FILE,
+        )
     except Exception as exc:
         write_status(
             False,
             True,
             0,
-            reason=f"Unable to read historical prediction file: {exc}",
+            reason=f"Unable to read clean prediction snapshots: {exc}",
         )
         return None
 
-    if "home_win" not in frame.columns:
+    required_columns = {
+        "pipeline_version",
+        "snapshot_valid",
+        "snapshot_created_at",
+        "home_win",
+    }
+    missing_columns = sorted(required_columns - set(frame.columns))
+    if missing_columns:
         write_status(
             False,
             True,
             0,
-            reason="Historical prediction file is missing home_win.",
+            reason=f"Clean snapshot file is missing columns: {missing_columns}",
         )
         return None
 
-    date_column = None
-    if "game_date" in frame.columns:
-        date_column = "game_date"
-    elif "date" in frame.columns:
-        date_column = "date"
-
-    if date_column is not None:
-        frame[date_column] = pd.to_datetime(frame[date_column], errors="coerce")
-        frame = frame.sort_values(date_column).reset_index(drop=True)
-
+    frame = frame.copy()
+    frame["snapshot_created_at"] = pd.to_datetime(
+        frame["snapshot_created_at"],
+        errors="coerce",
+        utc=True,
+    )
     frame["home_win"] = pd.to_numeric(frame["home_win"], errors="coerce")
-    frame = frame.dropna(subset=["home_win"])
+
+    frame = frame.dropna(subset=["snapshot_created_at", "home_win"])
     frame = frame[frame["home_win"].isin([0, 1])].copy()
     frame["home_win"] = frame["home_win"].astype(int)
+    frame = frame.sort_values("snapshot_created_at").reset_index(drop=True)
 
     sample_count = len(frame)
     if sample_count < MIN_TRAIN_SAMPLES:
@@ -128,7 +172,7 @@ def prepare_data() -> (
             True,
             sample_count,
             reason=(
-                f"Not enough finalized training samples "
+                "Not enough settled baseline_v2_clean snapshots "
                 f"({sample_count} < {MIN_TRAIN_SAMPLES})."
             ),
         )
@@ -137,16 +181,18 @@ def prepare_data() -> (
     for column in EXPECTED_FEATURES:
         if column not in frame.columns:
             frame[column] = 0.0
-        frame[column] = pd.to_numeric(frame[column], errors="coerce").fillna(0.0)
+        frame[column] = pd.to_numeric(
+            frame[column],
+            errors="coerce",
+        ).fillna(0.0)
 
-    if date_column is not None and frame[date_column].notna().any():
-        max_date = frame[date_column].max()
-        frame["days_ago"] = (max_date - frame[date_column]).dt.days.fillna(0)
-        frame["sample_weight"] = np.exp(
-            -frame["days_ago"] / 365 * np.log(2)
-        ).clip(lower=0.1)
-    else:
-        frame["sample_weight"] = 1.0
+    latest_snapshot = frame["snapshot_created_at"].max()
+    frame["days_ago"] = (
+        latest_snapshot - frame["snapshot_created_at"]
+    ).dt.days.fillna(0)
+    frame["sample_weight"] = np.exp(
+        -frame["days_ago"] / 365 * np.log(2)
+    ).clip(lower=0.1)
 
     matrix = frame[EXPECTED_FEATURES].to_numpy(dtype=float)
     target = frame["home_win"].to_numpy(dtype=int)
@@ -160,7 +206,7 @@ def prepare_data() -> (
             False,
             True,
             sample_count,
-            reason="All candidate features have zero variance.",
+            reason="All clean candidate features have zero variance.",
         )
         return None
 
@@ -170,7 +216,7 @@ def prepare_data() -> (
         if not retained
     ]
     if removed_features:
-        print(f"Removed low-variance features: {removed_features}")
+        print(f"Removed low-variance clean features: {removed_features}")
 
     used_features = [
         feature
@@ -179,7 +225,6 @@ def prepare_data() -> (
     ]
 
     return matrix[:, keep], target, weights, frame, used_features, sample_count
-
 
 def make_calibrator(stacking: StackingClassifier) -> CalibratedClassifierCV:
     """Support newer and older scikit-learn calibration APIs."""
@@ -253,84 +298,28 @@ def train() -> None:
         f"test samples: {len(x_test)}"
     )
 
-    xgb = XGBClassifier(
-        n_estimators=300,
-        max_depth=5,
-        learning_rate=0.01,
-        importance_type="gain",
-        random_state=42,
-        eval_metric="logloss",
-    )
-    lgb = LGBMClassifier(
-        n_estimators=300,
-        max_depth=5,
-        learning_rate=0.01,
-        random_state=42,
-        verbose=-1,
-    )
-    forest = RandomForestClassifier(
-        n_estimators=300,
-        max_depth=5,
-        random_state=42,
-    )
-
-    estimators: list[tuple[str, Any]] = [
-        ("xgb", xgb),
-        ("lgb", lgb),
-        ("rf", forest),
-    ]
-
-    if getattr(config, "MODEL_USE_MLP", False):
-        from sklearn.neural_network import MLPClassifier
-        from sklearn.pipeline import Pipeline
-        from sklearn.preprocessing import StandardScaler
-
-        mlp = MLPClassifier(
-            hidden_layer_sizes=(64, 32),
-            activation="relu",
-            alpha=0.001,
-            early_stopping=True,
-            random_state=42,
-        )
-        estimators.append(
+      base_model = Pipeline(
+        [
+            ("scaler", StandardScaler()),
             (
-                "mlp",
-                Pipeline(
-                    [
-                        ("scaler", StandardScaler()),
-                        ("mlp", mlp),
-                    ]
+                "model",
+                LogisticRegression(
+                    penalty="l2",
+                    solver="lbfgs",
+                    max_iter=2000,
+                    random_state=42,
                 ),
-            )
-        )
-
-    if getattr(config, "MODEL_META", "lr") == "elasticnet":
-        from sklearn.linear_model import SGDClassifier
-
-        meta_model: Any = SGDClassifier(
-            loss="log_loss",
-            penalty="elasticnet",
-            l1_ratio=0.5,
-            alpha=0.0001,
-            random_state=42,
-            max_iter=2000,
-            tol=1e-3,
-        )
-    else:
-        meta_model = LogisticRegression(
-            random_state=42,
-            max_iter=2000,
-        )
-
-    stacking = StackingClassifier(
-        estimators=estimators,
-        final_estimator=meta_model,
-        cv=5,
+            ),
+        ]
     )
 
-    stacking.fit(x_train, y_train, sample_weight=w_train)
+    base_model.fit(
+        x_train,
+        y_train,
+        model__sample_weight=w_train,
+    )
 
-    calibrated = make_calibrator(stacking)
+    calibrated = make_calibrator(base_model)
     calibrated.fit(x_calib, y_calib, sample_weight=w_calib)
 
     probabilities = calibrated.predict_proba(x_test)[:, 1]
@@ -341,6 +330,9 @@ def train() -> None:
         "model": calibrated,
         "features": used_features,
         "schema_version": "v2-shared-schema",
+        "pipeline_version": PIPELINE_VERSION,
+        "training_source": "clean_prediction_snapshots",
+        "model_type": "calibrated_logistic_regression",
         "trained_at": datetime.now().isoformat(),
         "training_sample_count": sample_count,
         "test_brier": round(test_brier, 4),
@@ -362,6 +354,9 @@ def train() -> None:
         TRAINING_LOG,
         {
             "timestamp": datetime.now().isoformat(),
+            "pipeline_version": PIPELINE_VERSION,
+            "training_source": "clean_prediction_snapshots",
+            "model_type": "calibrated_logistic_regression",
             "num_samples": len(all_rows),
             "used_feature_count": len(used_features),
             "brier": round(test_brier, 4),
@@ -369,31 +364,27 @@ def train() -> None:
         },
     )
 
-    importance_model = XGBClassifier(
-        n_estimators=300,
-        max_depth=5,
-        learning_rate=0.01,
-        importance_type="gain",
-        random_state=42,
-        eval_metric="logloss",
-    )
-    importance_model.fit(x_train, y_train, sample_weight=w_train)
-    importances = importance_model.feature_importances_
+    coefficients = base_model.named_steps["model"].coef_[0]
+    absolute_coefficients = np.abs(coefficients)
 
     importance_row = {
         feature: float(value)
-        for feature, value in zip(used_features, importances)
+        for feature, value in zip(used_features, absolute_coefficients)
     }
     importance_row["timestamp"] = datetime.now().isoformat()
+    importance_row["pipeline_version"] = PIPELINE_VERSION
+    importance_row["model_type"] = "calibrated_logistic_regression"
     append_csv(FEATURE_IMPORTANCE_LOG, importance_row)
 
-    sorted_indices = np.argsort(importances)
-    print("Five lowest-importance features:")
+    sorted_indices = np.argsort(absolute_coefficients)
+    print("Five lowest absolute clean-model coefficients:")
     for index in sorted_indices[:5]:
-        print(f"  {used_features[index]}: {importances[index]:.6f}")
+        print(f"  {used_features[index]}: {absolute_coefficients[index]:.6f}")
 
     print(
-        f"Training completed. Test Brier={test_brier:.4f}, "
+        "Clean training completed. "
+        f"Pipeline={PIPELINE_VERSION}, "
+        f"Test Brier={test_brier:.4f}, "
         f"Test LogLoss={test_logloss:.4f}"
     )
 
