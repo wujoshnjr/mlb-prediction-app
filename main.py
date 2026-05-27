@@ -730,7 +730,7 @@ def _enrich_start_times(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 @app.get("/api/predictions")
-def get_predictions() -> dict[str, Any] | JSONResponse:
+def get_predictions():
     try:
         with REPORT_PATH.open("r", encoding="utf-8") as file_obj:
             payload = json.load(file_obj)
@@ -755,7 +755,6 @@ def get_predictions() -> dict[str, Any] | JSONResponse:
             {"error": f"Real-time generation failed: {exc}"},
             status_code=500,
         )
-
 
 def _first_column(frame: pd.DataFrame, candidates: list[str]) -> str | None:
     for candidate in candidates:
