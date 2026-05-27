@@ -53,10 +53,13 @@ jobs:
       - name: Compile critical Python files
         run: |
           python -m py_compile \
+            config.py \
+            main.py \
             model.py \
             prediction.py \
             train_ensemble.py \
             scripts/feature_schema.py \
+            scripts/snapshot_store.py \
             scripts/update_results.py \
             scripts/backfill_final_scores.py \
             scripts/rebuild_ratings.py \
@@ -130,6 +133,7 @@ jobs:
             report/final_score_backfill_report.json \
             data/finalized_games.csv \
             data/historical_predictions.csv \
+            data/prediction_snapshots.csv \
             data/new_final_results.json \
             data/elo_ratings.json \
             data/glicko2_ratings.json \
@@ -147,6 +151,12 @@ jobs:
           if [ -d data/historical ]; then
             git add -f data/historical/
           fi
+
+          if [ -d data/odds_snapshots ]; then
+            git add -f data/odds_snapshots/
+          fi
+
+          git commit -m "Update prediction, training and ratings [skip ci]" || echo "No changes"
 
           git commit -m "Update prediction, training and ratings [skip ci]" || echo "No changes"
           git pull --rebase origin main
