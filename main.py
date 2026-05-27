@@ -1,15 +1,24 @@
 # main.py
 """FastAPI dashboard for MLB predictions.
 
-This file intentionally uses ASCII-only source text so it can be safely edited
-through browser-based GitHub editors without encoding damage.
+This version keeps the existing prediction report contract and adds:
+- Explicit Taipei-time rendering for report timestamps and game starts.
+- Market integrity status and bookmaker source display.
+- Tracking-only presentation for unavailable or suspicious odds.
+- Moneyline ROI scoring restricted to trusted paper-bet records when available.
+
+Source text is intentionally ASCII-only so browser-based edits stay safe.
 """
+
+from __future__ import annotations
 
 import json
 import os
 import sys
 import threading
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import requests
@@ -31,6 +40,10 @@ except Exception as exc:
     generate_predictions = None
 
 app = FastAPI(title="MLB Prediction Hub")
+
+REPORT_PATH = Path("report/prediction.json")
+HISTORY_PATH = Path("data/historical_predictions.csv")
+
 
 HTML = r"""
 <!DOCTYPE html>
@@ -59,7 +72,11 @@ body {
   padding:18px;
 }
 .container { max-width:1500px; margin:0 auto; }
-.header { border-bottom:1px solid var(--border); padding-bottom:16px; margin-bottom:22px; }
+.header {
+  border-bottom:1px solid var(--border);
+  padding-bottom:16px;
+  margin-bottom:22px;
+}
 h1 { margin:0; font-size:2rem; }
 .subtitle,.updated { color:var(--muted); margin:8px 0 0; }
 .grid {
@@ -68,7 +85,12 @@ h1 { margin:0; font-size:2rem; }
   gap:12px;
   margin:20px 0;
 }
-.card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px; }
+.card {
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:18px;
+}
 .label { font-size:.8rem; color:var(--muted); text-transform:uppercase; }
 .value { font-size:1.85rem; font-weight:650; margin-top:7px; }
 .positive { color:var(--positive); }
@@ -98,16 +120,85 @@ h1 { margin:0; font-size:2rem; }
   overflow-x:auto;
 }
 table { border-collapse:collapse; width:100%; font-size:.9rem; }
-th,td { padding:12px; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; }
-th { color:var(--muted); font-size:.75rem; text-transform:uppercase; background:#f8fafc; }
-.rec { display:inline-block; padding:4px 9px; border-radius:5px; font-weight:650; font-size:.76rem; }
+th,td {
+  padding:12px;
+  border-bottom:1px solid var(--border);
+  text-align:left;
+  white-space:nowrap;
+  vertical-align:top;
+}
+th {
+  color:var(--muted);
+  font-size:.75rem;
+  text-transform:uppercase;
+  background:#f8fafc;
+}
+.rec {
+  display:inline-block;
+  padding:4px 9px;
+  border-radius:5px;
+  font-weight:650;
+  font-size:.76rem;
+}
 .bet { background:#c6f6d5; color:#22543d; }
 .pass { background:#edf2f7; color:#4a5568; }
 .no-data { background:#feebc8; color:#744210; }
-.factors { font-size:.75rem; color:var(--muted); white-space:normal; min-width:180px; }
-.footer { margin-top:26px; color:var(--muted); font-size:.8rem; text-align:center; }
-.market-help { background:#ebf8ff; border:1px solid #bee3f8; color:#2a4365; border-radius:8px; padding:10px 12px; margin:12px 0 16px; font-size:.8rem; line-height:1.4; }
-.line-missing { color:#975a16; font-size:.72rem; display:block; margin-top:4px; }
+.status-badge {
+  display:inline-block;
+  padding:4px 9px;
+  border-radius:999px;
+  font-weight:650;
+  font-size:.72rem;
+  text-transform:uppercase;
+}
+.status-ok { background:#c6f6d5; color:#22543d; }
+.status-track { background:#feebc8; color:#744210; }
+.status-bad { background:#fed7d7; color:#9b2c2c; }
+.integrity-detail {
+  display:block;
+  margin-top:5px;
+  color:var(--muted);
+  font-size:.7rem;
+  line-height:1.35;
+  white-space:normal;
+  min-width:170px;
+}
+.integrity-warning {
+  display:block;
+  margin-top:5px;
+  color:#9b2c2c;
+  font-size:.7rem;
+  line-height:1.35;
+  white-space:normal;
+}
+.factors {
+  font-size:.75rem;
+  color:var(--muted);
+  white-space:normal;
+  min-width:180px;
+}
+.footer {
+  margin-top:26px;
+  color:var(--muted);
+  font-size:.8rem;
+  text-align:center;
+}
+.market-help {
+  background:#ebf8ff;
+  border:1px solid #bee3f8;
+  color:#2a4365;
+  border-radius:8px;
+  padding:10px 12px;
+  margin:12px 0 16px;
+  font-size:.8rem;
+  line-height:1.4;
+}
+.line-missing {
+  color:#975a16;
+  font-size:.72rem;
+  display:block;
+  margin-top:4px;
+}
 .mobile-list { display:none; }
 .game-card {
   background:var(--card);
@@ -116,20 +207,70 @@ th { color:var(--muted); font-size:.75rem; text-transform:uppercase; background:
   padding:14px;
   margin-bottom:12px;
 }
-.game-head { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:12px; }
+.game-card.suspicious { border-color:#feb2b2; }
+.game-head {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  align-items:flex-start;
+  margin-bottom:10px;
+}
 .matchup { font-size:1.05rem; font-weight:650; }
 .game-time { color:var(--muted); font-size:.83rem; margin-top:4px; }
 .probability { font-size:1.35rem; font-weight:700; white-space:nowrap; }
-.probability small { display:block; color:var(--muted); font-size:.68rem; font-weight:500; text-align:right; }
-.market-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
-.market { background:#f8fafc; border-radius:8px; padding:9px; min-height:62px; }
-.market-label { display:block; color:var(--muted); font-size:.66rem; text-transform:uppercase; margin-bottom:5px; }
+.probability small {
+  display:block;
+  color:var(--muted);
+  font-size:.68rem;
+  font-weight:500;
+  text-align:right;
+}
+.mobile-status {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:7px;
+  margin:0 0 8px;
+}
+.mobile-source {
+  color:var(--muted);
+  font-size:.7rem;
+  line-height:1.35;
+  margin-bottom:10px;
+}
+.market-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:9px;
+}
+.market {
+  background:#f8fafc;
+  border-radius:8px;
+  padding:9px;
+  min-height:62px;
+}
+.market-label {
+  display:block;
+  color:var(--muted);
+  font-size:.66rem;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
 .market-value { font-size:.86rem; font-weight:550; }
-.mobile-factors { margin-top:10px; color:var(--muted); font-size:.74rem; line-height:1.4; }
+.mobile-factors {
+  margin-top:10px;
+  color:var(--muted);
+  font-size:.74rem;
+  line-height:1.4;
+}
 @media (max-width: 760px) {
   body { padding:10px; }
   h1 { font-size:1.55rem; }
-  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:14px 0; }
+  .grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+    margin:14px 0;
+  }
   .card { padding:12px; }
   .value { font-size:1.2rem; }
   .label { font-size:.68rem; }
@@ -146,7 +287,10 @@ th { color:var(--muted); font-size:.75rem; text-transform:uppercase; background:
     <p id="update-time" class="updated">Loading...</p>
   </div>
   <div id="messages"></div>
-  <div class="market-help">ML = winner only. Spread and Total need a recorded betting line. When a line is not stored, this dashboard now labels it explicitly instead of implying a complete bet.</div>
+  <div class="market-help">
+    ML = winner only. Spread and Total use the recorded line shown beside each recommendation.
+    Paper Bet means odds passed integrity checks; Tracking Only means the market was unavailable or suspicious.
+  </div>
   <div class="grid">
     <div class="card"><div class="label">Settled Predictions</div><div id="total" class="value">--</div></div>
     <div class="card"><div class="label">ROI (Moneyline)</div><div id="roi" class="value">--</div></div>
@@ -158,14 +302,14 @@ th { color:var(--muted); font-size:.75rem; text-transform:uppercase; background:
       <thead>
         <tr>
           <th>Time</th><th>Home</th><th>Away</th><th>Pred (H)</th><th>Odds</th>
-          <th>Moneyline</th><th>Spread</th><th>Total</th><th>NRFI</th><th>Key Factors</th>
+          <th>Market Status</th><th>Moneyline</th><th>Spread</th><th>Total</th><th>NRFI</th><th>Key Factors</th>
         </tr>
       </thead>
-      <tbody id="predictions"><tr><td colspan="10">Loading...</td></tr></tbody>
+      <tbody id="predictions"><tr><td colspan="11">Loading...</td></tr></tbody>
     </table>
   </div>
   <div id="mobile-predictions" class="mobile-list"></div>
-  <div class="footer">Data updated hourly - Past performance does not guarantee future results</div>
+  <div class="footer">Data updated hourly - Paper trading only - Past performance does not guarantee future results</div>
 </div>
 <script>
 function escapeText(value) {
@@ -188,13 +332,25 @@ function badge(value) {
   return `<span class="rec bet">${escapeText(label)}</span>`;
 }
 
+function parseUtcTimestamp(raw) {
+  if (!raw) return null;
+  const text = String(raw);
+  const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(text);
+  const normalized = hasTimezone ? text : `${text}Z`;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.valueOf()) ? null : parsed;
+}
+
 function displayTime(prediction) {
   const raw = prediction.start_time || prediction.game_datetime || prediction.game_time || prediction.game_date;
   if (!raw) return "--";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return "Time pending";
-  const parsed = new Date(raw);
-  if (Number.isNaN(parsed.valueOf())) return "--";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(raw))) return "Time pending";
+
+  const parsed = parseUtcTimestamp(raw);
+  if (!parsed) return "--";
+
   return parsed.toLocaleString("zh-TW", {
+    timeZone: "Asia/Taipei",
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
@@ -267,6 +423,43 @@ function displayTotal(prediction) {
   return badge(`${recommendation} ${line.toFixed(1)}`);
 }
 
+function qualityValue(prediction) {
+  return String(prediction.odds_quality_status || "UNAVAILABLE").toUpperCase();
+}
+
+function statusValue(prediction) {
+  return String(prediction.recommendation_status || "TRACKING_ONLY").toUpperCase();
+}
+
+function statusClass(prediction) {
+  const quality = qualityValue(prediction);
+  const status = statusValue(prediction);
+  if (quality === "SUSPICIOUS") return "status-bad";
+  if (quality !== "OK" || status === "TRACKING_ONLY") return "status-track";
+  return "status-ok";
+}
+
+function statusLabel(prediction) {
+  return statusValue(prediction) === "PAPER_BET" ? "Paper Bet" : "Tracking Only";
+}
+
+function marketStatus(prediction, includeDetails = true) {
+  const quality = qualityValue(prediction);
+  const sources = prediction.odds_source || "No verified source";
+  const reason = prediction.suspicious_odds_reason || "";
+
+  let html = `<span class="status-badge ${statusClass(prediction)}">${escapeText(statusLabel(prediction))}</span>`;
+
+  if (includeDetails) {
+    html += `<span class="integrity-detail">Odds: ${escapeText(quality)}<br>Sources: ${escapeText(sources)}</span>`;
+    if (quality !== "OK" && reason) {
+      html += `<span class="integrity-warning">${escapeText(reason)}</span>`;
+    }
+  }
+
+  return html;
+}
+
 function keyFactors(prediction) {
   if (Array.isArray(prediction.top_features) && prediction.top_features.length) {
     return prediction.top_features.map(escapeText).join(" - ");
@@ -317,13 +510,25 @@ function renderMobileCards(rows) {
       ? "NO DATA"
       : `${(Number(prediction.nrfi_prob) * 100).toFixed(1)}%`;
 
-    return `<div class="game-card">
+    const quality = qualityValue(prediction);
+    const warningClass = quality === "SUSPICIOUS" ? " suspicious" : "";
+    const reason = prediction.suspicious_odds_reason || "";
+
+    return `<div class="game-card${warningClass}">
       <div class="game-head">
         <div>
           <div class="matchup">${escapeText(prediction.away_team || "--")} @ ${escapeText(prediction.home_team || "--")}</div>
           <div class="game-time">${displayTime(prediction)}</div>
         </div>
         <div class="probability">${homeWin}<small>${escapeText(prediction.home_team || "HOME")} WIN</small></div>
+      </div>
+      <div class="mobile-status">
+        ${marketStatus(prediction, false)}
+        <span class="status-badge ${statusClass(prediction)}">Odds ${escapeText(quality)}</span>
+      </div>
+      <div class="mobile-source">
+        Sources: ${escapeText(prediction.odds_source || "No verified source")}
+        ${quality !== "OK" && reason ? `<span class="integrity-warning">${escapeText(reason)}</span>` : ""}
       </div>
       <div class="market-grid">
         <div class="market">
@@ -359,7 +564,7 @@ function renderPredictions(data) {
   renderMobileCards(rows);
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="10">No game data available today.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11">No game data available today.</td></tr>';
     return;
   }
 
@@ -378,6 +583,7 @@ function renderPredictions(data) {
       <td>${escapeText(prediction.away_team || "--")}</td>
       <td>${homeWin}</td>
       <td>${displayOdds(prediction)}</td>
+      <td>${marketStatus(prediction)}</td>
       <td>${displayMoneyline(prediction)}</td>
       <td>${displaySpread(prediction)}</td>
       <td>${displayTotal(prediction)}</td>
@@ -387,10 +593,27 @@ function renderPredictions(data) {
   }).join("");
 
   const errors = data.errors || [];
-  if (errors.length) {
-    document.getElementById("messages").innerHTML =
-      `<div class="notice">Current report contains ${errors.length} data-quality or feature warnings. Review report diagnostics before relying on recommendations.</div>`;
+  const trackingCount = rows.filter(row => statusValue(row) === "TRACKING_ONLY").length;
+  const suspiciousCount = rows.filter(row => qualityValue(row) === "SUSPICIOUS").length;
+  const messages = [];
+
+  if (suspiciousCount) {
+    messages.push(
+      `<div class="error">${suspiciousCount} game(s) have suspicious odds and are tracking only. Betting recommendations are disabled for those games.</div>`
+    );
+  } else if (trackingCount) {
+    messages.push(
+      `<div class="notice">${trackingCount} game(s) are tracking only because verified odds were unavailable.</div>`
+    );
   }
+
+  if (errors.length) {
+    messages.push(
+      `<div class="notice">Current report contains ${errors.length} data-quality or feature warnings. Review report diagnostics before relying on recommendations.</div>`
+    );
+  }
+
+  document.getElementById("messages").innerHTML = messages.join("");
 }
 
 async function loadDashboard() {
@@ -407,11 +630,21 @@ async function loadDashboard() {
     const predictions = await predictionResponse.json();
     renderPredictions(predictions);
 
-    const updated = predictions.generated_at
-      ? new Date(predictions.generated_at).toLocaleString("en-US")
+    const generatedAt = parseUtcTimestamp(predictions.generated_at);
+    const updated = generatedAt
+      ? generatedAt.toLocaleString("zh-TW", {
+          timeZone: "Asia/Taipei",
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        })
       : "--";
 
-    document.getElementById("update-time").textContent = `Updated: ${updated}`;
+    document.getElementById("update-time").textContent = `Updated (Taipei): ${updated}`;
 
     if (performanceResponse.ok) {
       renderPerformance(await performanceResponse.json());
@@ -427,8 +660,10 @@ loadDashboard();
 </body>
 </html>
 """
+
+
 @app.api_route("/", methods=["GET", "HEAD"])
-def index():
+def index() -> HTMLResponse:
     return HTMLResponse(HTML)
 
 
@@ -467,7 +702,7 @@ def _fetch_schedule_start_times(date_str: str) -> dict[str, str]:
     return values
 
 
-def _enrich_start_times(payload: dict) -> dict:
+def _enrich_start_times(payload: dict[str, Any]) -> dict[str, Any]:
     """Attach start_time for display when a prediction report omitted it."""
     rows = payload.get("today_predictions", [])
     if not isinstance(rows, list) or not rows:
@@ -495,10 +730,12 @@ def _enrich_start_times(payload: dict) -> dict:
 
 
 @app.get("/api/predictions")
-def get_predictions():
+def get_predictions() -> dict[str, Any] | JSONResponse:
     try:
-        with open("report/prediction.json", "r", encoding="utf-8") as file_obj:
-            return _enrich_start_times(json.load(file_obj))
+        with REPORT_PATH.open("r", encoding="utf-8") as file_obj:
+            payload = json.load(file_obj)
+        if isinstance(payload, dict):
+            return _enrich_start_times(payload)
     except FileNotFoundError:
         pass
     except Exception as exc:
@@ -511,7 +748,8 @@ def get_predictions():
         )
 
     try:
-        return _enrich_start_times(generate_predictions())
+        payload = generate_predictions()
+        return _enrich_start_times(payload)
     except Exception as exc:
         return JSONResponse(
             {"error": f"Real-time generation failed: {exc}"},
@@ -551,8 +789,8 @@ def _recommendation_side(
 
 
 @app.get("/api/performance")
-def get_performance():
-    result = {
+def get_performance() -> dict[str, Any]:
+    result: dict[str, Any] = {
         "total": 0,
         "roi": None,
         "win_rate": None,
@@ -560,12 +798,11 @@ def get_performance():
         "moneyline_bets": 0,
     }
 
-    history_file = "data/historical_predictions.csv"
-    if not os.path.exists(history_file):
+    if not HISTORY_PATH.exists():
         return result
 
     try:
-        frame = pd.read_csv(history_file)
+        frame = pd.read_csv(HISTORY_PATH)
 
         result_col = _first_column(frame, ["home_win"])
         prediction_col = _first_column(
@@ -605,7 +842,6 @@ def get_performance():
                 errors="coerce",
             )
             scored = settled[[result_col, prediction_col]].dropna()
-
             if not scored.empty:
                 result["brier"] = float(
                     brier_score_loss(
@@ -631,7 +867,6 @@ def get_performance():
                     row.get(home_team_col, ""),
                     row.get(away_team_col, ""),
                 )
-
                 if side is None:
                     continue
 
@@ -649,11 +884,7 @@ def get_performance():
                     else int(row[result_col] == 0)
                 )
                 wins.append(won)
-                profits.append(
-                    (float(odds) - 1.0)
-                    if won
-                    else -1.0
-                )
+                profits.append((float(odds) - 1.0) if won else -1.0)
 
             if profits:
                 result["moneyline_bets"] = int(len(profits))
@@ -667,11 +898,11 @@ def get_performance():
 
 
 @app.post("/run")
-def run_background(authorization: str = Header(None)):
+def run_background(authorization: str = Header(None)) -> dict[str, str]:
     if not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    def task():
+    def task() -> None:
         try:
             if generate_predictions is not None:
                 generate_predictions()
@@ -683,7 +914,7 @@ def run_background(authorization: str = Header(None)):
 
 
 @app.post("/train-nrfi")
-def train_nrfi(authorization: str = Header(None)):
+def train_nrfi(authorization: str = Header(None)) -> dict[str, str]:
     if not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
         raise HTTPException(status_code=401, detail="Unauthorized")
 
@@ -694,5 +925,5 @@ def train_nrfi(authorization: str = Header(None)):
 
 
 @app.get("/health")
-def health():
+def health() -> dict[str, str]:
     return {"status": "ok"}
