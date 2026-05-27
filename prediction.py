@@ -413,15 +413,18 @@ def prepare_team_frame(raw_rows: Any) -> pd.DataFrame:
     return frame
 
 
-def load_ml_model() -> tuple[Any | None, list[str] | None, str]:
-    """Load only a model artifact trained for the active clean pipeline."""
+def load_ml_model() -> tuple[Any | None, list[str] | None, int, str]:
+    """Load only a sufficiently trained model for the active clean pipeline."""
     if not MODEL_FILE.exists():
-        return None, None, "Model artifact does not exist."
+        return None, None, 0, "Model artifact does not exist."
 
     required_pipeline_version = getattr(
         config,
         "PIPELINE_VERSION",
         "baseline_v2_clean",
+    )
+    minimum_clean_samples = int(
+        getattr(config, "MIN_CLEAN_TRAIN_SAMPLES", 300)
     )
 
     try:
@@ -433,14 +436,20 @@ def load_ml_model() -> tuple[Any | None, list[str] | None, str]:
             and "model" in artifact
             and "features" in artifact
         ):
-            return None, None, "Legacy model artifact is unsupported."
+            return None, None, 0, "Legacy model artifact is unsupported."
 
         artifact_pipeline_version = artifact.get("pipeline_version")
+        training_sample_count = as_int(
+            artifact.get("training_sample_count"),
+            0,
+        )
+
         if artifact_pipeline_version != required_pipeline_version:
             found_version = artifact_pipeline_version or "missing"
             return (
                 None,
                 None,
+                training_sample_count,
                 (
                     "Model artifact pipeline version mismatch: "
                     f"expected {required_pipeline_version}, "
@@ -448,14 +457,31 @@ def load_ml_model() -> tuple[Any | None, list[str] | None, str]:
                 ),
             )
 
+        if training_sample_count < minimum_clean_samples:
+            return (
+                None,
+                None,
+                training_sample_count,
+                (
+                    "Clean model artifact has insufficient training samples: "
+                    f"{training_sample_count} < {minimum_clean_samples}."
+                ),
+            )
+
         print(
             "Loaded ML model artifact for pipeline "
-            f"{required_pipeline_version}."
+            f"{required_pipeline_version} "
+            f"with samples={training_sample_count}."
         )
-        return artifact["model"], list(artifact["features"]), ""
+        return (
+            artifact["model"],
+            list(artifact["features"]),
+            training_sample_count,
+            "",
+        )
 
     except Exception as exc:
-        return None, None, str(exc)
+        return None, None, 0, str(exc)
 
 
 def load_nrfi_model() -> tuple[Any | None, bool]:
@@ -927,7 +953,12 @@ def generate_predictions() -> dict[str, Any]:
     errors: list[str] = []
     predictions: list[dict[str, Any]] = []
 
-    ml_model, model_features, model_load_error = load_ml_model()
+    (
+        ml_model,
+        model_features,
+        clean_model_sample_count,
+        model_load_error,
+    ) = load_ml_model()
     if model_load_error:
         print(f"ML model unavailable: {model_load_error}")
 
@@ -965,7 +996,7 @@ def generate_predictions() -> dict[str, Any]:
     catcher_frame = pd.DataFrame(gathered_data.get("catcher_data", []) or [])
     bullpen_frame = pd.DataFrame(gathered_data.get("bullpen_data", []) or [])
 
-    historical_df, historical_count = load_historical_frames(errors)
+        historical_df, _ = load_historical_frames(errors)
     last_game_data = load_last_game_data()
 
     dynamic_pythag_exponent = 2.0
@@ -1358,7 +1389,7 @@ def generate_predictions() -> dict[str, Any]:
                     dtype=float,
                 )
                 ml_prediction = float(ml_model.predict_proba(model_array)[0, 1])
-                ml_weight = min(0.50, historical_count / 1000.0)
+                ml_weight = min(0.50, clean_model_sample_count / 1000.0)
                 predicted_home_win = (
                     (1 - ml_weight) * manual_prediction
                     + ml_weight * ml_prediction
@@ -1560,6 +1591,7 @@ def generate_predictions() -> dict[str, Any]:
             ),
             "model_source": model_source,
             "model_feature_count": len(model_features or []),
+            "model_training_sample_count": clean_model_sample_count,
             "model_load_error": model_error,
             "home_moneyline_odds": home_odds,
             "away_moneyline_odds": away_odds,
