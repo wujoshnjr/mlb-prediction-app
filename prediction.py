@@ -16,7 +16,7 @@ import json
 import os
 import sys
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -38,8 +38,11 @@ except ImportError:
         ODDS_USE_CURVE_FEATURES = False
         NRFI_USE_ML = False
         MODEL_META = "lr"
-        MODEL_USE_MLP = False
+                MODEL_USE_MLP = False
         WALKFORWARD_STRICT = False
+        PIPELINE_VERSION = "baseline_v2_clean"
+        SNAPSHOT_POLICY = "first_seen_pregame"
+        BETTING_MODE = "paper_trading"
 
 
 def optional_import(module_name: str, *names: str) -> tuple[Any | None, ...]:
@@ -83,6 +86,10 @@ def optional_import(module_name: str, *names: str) -> tuple[Any | None, ...]:
     "scripts.rating_updater", "load_glicko2_league"
 )
 (get_park_factor,) = optional_import("scripts.park_factors", "get_park_factor")
+(append_first_seen_pregame_snapshots,) = optional_import(
+    "scripts.snapshot_store",
+    "append_first_seen_pregame_snapshots",
+)
 
 REPORT_FILE = Path("report/prediction.json")
 HISTORY_FILE = Path("data/historical_predictions.csv")
@@ -252,11 +259,27 @@ def as_int(value: Any, default: int = 0) -> int:
         return default
 
 
-def implied_prob(odds: float | None) -> float | None:
-    if odds is None or odds <= 1:
+def compute_market_no_vig_home_prob(
+    home_odds: float | None,
+    away_odds: float | None,
+) -> float | None:
+    """Return two-way no-vig home win probability from decimal odds."""
+    if (
+        home_odds is None
+        or away_odds is None
+        or home_odds <= 1
+        or away_odds <= 1
+    ):
         return None
-    return 1 / (odds * 1.05)
 
+    home_raw = 1.0 / home_odds
+    away_raw = 1.0 / away_odds
+    denominator = home_raw + away_raw
+
+    if denominator <= 0:
+        return None
+
+    return home_raw / denominator
 
 def kelly_criterion(
     win_prob: float | None,
@@ -451,8 +474,17 @@ def build_schedule_frame(raw_rows: Any) -> pd.DataFrame:
     if "game_date" not in frame.columns:
         frame["game_date"] = datetime.now().strftime("%Y-%m-%d")
 
-    if "game_time" not in frame.columns:
+        if "game_time" not in frame.columns:
         frame["game_time"] = ""
+
+    if "start_time" not in frame.columns:
+        frame["start_time"] = ""
+
+    if "game_status" not in frame.columns:
+        if "status" in frame.columns:
+            frame["game_status"] = frame["status"]
+        else:
+            frame["game_status"] = ""
 
     if "venue" not in frame.columns:
         frame["venue"] = ""
@@ -945,6 +977,12 @@ def generate_predictions() -> dict[str, Any]:
             game.get("game_date")
             or datetime.now().strftime("%Y-%m-%d")
         )[:10]
+        start_time = str(game.get("start_time") or "")
+        game_status = str(
+            game.get("game_status")
+            or game.get("status")
+            or ""
+        )
 
         if not home_team or not away_team:
             errors.append(f"Skipping game {game_id}: missing team names.")
@@ -1136,9 +1174,9 @@ def generate_predictions() -> dict[str, Any]:
             game_id,
         )
 
-        odds_are_usable = odds_quality_status == "OK"
+               odds_are_usable = odds_quality_status == "OK"
         market_probability = (
-            implied_prob(home_odds)
+            compute_market_no_vig_home_prob(home_odds, away_odds)
             if odds_are_usable
             else None
         )
@@ -1310,20 +1348,30 @@ def generate_predictions() -> dict[str, Any]:
         else:
             predicted_home_win = manual_prediction
 
-        predicted_home_win += get_season_phase_adjustment(
+               predicted_home_win += get_season_phase_adjustment(
             date_str,
             predicted_home_win,
+        )
+
+        predicted_home_win = float(np.clip(predicted_home_win, 0.05, 0.95))
+        premarket_model_home_prob = predicted_home_win
+
+        model_edge_home = (
+            premarket_model_home_prob - market_probability
+            if market_probability is not None
+            else None
         )
 
         market_adjustment_applied = False
         if market_probability is not None:
             predicted_home_win = (
-                predicted_home_win * 0.90
+                premarket_model_home_prob * 0.90
                 + market_probability * 0.10
             )
             market_adjustment_applied = True
 
         predicted_home_win = float(np.clip(predicted_home_win, 0.05, 0.95))
+        displayed_home_win_pct = predicted_home_win
 
         over_probability = None
         home_cover_probability = None
@@ -1449,14 +1497,43 @@ def generate_predictions() -> dict[str, Any]:
             total_recommendation = "NO BET"
             recommendation_status = "TRACKING_ONLY"
 
-        prediction_item = {
+                prediction_item = {
             "game_id": game_id,
             "game_date": date_str,
+            "start_time": start_time,
+            "game_status": game_status,
             "home_team": home_team,
             "away_team": away_team,
+            "pipeline_version": getattr(
+                config,
+                "PIPELINE_VERSION",
+                "baseline_v2_clean",
+            ),
+            "snapshot_policy": getattr(
+                config,
+                "SNAPSHOT_POLICY",
+                "first_seen_pregame",
+            ),
+            "betting_mode": getattr(
+                config,
+                "BETTING_MODE",
+                "paper_trading",
+            ),
             "rating_source": rating_source,
-            "predicted_home_win_pct": round(predicted_home_win, 4),
+            "premarket_model_home_prob": round(premarket_model_home_prob, 4),
+            "displayed_home_win_pct": round(displayed_home_win_pct, 4),
+            "predicted_home_win_pct": round(displayed_home_win_pct, 4),
             "manual_no_odds_pred": round(no_odds_prediction, 4),
+            "market_no_vig_home_prob": (
+                round(market_probability, 4)
+                if market_probability is not None
+                else None
+            ),
+            "model_edge_home": (
+                round(model_edge_home, 4)
+                if model_edge_home is not None
+                else None
+            ),
             "model_source": model_source,
             "model_feature_count": len(model_features or []),
             "model_load_error": model_error,
@@ -1504,12 +1581,53 @@ def generate_predictions() -> dict[str, Any]:
             },
         }
 
-        predictions.append(prediction_item)
+             predictions.append(prediction_item)
+
+    snapshot_storage_summary: dict[str, Any] = {
+        "pipeline_version": getattr(
+            config,
+            "PIPELINE_VERSION",
+            "baseline_v2_clean",
+        ),
+        "status": "not_attempted",
+    }
+
+    if append_first_seen_pregame_snapshots is None:
+        snapshot_storage_summary["status"] = "unavailable"
+        errors.append(
+            "Snapshot storage unavailable: scripts.snapshot_store import failed."
+        )
+    else:
+        try:
+            snapshot_storage_summary = append_first_seen_pregame_snapshots(
+                predictions
+            )
+            snapshot_storage_summary["status"] = "completed"
+        except Exception as exc:
+            snapshot_storage_summary = {
+                "pipeline_version": getattr(
+                    config,
+                    "PIPELINE_VERSION",
+                    "baseline_v2_clean",
+                ),
+                "status": "failed",
+                "error": str(exc),
+            }
+            errors.append(f"Snapshot storage failed: {exc}")
 
     output = {
-        "generated_at": datetime.now().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat().replace(
+            "+00:00",
+            "Z",
+        ),
+        "pipeline_version": getattr(
+            config,
+            "PIPELINE_VERSION",
+            "baseline_v2_clean",
+        ),
         "schedule_fetch_ok": schedule_fetch_ok,
         "scheduled_game_count": scheduled_game_count,
+        "snapshot_storage_summary": snapshot_storage_summary,
         "today_predictions": predictions,
         "errors": errors,
     }
@@ -1539,7 +1657,10 @@ def main() -> None:
     except Exception as exc:
         error_message = f"Fatal prediction error: {exc}"
         failure_output = {
-            "generated_at": datetime.now().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat().replace(
+                "+00:00",
+                "Z",
+            ),
             "schedule_fetch_ok": False,
             "scheduled_game_count": None,
             "today_predictions": [],
