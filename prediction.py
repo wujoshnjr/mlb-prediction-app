@@ -38,7 +38,7 @@ except ImportError:
         ODDS_USE_CURVE_FEATURES = False
         NRFI_USE_ML = False
         MODEL_META = "lr"
-                MODEL_USE_MLP = False
+        MODEL_USE_MLP = False
         WALKFORWARD_STRICT = False
         PIPELINE_VERSION = "baseline_v2_clean"
         SNAPSHOT_POLICY = "first_seen_pregame"
@@ -474,7 +474,7 @@ def build_schedule_frame(raw_rows: Any) -> pd.DataFrame:
     if "game_date" not in frame.columns:
         frame["game_date"] = datetime.now().strftime("%Y-%m-%d")
 
-        if "game_time" not in frame.columns:
+    if "game_time" not in frame.columns:
         frame["game_time"] = ""
 
     if "start_time" not in frame.columns:
@@ -1174,7 +1174,7 @@ def generate_predictions() -> dict[str, Any]:
             game_id,
         )
 
-               odds_are_usable = odds_quality_status == "OK"
+        odds_are_usable = odds_quality_status == "OK"
         market_probability = (
             compute_market_no_vig_home_prob(home_odds, away_odds)
             if odds_are_usable
@@ -1348,7 +1348,7 @@ def generate_predictions() -> dict[str, Any]:
         else:
             predicted_home_win = manual_prediction
 
-               predicted_home_win += get_season_phase_adjustment(
+        predicted_home_win += get_season_phase_adjustment(
             date_str,
             predicted_home_win,
         )
@@ -1497,7 +1497,7 @@ def generate_predictions() -> dict[str, Any]:
             total_recommendation = "NO BET"
             recommendation_status = "TRACKING_ONLY"
 
-                prediction_item = {
+        prediction_item = {
             "game_id": game_id,
             "game_date": date_str,
             "start_time": start_time,
@@ -1581,7 +1581,7 @@ def generate_predictions() -> dict[str, Any]:
             },
         }
 
-             predictions.append(prediction_item)
+        predictions.append(prediction_item)
 
     snapshot_storage_summary: dict[str, Any] = {
         "pipeline_version": getattr(
