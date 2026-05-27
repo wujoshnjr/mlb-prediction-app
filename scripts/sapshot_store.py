@@ -324,7 +324,7 @@ def build_snapshot_row(
             prediction.get("predicted_home_win_pct")
         )
 
-      model_edge = as_float_or_none(prediction.get("model_edge_home"))
+    model_edge = as_float_or_none(prediction.get("model_edge_home"))
     if model_edge is None and (
         premarket_probability is not None and market_probability is not None
     ):
