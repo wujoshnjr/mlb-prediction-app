@@ -6,6 +6,7 @@ The baseline pipeline is preserved while runtime contracts are tightened:
 - Empty schedules distinguish a real off-day from an upstream fetch failure.
 - Experimental feature groups remain behind configuration switches.
 - Runtime text is ASCII-only to avoid encoding damage during web edits.
+- Suspicious odds markets are tracked but never used for bet recommendations.
 """
 
 from __future__ import annotations
@@ -378,7 +379,10 @@ def prepare_team_frame(raw_rows: Any) -> pd.DataFrame:
     for column, default in required_defaults.items():
         if column not in frame.columns:
             frame[column] = default
-        frame[column] = pd.to_numeric(frame[column], errors="coerce").fillna(default)
+        frame[column] = pd.to_numeric(
+            frame[column],
+            errors="coerce",
+        ).fillna(default)
 
     games = frame["wins"] + frame["losses"]
     frame["win_pct"] = np.where(games > 0, frame["wins"] / games, 0.5)
@@ -394,7 +398,11 @@ def load_ml_model() -> tuple[Any | None, list[str] | None, str]:
         import joblib
 
         artifact = joblib.load(MODEL_FILE)
-        if isinstance(artifact, dict) and "model" in artifact and "features" in artifact:
+        if (
+            isinstance(artifact, dict)
+            and "model" in artifact
+            and "features" in artifact
+        ):
             print("Loaded ML model artifact and feature list.")
             return artifact["model"], list(artifact["features"]), ""
 
@@ -486,8 +494,16 @@ def calculate_team_winrate_difference(
     home_row = get_team_row(team_frame, home_team)
     away_row = get_team_row(team_frame, away_team)
 
-    home_pct = as_float(home_row.get("win_pct"), 0.5) if home_row is not None else 0.5
-    away_pct = as_float(away_row.get("win_pct"), 0.5) if away_row is not None else 0.5
+    home_pct = (
+        as_float(home_row.get("win_pct"), 0.5)
+        if home_row is not None
+        else 0.5
+    )
+    away_pct = (
+        as_float(away_row.get("win_pct"), 0.5)
+        if away_row is not None
+        else 0.5
+    )
 
     return home_pct - away_pct
 
@@ -523,7 +539,10 @@ def calculate_timezone_difference(home_team: str, away_team: str) -> float:
 
 def detect_day_game(game: pd.Series) -> float:
     value = str(game.get("game_time", "")).lower()
-    if any(token in value for token in ("am", "12:", "13:", "1:", "14:", "2:", "15:", "3:")):
+    if any(
+        token in value
+        for token in ("am", "12:", "13:", "1:", "14:", "2:", "15:", "3:")
+    ):
         return 1.0
     return as_float(game.get("is_day_game"), 0.0)
 
@@ -556,34 +575,65 @@ def calculate_back_to_back_difference(
 def extract_odds_values(
     odds_data: Any,
     game_id: Any,
-) -> tuple[float | None, float | None, float | None, float | None]:
-    """Return home ML decimal odds, away ML decimal odds, total line, spread line."""
-    frame = pd.DataFrame(odds_data or [])
-    if frame.empty:
-        return None, None, None, None
-
-    if "game_id" in frame.columns:
-        matched = frame[frame["game_id"].astype(str) == str(game_id)]
-        if not matched.empty:
-            row = matched.iloc[0]
-        else:
-            row = frame.iloc[0]
+) -> tuple[
+    float | None,
+    float | None,
+    float | None,
+    float | None,
+    str,
+    str,
+    str,
+    list[dict[str, Any]],
+]:
+    """Return audited odds values and quality metadata for one scheduled game."""
+    if isinstance(odds_data, pd.DataFrame):
+        frame = odds_data.copy()
     else:
-        row = frame.iloc[0]
+        frame = pd.DataFrame(odds_data or [])
+
+    unavailable_result = (
+        None,
+        None,
+        None,
+        None,
+        "UNAVAILABLE",
+        "No audited odds market matched this scheduled game.",
+        "unknown",
+        [],
+    )
+
+    if frame.empty or "game_id" not in frame.columns:
+        return unavailable_result
+
+    matched = frame[frame["game_id"].astype(str) == str(game_id)]
+    if matched.empty:
+        return unavailable_result
+
+    row = matched.iloc[0]
 
     home_odds = None
     away_odds = None
     total_line = None
     spread_line = None
 
-    for column in ("home_odds", "home_decimal_odds", "moneyline_home_odds"):
+    for column in (
+        "home_odds",
+        "home_moneyline_odds",
+        "home_decimal_odds",
+        "moneyline_home_odds",
+    ):
         if column in row.index:
             value = as_float(row.get(column), 0.0)
             if value > 1:
                 home_odds = value
                 break
 
-    for column in ("away_odds", "away_decimal_odds", "moneyline_away_odds"):
+    for column in (
+        "away_odds",
+        "away_moneyline_odds",
+        "away_decimal_odds",
+        "moneyline_away_odds",
+    ):
         if column in row.index:
             value = as_float(row.get(column), 0.0)
             if value > 1:
@@ -591,21 +641,56 @@ def extract_odds_values(
                 break
 
     for column in ("total_line", "over_under", "total"):
-        if column in row.index:
-            total_line = as_float(row.get(column), 0.0)
-            if total_line <= 0:
-                total_line = None
+        if column in row.index and pd.notna(row.get(column)):
+            parsed_total = as_float(row.get(column), 0.0)
+            total_line = parsed_total if parsed_total > 0 else None
             break
 
     for column in ("spread_line", "home_spread", "spread"):
-        if column in row.index:
-            spread_line = as_float(row.get(column), -1.5)
+        if column in row.index and pd.notna(row.get(column)):
+            spread_line = as_float(row.get(column), 0.0)
             break
 
-    return home_odds, away_odds, total_line, spread_line
+    odds_quality_status = str(
+        row.get("odds_quality_status", "") or ""
+    ).strip().upper()
+    if odds_quality_status not in {"OK", "SUSPICIOUS", "UNAVAILABLE"}:
+        odds_quality_status = (
+            "OK"
+            if home_odds is not None and away_odds is not None
+            else "UNAVAILABLE"
+        )
 
+    suspicious_odds_reason = str(
+        row.get("suspicious_odds_reason", "") or ""
+    ).strip()
+    if odds_quality_status != "OK" and not suspicious_odds_reason:
+        suspicious_odds_reason = "Odds market did not pass integrity validation."
 
-def calculate_elo_features(
+    odds_source = str(
+        row.get("odds_source", "unknown") or "unknown"
+    ).strip()
+
+    bookmaker_quotes = row.get("bookmaker_quotes", [])
+    if isinstance(bookmaker_quotes, str):
+        try:
+            bookmaker_quotes = json.loads(bookmaker_quotes)
+        except (TypeError, ValueError):
+            bookmaker_quotes = []
+    if not isinstance(bookmaker_quotes, list):
+        bookmaker_quotes = []
+
+    return (
+        home_odds,
+        away_odds,
+        total_line,
+        spread_line,
+        odds_quality_status,
+        suspicious_odds_reason,
+        odds_source,
+        bookmaker_quotes,
+    )
+    def calculate_elo_features(
     home_team: str,
     away_team: str,
     errors: list[str],
@@ -642,7 +727,10 @@ def calculate_elo_features(
         elo_system = MLBElosystem()
         home_rating = as_float(elo_system.get_rating(home_team), 1500.0)
         away_rating = as_float(elo_system.get_rating(away_team), 1500.0)
-        home_advantage = as_float(getattr(elo_system, "home_adv", 24.0), 24.0)
+        home_advantage = as_float(
+            getattr(elo_system, "home_adv", 24.0),
+            24.0,
+        )
 
         feature_diff = home_rating - away_rating + home_advantage
         neutral_diff = feature_diff - home_advantage
@@ -703,10 +791,12 @@ def calculate_statcast_features(
     for feature_name, column_name in column_map.items():
         if column_name in frame.columns:
             home_mean = pd.to_numeric(
-                home_rows[column_name], errors="coerce"
+                home_rows[column_name],
+                errors="coerce",
             ).mean()
             away_mean = pd.to_numeric(
-                away_rows[column_name], errors="coerce"
+                away_rows[column_name],
+                errors="coerce",
             ).mean()
             if pd.notna(home_mean) and pd.notna(away_mean):
                 features[feature_name] = float(home_mean - away_mean)
@@ -810,7 +900,9 @@ def generate_predictions() -> dict[str, Any]:
     team_frame = prepare_team_frame(gathered_data.get("mlb_team_stats", []))
     pitcher_lookup = build_pitcher_lookup(gathered_data.get("pitcher_data", []))
 
-    statcast_frame = pd.DataFrame(gathered_data.get("savant_statcast", []) or [])
+    statcast_frame = pd.DataFrame(
+        gathered_data.get("savant_statcast", []) or []
+    )
     odds_data = gathered_data.get("odds", [])
     weather_frame = pd.DataFrame(gathered_data.get("weather", []) or [])
     injury_frame = pd.DataFrame(gathered_data.get("injuries", []) or [])
@@ -947,8 +1039,14 @@ def generate_predictions() -> dict[str, Any]:
                     date_str,
                     days=30,
                 )
-                features["lag30_winrate_diff"] = as_float(lag_winrate_diff, 0.0)
-                features["lag30_runs_diff"] = as_float(lag_runs_diff, 0.0)
+                features["lag30_winrate_diff"] = as_float(
+                    lag_winrate_diff,
+                    0.0,
+                )
+                features["lag30_runs_diff"] = as_float(
+                    lag_runs_diff,
+                    0.0,
+                )
             except Exception as exc:
                 errors.append(f"Lag feature failed for game {game_id}: {exc}")
 
@@ -968,13 +1066,25 @@ def generate_predictions() -> dict[str, Any]:
                         catcher_result.get("cs_diff"),
                         0.0,
                     )
-                elif isinstance(catcher_result, (tuple, list)) and len(catcher_result) >= 2:
-                    features["catcher_era_diff"] = as_float(catcher_result[0], 0.0)
-                    features["cs_diff"] = as_float(catcher_result[1], 0.0)
+                elif (
+                    isinstance(catcher_result, (tuple, list))
+                    and len(catcher_result) >= 2
+                ):
+                    features["catcher_era_diff"] = as_float(
+                        catcher_result[0],
+                        0.0,
+                    )
+                    features["cs_diff"] = as_float(
+                        catcher_result[1],
+                        0.0,
+                    )
             except Exception as exc:
                 errors.append(f"Catcher feature failed for game {game_id}: {exc}")
 
-        if calculate_bullpen_availability is not None and not bullpen_frame.empty:
+        if (
+            calculate_bullpen_availability is not None
+            and not bullpen_frame.empty
+        ):
             try:
                 bullpen_result = calculate_bullpen_availability(
                     bullpen_frame,
@@ -990,8 +1100,14 @@ def generate_predictions() -> dict[str, Any]:
                         bullpen_result.get("bullpen_availability_diff"),
                         0.0,
                     )
-                elif isinstance(bullpen_result, (tuple, list)) and len(bullpen_result) >= 2:
-                    features["bullpen_ip_diff"] = as_float(bullpen_result[0], 0.0)
+                elif (
+                    isinstance(bullpen_result, (tuple, list))
+                    and len(bullpen_result) >= 2
+                ):
+                    features["bullpen_ip_diff"] = as_float(
+                        bullpen_result[0],
+                        0.0,
+                    )
                     features["bullpen_availability_diff"] = as_float(
                         bullpen_result[1],
                         0.0,
@@ -1006,12 +1122,35 @@ def generate_predictions() -> dict[str, Any]:
             errors,
         )
         features.update(statcast_features)
-
-        home_odds, away_odds, total_line, spread_line = extract_odds_values(
+                (
+            home_odds,
+            away_odds,
+            total_line,
+            spread_line,
+            odds_quality_status,
+            suspicious_odds_reason,
+            odds_source,
+            bookmaker_quotes,
+        ) = extract_odds_values(
             odds_data,
             game_id,
         )
-        market_probability = implied_prob(home_odds)
+
+        odds_are_usable = odds_quality_status == "OK"
+        market_probability = (
+            implied_prob(home_odds)
+            if odds_are_usable
+            else None
+        )
+
+        if not odds_are_usable:
+            errors.append(
+                (
+                    f"Tracking only for {away_team} at {home_team}: "
+                    f"odds_quality_status={odds_quality_status}; "
+                    f"reason={suspicious_odds_reason}"
+                )
+            )
 
         if getattr(config, "ODDS_USE_CURVE_FEATURES", False):
             features["odds_change"] = as_float(game.get("odds_change"), 0.0)
@@ -1022,7 +1161,11 @@ def generate_predictions() -> dict[str, Any]:
                     rows = weather_frame[
                         weather_frame["game_id"].astype(str) == str(game_id)
                     ]
-                    weather = rows.iloc[0] if not rows.empty else weather_frame.iloc[0]
+                    weather = (
+                        rows.iloc[0]
+                        if not rows.empty
+                        else weather_frame.iloc[0]
+                    )
                 else:
                     weather = weather_frame.iloc[0]
 
@@ -1045,8 +1188,8 @@ def generate_predictions() -> dict[str, Any]:
             try:
                 if "team" in injury_frame.columns:
                     injury_frame_normalized = injury_frame.copy()
-                    injury_frame_normalized["team"] = injury_frame_normalized["team"].map(
-                        normalize_team
+                    injury_frame_normalized["team"] = (
+                        injury_frame_normalized["team"].map(normalize_team)
                     )
                     home_injuries = injury_frame_normalized[
                         injury_frame_normalized["team"] == home_team
@@ -1058,13 +1201,17 @@ def generate_predictions() -> dict[str, Any]:
                         pd.to_numeric(
                             home_injuries.get("impact", pd.Series(dtype=float)),
                             errors="coerce",
-                        ).fillna(0.0).sum()
+                        )
+                        .fillna(0.0)
+                        .sum()
                     )
                     away_value = (
                         pd.to_numeric(
                             away_injuries.get("impact", pd.Series(dtype=float)),
                             errors="coerce",
-                        ).fillna(0.0).sum()
+                        )
+                        .fillna(0.0)
+                        .sum()
                     )
                     features["injury_diff"] = float(home_value - away_value)
             except Exception as exc:
@@ -1168,17 +1315,22 @@ def generate_predictions() -> dict[str, Any]:
             predicted_home_win,
         )
 
+        market_adjustment_applied = False
         if market_probability is not None:
             predicted_home_win = (
                 predicted_home_win * 0.90
                 + market_probability * 0.10
             )
+            market_adjustment_applied = True
 
         predicted_home_win = float(np.clip(predicted_home_win, 0.05, 0.95))
 
         over_probability = None
         home_cover_probability = None
         away_cover_probability = None
+
+        simulation_total_line = total_line if odds_are_usable else None
+        simulation_spread_line = spread_line if odds_are_usable else None
 
         if MonteCarloSimulator is not None:
             try:
@@ -1189,8 +1341,8 @@ def generate_predictions() -> dict[str, Any]:
                     home_sp_era=home_sp_era,
                     away_sp_era=away_sp_era,
                     park_factor=features["dynamic_park_factor"],
-                    total_line=total_line,
-                    spread_line=spread_line,
+                    total_line=simulation_total_line,
+                    spread_line=simulation_spread_line,
                 )
                 if isinstance(simulation_result, dict):
                     over_probability = simulation_result.get("over_prob")
@@ -1224,7 +1376,12 @@ def generate_predictions() -> dict[str, Any]:
                         list(nrfi_features.keys()),
                     )
                     nrfi_input = pd.DataFrame(
-                        [[nrfi_features.get(column, 0.0) for column in feature_columns]],
+                        [
+                            [
+                                nrfi_features.get(column, 0.0)
+                                for column in feature_columns
+                            ]
+                        ],
                         columns=feature_columns,
                     )
                 else:
@@ -1250,37 +1407,47 @@ def generate_predictions() -> dict[str, Any]:
             if not nrfi_fallback_reason:
                 nrfi_fallback_reason = manual_nrfi_reason
 
-        home_kelly = kelly_criterion(predicted_home_win, home_odds)
-        away_kelly = kelly_criterion(1 - predicted_home_win, away_odds)
+        if odds_are_usable:
+            home_kelly = kelly_criterion(predicted_home_win, home_odds)
+            away_kelly = kelly_criterion(1 - predicted_home_win, away_odds)
 
-        if predicted_home_win >= 0.55:
-            moneyline_recommendation = f"{home_team} ML"
-        elif predicted_home_win <= 0.45:
-            moneyline_recommendation = f"{away_team} ML"
+            if predicted_home_win >= 0.55:
+                moneyline_recommendation = f"{home_team} ML"
+            elif predicted_home_win <= 0.45:
+                moneyline_recommendation = f"{away_team} ML"
+            else:
+                moneyline_recommendation = "NO BET"
+
+            if (
+                home_cover_probability is not None
+                and as_float(home_cover_probability, 0.0) >= 0.55
+            ):
+                spread_recommendation = f"{home_team} spread"
+            elif (
+                away_cover_probability is not None
+                and as_float(away_cover_probability, 0.0) >= 0.55
+            ):
+                spread_recommendation = f"{away_team} spread"
+            else:
+                spread_recommendation = "NO BET"
+
+            if over_probability is None:
+                total_recommendation = "NO DATA"
+            elif as_float(over_probability, 0.5) >= 0.55:
+                total_recommendation = "OVER"
+            elif as_float(over_probability, 0.5) <= 0.45:
+                total_recommendation = "UNDER"
+            else:
+                total_recommendation = "NO BET"
+
+            recommendation_status = "PAPER_BET"
         else:
+            home_kelly = 0.0
+            away_kelly = 0.0
             moneyline_recommendation = "NO BET"
-
-        if (
-            home_cover_probability is not None
-            and as_float(home_cover_probability, 0.0) >= 0.55
-        ):
-            spread_recommendation = f"{home_team} spread"
-        elif (
-            away_cover_probability is not None
-            and as_float(away_cover_probability, 0.0) >= 0.55
-        ):
-            spread_recommendation = f"{away_team} spread"
-        else:
             spread_recommendation = "NO BET"
-
-        if over_probability is None:
-            total_recommendation = "NO DATA"
-        elif as_float(over_probability, 0.5) >= 0.55:
-            total_recommendation = "OVER"
-        elif as_float(over_probability, 0.5) <= 0.45:
-            total_recommendation = "UNDER"
-        else:
             total_recommendation = "NO BET"
+            recommendation_status = "TRACKING_ONLY"
 
         prediction_item = {
             "game_id": game_id,
@@ -1297,6 +1464,12 @@ def generate_predictions() -> dict[str, Any]:
             "away_moneyline_odds": away_odds,
             "spread_line": spread_line,
             "total_line": total_line,
+            "odds_quality_status": odds_quality_status,
+            "suspicious_odds_reason": suspicious_odds_reason,
+            "odds_source": odds_source,
+            "bookmaker_quotes": bookmaker_quotes,
+            "market_adjustment_applied": market_adjustment_applied,
+            "recommendation_status": recommendation_status,
             "moneyline_recommendation": moneyline_recommendation,
             "spread_recommendation": spread_recommendation,
             "total_recommendation": total_recommendation,
@@ -1332,8 +1505,7 @@ def generate_predictions() -> dict[str, Any]:
         }
 
         predictions.append(prediction_item)
-
-    output = {
+            output = {
         "generated_at": datetime.now().isoformat(),
         "schedule_fetch_ok": schedule_fetch_ok,
         "scheduled_game_count": scheduled_game_count,
