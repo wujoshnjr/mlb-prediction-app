@@ -157,8 +157,8 @@ jobs:
           fi
 
           git commit -m "Update prediction, training and ratings [skip ci]" || echo "No changes"
-          git pull --rebase origin main
-          git push
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
   collect-history:
     runs-on: ubuntu-latest
@@ -174,7 +174,7 @@ jobs:
       - name: Pull latest changes
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git pull --rebase origin main
+          git pull --rebase origin "${GITHUB_REF_NAME}"
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -207,8 +207,8 @@ jobs:
           fi
 
           git commit -m "Add historical data for $(date -u -d 'yesterday' +%Y-%m-%d) [skip ci]" || echo "No changes"
-          git pull --rebase origin main
-          git push
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
   backfill-history:
     runs-on: ubuntu-latest
@@ -251,5 +251,5 @@ jobs:
           fi
 
           git commit -m "Backfill historical data ${{ github.event.inputs.collect_from }} to ${{ github.event.inputs.collect_to }} [skip ci]" || echo "No changes"
-          git pull --rebase origin main
-          git push
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
