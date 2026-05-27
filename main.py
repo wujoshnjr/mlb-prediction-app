@@ -43,6 +43,8 @@ app = FastAPI(title="MLB Prediction Hub")
 
 REPORT_PATH = Path("report/prediction.json")
 HISTORY_PATH = Path("data/historical_predictions.csv")
+SNAPSHOT_PATH = Path("data/prediction_snapshots.csv")
+CLEAN_PIPELINE_VERSION = "baseline_v2_clean"
 
 
 HTML = r"""
@@ -789,112 +791,142 @@ def _recommendation_side(
 
 @app.get("/api/performance")
 def get_performance() -> dict[str, Any]:
+    """Return settled performance for clean forward-collected snapshots only."""
     result: dict[str, Any] = {
+        "pipeline_version": CLEAN_PIPELINE_VERSION,
+        "clean_sample_count": 0,
         "total": 0,
         "roi": None,
         "win_rate": None,
         "brier": None,
         "moneyline_bets": 0,
+        "message": "No settled baseline_v2_clean samples yet",
     }
 
-    if not HISTORY_PATH.exists():
+    if not SNAPSHOT_PATH.exists():
         return result
 
     try:
-        frame = pd.read_csv(HISTORY_PATH)
+        frame = pd.read_csv(SNAPSHOT_PATH)
 
-        result_col = _first_column(frame, ["home_win"])
-        prediction_col = _first_column(
-            frame,
-            ["pred_home_win", "predicted_home_win_pct"],
-        )
-        recommendation_col = _first_column(
-            frame,
-            ["ml_rec", "moneyline_recommendation"],
-        )
-        home_odds_col = _first_column(
-            frame,
-            ["home_odds", "home_moneyline_odds"],
-        )
-        away_odds_col = _first_column(
-            frame,
-            ["away_odds", "away_moneyline_odds"],
-        )
-        home_team_col = _first_column(frame, ["home_team"])
-        away_team_col = _first_column(frame, ["away_team"])
-
-        if result_col is None:
+        required_columns = {
+            "pipeline_version",
+            "snapshot_valid",
+            "home_win",
+            "displayed_home_win_pct",
+            "recommendation_status",
+            "odds_quality_status",
+            "moneyline_recommendation",
+            "home_team",
+            "away_team",
+            "home_moneyline_odds",
+            "away_moneyline_odds",
+        }
+        missing_columns = sorted(required_columns - set(frame.columns))
+        if missing_columns:
+            result["message"] = (
+                "Clean snapshot file is missing columns: "
+                + ", ".join(missing_columns)
+            )
             return result
 
-        frame[result_col] = pd.to_numeric(frame[result_col], errors="coerce")
-        settled = frame[frame[result_col].notna()].copy()
+        clean = frame[
+            (frame["pipeline_version"].astype(str) == CLEAN_PIPELINE_VERSION)
+            & (
+                frame["snapshot_valid"]
+                .astype(str)
+                .str.lower()
+                == "true"
+            )
+        ].copy()
+
+        clean["home_win"] = pd.to_numeric(
+            clean["home_win"],
+            errors="coerce",
+        )
+        settled = clean[
+            clean["home_win"].isin([0, 1])
+        ].copy()
 
         if settled.empty:
             return result
 
-        settled[result_col] = settled[result_col].astype(int)
+        settled["home_win"] = settled["home_win"].astype(int)
+        result["clean_sample_count"] = int(len(settled))
         result["total"] = int(len(settled))
 
-        if prediction_col is not None:
-            settled[prediction_col] = pd.to_numeric(
-                settled[prediction_col],
-                errors="coerce",
-            )
-            scored = settled[[result_col, prediction_col]].dropna()
-            if not scored.empty:
-                result["brier"] = float(
-                    brier_score_loss(
-                        scored[result_col],
-                        scored[prediction_col],
-                    )
-                )
-
-        can_score_bets = (
-            recommendation_col is not None
-            and home_team_col is not None
-            and away_team_col is not None
-            and (home_odds_col is not None or away_odds_col is not None)
+        settled["displayed_home_win_pct"] = pd.to_numeric(
+            settled["displayed_home_win_pct"],
+            errors="coerce",
         )
+        scored = settled[
+            ["home_win", "displayed_home_win_pct"]
+        ].dropna()
 
-        if can_score_bets:
-            wins: list[int] = []
-            profits: list[float] = []
-
-            for _, row in settled.iterrows():
-                side = _recommendation_side(
-                    row.get(recommendation_col, ""),
-                    row.get(home_team_col, ""),
-                    row.get(away_team_col, ""),
+        if not scored.empty:
+            result["brier"] = float(
+                brier_score_loss(
+                    scored["home_win"],
+                    scored["displayed_home_win_pct"],
                 )
-                if side is None:
-                    continue
+            )
 
-                odds_col = home_odds_col if side == "home" else away_odds_col
-                if odds_col is None:
-                    continue
+        paper_bets = settled[
+            (
+                settled["recommendation_status"]
+                .astype(str)
+                .str.upper()
+                == "PAPER_BET"
+            )
+            & (
+                settled["odds_quality_status"]
+                .astype(str)
+                .str.upper()
+                == "OK"
+            )
+        ].copy()
 
-                odds = pd.to_numeric(row.get(odds_col), errors="coerce")
-                if pd.isna(odds) or float(odds) <= 1.0:
-                    continue
+        wins: list[int] = []
+        profits: list[float] = []
 
-                won = (
-                    int(row[result_col] == 1)
-                    if side == "home"
-                    else int(row[result_col] == 0)
-                )
-                wins.append(won)
-                profits.append((float(odds) - 1.0) if won else -1.0)
+        for _, row in paper_bets.iterrows():
+            side = _recommendation_side(
+                row.get("moneyline_recommendation", ""),
+                row.get("home_team", ""),
+                row.get("away_team", ""),
+            )
+            if side is None:
+                continue
 
-            if profits:
-                result["moneyline_bets"] = int(len(profits))
-                result["win_rate"] = float(sum(wins) / len(wins))
-                result["roi"] = float(sum(profits) / len(profits))
+            odds_value = (
+                row.get("home_moneyline_odds")
+                if side == "home"
+                else row.get("away_moneyline_odds")
+            )
+            odds = pd.to_numeric(odds_value, errors="coerce")
+            if pd.isna(odds) or float(odds) <= 1.0:
+                continue
+
+            won = (
+                int(row["home_win"] == 1)
+                if side == "home"
+                else int(row["home_win"] == 0)
+            )
+            wins.append(won)
+            profits.append((float(odds) - 1.0) if won else -1.0)
+
+        if profits:
+            result["moneyline_bets"] = int(len(profits))
+            result["win_rate"] = float(sum(wins) / len(wins))
+            result["roi"] = float(sum(profits) / len(profits))
+
+        result["message"] = "Statistics for settled baseline_v2_clean snapshots"
 
     except Exception as exc:
-        print(f"Performance calculation error: {exc}")
+        result["message"] = f"Performance calculation error: {exc}"
+        print(result["message"])
 
     return result
-
 
 @app.post("/run")
 def run_background(authorization: str = Header(None)) -> dict[str, str]:
