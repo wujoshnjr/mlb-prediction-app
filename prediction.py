@@ -996,7 +996,7 @@ def generate_predictions() -> dict[str, Any]:
     catcher_frame = pd.DataFrame(gathered_data.get("catcher_data", []) or [])
     bullpen_frame = pd.DataFrame(gathered_data.get("bullpen_data", []) or [])
 
-        historical_df, _ = load_historical_frames(errors)
+    historical_df, _ = load_historical_frames(errors)
     last_game_data = load_last_game_data()
 
     dynamic_pythag_exponent = 2.0
