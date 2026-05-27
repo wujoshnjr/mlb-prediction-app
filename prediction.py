@@ -1295,6 +1295,8 @@ def generate_predictions() -> dict[str, Any]:
             "model_load_error": model_error,
             "home_moneyline_odds": home_odds,
             "away_moneyline_odds": away_odds,
+            "spread_line": spread_line,
+            "total_line": total_line,
             "moneyline_recommendation": moneyline_recommendation,
             "spread_recommendation": spread_recommendation,
             "total_recommendation": total_recommendation,
