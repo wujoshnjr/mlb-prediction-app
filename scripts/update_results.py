@@ -4,8 +4,20 @@ import csv, os, json, requests, time
 try:
     from scripts.database import update_game_result, get_connection
     DB_AVAILABLE = True
-except:
+except Exception:
     DB_AVAILABLE = False
+
+try:
+    from scripts.snapshot_store import (
+        SNAPSHOT_STORE_FILE,
+        read_snapshot_rows,
+        settle_snapshots,
+    )
+    SNAPSHOT_AVAILABLE = True
+except Exception as exc:
+    SNAPSHOT_STORE_FILE = "data/prediction_snapshots.csv"
+    SNAPSHOT_AVAILABLE = False
+    print(f"Snapshot settlement import failed: {exc}")
 
 HISTORY_FILE = "data/historical_predictions.csv"
 LAST_GAME_FILE = "data/team_last_game.json"
@@ -50,8 +62,14 @@ def fetch_game_result(game_id):
     return None
 
 def update_results():
-    if not os.path.exists(HISTORY_FILE) and not DB_AVAILABLE:
-        print("无数据源")
+    has_legacy_source = os.path.exists(HISTORY_FILE) or DB_AVAILABLE
+    has_snapshot_source = (
+        SNAPSHOT_AVAILABLE
+        and os.path.exists(SNAPSHOT_STORE_FILE)
+    )
+
+    if not has_legacy_source and not has_snapshot_source:
+        print("No result source found.")
         return
 
     if os.path.exists(LAST_GAME_FILE):
@@ -138,16 +156,95 @@ def update_results():
                 writer.writerows(rows)
             print(f"CSV 更新 {csv_updated} 场")
 
-    # 去重并保存 new_final_results.json
+    # Collect final results for clean snapshots that are not present
+    # in the legacy history file.
+    if SNAPSHOT_AVAILABLE and os.path.exists(SNAPSHOT_STORE_FILE):
+        try:
+            pending_snapshots = read_snapshot_rows(
+                valid_only=True,
+                settled_only=False,
+            )
+
+            if not pending_snapshots.empty and "home_win" in pending_snapshots.columns:
+                pending_snapshots = pending_snapshots[
+                    pending_snapshots["home_win"].isna()
+                    | (
+                        pending_snapshots["home_win"]
+                        .astype(str)
+                        .str.strip()
+                        == ""
+                    )
+                ]
+
+            processed_ids = {
+                str(game.get("game_id", "")).strip()
+                for game in new_final_games
+            }
+
+            for _, snapshot in pending_snapshots.iterrows():
+                game_id = str(snapshot.get("game_id", "")).strip()
+                if not game_id or game_id in processed_ids:
+                    continue
+
+                result = fetch_game_result(game_id)
+                if not result:
+                    time.sleep(0.5)
+                    continue
+
+                home_win, home_score, away_score = result
+                game_date = str(snapshot.get("game_date", "") or "").strip()
+                home_team = str(snapshot.get("home_team", "") or "").strip()
+                away_team = str(snapshot.get("away_team", "") or "").strip()
+
+                new_final_games.append({
+                    "game_id": game_id,
+                    "game_date": game_date,
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "home_win": home_win,
+                    "home_score": home_score,
+                    "away_score": away_score,
+                })
+                processed_ids.add(game_id)
+
+                if home_team and game_date:
+                    last_game_dict[home_team] = game_date
+                if away_team and game_date:
+                    last_game_dict[away_team] = game_date
+
+                time.sleep(0.5)
+
+        except Exception as exc:
+            print(f"Snapshot pending result collection failed: {exc}")
+            
+    # Deduplicate finalized games before writing outputs and settling snapshots.
     seen = set()
     unique_final = []
-    for g in new_final_games:
-        if g['game_id'] not in seen:
-            seen.add(g['game_id'])
-            unique_final.append(g)
-    with open(NEW_FINAL_RESULTS_FILE, 'w') as f:
+    for game in new_final_games:
+        game_id = str(game.get("game_id", "")).strip()
+        if game_id and game_id not in seen:
+            seen.add(game_id)
+            unique_final.append(game)
+
+    snapshot_settlement_summary = {
+        "updated": 0,
+        "unmatched": 0,
+        "stored_rows": 0,
+    }
+    if SNAPSHOT_AVAILABLE and os.path.exists(SNAPSHOT_STORE_FILE):
+        try:
+            snapshot_settlement_summary = settle_snapshots(unique_final)
+            print(
+                "Snapshot settlement: "
+                f"updated={snapshot_settlement_summary.get('updated', 0)}, "
+                f"unmatched={snapshot_settlement_summary.get('unmatched', 0)}"
+            )
+        except Exception as exc:
+            print(f"Snapshot settlement failed: {exc}")
+
+    with open(NEW_FINAL_RESULTS_FILE, 'w', encoding='utf-8') as f:
         json.dump(unique_final, f, indent=2)
-    print(f"保存 {len(unique_final)} 场新 final 比赛")
+    print(f"Saved {len(unique_final)} newly finalized games.")
 
     with open(LAST_GAME_FILE, 'w') as f:
         json.dump(last_game_dict, f, indent=2)

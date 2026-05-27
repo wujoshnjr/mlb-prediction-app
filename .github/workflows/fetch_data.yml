@@ -53,10 +53,13 @@ jobs:
       - name: Compile critical Python files
         run: |
           python -m py_compile \
+            config.py \
+            main.py \
             model.py \
             prediction.py \
             train_ensemble.py \
             scripts/feature_schema.py \
+            scripts/snapshot_store.py \
             scripts/update_results.py \
             scripts/backfill_final_scores.py \
             scripts/rebuild_ratings.py \
@@ -130,6 +133,7 @@ jobs:
             report/final_score_backfill_report.json \
             data/finalized_games.csv \
             data/historical_predictions.csv \
+            data/prediction_snapshots.csv \
             data/new_final_results.json \
             data/elo_ratings.json \
             data/glicko2_ratings.json \
@@ -148,9 +152,13 @@ jobs:
             git add -f data/historical/
           fi
 
+          if [ -d data/odds_snapshots ]; then
+            git add -f data/odds_snapshots/
+          fi
+
           git commit -m "Update prediction, training and ratings [skip ci]" || echo "No changes"
-          git pull --rebase origin main
-          git push
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
   collect-history:
     runs-on: ubuntu-latest
@@ -166,7 +174,7 @@ jobs:
       - name: Pull latest changes
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git pull --rebase origin main
+          git pull --rebase origin "${GITHUB_REF_NAME}"
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -199,8 +207,8 @@ jobs:
           fi
 
           git commit -m "Add historical data for $(date -u -d 'yesterday' +%Y-%m-%d) [skip ci]" || echo "No changes"
-          git pull --rebase origin main
-          git push
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
   backfill-history:
     runs-on: ubuntu-latest
@@ -243,5 +251,5 @@ jobs:
           fi
 
           git commit -m "Backfill historical data ${{ github.event.inputs.collect_from }} to ${{ github.event.inputs.collect_to }} [skip ci]" || echo "No changes"
-          git pull --rebase origin main
-          git push
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

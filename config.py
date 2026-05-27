@@ -22,3 +22,14 @@ FEATURE_USE_PITCH_MATCHUP = False
 FEATURE_USE_PITCH_USAGE = False
 NRFI_USE_ML = False
 ODDS_USE_CURVE_FEATURES = False
+# Clean forward-collected prediction snapshot pipeline.
+# Legacy historical rows must not be treated as clean training samples.
+PIPELINE_VERSION = "baseline_v2_clean"
+SNAPSHOT_POLICY = "first_seen_pregame"
+BETTING_MODE = "paper_trading"
+ALLOW_LEGACY_TRAINING_DATA = False
+SNAPSHOT_STORE_FILE = "data/prediction_snapshots.csv"
+
+# Do not train a new clean model until enough forward-collected settled
+# snapshots exist for meaningful time-based validation.
+MIN_CLEAN_TRAIN_SAMPLES = 300
