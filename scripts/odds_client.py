@@ -55,7 +55,7 @@ def _quality_status(
     total_line: float | None,
     bookmaker_quotes: list[dict[str, Any]],
 ) -> tuple[str, str]:
-    """Classify only clear integrity risks; suspicious markets are not trusted."""
+    """Classify clear integrity risks; suspicious markets must not be trusted."""
     if home_odds is None or away_odds is None:
         return "UNAVAILABLE", "Missing two-way moneyline prices."
 
@@ -226,8 +226,10 @@ def _bookmaker_quote(
                         quote["total_line"] = point
                     quote["under_odds"] = price
 
-    return quotedef 
-fetch_odds(
+    return quote
+
+
+def fetch_odds(
     api_key: str = None,
     date_str: str = None,
     errors: list = None,
