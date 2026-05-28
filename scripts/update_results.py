@@ -238,7 +238,7 @@ def update_results():
             seen.add(game_id)
             unique_final.append(game)
 
-        market_odds_settlement_summary = {
+    market_odds_settlement_summary = {
         "games_received": len(unique_final),
         "games_updated": 0,
         "rows_updated": 0,
