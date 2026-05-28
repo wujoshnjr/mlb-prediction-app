@@ -43,6 +43,8 @@ except ImportError:
         PIPELINE_VERSION = "baseline_v2_clean"
         SNAPSHOT_POLICY = "first_seen_pregame"
         BETTING_MODE = "paper_trading"
+        MIN_MONEYLINE_EDGE = 0.03
+        MAX_KELLY_FRACTION = 0.025
 
 
 def optional_import(module_name: str, *names: str) -> tuple[Any | None, ...]:
@@ -1573,16 +1575,74 @@ def generate_predictions() -> dict[str, Any]:
             if not nrfi_fallback_reason:
                 nrfi_fallback_reason = manual_nrfi_reason
 
-        if odds_are_usable:
-            home_kelly = kelly_criterion(predicted_home_win, home_odds)
-            away_kelly = kelly_criterion(1 - predicted_home_win, away_odds)
+                min_moneyline_edge = max(
+            0.0,
+            as_float(
+                getattr(config, "MIN_MONEYLINE_EDGE", 0.03),
+                0.03,
+            ),
+        )
+        max_kelly_fraction = max(
+            0.0,
+            as_float(
+                getattr(config, "MAX_KELLY_FRACTION", 0.025),
+                0.025,
+            ),
+        )
 
-            if predicted_home_win >= 0.55:
+        moneyline_gate_status = "TRACKING_ONLY_ODDS_UNAVAILABLE"
+        moneyline_selected_side = ""
+        moneyline_selected_edge: float | None = None
+
+        if odds_are_usable:
+            home_kelly = 0.0
+            away_kelly = 0.0
+
+            home_edge = model_edge_home
+            away_edge = (
+                -model_edge_home
+                if model_edge_home is not None
+                else None
+            )
+
+            if (
+                home_edge is not None
+                and home_edge >= min_moneyline_edge
+            ):
                 moneyline_recommendation = f"{home_team} ML"
-            elif predicted_home_win <= 0.45:
+                moneyline_selected_side = "home"
+                moneyline_selected_edge = home_edge
+                moneyline_gate_status = "PAPER_BET_EDGE_PASSED"
+                recommendation_status = "PAPER_BET"
+                home_kelly = min(
+                    kelly_criterion(
+                        premarket_model_home_prob,
+                        home_odds,
+                    ),
+                    max_kelly_fraction,
+                )
+
+            elif (
+                away_edge is not None
+                and away_edge >= min_moneyline_edge
+            ):
                 moneyline_recommendation = f"{away_team} ML"
+                moneyline_selected_side = "away"
+                moneyline_selected_edge = away_edge
+                moneyline_gate_status = "PAPER_BET_EDGE_PASSED"
+                recommendation_status = "PAPER_BET"
+                away_kelly = min(
+                    kelly_criterion(
+                        1 - premarket_model_home_prob,
+                        away_odds,
+                    ),
+                    max_kelly_fraction,
+                )
+
             else:
                 moneyline_recommendation = "NO BET"
+                moneyline_gate_status = "TRACKING_ONLY_EDGE_BELOW_THRESHOLD"
+                recommendation_status = "TRACKING_ONLY"
 
             if (
                 home_cover_probability is not None
@@ -1606,7 +1666,6 @@ def generate_predictions() -> dict[str, Any]:
             else:
                 total_recommendation = "NO BET"
 
-            recommendation_status = "PAPER_BET"
         else:
             home_kelly = 0.0
             away_kelly = 0.0
@@ -1666,6 +1725,15 @@ def generate_predictions() -> dict[str, Any]:
             "bookmaker_quotes": bookmaker_quotes,
             "market_adjustment_applied": market_adjustment_applied,
             "recommendation_status": recommendation_status,
+            "moneyline_gate_status": moneyline_gate_status,
+            "moneyline_edge_threshold": round(min_moneyline_edge, 4),
+            "max_kelly_fraction": round(max_kelly_fraction, 4),
+            "moneyline_selected_side": moneyline_selected_side,
+            "moneyline_selected_edge": (
+                round(moneyline_selected_edge, 4)
+                if moneyline_selected_edge is not None
+                else None
+            ),
             "moneyline_recommendation": moneyline_recommendation,
             "spread_recommendation": spread_recommendation,
             "total_recommendation": total_recommendation,
