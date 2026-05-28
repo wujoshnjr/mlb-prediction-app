@@ -33,3 +33,12 @@ SNAPSHOT_STORE_FILE = "data/prediction_snapshots.csv"
 # Do not train a new clean model until enough forward-collected settled
 # snapshots exist for meaningful time-based validation.
 MIN_CLEAN_TRAIN_SAMPLES = 300
+
+# Moneyline recommendation gate.
+# A paper-trading Moneyline recommendation is created only when the model
+# probability exceeds the no-vig market probability by at least this amount.
+MIN_MONEYLINE_EDGE = 0.03
+
+# Maximum paper-trading stake fraction for one Moneyline recommendation.
+# Kelly sizing is capped to avoid oversized exposure during early validation.
+MAX_KELLY_FRACTION = 0.025
