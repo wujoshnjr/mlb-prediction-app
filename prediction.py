@@ -90,6 +90,11 @@ def optional_import(module_name: str, *names: str) -> tuple[Any | None, ...]:
     "scripts.snapshot_store",
     "append_first_seen_pregame_snapshots",
 )
+(append_game_market_snapshot, refresh_opening_closing_flags) = optional_import(
+    "scripts.market_odds_store",
+    "append_game_market_snapshot",
+    "refresh_opening_closing_flags",
+)
 
 REPORT_FILE = Path("report/prediction.json")
 HISTORY_FILE = Path("data/historical_predictions.csv")
@@ -953,6 +958,23 @@ def generate_predictions() -> dict[str, Any]:
     errors: list[str] = []
     predictions: list[dict[str, Any]] = []
 
+    odds_history_captured_at = (
+        datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    )
+    market_odds_history_summary: dict[str, Any] = {
+        "status": (
+            "completed"
+            if append_game_market_snapshot is not None
+            else "unavailable"
+        ),
+        "captured_at": odds_history_captured_at,
+        "received": 0,
+        "inserted": 0,
+        "duplicates": 0,
+        "stored_rows": 0,
+        "errors": [],
+    }
+
     (
         ml_model,
         model_features,
@@ -1235,7 +1257,48 @@ def generate_predictions() -> dict[str, Any]:
             if odds_are_usable
             else None
         )
+        if append_game_market_snapshot is not None and bookmaker_quotes:
+            try:
+                odds_history_result = append_game_market_snapshot(
+                    game_id=game_id,
+                    game_date=date_str,
+                    start_time=start_time,
+                    captured_at=odds_history_captured_at,
+                    home_team=home_team,
+                    away_team=away_team,
+                    bookmaker_quotes=bookmaker_quotes,
+                    odds_quality_status=odds_quality_status,
+                    suspicious_odds_reason=suspicious_odds_reason,
+                    starting_pitcher_confirmed=None,
+                    lineup_confirmed=None,
+                )
 
+                for summary_key in ("received", "inserted", "duplicates"):
+                    market_odds_history_summary[summary_key] += int(
+                        odds_history_result.get(summary_key, 0)
+                    )
+
+                market_odds_history_summary["stored_rows"] = max(
+                    int(market_odds_history_summary.get("stored_rows", 0)),
+                    int(odds_history_result.get("stored_rows", 0)),
+                )
+
+                odds_history_errors = odds_history_result.get("errors", [])
+                if odds_history_errors:
+                    market_odds_history_summary["status"] = "partial_failure"
+                    market_odds_history_summary["errors"].extend(
+                        [
+                            f"Game {game_id}: {message}"
+                            for message in odds_history_errors
+                        ]
+                    )
+
+            except Exception as exc:
+                market_odds_history_summary["status"] = "partial_failure"
+                market_odds_history_summary["errors"].append(
+                    f"Game {game_id}: {exc}"
+                )
+        
         if not odds_are_usable:
             errors.append(
                 (
@@ -1639,6 +1702,17 @@ def generate_predictions() -> dict[str, Any]:
 
         predictions.append(prediction_item)
 
+    if refresh_opening_closing_flags is not None:
+        try:
+            market_odds_history_summary["opening_closing_refresh"] = (
+                refresh_opening_closing_flags()
+            )
+        except Exception as exc:
+            market_odds_history_summary["status"] = "partial_failure"
+            market_odds_history_summary["errors"].append(
+                f"Opening closing refresh failed: {exc}"
+            )
+
     snapshot_storage_summary: dict[str, Any] = {
         "pipeline_version": getattr(
             config,
@@ -1684,6 +1758,7 @@ def generate_predictions() -> dict[str, Any]:
         "schedule_fetch_ok": schedule_fetch_ok,
         "scheduled_game_count": scheduled_game_count,
         "snapshot_storage_summary": snapshot_storage_summary,
+        "market_odds_history_summary": market_odds_history_summary,
         "today_predictions": predictions,
         "errors": errors,
     }
