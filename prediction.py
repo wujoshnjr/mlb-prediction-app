@@ -1575,7 +1575,7 @@ def generate_predictions() -> dict[str, Any]:
             if not nrfi_fallback_reason:
                 nrfi_fallback_reason = manual_nrfi_reason
 
-                min_moneyline_edge = max(
+        min_moneyline_edge = max(
             0.0,
             as_float(
                 getattr(config, "MIN_MONEYLINE_EDGE", 0.03),
