@@ -19,6 +19,18 @@ except Exception as exc:
     SNAPSHOT_AVAILABLE = False
     print(f"Snapshot settlement import failed: {exc}")
 
+try:
+    from scripts.market_odds_store import (
+        MARKET_ODDS_HISTORY_FILE,
+        refresh_opening_closing_flags,
+        settle_market_odds_history,
+    )
+    MARKET_ODDS_AVAILABLE = True
+except Exception as exc:
+    MARKET_ODDS_HISTORY_FILE = "data/market_odds_history.csv"
+    MARKET_ODDS_AVAILABLE = False
+    print(f"Market odds settlement import failed: {exc}")
+
 HISTORY_FILE = "data/historical_predictions.csv"
 LAST_GAME_FILE = "data/team_last_game.json"
 NEW_FINAL_RESULTS_FILE = "data/new_final_results.json"
@@ -226,6 +238,37 @@ def update_results():
             seen.add(game_id)
             unique_final.append(game)
 
+        market_odds_settlement_summary = {
+        "games_received": len(unique_final),
+        "games_updated": 0,
+        "rows_updated": 0,
+        "errors": [],
+    }
+
+    if MARKET_ODDS_AVAILABLE and os.path.exists(MARKET_ODDS_HISTORY_FILE):
+        try:
+            finalized_game_ids = [
+                str(game.get("game_id", "")).strip()
+                for game in unique_final
+                if str(game.get("game_id", "")).strip()
+            ]
+
+            refresh_opening_closing_flags(
+                game_ids=finalized_game_ids,
+            )
+            market_odds_settlement_summary = settle_market_odds_history(
+                unique_final
+            )
+
+            print(
+                "Market odds settlement: "
+                f"games_updated={market_odds_settlement_summary.get('games_updated', 0)}, "
+                f"rows_updated={market_odds_settlement_summary.get('rows_updated', 0)}"
+            )
+
+        except Exception as exc:
+            print(f"Market odds settlement failed: {exc}")
+            
     snapshot_settlement_summary = {
         "updated": 0,
         "unmatched": 0,
