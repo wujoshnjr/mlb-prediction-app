@@ -1531,11 +1531,11 @@ async function loadDashboard() {
     document.getElementById("update-time").textContent =
       `Updated in Taipei: ${updated}`;
 
-if (performanceResponse.ok) {
-  const performanceData = await performanceResponse.json();
-  renderPerformance(performanceData);
-  renderAccuracyDiagnostics(performanceData);
-}
+    if (performanceResponse.ok) {
+    const performanceData = await performanceResponse.json();
+    renderPerformance(performanceData);
+    renderAccuracyDiagnostics(performanceData);
+    }
 
     if (healthResponse.ok) {
       renderHealth(await healthResponse.json());
