@@ -1359,6 +1359,9 @@ def generate_predictions() -> dict[str, Any]:
     historical_df, _ = load_historical_frames(errors)
     last_game_data = load_last_game_data()
 
+    daily_context_by_game, daily_context_load_summary = (
+        latest_daily_context_by_game(errors)
+    )
     dynamic_pythag_exponent = 2.0
     if not team_frame.empty:
         run_scored_total = as_float(team_frame["runs_scored"].sum(), 0.0)
