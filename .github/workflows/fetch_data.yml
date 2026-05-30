@@ -124,6 +124,12 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Collect daily pregame context snapshots
+        continue-on-error: true
+        run: python scripts/daily_context_collector.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Commit validated outputs
         run: |
           git config --global user.name "github-actions[bot]"
@@ -141,6 +147,7 @@ jobs:
             data/historical_predictions.csv \
             data/prediction_snapshots.csv \
             data/market_odds_history.csv \
+            data/daily_game_context.csv \
             data/new_final_results.json \
             data/elo_ratings.json \
             data/glicko2_ratings.json \
