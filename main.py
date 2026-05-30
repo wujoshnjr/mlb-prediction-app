@@ -8,6 +8,7 @@ This version keeps the existing prediction report contract and adds:
 - Market integrity and bookmaker source visibility.
 - Clean forward-snapshot performance metrics.
 - Moneyline CLV metrics derived from entry prices versus closing prices.
+- Data health API and dashboard cards for pipeline visibility.
 
 Source text is intentionally ASCII-only so browser-based edits stay safe.
 """
@@ -47,6 +48,7 @@ REPORT_PATH = Path("report/prediction.json")
 HISTORY_PATH = Path("data/historical_predictions.csv")
 SNAPSHOT_PATH = Path("data/prediction_snapshots.csv")
 MARKET_ODDS_PATH = Path("data/market_odds_history.csv")
+DAILY_CONTEXT_PATH = Path("data/daily_game_context.csv")
 CLEAN_PIPELINE_VERSION = "baseline_v2_clean"
 
 
@@ -342,6 +344,58 @@ a { color:inherit; }
 .neutral { color:var(--text); }
 .waiting { color:var(--amber); font-size:1rem; letter-spacing:0; }
 
+.health-grid {
+  display:grid;
+  grid-template-columns:repeat(6, minmax(0, 1fr));
+  gap:10px;
+}
+
+.health-card {
+  min-height:96px;
+  padding:14px;
+  border-radius:17px;
+  background:linear-gradient(150deg, rgba(20,27,56,.96), rgba(13,17,38,.98));
+  border:1px solid var(--border);
+}
+
+.health-card.ok {
+  border-color:rgba(53,239,157,.23);
+  background:linear-gradient(145deg, rgba(53,239,157,.11), rgba(13,17,38,.96));
+}
+
+.health-card.warn {
+  border-color:rgba(255,197,94,.28);
+  background:linear-gradient(145deg, rgba(255,197,94,.11), rgba(13,17,38,.96));
+}
+
+.health-card.bad {
+  border-color:rgba(255,101,119,.30);
+  background:linear-gradient(145deg, rgba(255,101,119,.11), rgba(13,17,38,.96));
+}
+
+.health-label {
+  color:var(--muted);
+  font-size:.63rem;
+  font-weight:700;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.health-value {
+  margin-top:9px;
+  font-size:1.34rem;
+  line-height:1;
+  font-weight:760;
+  letter-spacing:-.035em;
+}
+
+.health-caption {
+  margin-top:8px;
+  color:var(--muted-2);
+  font-size:.66rem;
+  line-height:1.35;
+}
+
 .policy {
   display:grid;
   grid-template-columns:1.35fr .95fr;
@@ -633,6 +687,7 @@ a { color:inherit; }
 
 @media (max-width: 1080px) {
   .stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .health-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .games { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 
@@ -660,7 +715,8 @@ a { color:inherit; }
     font-size:.78rem;
   }
 
-  .stats {
+  .stats,
+  .health-grid {
     grid-template-columns:repeat(2,minmax(0,1fr));
     gap:8px;
   }
@@ -671,11 +727,19 @@ a { color:inherit; }
     border-radius:14px;
   }
 
-  .stat-value {
+  .health-card {
+    min-height:88px;
+    padding:12px 11px 10px;
+    border-radius:14px;
+  }
+
+  .stat-value,
+  .health-value {
     font-size:1.24rem;
   }
 
-  .stat-caption {
+  .stat-caption,
+  .health-caption {
     font-size:.62rem;
   }
 
@@ -759,6 +823,44 @@ a { color:inherit; }
       <div class="stat-label">Positive CLV</div>
       <div id="positive-clv" class="stat-value waiting">--</div>
       <div id="positive-clv-caption" class="stat-caption">entry vs close</div>
+    </div>
+  </section>
+
+  <div class="section-heading">
+    <h2>Data health</h2>
+    <span>Pipeline reliability and source coverage</span>
+  </div>
+
+  <section id="health-grid" class="health-grid">
+    <div class="health-card">
+      <div class="health-label">Status</div>
+      <div id="health-status" class="health-value waiting">Loading</div>
+      <div id="health-status-caption" class="health-caption">checking pipeline</div>
+    </div>
+    <div class="health-card">
+      <div class="health-label">Predictions</div>
+      <div id="health-predictions" class="health-value neutral">--</div>
+      <div id="health-predictions-caption" class="health-caption">today board</div>
+    </div>
+    <div class="health-card">
+      <div class="health-label">Odds</div>
+      <div id="health-odds" class="health-value neutral">--</div>
+      <div class="health-caption">OK / suspicious / unavailable</div>
+    </div>
+    <div class="health-card">
+      <div class="health-label">Context Ready</div>
+      <div id="health-context" class="health-value neutral">--</div>
+      <div id="health-context-caption" class="health-caption">pregame context</div>
+    </div>
+    <div class="health-card">
+      <div class="health-label">Snapshots</div>
+      <div id="health-snapshots" class="health-value neutral">--</div>
+      <div id="health-snapshots-caption" class="health-caption">clean / settled</div>
+    </div>
+    <div class="health-card">
+      <div class="health-label">Market Rows</div>
+      <div id="health-market" class="health-value neutral">--</div>
+      <div id="health-market-caption" class="health-caption">closing ML rows</div>
     </div>
   </section>
 
@@ -1018,6 +1120,62 @@ function signalLabel(prediction) {
   return "Tracking opportunity";
 }
 
+function setHealthCard(id, mode) {
+  const card = document.getElementById(id)?.closest(".health-card");
+  if (!card) return;
+  card.classList.remove("ok", "warn", "bad");
+  if (mode) card.classList.add(mode);
+}
+
+function renderHealth(data) {
+  const status = String(data.status || "ERROR").toUpperCase();
+  const statusEl = document.getElementById("health-status");
+  const captionEl = document.getElementById("health-status-caption");
+
+  statusEl.textContent = status;
+  statusEl.className = `health-value ${
+    status === "OK" ? "positive" : status === "WARNING" ? "waiting" : "negative"
+  }`;
+  setHealthCard("health-status", status === "OK" ? "ok" : status === "WARNING" ? "warn" : "bad");
+
+  const messages = Array.isArray(data.messages) ? data.messages : [];
+  captionEl.textContent = messages.length ? messages.slice(0, 2).join(" | ") : "pipeline checks passed";
+
+  document.getElementById("health-predictions").textContent =
+    data.prediction_count ?? "--";
+  document.getElementById("health-predictions-caption").textContent =
+    `${data.scheduled_game_count ?? 0} scheduled games`;
+
+  const odds = data.odds || {};
+  document.getElementById("health-odds").textContent =
+    `${odds.ok ?? 0} / ${odds.suspicious ?? 0} / ${odds.unavailable ?? 0}`;
+  setHealthCard(
+    "health-odds",
+    (odds.suspicious || odds.unavailable || odds.missing) ? "warn" : "ok"
+  );
+
+  const context = data.daily_context || {};
+  document.getElementById("health-context").textContent =
+    `${context.ready_context_count ?? 0}`;
+  document.getElementById("health-context-caption").textContent =
+    `${context.latest_context_count ?? 0} latest context rows`;
+  setHealthCard("health-context", context.file_exists ? "ok" : "warn");
+
+  const snapshots = data.snapshots || {};
+  document.getElementById("health-snapshots").textContent =
+    `${snapshots.clean_rows ?? 0} / ${snapshots.settled_rows ?? 0}`;
+  document.getElementById("health-snapshots-caption").textContent =
+    `${snapshots.stored_rows ?? 0} stored rows`;
+  setHealthCard("health-snapshots", snapshots.file_exists ? "ok" : "warn");
+
+  const market = data.market_odds_history || {};
+  document.getElementById("health-market").textContent =
+    `${market.stored_rows ?? 0}`;
+  document.getElementById("health-market-caption").textContent =
+    `${market.closing_moneyline_rows ?? 0} closing ML rows`;
+  setHealthCard("health-market", market.file_exists ? "ok" : "warn");
+}
+
 function renderPerformance(data) {
   document.getElementById("total").textContent = data.total ?? "--";
 
@@ -1188,9 +1346,10 @@ function renderGames(data) {
 
 async function loadDashboard() {
   try {
-    const [predictionResponse, performanceResponse] = await Promise.all([
+    const [predictionResponse, performanceResponse, healthResponse] = await Promise.all([
       fetch("/api/predictions"),
-      fetch("/api/performance")
+      fetch("/api/performance"),
+      fetch("/api/health").catch(error => ({ ok: false, healthError: error }))
     ]);
 
     if (!predictionResponse.ok) {
@@ -1219,6 +1378,21 @@ async function loadDashboard() {
 
     if (performanceResponse.ok) {
       renderPerformance(await performanceResponse.json());
+    }
+
+    if (healthResponse.ok) {
+      renderHealth(await healthResponse.json());
+    } else {
+      renderHealth({
+        status: "ERROR",
+        prediction_count: 0,
+        scheduled_game_count: 0,
+        odds: {ok: 0, suspicious: 0, unavailable: 0, missing: 0},
+        daily_context: {file_exists: false, latest_context_count: 0, ready_context_count: 0},
+        snapshots: {file_exists: false, stored_rows: 0, clean_rows: 0, settled_rows: 0},
+        market_odds_history: {file_exists: false, stored_rows: 0, closing_moneyline_rows: 0},
+        messages: ["Health API failed"]
+      });
     }
   } catch (error) {
     document.getElementById("messages").innerHTML =
@@ -1368,6 +1542,329 @@ def _bool_series(series: pd.Series) -> pd.Series:
     )
 
 
+def _read_csv_safe(path: Path) -> tuple[pd.DataFrame, str | None]:
+    """Read a CSV file without raising to API callers."""
+    if not path.exists():
+        return pd.DataFrame(), "missing"
+
+    try:
+        return pd.read_csv(path), None
+    except Exception as exc:
+        return pd.DataFrame(), str(exc)
+
+
+def _read_prediction_report_safe() -> tuple[dict[str, Any] | None, str | None]:
+    """Read the static prediction report without generating a live report."""
+    if not REPORT_PATH.exists():
+        return None, "missing"
+
+    try:
+        with REPORT_PATH.open("r", encoding="utf-8") as file_obj:
+            payload = json.load(file_obj)
+    except Exception as exc:
+        return None, str(exc)
+
+    if not isinstance(payload, dict):
+        return None, "report is not a JSON object"
+
+    return payload, None
+
+
+def _status_priority(value: str) -> int:
+    """Return severity rank for OK/WARNING/ERROR."""
+    return {"OK": 0, "WARNING": 1, "ERROR": 2}.get(value, 0)
+
+
+def _raise_health_status(current: str, candidate: str) -> str:
+    """Return the more severe health status."""
+    return candidate if _status_priority(candidate) > _status_priority(current) else current
+
+
+def _today_from_report(report: dict[str, Any]) -> str:
+    """Infer the report date using generated_at, game_date or UTC today."""
+    generated_at = str(report.get("generated_at") or "").strip()
+    if generated_at:
+        try:
+            parsed = datetime.fromisoformat(generated_at.replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    rows = report.get("today_predictions", [])
+    if isinstance(rows, list):
+        for row in rows:
+            if isinstance(row, dict) and row.get("game_date"):
+                return str(row.get("game_date"))[:10]
+
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+def _count_present_rows(frame: pd.DataFrame, date_str: str | None = None) -> pd.DataFrame:
+    """Return rows filtered by game_date when possible."""
+    if frame.empty or date_str is None or "game_date" not in frame.columns:
+        return frame
+
+    return frame[frame["game_date"].astype(str).str[:10] == date_str].copy()
+
+
+@app.get("/api/health")
+def get_health() -> dict[str, Any]:
+    """Return data-health diagnostics for dashboard and monitoring."""
+    result: dict[str, Any] = {
+        "status": "OK",
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "prediction_report_exists": False,
+        "prediction_count": 0,
+        "schedule_fetch_ok": None,
+        "scheduled_game_count": 0,
+        "errors_count": 0,
+        "errors_sample": [],
+        "odds": {
+            "ok": 0,
+            "suspicious": 0,
+            "unavailable": 0,
+            "missing": 0,
+        },
+        "recommendations": {
+            "paper_bet": 0,
+            "tracking_only": 0,
+            "no_bet": 0,
+        },
+        "daily_context": {
+            "file_exists": False,
+            "stored_rows": 0,
+            "latest_context_count": 0,
+            "ready_context_count": 0,
+            "bullpen_available_count": 0,
+            "confirmed_lineup_count": 0,
+        },
+        "snapshots": {
+            "file_exists": False,
+            "stored_rows": 0,
+            "clean_rows": 0,
+            "settled_rows": 0,
+        },
+        "market_odds_history": {
+            "file_exists": False,
+            "stored_rows": 0,
+            "moneyline_rows": 0,
+            "closing_moneyline_rows": 0,
+        },
+        "messages": [],
+    }
+
+    messages: list[str] = result["messages"]
+
+    try:
+        report, report_error = _read_prediction_report_safe()
+        if report is None:
+            result["status"] = "ERROR"
+            messages.append(f"Prediction report unavailable: {report_error}")
+            return result
+
+        result["prediction_report_exists"] = True
+        report_date = _today_from_report(report)
+
+        predictions = report.get("today_predictions", [])
+        if not isinstance(predictions, list):
+            predictions = []
+            result["status"] = _raise_health_status(result["status"], "ERROR")
+            messages.append("today_predictions is not a list")
+
+        result["prediction_count"] = int(len(predictions))
+        result["schedule_fetch_ok"] = report.get("schedule_fetch_ok")
+        scheduled_count = report.get("scheduled_game_count", 0)
+        try:
+            result["scheduled_game_count"] = int(scheduled_count or 0)
+        except (TypeError, ValueError):
+            result["scheduled_game_count"] = 0
+            result["status"] = _raise_health_status(result["status"], "WARNING")
+            messages.append("scheduled_game_count is not numeric")
+
+        errors = report.get("errors", [])
+        if isinstance(errors, list):
+            result["errors_count"] = int(len(errors))
+            result["errors_sample"] = [str(item) for item in errors[:3]]
+        elif errors:
+            result["errors_count"] = 1
+            result["errors_sample"] = [str(errors)]
+
+        for prediction in predictions:
+            if not isinstance(prediction, dict):
+                result["odds"]["missing"] += 1
+                result["recommendations"]["no_bet"] += 1
+                continue
+
+            quality = str(
+                prediction.get("odds_quality_status") or "UNAVAILABLE"
+            ).strip().upper()
+            if quality == "OK":
+                result["odds"]["ok"] += 1
+            elif quality == "SUSPICIOUS":
+                result["odds"]["suspicious"] += 1
+            elif quality == "UNAVAILABLE":
+                result["odds"]["unavailable"] += 1
+            else:
+                result["odds"]["missing"] += 1
+
+            recommendation_status = str(
+                prediction.get("recommendation_status") or "TRACKING_ONLY"
+            ).strip().upper()
+            moneyline_recommendation = str(
+                prediction.get("moneyline_recommendation") or "NO BET"
+            ).strip().upper()
+
+            if recommendation_status == "PAPER_BET":
+                result["recommendations"]["paper_bet"] += 1
+            elif recommendation_status == "TRACKING_ONLY":
+                result["recommendations"]["tracking_only"] += 1
+            elif moneyline_recommendation in {"NO BET", "NO DATA", "PASS", ""}:
+                result["recommendations"]["no_bet"] += 1
+            else:
+                result["recommendations"]["tracking_only"] += 1
+
+        if result["errors_count"] > 0:
+            result["status"] = _raise_health_status(result["status"], "WARNING")
+            messages.append(f"Prediction report has {result['errors_count']} warning/error entries")
+
+        if result["schedule_fetch_ok"] is not True and result["prediction_count"] > 0:
+            result["status"] = _raise_health_status(result["status"], "WARNING")
+            messages.append("Predictions exist but schedule_fetch_ok is not true")
+
+        if result["scheduled_game_count"] > 0 and result["prediction_count"] == 0:
+            result["status"] = _raise_health_status(result["status"], "ERROR")
+            messages.append("Scheduled games exist but today_predictions is empty")
+
+        if (
+            result["odds"]["suspicious"] > 0
+            or result["odds"]["unavailable"] > 0
+            or result["odds"]["missing"] > 0
+        ):
+            result["status"] = _raise_health_status(result["status"], "WARNING")
+            messages.append("Some games have suspicious, unavailable or missing odds")
+
+        context, context_error = _read_csv_safe(DAILY_CONTEXT_PATH)
+        if context_error is None:
+            result["daily_context"]["file_exists"] = True
+            result["daily_context"]["stored_rows"] = int(len(context))
+            latest_context = _count_present_rows(context, report_date)
+
+            if not latest_context.empty:
+                if {"game_id", "captured_at"}.issubset(set(latest_context.columns)):
+                    latest_context = latest_context.copy()
+                    latest_context["captured_at_parsed"] = pd.to_datetime(
+                        latest_context["captured_at"],
+                        errors="coerce",
+                        utc=True,
+                    )
+                    latest_context.sort_values("captured_at_parsed", inplace=True)
+                    latest_context = latest_context.groupby("game_id", as_index=False).tail(1)
+
+                result["daily_context"]["latest_context_count"] = int(len(latest_context))
+
+                if "context_ready_for_betting" in latest_context.columns:
+                    result["daily_context"]["ready_context_count"] = int(
+                        _bool_series(latest_context["context_ready_for_betting"]).sum()
+                    )
+
+                if "bullpens_ready" in latest_context.columns:
+                    result["daily_context"]["bullpen_available_count"] = int(
+                        _bool_series(latest_context["bullpens_ready"]).sum()
+                    )
+                elif {
+                    "home_bullpen_data_available",
+                    "away_bullpen_data_available",
+                }.issubset(set(latest_context.columns)):
+                    bullpen_ready = (
+                        _bool_series(latest_context["home_bullpen_data_available"])
+                        & _bool_series(latest_context["away_bullpen_data_available"])
+                    )
+                    result["daily_context"]["bullpen_available_count"] = int(bullpen_ready.sum())
+
+                if "lineups_ready" in latest_context.columns:
+                    result["daily_context"]["confirmed_lineup_count"] = int(
+                        _bool_series(latest_context["lineups_ready"]).sum()
+                    )
+                elif {
+                    "home_lineup_confirmed",
+                    "away_lineup_confirmed",
+                }.issubset(set(latest_context.columns)):
+                    lineup_ready = (
+                        _bool_series(latest_context["home_lineup_confirmed"])
+                        & _bool_series(latest_context["away_lineup_confirmed"])
+                    )
+                    result["daily_context"]["confirmed_lineup_count"] = int(lineup_ready.sum())
+        else:
+            result["status"] = _raise_health_status(result["status"], "WARNING")
+            messages.append(f"Daily context file unavailable: {context_error}")
+
+        snapshots, snapshot_error = _read_csv_safe(SNAPSHOT_PATH)
+        if snapshot_error is None:
+            result["snapshots"]["file_exists"] = True
+            result["snapshots"]["stored_rows"] = int(len(snapshots))
+
+            if not snapshots.empty:
+                clean_mask = pd.Series([True] * len(snapshots), index=snapshots.index)
+
+                if "pipeline_version" in snapshots.columns:
+                    clean_mask = clean_mask & (
+                        snapshots["pipeline_version"].astype(str) == CLEAN_PIPELINE_VERSION
+                    )
+
+                if "snapshot_valid" in snapshots.columns:
+                    clean_mask = clean_mask & _bool_series(snapshots["snapshot_valid"])
+
+                clean_snapshots = snapshots[clean_mask].copy()
+                result["snapshots"]["clean_rows"] = int(len(clean_snapshots))
+
+                if "home_win" in clean_snapshots.columns:
+                    home_win = pd.to_numeric(clean_snapshots["home_win"], errors="coerce")
+                    result["snapshots"]["settled_rows"] = int(home_win.isin([0, 1]).sum())
+                elif "settled_at" in clean_snapshots.columns:
+                    result["snapshots"]["settled_rows"] = int(
+                        clean_snapshots["settled_at"].notna()
+                        & (clean_snapshots["settled_at"].astype(str).str.strip() != "")
+                    )
+        else:
+            result["status"] = _raise_health_status(result["status"], "WARNING")
+            messages.append(f"Prediction snapshots file unavailable: {snapshot_error}")
+
+        market, market_error = _read_csv_safe(MARKET_ODDS_PATH)
+        if market_error is None:
+            result["market_odds_history"]["file_exists"] = True
+            result["market_odds_history"]["stored_rows"] = int(len(market))
+
+            required_market_columns = {"market", "is_closing_snapshot"}
+            if not market.empty and required_market_columns.issubset(set(market.columns)):
+                moneyline_mask = market["market"].astype(str).str.lower() == "moneyline"
+
+                if "pipeline_version" in market.columns:
+                    moneyline_mask = moneyline_mask & (
+                        market["pipeline_version"].astype(str) == CLEAN_PIPELINE_VERSION
+                    )
+
+                moneyline = market[moneyline_mask].copy()
+                result["market_odds_history"]["moneyline_rows"] = int(len(moneyline))
+                result["market_odds_history"]["closing_moneyline_rows"] = int(
+                    _bool_series(moneyline["is_closing_snapshot"]).sum()
+                )
+            elif not market.empty:
+                result["status"] = _raise_health_status(result["status"], "WARNING")
+                messages.append("Market odds file missing market or is_closing_snapshot columns")
+        else:
+            result["status"] = _raise_health_status(result["status"], "WARNING")
+            messages.append(f"Market odds history file unavailable: {market_error}")
+
+    except Exception as exc:
+        result["status"] = "ERROR"
+        messages.append(f"Health calculation error: {exc}")
+        print(f"Health calculation error: {exc}")
+
+    return result
+
+
 def _load_closing_moneyline() -> pd.DataFrame:
     """Load valid closing Moneyline rows from canonical market odds history."""
     required_columns = {
@@ -1421,7 +1918,6 @@ def _moneyline_clv_metrics(clean_snapshot_rows: pd.DataFrame) -> dict[str, Any]:
     if clean_snapshot_rows.empty:
         result["clv_message"] = "No clean snapshots available"
         return result
-
     closing_rows = _load_closing_moneyline()
     if closing_rows.empty:
         return result
