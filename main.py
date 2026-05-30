@@ -1283,6 +1283,14 @@ function renderGames(data) {
       ? "--"
       : formatPercent(prediction.premarket_model_home_prob);
 
+    const blockReason = prediction.recommendation_block_reason || "";
+    const blockDetails = Array.isArray(prediction.recommendation_block_details)
+      ? prediction.recommendation_block_details
+      : [];
+    const blockDetailsText = blockDetails.length
+      ? blockDetails.slice(0, 2).map(escapeText).join(" - ")
+      : "";
+      
     return `
       <article class="game-card${warningClass}">
         <div class="signal ${signalClass(prediction)}">
@@ -1333,6 +1341,11 @@ function renderGames(data) {
               <span class="market-label">Integrity</span>
               <span class="market-value">${escapeText(quality)}</span>
             </div>
+          </div>
+
+          <div class="factors">
+            Recommendation note: ${escapeText(blockReason || "No recommendation note.")}
+            ${blockDetailsText ? `<br>${blockDetailsText}` : ""}
           </div>
 
           <div class="factors">
