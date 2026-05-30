@@ -112,6 +112,12 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Collect daily pregame context snapshots
+        continue-on-error: true
+        run: python scripts/daily_context_collector.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Generate prediction report
         run: python prediction.py
         env:
@@ -123,13 +129,7 @@ jobs:
         run: python scripts/validate_predictions.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-
-      - name: Collect daily pregame context snapshots
-        continue-on-error: true
-        run: python scripts/daily_context_collector.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
+          
       - name: Commit validated outputs
         run: |
           git config --global user.name "github-actions[bot]"
