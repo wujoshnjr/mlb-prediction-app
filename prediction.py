@@ -2132,7 +2132,7 @@ def generate_predictions() -> dict[str, Any]:
             total_recommendation = "NO BET"
             recommendation_status = "TRACKING_ONLY"
 
-              daily_context_summary = build_daily_context_summary(
+        daily_context_summary = build_daily_context_summary(
             game_id,
             daily_context_by_game,
         )
