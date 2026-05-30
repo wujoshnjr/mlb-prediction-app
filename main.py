@@ -828,6 +828,44 @@ a { color:inherit; }
   </section>
 
   <div class="section-heading">
+    <h2>Accuracy diagnostics</h2>
+    <span>Breakdown of settled clean predictions</span>
+  </div>
+
+  <section class="stats">
+    <div class="stat">
+      <div class="stat-label">All Settled</div>
+      <div id="acc-all" class="stat-value neutral">--</div>
+      <div id="acc-all-caption" class="stat-caption">all clean predictions</div>
+    </div>
+    <div class="stat featured">
+      <div class="stat-label">ML Bets</div>
+      <div id="acc-ml-bets" class="stat-value neutral">--</div>
+      <div id="acc-ml-bets-caption" class="stat-caption">paper bet sample</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Home Picks</div>
+      <div id="acc-home" class="stat-value neutral">--</div>
+      <div id="acc-home-caption" class="stat-caption">model home picks</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Away Picks</div>
+      <div id="acc-away" class="stat-value neutral">--</div>
+      <div id="acc-away-caption" class="stat-caption">model away picks</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Favorites</div>
+      <div id="acc-favorites" class="stat-value neutral">--</div>
+      <div id="acc-favorites-caption" class="stat-caption">market favorite picks</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Underdogs</div>
+      <div id="acc-underdogs" class="stat-value neutral">--</div>
+      <div id="acc-underdogs-caption" class="stat-caption">market underdog picks</div>
+    </div>
+  </section>
+  
+  <div class="section-heading">
     <h2>Data health</h2>
     <span>Pipeline reliability and source coverage</span>
   </div>
@@ -1222,6 +1260,64 @@ function renderHealth(data) {
   }
 }
 
+function accuracyText(bucket) {
+  if (!bucket || bucket.accuracy == null) return "--";
+  return formatPercent(bucket.accuracy, 1);
+}
+
+function accuracyCaption(bucket, fallback) {
+  if (!bucket) return fallback;
+  const sampleCount = bucket.sample_count ?? 0;
+  const correct = bucket.correct ?? 0;
+  return `${correct} / ${sampleCount} correct`;
+}
+
+function setAccuracyValue(id, bucket) {
+  const element = document.getElementById(id);
+  if (!element) return;
+
+  element.textContent = accuracyText(bucket);
+  const value = bucket && bucket.accuracy != null ? Number(bucket.accuracy) : null;
+
+  if (value == null) {
+    element.className = "stat-value waiting";
+  } else if (value >= 0.55) {
+    element.className = "stat-value positive";
+  } else if (value < 0.50) {
+    element.className = "stat-value negative";
+  } else {
+    element.className = "stat-value neutral";
+  }
+}
+
+function renderAccuracyDiagnostics(data) {
+  const breakdown = data.accuracy_breakdown || {};
+
+  setAccuracyValue("acc-all", breakdown.all_settled);
+  document.getElementById("acc-all-caption").textContent =
+    accuracyCaption(breakdown.all_settled, "all clean predictions");
+
+  setAccuracyValue("acc-ml-bets", breakdown.moneyline_paper_bets);
+  document.getElementById("acc-ml-bets-caption").textContent =
+    accuracyCaption(breakdown.moneyline_paper_bets, "paper bet sample");
+
+  setAccuracyValue("acc-home", breakdown.home_model_picks);
+  document.getElementById("acc-home-caption").textContent =
+    accuracyCaption(breakdown.home_model_picks, "model home picks");
+
+  setAccuracyValue("acc-away", breakdown.away_model_picks);
+  document.getElementById("acc-away-caption").textContent =
+    accuracyCaption(breakdown.away_model_picks, "model away picks");
+
+  setAccuracyValue("acc-favorites", breakdown.favorites);
+  document.getElementById("acc-favorites-caption").textContent =
+    accuracyCaption(breakdown.favorites, "market favorite picks");
+
+  setAccuracyValue("acc-underdogs", breakdown.underdogs);
+  document.getElementById("acc-underdogs-caption").textContent =
+    accuracyCaption(breakdown.underdogs, "market underdog picks");
+}
+
 function renderPerformance(data) {
   document.getElementById("total").textContent = data.total ?? "--";
 
@@ -1411,9 +1507,11 @@ async function loadDashboard() {
       fetch("/api/health").catch(error => ({ ok: false, healthError: error }))
     ]);
 
-    if (!predictionResponse.ok) {
-      throw new Error(`Predictions API returned ${predictionResponse.status}`);
-    }
+if (performanceResponse.ok) {
+  const performanceData = await performanceResponse.json();
+  renderPerformance(performanceData);
+  renderAccuracyDiagnostics(performanceData);
+}
 
     const predictions = await predictionResponse.json();
     renderGames(predictions);
@@ -2046,6 +2144,188 @@ def _load_closing_moneyline() -> pd.DataFrame:
     return market
 
 
+def _safe_rate(wins: int, total: int) -> float | None:
+    """Return wins / total or None when total is zero."""
+    if total <= 0:
+        return None
+    return float(wins / total)
+
+
+def _accuracy_bucket(sample_count: int, wins: int) -> dict[str, Any]:
+    """Build a compact accuracy bucket."""
+    return {
+        "sample_count": int(sample_count),
+        "correct": int(wins),
+        "accuracy": _safe_rate(wins, sample_count),
+    }
+
+
+def _build_accuracy_breakdown(settled: pd.DataFrame) -> dict[str, Any]:
+    """Return detailed settled prediction accuracy diagnostics.
+
+    This is diagnostic only. It does not change model behavior,
+    betting recommendations, ROI, CLV or snapshot storage.
+    """
+    empty_bucket = {
+        "sample_count": 0,
+        "correct": 0,
+        "accuracy": None,
+    }
+
+    result: dict[str, Any] = {
+        "all_settled": dict(empty_bucket),
+        "moneyline_paper_bets": dict(empty_bucket),
+        "home_model_picks": dict(empty_bucket),
+        "away_model_picks": dict(empty_bucket),
+        "favorites": dict(empty_bucket),
+        "underdogs": dict(empty_bucket),
+        "edge_0_to_1": dict(empty_bucket),
+        "edge_1_to_3": dict(empty_bucket),
+        "edge_3_to_5": dict(empty_bucket),
+        "edge_5_plus": dict(empty_bucket),
+        "notes": [],
+    }
+
+    if settled.empty:
+        result["notes"].append("No settled clean snapshots available.")
+        return result
+
+    frame = settled.copy()
+    frame["home_win"] = pd.to_numeric(frame["home_win"], errors="coerce")
+    frame["displayed_home_win_pct"] = pd.to_numeric(
+        frame["displayed_home_win_pct"],
+        errors="coerce",
+    )
+    frame["market_no_vig_home_prob"] = pd.to_numeric(
+        frame.get("market_no_vig_home_prob"),
+        errors="coerce",
+    )
+    frame["model_edge_home"] = pd.to_numeric(
+        frame.get("model_edge_home"),
+        errors="coerce",
+    )
+
+    scored = frame.dropna(subset=["home_win", "displayed_home_win_pct"]).copy()
+    if scored.empty:
+        result["notes"].append("No settled rows with model probabilities.")
+        return result
+
+    scored["model_pick_side"] = scored["displayed_home_win_pct"].apply(
+        lambda value: "home" if float(value) >= 0.5 else "away"
+    )
+    scored["model_pick_correct"] = (
+        ((scored["model_pick_side"] == "home") & (scored["home_win"] == 1))
+        | ((scored["model_pick_side"] == "away") & (scored["home_win"] == 0))
+    )
+
+    result["all_settled"] = _accuracy_bucket(
+        int(len(scored)),
+        int(scored["model_pick_correct"].sum()),
+    )
+
+    home_picks = scored[scored["model_pick_side"] == "home"]
+    result["home_model_picks"] = _accuracy_bucket(
+        int(len(home_picks)),
+        int(home_picks["model_pick_correct"].sum()),
+    )
+
+    away_picks = scored[scored["model_pick_side"] == "away"]
+    result["away_model_picks"] = _accuracy_bucket(
+        int(len(away_picks)),
+        int(away_picks["model_pick_correct"].sum()),
+    )
+
+    market_scored = scored.dropna(subset=["market_no_vig_home_prob"]).copy()
+    if not market_scored.empty:
+        market_scored["favorite_side"] = market_scored["market_no_vig_home_prob"].apply(
+            lambda value: "home" if float(value) >= 0.5 else "away"
+        )
+        market_scored["model_pick_is_favorite"] = (
+            market_scored["model_pick_side"] == market_scored["favorite_side"]
+        )
+
+        favorite_picks = market_scored[market_scored["model_pick_is_favorite"]]
+        result["favorites"] = _accuracy_bucket(
+            int(len(favorite_picks)),
+            int(favorite_picks["model_pick_correct"].sum()),
+        )
+
+        underdog_picks = market_scored[~market_scored["model_pick_is_favorite"]]
+        result["underdogs"] = _accuracy_bucket(
+            int(len(underdog_picks)),
+            int(underdog_picks["model_pick_correct"].sum()),
+        )
+    else:
+        result["notes"].append("No market probabilities available for favorite split.")
+
+    edge_scored = scored.dropna(subset=["model_edge_home"]).copy()
+    if not edge_scored.empty:
+        edge_scored["abs_edge"] = edge_scored["model_edge_home"].abs()
+
+        edge_buckets = [
+            ("edge_0_to_1", 0.00, 0.01),
+            ("edge_1_to_3", 0.01, 0.03),
+            ("edge_3_to_5", 0.03, 0.05),
+            ("edge_5_plus", 0.05, 999.0),
+        ]
+
+        for key, lower, upper in edge_buckets:
+            if key == "edge_5_plus":
+                bucket = edge_scored[edge_scored["abs_edge"] >= lower]
+            else:
+                bucket = edge_scored[
+                    (edge_scored["abs_edge"] >= lower)
+                    & (edge_scored["abs_edge"] < upper)
+                ]
+
+            result[key] = _accuracy_bucket(
+                int(len(bucket)),
+                int(bucket["model_pick_correct"].sum()),
+            )
+    else:
+        result["notes"].append("No model edge values available for edge buckets.")
+
+    paper_bets = scored[
+        (
+            scored["recommendation_status"]
+            .astype(str)
+            .str.upper()
+            == "PAPER_BET"
+        )
+        & (
+            scored["odds_quality_status"]
+            .astype(str)
+            .str.upper()
+            == "OK"
+        )
+    ].copy()
+
+    paper_correct = 0
+    paper_count = 0
+
+    for _, row in paper_bets.iterrows():
+        side = _recommendation_side(
+            row.get("moneyline_recommendation", ""),
+            row.get("home_team", ""),
+            row.get("away_team", ""),
+        )
+        if side is None:
+            continue
+
+        paper_count += 1
+        if side == "home" and int(row["home_win"]) == 1:
+            paper_correct += 1
+        elif side == "away" and int(row["home_win"]) == 0:
+            paper_correct += 1
+
+    result["moneyline_paper_bets"] = _accuracy_bucket(
+        paper_count,
+        paper_correct,
+    )
+
+    return result
+    
+
 def _moneyline_clv_metrics(clean_snapshot_rows: pd.DataFrame) -> dict[str, Any]:
     """Calculate entry-versus-closing Moneyline CLV for clean paper bets."""
     result: dict[str, Any] = {
@@ -2130,20 +2410,21 @@ def _moneyline_clv_metrics(clean_snapshot_rows: pd.DataFrame) -> dict[str, Any]:
 @app.get("/api/performance")
 def get_performance() -> dict[str, Any]:
     """Return clean forward-tested performance and Moneyline CLV metrics."""
-    result: dict[str, Any] = {
-        "pipeline_version": CLEAN_PIPELINE_VERSION,
-        "clean_sample_count": 0,
-        "total": 0,
-        "roi": None,
-        "win_rate": None,
-        "brier": None,
-        "moneyline_bets": 0,
-        "avg_clv": None,
-        "positive_clv_rate": None,
-        "clv_samples": 0,
-        "clv_message": "Waiting for closing lines",
-        "message": "No settled baseline_v2_clean samples yet",
-    }
+result: dict[str, Any] = {
+    "pipeline_version": CLEAN_PIPELINE_VERSION,
+    "clean_sample_count": 0,
+    "total": 0,
+    "roi": None,
+    "win_rate": None,
+    "brier": None,
+    "moneyline_bets": 0,
+    "avg_clv": None,
+    "positive_clv_rate": None,
+    "clv_samples": 0,
+    "clv_message": "Waiting for closing lines",
+    "accuracy_breakdown": {},
+    "message": "No settled baseline_v2_clean samples yet",
+}
 
     if not SNAPSHOT_PATH.exists():
         return result
@@ -2205,6 +2486,7 @@ def get_performance() -> dict[str, Any]:
         settled["home_win"] = settled["home_win"].astype(int)
         result["clean_sample_count"] = int(len(settled))
         result["total"] = int(len(settled))
+        result["accuracy_breakdown"] = _build_accuracy_breakdown(settled)
 
         settled["displayed_home_win_pct"] = pd.to_numeric(
             settled["displayed_home_win_pct"],
