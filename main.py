@@ -1507,11 +1507,6 @@ async function loadDashboard() {
       fetch("/api/health").catch(error => ({ ok: false, healthError: error }))
     ]);
 
-if (performanceResponse.ok) {
-  const performanceData = await performanceResponse.json();
-  renderPerformance(performanceData);
-  renderAccuracyDiagnostics(performanceData);
-}
 
     const predictions = await predictionResponse.json();
     renderGames(predictions);
@@ -1533,9 +1528,11 @@ if (performanceResponse.ok) {
     document.getElementById("update-time").textContent =
       `Updated in Taipei: ${updated}`;
 
-    if (performanceResponse.ok) {
-      renderPerformance(await performanceResponse.json());
-    }
+if (performanceResponse.ok) {
+  const performanceData = await performanceResponse.json();
+  renderPerformance(performanceData);
+  renderAccuracyDiagnostics(performanceData);
+}
 
     if (healthResponse.ok) {
       renderHealth(await healthResponse.json());
@@ -2410,22 +2407,22 @@ def _moneyline_clv_metrics(clean_snapshot_rows: pd.DataFrame) -> dict[str, Any]:
 @app.get("/api/performance")
 def get_performance() -> dict[str, Any]:
     """Return clean forward-tested performance and Moneyline CLV metrics."""
-result: dict[str, Any] = {
-    "pipeline_version": CLEAN_PIPELINE_VERSION,
-    "clean_sample_count": 0,
-    "total": 0,
-    "roi": None,
-    "win_rate": None,
-    "brier": None,
-    "moneyline_bets": 0,
-    "avg_clv": None,
-    "positive_clv_rate": None,
-    "clv_samples": 0,
-    "clv_message": "Waiting for closing lines",
-    "accuracy_breakdown": {},
-    "message": "No settled baseline_v2_clean samples yet",
-}
-
+    result: dict[str, Any] = {
+        "pipeline_version": CLEAN_PIPELINE_VERSION,
+        "clean_sample_count": 0,
+        "total": 0,
+        "roi": None,
+        "win_rate": None,
+        "brier": None,
+        "moneyline_bets": 0,
+        "avg_clv": None,
+        "positive_clv_rate": None,
+        "clv_samples": 0,
+        "clv_message": "Waiting for closing lines",
+        "accuracy_breakdown": {},
+        "message": "No settled baseline_v2_clean samples yet",
+    }
+    
     if not SNAPSHOT_PATH.exists():
         return result
 
