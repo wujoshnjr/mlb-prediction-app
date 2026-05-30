@@ -637,6 +637,125 @@ def kelly_criterion(
     return max(0.0, raw_fraction * fraction)
 
 
+def build_recommendation_block_reason(
+    *,
+    recommendation_status: str,
+    moneyline_gate_status: str,
+    odds_are_usable: bool,
+    odds_quality_status: str,
+    suspicious_odds_reason: str,
+    market_probability: float | None,
+    model_edge_home: float | None,
+    moneyline_selected_edge: float | None,
+    min_moneyline_edge: float,
+    model_source: str,
+    model_error: str,
+    daily_context_summary: dict[str, Any] | None = None,
+) -> tuple[str, list[str]]:
+    """Explain why a game is or is not a Paper Bet.
+
+    This helper is diagnostic only. It must not change recommendation logic,
+    odds usage, model probabilities, Kelly sizing or snapshot behavior.
+    """
+    details: list[str] = []
+    context = daily_context_summary or {}
+
+    normalized_recommendation_status = str(
+        recommendation_status or ""
+    ).strip().upper()
+    normalized_gate_status = str(moneyline_gate_status or "").strip().upper()
+    normalized_odds_status = str(odds_quality_status or "UNAVAILABLE").strip().upper()
+
+    if normalized_recommendation_status == "PAPER_BET":
+        selected_edge = (
+            moneyline_selected_edge
+            if moneyline_selected_edge is not None
+            else model_edge_home
+        )
+        if selected_edge is not None:
+            details.append(
+                "Selected edge "
+                f"{selected_edge:.1%} passed threshold "
+                f"{min_moneyline_edge:.1%}."
+            )
+        details.append("Odds quality passed.")
+        details.append(f"Model source: {model_source or 'unknown'}.")
+        if context:
+            context_status = context.get("status")
+            if context_status:
+                details.append(f"Pregame context: {context_status}.")
+        return "Paper bet edge passed", details
+
+    if not odds_are_usable:
+        details.append(f"Odds quality status: {normalized_odds_status}.")
+        if suspicious_odds_reason:
+            details.append(str(suspicious_odds_reason))
+        else:
+            details.append("No usable two-way market odds were available.")
+        return "Odds unavailable or failed integrity checks", details
+
+    if market_probability is None:
+        details.append("No valid two-way no-vig market probability was available.")
+        details.append(f"Odds quality status: {normalized_odds_status}.")
+        return "Market probability unavailable", details
+
+    if model_edge_home is None:
+        details.append("Model edge could not be calculated.")
+        details.append(f"Model source: {model_source or 'unknown'}.")
+        if model_error:
+            details.append(f"Model note: {model_error}")
+        return "Model edge unavailable", details
+
+    home_edge = float(model_edge_home)
+    away_edge = -home_edge
+    best_edge = max(home_edge, away_edge)
+
+    if best_edge < min_moneyline_edge:
+        details.append(
+            "Best edge "
+            f"{best_edge:.1%} is below required "
+            f"{min_moneyline_edge:.1%}."
+        )
+        details.append(f"Home edge: {home_edge:.1%}; away edge: {away_edge:.1%}.")
+        details.append(f"Gate status: {normalized_gate_status or 'UNKNOWN'}.")
+        details.append(f"Model source: {model_source or 'unknown'}.")
+        if model_error:
+            details.append(f"Model note: {model_error}")
+        return "Model edge below threshold", details
+
+    if context and context.get("context_ready_for_betting") is False:
+        reason = context.get("context_not_ready_reason")
+        if reason:
+            details.append(str(reason))
+
+        missing = context.get("missing_critical_fields") or []
+        if isinstance(missing, list) and missing:
+            details.append(
+                "Missing context: "
+                + ", ".join(str(item) for item in missing[:5])
+            )
+
+        pitcher_status = context.get("pitcher_status")
+        lineup_status = context.get("lineup_status")
+        bullpen_status = context.get("bullpen_status")
+        if pitcher_status or lineup_status or bullpen_status:
+            details.append(
+                "Context status: "
+                f"pitcher={pitcher_status or 'unknown'}, "
+                f"lineup={lineup_status or 'unknown'}, "
+                f"bullpen={bullpen_status or 'unknown'}."
+            )
+
+        return "Pregame context not ready", details
+
+    details.append(f"Gate status: {normalized_gate_status or 'UNKNOWN'}.")
+    details.append(f"Model source: {model_source or 'unknown'}.")
+    if model_error:
+        details.append(f"Model note: {model_error}")
+
+    return "Tracking only", details
+
+
 def get_season_phase_adjustment(date_str: str, pred_prob: float) -> float:
     month = datetime.strptime(date_str, "%Y-%m-%d").month
     adjustment = 0.0
@@ -2013,6 +2132,28 @@ def generate_predictions() -> dict[str, Any]:
             total_recommendation = "NO BET"
             recommendation_status = "TRACKING_ONLY"
 
+              daily_context_summary = build_daily_context_summary(
+            game_id,
+            daily_context_by_game,
+        )
+
+        recommendation_block_reason, recommendation_block_details = (
+            build_recommendation_block_reason(
+                recommendation_status=recommendation_status,
+                moneyline_gate_status=moneyline_gate_status,
+                odds_are_usable=odds_are_usable,
+                odds_quality_status=odds_quality_status,
+                suspicious_odds_reason=suspicious_odds_reason,
+                market_probability=market_probability,
+                model_edge_home=model_edge_home,
+                moneyline_selected_edge=moneyline_selected_edge,
+                min_moneyline_edge=min_moneyline_edge,
+                model_source=model_source,
+                model_error=model_error,
+                daily_context_summary=daily_context_summary,
+            )
+        )
+        
         prediction_item = {
             "game_id": game_id,
             "game_date": date_str,
@@ -2065,6 +2206,9 @@ def generate_predictions() -> dict[str, Any]:
             "market_adjustment_applied": market_adjustment_applied,
             "recommendation_status": recommendation_status,
             "moneyline_gate_status": moneyline_gate_status,
+            "recommendation_block_reason": recommendation_block_reason,
+            "recommendation_block_details": recommendation_block_details,
+            "daily_context_summary": daily_context_summary,
             "moneyline_edge_threshold": round(min_moneyline_edge, 4),
             "max_kelly_fraction": round(max_kelly_fraction, 4),
             "moneyline_selected_side": moneyline_selected_side,
