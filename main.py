@@ -49,6 +49,7 @@ HISTORY_PATH = Path("data/historical_predictions.csv")
 SNAPSHOT_PATH = Path("data/prediction_snapshots.csv")
 MARKET_ODDS_PATH = Path("data/market_odds_history.csv")
 DAILY_CONTEXT_PATH = Path("data/daily_game_context.csv")
+TRAINING_STATUS_PATH = Path("data/training_status.json")
 CLEAN_PIPELINE_VERSION = "baseline_v2_clean"
 
 
@@ -862,6 +863,11 @@ a { color:inherit; }
       <div id="health-market" class="health-value neutral">--</div>
       <div id="health-market-caption" class="health-caption">closing ML rows</div>
     </div>
+    <div class="health-card">
+      <div class="health-label">Model Readiness</div>
+      <div id="health-training" class="health-value neutral">--</div>
+      <div id="health-training-caption" class="health-caption">training status</div>
+    </div>
   </section>
 
   <section class="policy">
@@ -1104,12 +1110,31 @@ function tagHtml(prediction) {
 }
 
 function signalClass(prediction) {
-  const quality = qualityValue(prediction);
-  if (quality === "SUSPICIOUS") return "bad";
-  if (statusValue(prediction) === "PAPER_BET" && isMoneylineBet(prediction)) {
-    return "bet";
+  const market = data.market_odds_history || {};
+  document.getElementById("health-market").textContent =
+    `${market.stored_rows ?? 0}`;
+  document.getElementById("health-market-caption").textContent =
+    `${market.closing_moneyline_rows ?? 0} closing ML rows`;
+  setHealthCard("health-market", market.file_exists ? "ok" : "warn");
+
+  const training = data.training || {};
+  const sampleCount = Number(training.sample_count || 0);
+  const minimumRequired = Number(training.minimum_required || 0);
+  const remaining = training.remaining_samples;
+
+  document.getElementById("health-training").textContent =
+    minimumRequired > 0 ? `${sampleCount} / ${minimumRequired}` : "--";
+
+  if (training.trained) {
+    document.getElementById("health-training-caption").textContent =
+      `${training.model_type || "model"} ready`;
+    setHealthCard("health-training", "ok");
+  } else {
+    const remainingText = remaining == null ? "training not ready" : `${remaining} more needed`;
+    document.getElementById("health-training-caption").textContent =
+      `Manual baseline active - ${remainingText}`;
+    setHealthCard("health-training", "warn");
   }
-  return "track";
 }
 
 function signalLabel(prediction) {
@@ -1404,6 +1429,16 @@ async function loadDashboard() {
         daily_context: {file_exists: false, latest_context_count: 0, ready_context_count: 0},
         snapshots: {file_exists: false, stored_rows: 0, clean_rows: 0, settled_rows: 0},
         market_odds_history: {file_exists: false, stored_rows: 0, closing_moneyline_rows: 0},
+        training: {
+          file_exists: false,
+          trained: false,
+          skipped: false,
+          sample_count: 0,
+          minimum_required: 0,
+          remaining_samples: null,
+          model_type: "",
+          reason: ""
+        },
         messages: ["Health API failed"]
       });
     }
@@ -1582,6 +1617,22 @@ def _read_prediction_report_safe() -> tuple[dict[str, Any] | None, str | None]:
 
     return payload, None
 
+def _read_json_safe(path: Path) -> tuple[dict[str, Any], str | None]:
+    """Read a JSON object without raising to API callers."""
+    if not path.exists():
+        return {}, "missing"
+
+    try:
+        with path.open("r", encoding="utf-8") as file_obj:
+            payload = json.load(file_obj)
+    except Exception as exc:
+        return {}, str(exc)
+
+    if not isinstance(payload, dict):
+        return {}, "json payload is not an object"
+
+    return payload, None
+
 
 def _status_priority(value: str) -> int:
     """Return severity rank for OK/WARNING/ERROR."""
@@ -1664,6 +1715,18 @@ def get_health() -> dict[str, Any]:
             "stored_rows": 0,
             "moneyline_rows": 0,
             "closing_moneyline_rows": 0,
+        },
+        "training": {
+            "file_exists": False,
+            "trained": False,
+            "skipped": False,
+            "sample_count": 0,
+            "minimum_required": 0,
+            "remaining_samples": None,
+            "model_type": "",
+            "training_source": "",
+            "reason": "",
+            "timestamp": "",
         },
         "messages": [],
     }
@@ -1869,6 +1932,49 @@ def get_health() -> dict[str, Any]:
         else:
             result["status"] = _raise_health_status(result["status"], "WARNING")
             messages.append(f"Market odds history file unavailable: {market_error}")
+
+        training_status, training_error = _read_json_safe(TRAINING_STATUS_PATH)
+        if training_error is None:
+            result["training"]["file_exists"] = True
+            result["training"]["trained"] = bool(training_status.get("trained", False))
+            result["training"]["skipped"] = bool(training_status.get("skipped", False))
+            result["training"]["model_type"] = str(training_status.get("model_type", ""))
+            result["training"]["training_source"] = str(
+                training_status.get("training_source", "")
+            )
+            result["training"]["reason"] = str(training_status.get("reason", ""))
+            result["training"]["timestamp"] = str(training_status.get("timestamp", ""))
+
+            try:
+                sample_count = int(training_status.get("sample_count", 0) or 0)
+            except (TypeError, ValueError):
+                sample_count = 0
+
+            try:
+                minimum_required = int(
+                    training_status.get("minimum_clean_train_samples", 0) or 0
+                )
+            except (TypeError, ValueError):
+                minimum_required = 0
+
+            result["training"]["sample_count"] = sample_count
+            result["training"]["minimum_required"] = minimum_required
+
+            if minimum_required > 0:
+                result["training"]["remaining_samples"] = max(
+                    minimum_required - sample_count,
+                    0,
+                )
+
+            if not result["training"]["trained"]:
+                result["status"] = _raise_health_status(result["status"], "WARNING")
+                messages.append(
+                    "ML model not trained yet: "
+                    + (result["training"]["reason"] or "training not ready")
+                )
+        else:
+            result["status"] = _raise_health_status(result["status"], "WARNING")
+            messages.append(f"Training status file unavailable: {training_error}")
 
     except Exception as exc:
         result["status"] = "ERROR"
