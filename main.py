@@ -1507,6 +1507,9 @@ async function loadDashboard() {
       fetch("/api/health").catch(error => ({ ok: false, healthError: error }))
     ]);
 
+    if (!predictionResponse.ok) {
+      throw new Error(`Predictions API returned ${predictionResponse.status}`);
+    }
 
     const predictions = await predictionResponse.json();
     renderGames(predictions);
