@@ -103,6 +103,7 @@ HISTORY_FILE = Path("data/historical_predictions.csv")
 HISTORICAL_DIR = Path("data/historical")
 LAST_GAME_FILE = Path("data/team_last_game.json")
 MODEL_FILE = Path("data/calibrator.pkl")
+DAILY_CONTEXT_FILE = Path("data/daily_game_context.csv")
 
 TEAM_NAME_MAP = {
     "Arizona Diamondbacks": "D-backs",
@@ -264,6 +265,341 @@ def as_int(value: Any, default: int = 0) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def is_missing_value(value: Any) -> bool:
+    """Return True when a scalar report value should be treated as missing."""
+    if value is None:
+        return True
+
+    if isinstance(value, str):
+        return value.strip() == ""
+
+    try:
+        missing = pd.isna(value)
+        if isinstance(missing, bool):
+            return missing
+    except (TypeError, ValueError):
+        pass
+
+    return False
+
+
+def as_optional_float(value: Any) -> float | None:
+    """Return a float or None without converting missing values to zero."""
+    if is_missing_value(value):
+        return None
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def as_optional_bool(value: Any) -> bool | None:
+    """Normalize optional bool values stored in CSV or pandas rows."""
+    if is_missing_value(value):
+        return None
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes"}:
+            return True
+        if normalized in {"false", "0", "no"}:
+            return False
+        return None
+
+    try:
+        if value == 1:
+            return True
+        if value == 0:
+            return False
+    except Exception:
+        return None
+
+    return None
+
+
+def parse_json_list(value: Any) -> list[Any]:
+    """Parse a JSON list value safely."""
+    if is_missing_value(value):
+        return []
+
+    if isinstance(value, list):
+        return value
+
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, list) else []
+        except (TypeError, ValueError):
+            return []
+
+    return []
+
+
+def latest_daily_context_by_game(
+    errors: list[str],
+) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
+    """Load the latest pregame daily context snapshot for each game."""
+    summary: dict[str, Any] = {
+        "status": "unavailable",
+        "file": str(DAILY_CONTEXT_FILE),
+        "stored_rows": 0,
+        "latest_context_count": 0,
+        "ready_context_count": 0,
+        "errors": [],
+    }
+
+    if not DAILY_CONTEXT_FILE.exists():
+        summary["reason"] = "daily_context_file_missing"
+        return {}, summary
+
+    try:
+        frame = pd.read_csv(DAILY_CONTEXT_FILE)
+    except Exception as exc:
+        message = f"Unable to read daily context file: {exc}"
+        errors.append(message)
+        summary["status"] = "failed"
+        summary["errors"].append(message)
+        return {}, summary
+
+    if frame.empty:
+        summary["status"] = "empty"
+        return {}, summary
+
+    summary["stored_rows"] = int(len(frame))
+
+    if "game_id" not in frame.columns or "captured_at" not in frame.columns:
+        message = "Daily context file missing game_id or captured_at."
+        errors.append(message)
+        summary["status"] = "failed"
+        summary["errors"].append(message)
+        return {}, summary
+
+    frame = frame.copy()
+    frame["game_id"] = frame["game_id"].astype(str)
+
+    if "is_pregame" in frame.columns:
+        frame = frame[
+            frame["is_pregame"].apply(as_optional_bool) == True
+        ]
+
+    frame["captured_at_parsed"] = pd.to_datetime(
+        frame["captured_at"],
+        errors="coerce",
+        utc=True,
+    )
+    frame = frame.dropna(subset=["captured_at_parsed"])
+
+    if frame.empty:
+        summary["status"] = "empty_after_filter"
+        return {}, summary
+
+    frame.sort_values("captured_at_parsed", inplace=True)
+    latest = frame.groupby("game_id", as_index=False).tail(1)
+
+    context_by_game: dict[str, dict[str, Any]] = {
+        str(row["game_id"]): row.to_dict()
+        for _, row in latest.iterrows()
+    }
+
+    ready_count = 0
+    if "context_ready_for_betting" in latest.columns:
+        ready_count = int(
+            latest["context_ready_for_betting"]
+            .apply(as_optional_bool)
+            .fillna(False)
+            .sum()
+        )
+
+    summary.update(
+        {
+            "status": "completed",
+            "latest_context_count": int(len(context_by_game)),
+            "ready_context_count": ready_count,
+        }
+    )
+
+    return context_by_game, summary
+
+
+def build_daily_context_summary(
+    game_id: Any,
+    context_by_game: dict[str, dict[str, Any]],
+) -> dict[str, Any]:
+    """Build a compact context status block for one prediction item."""
+    row = context_by_game.get(str(game_id))
+
+    if row is None:
+        return {
+            "status": "CONTEXT_UNAVAILABLE",
+            "context_ready_for_betting": False,
+            "data_completeness_score": None,
+            "captured_at": None,
+            "missing_critical_fields": [],
+            "pitcher_status": "missing",
+            "lineup_status": "missing",
+            "bullpen_status": "missing",
+            "closer_status": "unknown",
+            "signal_status": "tracking_only_no_context",
+        }
+
+    home_sp_confirmed = as_optional_bool(
+        row.get("home_starting_pitcher_confirmed")
+    )
+    away_sp_confirmed = as_optional_bool(
+        row.get("away_starting_pitcher_confirmed")
+    )
+    home_lineup_confirmed = as_optional_bool(
+        row.get("home_lineup_confirmed")
+    )
+    away_lineup_confirmed = as_optional_bool(
+        row.get("away_lineup_confirmed")
+    )
+    home_bullpen_available = as_optional_bool(
+        row.get("home_bullpen_data_available")
+    )
+    away_bullpen_available = as_optional_bool(
+        row.get("away_bullpen_data_available")
+    )
+    home_closer_known = not is_missing_value(row.get("home_closer_available"))
+    away_closer_known = not is_missing_value(row.get("away_closer_available"))
+
+    context_ready = as_optional_bool(
+        row.get("context_ready_for_betting")
+    ) is True
+
+    home_lineup_count = len(
+        parse_json_list(row.get("home_lineup_player_ids_json"))
+    )
+    away_lineup_count = len(
+        parse_json_list(row.get("away_lineup_player_ids_json"))
+    )
+
+    if home_sp_confirmed is True and away_sp_confirmed is True:
+        pitcher_status = "confirmed"
+    elif (
+        not is_missing_value(row.get("home_probable_pitcher_id"))
+        or not is_missing_value(row.get("away_probable_pitcher_id"))
+    ):
+        pitcher_status = "probable_only"
+    else:
+        pitcher_status = "missing"
+
+    if home_lineup_confirmed is True and away_lineup_confirmed is True:
+        lineup_status = "confirmed"
+    elif home_lineup_confirmed is True or away_lineup_confirmed is True:
+        lineup_status = "partial"
+    else:
+        lineup_status = "pending"
+
+    if home_bullpen_available is True and away_bullpen_available is True:
+        bullpen_status = "available"
+    elif home_bullpen_available is True or away_bullpen_available is True:
+        bullpen_status = "partial"
+    else:
+        bullpen_status = "missing"
+
+    closer_status = (
+        "known"
+        if home_closer_known and away_closer_known
+        else "unknown"
+    )
+
+    missing_critical_fields = parse_json_list(
+        row.get("missing_critical_fields_json")
+    )
+
+    return {
+        "status": (
+            "READY_FOR_BETTING"
+            if context_ready
+            else "TRACKING_ONLY_CONTEXT_NOT_READY"
+        ),
+        "context_snapshot_id": row.get("context_snapshot_id"),
+        "captured_at": row.get("captured_at"),
+        "data_completeness_score": as_optional_float(
+            row.get("data_completeness_score")
+        ),
+        "context_ready_for_betting": context_ready,
+        "context_not_ready_reason": row.get("context_not_ready_reason"),
+        "missing_critical_fields": missing_critical_fields,
+        "pitcher_status": pitcher_status,
+        "lineup_status": lineup_status,
+        "bullpen_status": bullpen_status,
+        "closer_status": closer_status,
+        "signal_status": (
+            "eligible_context"
+            if context_ready
+            else "tracking_only_context_incomplete"
+        ),
+        "home_probable_pitcher_id": row.get("home_probable_pitcher_id"),
+        "home_probable_pitcher_name": row.get(
+            "home_probable_pitcher_name"
+        ),
+        "away_probable_pitcher_id": row.get("away_probable_pitcher_id"),
+        "away_probable_pitcher_name": row.get(
+            "away_probable_pitcher_name"
+        ),
+        "home_lineup_confirmed": home_lineup_confirmed,
+        "away_lineup_confirmed": away_lineup_confirmed,
+        "home_lineup_player_count": home_lineup_count,
+        "away_lineup_player_count": away_lineup_count,
+        "home_bullpen_data_available": home_bullpen_available,
+        "away_bullpen_data_available": away_bullpen_available,
+        "home_bullpen_pitches_last_1d": as_optional_float(
+            row.get("home_bullpen_pitches_last_1d")
+        ),
+        "away_bullpen_pitches_last_1d": as_optional_float(
+            row.get("away_bullpen_pitches_last_1d")
+        ),
+        "home_bullpen_pitches_last_3d": as_optional_float(
+            row.get("home_bullpen_pitches_last_3d")
+        ),
+        "away_bullpen_pitches_last_3d": as_optional_float(
+            row.get("away_bullpen_pitches_last_3d")
+        ),
+        "home_bullpen_fatigue_score": as_optional_float(
+            row.get("home_bullpen_fatigue_score")
+        ),
+        "away_bullpen_fatigue_score": as_optional_float(
+            row.get("away_bullpen_fatigue_score")
+        ),
+    }
+
+
+def summarize_prediction_context(
+    predictions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Summarize daily context availability across prediction rows."""
+    total = len(predictions)
+    with_context = 0
+    ready = 0
+    bullpen_available = 0
+    lineup_confirmed = 0
+
+    for item in predictions:
+        summary = item.get("daily_context_summary", {})
+        if summary.get("status") != "CONTEXT_UNAVAILABLE":
+            with_context += 1
+        if summary.get("context_ready_for_betting") is True:
+            ready += 1
+        if summary.get("bullpen_status") == "available":
+            bullpen_available += 1
+        if summary.get("lineup_status") == "confirmed":
+            lineup_confirmed += 1
+
+    return {
+        "prediction_count": total,
+        "with_context_count": with_context,
+        "ready_context_count": ready,
+        "bullpen_available_count": bullpen_available,
+        "confirmed_lineup_context_count": lineup_confirmed,
+    }
 
 
 def compute_market_no_vig_home_prob(
