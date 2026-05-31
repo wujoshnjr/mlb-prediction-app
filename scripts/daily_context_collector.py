@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -15,6 +16,7 @@ from scripts.lineup_client import fetch_confirmed_lineups
 from scripts.mlb_game_feed_client import fetch_mlb_game_feed_contexts
 from scripts.pitcher_client import fetch_probable_pitchers
 
+DAILY_CONTEXT_COLLECTION_REPORT = Path("report/daily_context_collection_report.json")
 
 def _utc_now_iso() -> str:
     """Return the current UTC timestamp ending in Z."""
@@ -450,14 +452,35 @@ def collect_daily_context(
 
     append_summary = append_context_snapshots(contexts)
 
-    return {
+    sample_context_keys = sorted(contexts[0].keys()) if contexts else []
+    sample_context = contexts[0] if contexts else {}
+
+    summary = {
         "date": date_str,
         "captured_at": captured_at,
         "games_received": int(len(pitcher_frame)),
+        "game_feed_rows_received": int(len(game_feed_frame)),
         "context_rows_built": int(len(contexts)),
+        "sample_context_keys": sample_context_keys,
+        "sample_game_feed_available": sample_context.get("game_feed_available"),
+        "sample_game_feed_error": sample_context.get("game_feed_error"),
+        "sample_home_lineup_player_count": sample_context.get(
+            "home_lineup_player_count"
+        ),
+        "sample_home_top3_player_ids": sample_context.get("home_top3_player_ids"),
         "append_summary": append_summary,
         "errors": list(error_sink),
     }
+
+    try:
+        DAILY_CONTEXT_COLLECTION_REPORT.parent.mkdir(parents=True, exist_ok=True)
+        with DAILY_CONTEXT_COLLECTION_REPORT.open("w", encoding="utf-8") as file_obj:
+            json.dump(summary, file_obj, ensure_ascii=False, indent=2, default=str)
+    except Exception as exc:
+        error_sink.append(f"Failed to write daily context report: {exc}")
+        summary["errors"] = list(error_sink)
+
+    return summary
 
 
 def main() -> None:
