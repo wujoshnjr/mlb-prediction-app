@@ -108,6 +108,43 @@ def _record_by_key(
     return lookup
 
 
+def _merge_lineup_frames(
+    primary_frame: pd.DataFrame,
+    fallback_frame: pd.DataFrame,
+) -> pd.DataFrame:
+    """Merge primary lineup rows with API-Sports fallback rows.
+
+    Primary lineup rows keep priority. Fallback rows are used only when the
+    primary source has no usable lineup for a game_id.
+    """
+    if primary_frame is None or primary_frame.empty:
+        if fallback_frame is None:
+            return pd.DataFrame()
+        return fallback_frame.copy()
+
+    if fallback_frame is None or fallback_frame.empty:
+        return primary_frame.copy()
+
+    primary = primary_frame.copy()
+    fallback = fallback_frame.copy()
+
+    if "game_id" not in primary.columns:
+        return fallback.copy()
+
+    if "game_id" not in fallback.columns:
+        return primary.copy()
+
+    primary_game_ids = set(primary["game_id"].astype(str))
+    fallback = fallback[
+        ~fallback["game_id"].astype(str).isin(primary_game_ids)
+    ].copy()
+
+    if fallback.empty:
+        return primary
+
+    return pd.concat([primary, fallback], ignore_index=True, sort=False)
+
+
 def _build_data_sources(
     *,
     pitcher_row: Dict[str, Any],
@@ -289,13 +326,25 @@ def _build_context_for_game(
             else game_feed_row.get("away_batting_order_ids", "")
         ),
         "home_lineup_player_count": _optional_value(
-            game_feed_row.get("home_lineup_player_count")
+            lineup_row.get("home_lineup_player_count")
+            if not _is_missing(lineup_row.get("home_lineup_player_count"))
+            else game_feed_row.get("home_lineup_player_count")
         ),
         "away_lineup_player_count": _optional_value(
-            game_feed_row.get("away_lineup_player_count")
+            lineup_row.get("away_lineup_player_count")
+            if not _is_missing(lineup_row.get("away_lineup_player_count"))
+            else game_feed_row.get("away_lineup_player_count")
         ),
-        "home_top3_player_ids": game_feed_row.get("home_top3_player_ids", ""),
-        "away_top3_player_ids": game_feed_row.get("away_top3_player_ids", ""),
+        "home_top3_player_ids": (
+            lineup_row.get("home_top3_player_ids")
+            if not _is_missing(lineup_row.get("home_top3_player_ids"))
+            else game_feed_row.get("home_top3_player_ids", "")
+        ),
+        "away_top3_player_ids": (
+            lineup_row.get("away_top3_player_ids")
+            if not _is_missing(lineup_row.get("away_top3_player_ids"))
+            else game_feed_row.get("away_top3_player_ids", "")
+        ),
         "home_catcher_id": _optional_value(game_feed_row.get("home_catcher_id")),
         "away_catcher_id": _optional_value(game_feed_row.get("away_catcher_id")),
         "home_catcher_name": game_feed_row.get("home_catcher_name", ""),
