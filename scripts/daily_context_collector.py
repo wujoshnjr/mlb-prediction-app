@@ -465,6 +465,8 @@ def collect_daily_context(
         "date": date_str,
         "captured_at": captured_at,
         "games_received": int(len(pitcher_frame)),
+        "lineup_rows_received": int(len(lineup_frame)),
+        "apisports_lineup_rows_received": int(len(apisports_lineup_frame)),
         "game_feed_rows_received": int(len(game_feed_frame)),
         "context_rows_built": int(len(contexts)),
         "sample_context_keys": sample_context_keys,
