@@ -1190,8 +1190,8 @@ function setHealthCard(id, mode) {
   if (mode) card.classList.add(mode);
 }
 
-function renderHealth(data) {
-  const status = String(data.status || "ERROR").toUpperCase();
+function renderHealth(healthData) {
+  const status = String(healthData.status || "ERROR").toUpperCase();
   const statusEl = document.getElementById("health-status");
   const captionEl = document.getElementById("health-status-caption");
 
@@ -1201,15 +1201,15 @@ function renderHealth(data) {
   }`;
   setHealthCard("health-status", status === "OK" ? "ok" : status === "WARNING" ? "warn" : "bad");
 
-  const messages = Array.isArray(data.messages) ? data.messages : [];
+  const messages = Array.isArray(data.messages) ? healthData.messages : [];
   captionEl.textContent = messages.length ? messages.slice(0, 2).join(" | ") : "pipeline checks passed";
 
   document.getElementById("health-predictions").textContent =
-    data.prediction_count ?? "--";
+    healthData.prediction_count ?? "--";
   document.getElementById("health-predictions-caption").textContent =
-    `${data.scheduled_game_count ?? 0} scheduled games`;
+    `${healthData.scheduled_game_count ?? 0} scheduled games`;
 
-  const odds = data.odds || {};
+  const odds = healthData.odds || {};
   document.getElementById("health-odds").textContent =
     `${odds.ok ?? 0} / ${odds.suspicious ?? 0} / ${odds.unavailable ?? 0}`;
   setHealthCard(
@@ -1217,28 +1217,28 @@ function renderHealth(data) {
     (odds.suspicious || odds.unavailable || odds.missing) ? "warn" : "ok"
   );
 
-  const context = data.daily_context || {};
+  const context = healthData.daily_context || {};
   document.getElementById("health-context").textContent =
     `${context.ready_context_count ?? 0}`;
   document.getElementById("health-context-caption").textContent =
     `${context.latest_context_count ?? 0} latest context rows`;
   setHealthCard("health-context", context.file_exists ? "ok" : "warn");
 
-  const snapshots = data.snapshots || {};
+  const snapshots = healthData.snapshots || {};
   document.getElementById("health-snapshots").textContent =
     `${snapshots.clean_rows ?? 0} / ${snapshots.settled_rows ?? 0}`;
   document.getElementById("health-snapshots-caption").textContent =
     `${snapshots.stored_rows ?? 0} stored rows`;
   setHealthCard("health-snapshots", snapshots.file_exists ? "ok" : "warn");
 
-  const market = data.market_odds_history || {};
+  const market = healthData.market_odds_history || {};
   document.getElementById("health-market").textContent =
     `${market.stored_rows ?? 0}`;
   document.getElementById("health-market-caption").textContent =
     `${market.closing_moneyline_rows ?? 0} closing ML rows`;
   setHealthCard("health-market", market.file_exists ? "ok" : "warn");
 
-  const training = data.training || {};
+  const training = healthData.training || {};
   const sampleCount = Number(training.sample_count || 0);
   const minimumRequired = Number(training.minimum_required || 0);
   const remaining = training.remaining_samples;
@@ -1290,8 +1290,8 @@ function setAccuracyValue(id, bucket) {
   }
 }
 
-function renderAccuracyDiagnostics(data) {
-  const breakdown = data.accuracy_breakdown || {};
+function renderAccuracyDiagnostics(performanceData) {
+  const breakdown = performanceData.accuracy_breakdown || {};
 
   setAccuracyValue("acc-all", breakdown.all_settled);
   document.getElementById("acc-all-caption").textContent =
@@ -1318,11 +1318,11 @@ function renderAccuracyDiagnostics(data) {
     accuracyCaption(breakdown.underdogs, "market underdog picks");
 }
 
-function renderPerformance(data) {
-  document.getElementById("total").textContent = data.total ?? "--";
+function renderPerformance(performanceData) {
+  document.getElementById("total").textContent = performanceData.total ?? "--";
 
   const roi = document.getElementById("roi");
-  if (data.roi == null) {
+  if (performanceData.roi == null) {
     roi.textContent = "No bets";
     roi.className = "stat-value waiting";
   } else {
@@ -1331,19 +1331,19 @@ function renderPerformance(data) {
   }
 
   document.getElementById("roi-caption").textContent =
-    `${data.moneyline_bets || 0} settled ML bets`;
+    `${performanceData.moneyline_bets || 0} settled ML bets`;
 
   const winRate = document.getElementById("win-rate");
-  if (data.win_rate == null) {
+  if (performanceData.win_rate == null) {
     winRate.textContent = "--";
     winRate.className = "stat-value waiting";
   } else {
-    winRate.textContent = formatPercent(data.win_rate);
+    winRate.textContent = formatPercent(performanceData.win_rate);
     winRate.className = "stat-value neutral";
   }
 
   const brier = document.getElementById("brier");
-  if (data.brier == null) {
+  if (performanceData.brier == null) {
     brier.textContent = "--";
     brier.className = "stat-value waiting";
   } else {
@@ -1354,28 +1354,28 @@ function renderPerformance(data) {
   const avgClv = document.getElementById("avg-clv");
   const positiveClv = document.getElementById("positive-clv");
 
-  if (data.avg_clv == null) {
+  if (performanceData.avg_clv == null) {
     avgClv.textContent = "Waiting";
     avgClv.className = "stat-value waiting";
     positiveClv.textContent = "--";
     positiveClv.className = "stat-value waiting";
     document.getElementById("clv-caption").textContent =
-      data.clv_message || "closing lines pending";
+      performanceData.clv_message || "closing lines pending";
   } else {
     avgClv.textContent = formatPercent(data.avg_clv, 2, true);
     avgClv.className = `stat-value ${data.avg_clv >= 0 ? "positive" : "negative"}`;
     positiveClv.textContent = formatPercent(data.positive_clv_rate);
-    positiveClv.className = `stat-value ${data.positive_clv_rate >= 0.5 ? "positive" : "negative"}`;
+    positiveClv.className = `stat-value ${performanceData.positive_clv_rate >= 0.5 ? "positive" : "negative"}`;
     document.getElementById("clv-caption").textContent =
-      `${data.clv_samples || 0} entry vs close samples`;
+      `${performanceData.clv_samples || 0} entry vs close samples`;
   }
 
   document.getElementById("positive-clv-caption").textContent =
     `${data.clv_samples || 0} CLV samples`;
 }
 
-function renderGames(data) {
-  const rows = data.today_predictions || [];
+function renderGames(predictionData) {
+  const rows = predictionData.today_predictions || [];
   const target = document.getElementById("games");
   const messages = [];
 
@@ -1386,7 +1386,7 @@ function renderGames(data) {
 
   const suspiciousCount = rows.filter(row => qualityValue(row) === "SUSPICIOUS").length;
   const trackingCount = rows.filter(row => statusValue(row) === "TRACKING_ONLY").length;
-  const errors = data.errors || [];
+  const errors = predictionData.errors || [];
 
   if (suspiciousCount) {
     messages.push(
@@ -1500,21 +1500,21 @@ function renderGames(data) {
 }
 
 async function loadDashboard() {
-  try {
-    const [predictionResponse, performanceResponse, healthResponse] = await Promise.all([
-      fetch("/api/predictions"),
-      fetch("/api/performance"),
-      fetch("/api/health").catch(error => ({ ok: false, healthError: error }))
-    ]);
+  let predictionData = null;
+  let performanceData = null;
+  let healthData = null;
+  const dashboardMessages = [];
 
+  try {
+    const predictionResponse = await fetch("/api/predictions");
     if (!predictionResponse.ok) {
       throw new Error(`Predictions API returned ${predictionResponse.status}`);
     }
 
-    const predictions = await predictionResponse.json();
-    renderGames(predictions);
+    predictionData = await predictionResponse.json();
+    renderGames(predictionData);
 
-    const generatedAt = parseUtcTimestamp(predictions.generated_at);
+    const generatedAt = parseUtcTimestamp(predictionData.generated_at);
     const updated = generatedAt
       ? generatedAt.toLocaleString("zh-TW", {
           timeZone: "Asia/Taipei",
@@ -1530,40 +1530,64 @@ async function loadDashboard() {
 
     document.getElementById("update-time").textContent =
       `Updated in Taipei: ${updated}`;
+  } catch (error) {
+    dashboardMessages.push(
+      `<div class="message bad">Predictions load failed: ${escapeText(error.message)}</div>`
+    );
+  }
 
-    if (performanceResponse.ok) {
-    const performanceData = await performanceResponse.json();
+  try {
+    const performanceResponse = await fetch("/api/performance");
+    if (!performanceResponse.ok) {
+      throw new Error(`Performance API returned ${performanceResponse.status}`);
+    }
+
+    performanceData = await performanceResponse.json();
     renderPerformance(performanceData);
     renderAccuracyDiagnostics(performanceData);
+  } catch (error) {
+    dashboardMessages.push(
+      `<div class="message bad">Performance load failed: ${escapeText(error.message)}</div>`
+    );
+  }
+
+  try {
+    const healthResponse = await fetch("/api/health");
+    if (!healthResponse.ok) {
+      throw new Error(`Health API returned ${healthResponse.status}`);
     }
 
-    if (healthResponse.ok) {
-      renderHealth(await healthResponse.json());
-    } else {
-      renderHealth({
-        status: "ERROR",
-        prediction_count: 0,
-        scheduled_game_count: 0,
-        odds: {ok: 0, suspicious: 0, unavailable: 0, missing: 0},
-        daily_context: {file_exists: false, latest_context_count: 0, ready_context_count: 0},
-        snapshots: {file_exists: false, stored_rows: 0, clean_rows: 0, settled_rows: 0},
-        market_odds_history: {file_exists: false, stored_rows: 0, closing_moneyline_rows: 0},
-        training: {
-          file_exists: false,
-          trained: false,
-          skipped: false,
-          sample_count: 0,
-          minimum_required: 0,
-          remaining_samples: null,
-          model_type: "",
-          reason: ""
-        },
-        messages: ["Health API failed"]
-      });
-    }
+    healthData = await healthResponse.json();
+    renderHealth(healthData);
   } catch (error) {
-    document.getElementById("messages").innerHTML =
-      `<div class="message bad">Dashboard load failed: ${escapeText(error.message)}</div>`;
+    renderHealth({
+      status: "ERROR",
+      prediction_count: 0,
+      scheduled_game_count: 0,
+      odds: {ok: 0, suspicious: 0, unavailable: 0, missing: 0},
+      daily_context: {file_exists: false, latest_context_count: 0, ready_context_count: 0},
+      snapshots: {file_exists: false, stored_rows: 0, clean_rows: 0, settled_rows: 0},
+      market_odds_history: {file_exists: false, stored_rows: 0, closing_moneyline_rows: 0},
+      training: {
+        file_exists: false,
+        trained: false,
+        skipped: false,
+        sample_count: 0,
+        minimum_required: 0,
+        remaining_samples: null,
+        model_type: "",
+        reason: ""
+      },
+      messages: ["Health API failed"]
+    });
+
+    dashboardMessages.push(
+      `<div class="message bad">Health load failed: ${escapeText(error.message)}</div>`
+    );
+  }
+
+  if (dashboardMessages.length) {
+    document.getElementById("messages").innerHTML = dashboardMessages.join("");
   }
 }
 
