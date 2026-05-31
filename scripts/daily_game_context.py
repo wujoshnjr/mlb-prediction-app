@@ -28,6 +28,10 @@ COLUMNS = [
     "home_probable_pitcher_name",
     "away_probable_pitcher_id",
     "away_probable_pitcher_name",
+    "home_starting_pitcher_id",
+    "away_starting_pitcher_id",
+    "home_starting_pitcher_name",
+    "away_starting_pitcher_name",
     "home_starting_pitcher_confirmed",
     "away_starting_pitcher_confirmed",
     "starting_pitchers_ready",
@@ -50,6 +54,14 @@ COLUMNS = [
     "lineups_ready",
     "home_lineup_player_ids_json",
     "away_lineup_player_ids_json",
+    "home_lineup_player_count",
+    "away_lineup_player_count",
+    "home_top3_player_ids",
+    "away_top3_player_ids",
+    "home_catcher_id",
+    "away_catcher_id",
+    "home_catcher_name",
+    "away_catcher_name",
     "home_confirmed_lineup_xwoba",
     "away_confirmed_lineup_xwoba",
     "home_lineup_ops_vs_hand",
@@ -77,6 +89,17 @@ COLUMNS = [
     "away_extra_innings_previous_game",
     "weather_data_available",
     "park_factor_available",
+    "venue_id",
+    "venue_name",
+    "weather_temp",
+    "weather_condition",
+    "wind_speed",
+    "wind_direction",
+    "umpire_home_plate_id",
+    "umpire_home_plate_name",
+    "game_feed_available",
+    "game_feed_error",
+    "game_feed_captured_at",
     "context_data_sources_json",
     "missing_critical_fields_json",
     "data_completeness_score",
@@ -97,6 +120,7 @@ SOURCE_BOOL_FIELDS = [
     "away_extra_innings_previous_game",
     "weather_data_available",
     "park_factor_available",
+    "game_feed_available",
 ]
 
 DERIVED_BOOL_FIELDS = [
@@ -487,6 +511,16 @@ def build_context_snapshot_row(context: Dict[str, Any]) -> Dict[str, Any]:
             "away_probable_pitcher_name",
             "",
         ),
+        "home_starting_pitcher_id": context.get("home_starting_pitcher_id"),
+        "away_starting_pitcher_id": context.get("away_starting_pitcher_id"),
+        "home_starting_pitcher_name": context.get(
+            "home_starting_pitcher_name",
+            "",
+        ),
+        "away_starting_pitcher_name": context.get(
+            "away_starting_pitcher_name",
+            "",
+        ),
         "home_starting_pitcher_confirmed": source_booleans[
             "home_starting_pitcher_confirmed"
         ],
@@ -537,6 +571,14 @@ def build_context_snapshot_row(context: Dict[str, Any]) -> Dict[str, Any]:
         "away_lineup_player_ids_json": _safe_json_dumps(
             context.get("away_lineup_player_ids_json")
         ),
+        "home_lineup_player_count": context.get("home_lineup_player_count"),
+        "away_lineup_player_count": context.get("away_lineup_player_count"),
+        "home_top3_player_ids": context.get("home_top3_player_ids", ""),
+        "away_top3_player_ids": context.get("away_top3_player_ids", ""),
+        "home_catcher_id": context.get("home_catcher_id"),
+        "away_catcher_id": context.get("away_catcher_id"),
+        "home_catcher_name": context.get("home_catcher_name", ""),
+        "away_catcher_name": context.get("away_catcher_name", ""),
         "home_confirmed_lineup_xwoba": context.get(
             "home_confirmed_lineup_xwoba"
         ),
@@ -616,6 +658,20 @@ def build_context_snapshot_row(context: Dict[str, Any]) -> Dict[str, Any]:
         "park_factor_available": source_booleans[
             "park_factor_available"
         ],
+        "venue_id": context.get("venue_id"),
+        "venue_name": context.get("venue_name", ""),
+        "weather_temp": context.get("weather_temp"),
+        "weather_condition": context.get("weather_condition", ""),
+        "wind_speed": context.get("wind_speed"),
+        "wind_direction": context.get("wind_direction", ""),
+        "umpire_home_plate_id": context.get("umpire_home_plate_id"),
+        "umpire_home_plate_name": context.get(
+            "umpire_home_plate_name",
+            "",
+        ),
+        "game_feed_available": source_booleans["game_feed_available"],
+        "game_feed_error": context.get("game_feed_error", ""),
+        "game_feed_captured_at": context.get("game_feed_captured_at", ""),
         "context_data_sources_json": _safe_json_dumps(
             context.get("context_data_sources_json")
         ),
