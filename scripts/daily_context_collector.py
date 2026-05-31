@@ -18,6 +18,12 @@ from scripts.pitcher_client import fetch_probable_pitchers
 
 DAILY_CONTEXT_COLLECTION_REPORT = Path("report/daily_context_collection_report.json")
 
+def _write_collection_report(summary: Dict[str, Any]) -> None:
+    """Write context collection diagnostic report even when collection fails."""
+    DAILY_CONTEXT_COLLECTION_REPORT.parent.mkdir(parents=True, exist_ok=True)
+    with DAILY_CONTEXT_COLLECTION_REPORT.open("w", encoding="utf-8") as file_obj:
+        json.dump(summary, file_obj, ensure_ascii=False, indent=2, default=str)
+        
 def _utc_now_iso() -> str:
     """Return the current UTC timestamp ending in Z."""
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -473,9 +479,7 @@ def collect_daily_context(
     }
 
     try:
-        DAILY_CONTEXT_COLLECTION_REPORT.parent.mkdir(parents=True, exist_ok=True)
-        with DAILY_CONTEXT_COLLECTION_REPORT.open("w", encoding="utf-8") as file_obj:
-            json.dump(summary, file_obj, ensure_ascii=False, indent=2, default=str)
+        _write_collection_report(summary)
     except Exception as exc:
         error_sink.append(f"Failed to write daily context report: {exc}")
         summary["errors"] = list(error_sink)
@@ -484,10 +488,37 @@ def collect_daily_context(
 
 
 def main() -> None:
-    """Run context collection for today's UTC games and print a JSON summary."""
-    summary = collect_daily_context()
-    print(json.dumps(summary, ensure_ascii=True, indent=2, default=str))
+    """Run context collection for today's UTC games and always print/write a report."""
+    try:
+        summary = collect_daily_context()
+    except Exception as exc:
+        summary = {
+            "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "captured_at": _utc_now_iso(),
+            "fatal_error": str(exc),
+            "games_received": 0,
+            "game_feed_rows_received": 0,
+            "context_rows_built": 0,
+            "sample_context_keys": [],
+            "append_summary": {
+                "received": 0,
+                "inserted": 0,
+                "duplicates": 0,
+                "stored_rows": 0,
+                "errors": [str(exc)],
+            },
+            "errors": [str(exc)],
+        }
 
+        try:
+            _write_collection_report(summary)
+        except Exception as report_exc:
+            summary["errors"].append(
+                f"Failed to write fatal daily context report: {report_exc}"
+            )
+
+    print(json.dumps(summary, ensure_ascii=True, indent=2, default=str))
+    
 
 if __name__ == "__main__":
     main()
