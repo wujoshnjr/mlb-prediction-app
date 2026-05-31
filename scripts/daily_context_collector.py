@@ -405,14 +405,28 @@ def collect_daily_context(
         errors=error_sink,
     )
 
+    game_ids = [
+        _string_key(value)
+        for value in pitcher_frame.get("game_id", [])
+        if _string_key(value)
+    ]
+
+    game_feed_frame = fetch_mlb_game_feed_contexts(
+        game_ids=game_ids,
+        errors=error_sink,
+        timeout=15,
+        sleep_seconds=0.1,
+    )
+
     bullpen_frame = fetch_bullpen_context(
         as_of_date=date_str,
         errors=error_sink,
     )
 
     lineup_by_game = _record_by_key(lineup_frame, "game_id")
+    game_feed_by_game = _record_by_key(game_feed_frame, "game_id")
     bullpen_by_team = _record_by_key(bullpen_frame, "team_id")
-
+    
     contexts: List[Dict[str, Any]] = []
 
     for _, pitcher_series in pitcher_frame.iterrows():
@@ -425,11 +439,12 @@ def collect_daily_context(
         context = _build_context_for_game(
             pitcher_row=pitcher_row,
             lineup_row=lineup_by_game.get(game_key),
+            game_feed_row=game_feed_by_game.get(game_key),
             home_bullpen_row=bullpen_by_team.get(home_team_key),
             away_bullpen_row=bullpen_by_team.get(away_team_key),
             captured_at=captured_at,
         )
-
+        
         if context is not None:
             contexts.append(context)
 
