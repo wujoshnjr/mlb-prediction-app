@@ -15,6 +15,7 @@ from scripts.daily_game_context import (
 from scripts.lineup_client import fetch_confirmed_lineups
 from scripts.mlb_game_feed_client import fetch_mlb_game_feed_contexts
 from scripts.pitcher_client import fetch_probable_pitchers
+from scripts.apisports_lineup_client import fetch_apisports_lineups
 
 DAILY_CONTEXT_COLLECTION_REPORT = Path("report/daily_context_collection_report.json")
 
