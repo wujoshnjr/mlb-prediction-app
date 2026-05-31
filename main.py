@@ -1666,6 +1666,30 @@ def _enrich_start_times(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
+def _sanitize_json_value(value: Any) -> Any:
+    """Convert non-JSON-safe values before returning API responses."""
+    if value is None:
+        return None
+
+    if isinstance(value, float):
+        if pd.isna(value):
+            return None
+        if value == float("inf") or value == float("-inf"):
+            return None
+        return value
+
+    if isinstance(value, dict):
+        return {
+            str(key): _sanitize_json_value(item)
+            for key, item in value.items()
+        }
+
+    if isinstance(value, list):
+        return [_sanitize_json_value(item) for item in value]
+
+    return value
+    
+
 @app.get("/api/predictions")
 def get_predictions():
     try:
@@ -1673,7 +1697,9 @@ def get_predictions():
             payload = json.load(file_obj)
 
         if isinstance(payload, dict):
-            return _enrich_start_times(payload)
+            payload = _enrich_start_times(payload)
+            payload = _sanitize_json_value(payload)
+            return JSONResponse(content=payload)
 
     except FileNotFoundError:
         pass
@@ -1688,8 +1714,11 @@ def get_predictions():
 
     try:
         payload = generate_predictions()
-        return _enrich_start_times(payload)
+        payload = _enrich_start_times(payload)
+        payload = _sanitize_json_value(payload)
+        return JSONResponse(content=payload)
     except Exception as exc:
+        print(f"Real-time generation failed: {exc}")
         return JSONResponse(
             {"error": f"Real-time generation failed: {exc}"},
             status_code=500,
