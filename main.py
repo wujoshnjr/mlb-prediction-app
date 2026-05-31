@@ -2246,6 +2246,10 @@ def get_health() -> dict[str, Any]:
                     result["daily_context"]["umpire_available_count"] = int(
                         umpire_ready.sum()
                     )
+        else:
+            result["status"] = _raise_health_status(result["status"], "WARNING")
+            messages.append(f"Daily context file unavailable: {context_error}") 
+      
         savant_top3, savant_top3_error = _read_csv_safe(SAVANT_TOP3_CONTEXT_PATH)
         if savant_top3_error is None:
             result["savant_top3"]["file_exists"] = True
@@ -2323,15 +2327,7 @@ def get_health() -> dict[str, Any]:
                     )
         else:
             messages.append(f"Savant top-3 context file unavailable: {savant_top3_error}")
-        else:
-            messages.append(f"Savant top-3 context file unavailable: {savant_top3_error}")
-       
-        else:
-            messages.append(f"Savant top-3 context file unavailable: {savant_top3_error}")
-        else:
-            result["status"] = _raise_health_status(result["status"], "WARNING")
-            messages.append(f"Daily context file unavailable: {context_error}")
-
+            
         snapshots, snapshot_error = _read_csv_safe(SNAPSHOT_PATH)
         if snapshot_error is None:
             result["snapshots"]["file_exists"] = True
