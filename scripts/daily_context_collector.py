@@ -414,6 +414,18 @@ def collect_daily_context(
         errors=error_sink,
     )
 
+    apisports_lineup_frame = fetch_apisports_lineups(
+        date_str=date_str,
+        errors=error_sink,
+        timeout=20,
+        sleep_seconds=0.1,
+    )
+
+    lineup_frame = _merge_lineup_frames(
+        lineup_frame,
+        apisports_lineup_frame,
+    )
+
     game_ids = [
         _string_key(value)
         for value in pitcher_frame.get("game_id", [])
