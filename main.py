@@ -1596,15 +1596,15 @@ async function loadDashboard() {
       scheduled_game_count: 0,
       odds: {ok: 0, suspicious: 0, unavailable: 0, missing: 0},
    daily_context: {
-    file_exists: false,
-    latest_context_count: 0,
-    ready_context_count: 0,
-    game_feed_available_count: 0,
-    starting_pitcher_id_count: 0,
-    lineup_player_count_rows: 0,
-    top3_available_count: 0,
-    weather_available_count: 0,
-    umpire_available_count: 0
+     file_exists: false,
+     latest_context_count: 0,
+     ready_context_count: 0,
+     game_feed_available_count: 0,
+     starting_pitcher_id_count: 0,
+     lineup_player_count_rows: 0,
+     top3_available_count: 0,
+     weather_available_count: 0,
+     umpire_available_count: 0
    },
       snapshots: {file_exists: false, stored_rows: 0, clean_rows: 0, settled_rows: 0},
       market_odds_history: {file_exists: false, stored_rows: 0, closing_moneyline_rows: 0},
@@ -2090,7 +2090,8 @@ def get_health() -> dict[str, Any]:
                         & _bool_series(latest_context["away_lineup_confirmed"])
                     )
                     result["daily_context"]["confirmed_lineup_count"] = int(lineup_ready.sum())
-                                    if "game_feed_available" in latest_context.columns:
+
+                if "game_feed_available" in latest_context.columns:
                     result["daily_context"]["game_feed_available_count"] = int(
                         _bool_series(latest_context["game_feed_available"]).sum()
                     )
