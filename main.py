@@ -1148,31 +1148,12 @@ function tagHtml(prediction) {
 }
 
 function signalClass(prediction) {
-  const market = data.market_odds_history || {};
-  document.getElementById("health-market").textContent =
-    `${market.stored_rows ?? 0}`;
-  document.getElementById("health-market-caption").textContent =
-    `${market.closing_moneyline_rows ?? 0} closing ML rows`;
-  setHealthCard("health-market", market.file_exists ? "ok" : "warn");
-
-  const training = data.training || {};
-  const sampleCount = Number(training.sample_count || 0);
-  const minimumRequired = Number(training.minimum_required || 0);
-  const remaining = training.remaining_samples;
-
-  document.getElementById("health-training").textContent =
-    minimumRequired > 0 ? `${sampleCount} / ${minimumRequired}` : "--";
-
-  if (training.trained) {
-    document.getElementById("health-training-caption").textContent =
-      `${training.model_type || "model"} ready`;
-    setHealthCard("health-training", "ok");
-  } else {
-    const remainingText = remaining == null ? "training not ready" : `${remaining} more needed`;
-    document.getElementById("health-training-caption").textContent =
-      `Manual baseline active - ${remainingText}`;
-    setHealthCard("health-training", "warn");
+  const quality = qualityValue(prediction);
+  if (quality === "SUSPICIOUS") return "bad";
+  if (statusValue(prediction) === "PAPER_BET" && isMoneylineBet(prediction)) {
+    return "bet";
   }
+  return "track";
 }
 
 function signalLabel(prediction) {
