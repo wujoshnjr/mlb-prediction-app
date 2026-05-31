@@ -25,27 +25,26 @@ MLB_BOXSCORE_URL = "https://statsapi.mlb.com/api/v1/game/{game_id}/boxscore"
 # ---------------------------------------------------------------------------
 
 def _safe_get(obj: Any, path: str, default: Any = None) -> Any:
-"""Safely traverse nested dict/list objects using dot notation."""
-try:
-current = obj
-for part in path.split("."):
-if isinstance(current, dict):
-current = current.get(part)
-elif isinstance(current, list):
-index = int(part)
-if index < 0 or index >= len(current):
-return default
-current = current[index]
-else:
-return default
+    """Safely traverse nested dict/list objects using dot notation."""
+    try:
+        current = obj
+        for part in path.split("."):
+            if isinstance(current, dict):
+                current = current.get(part)
+            elif isinstance(current, list):
+                index = int(part)
+                if index < 0 or index >= len(current):
+                    return default
+                current = current[index]
+            else:
+                return default
 
-```
-        if current is None:
-            return default
+            if current is None:
+                return default
 
-    return current
-except Exception:
-    return default
+        return current
+    except Exception:
+        return default
 ```
 
 def _safe_int(value: Any) -> Optional[int]:
