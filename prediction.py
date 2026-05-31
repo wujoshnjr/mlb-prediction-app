@@ -375,6 +375,18 @@ def as_optional_int(value: Any) -> int | None:
         return None
 
 
+def as_optional_str(value: Any) -> str:
+    """Return a clean string, treating None/NaN/'nan' as empty."""
+    if is_missing_value(value):
+        return ""
+
+    text = str(value).strip()
+    if text.lower() in {"nan", "none", "null"}:
+        return ""
+
+    return text
+
+
 def calculate_context_weather_features(
     context_row: dict[str, Any],
 ) -> dict[str, float]:
@@ -561,10 +573,10 @@ def build_daily_context_summary(
     weather_temp = as_optional_float(row.get("weather_temp"))
     wind_speed = as_optional_float(row.get("wind_speed"))
     weather_condition = as_optional_str(row.get("weather_condition"))
-    wind_direction = str(row.get("wind_direction") or "")
+    wind_direction = as_optional_str(row.get("wind_direction"))
 
     umpire_home_plate_id = as_optional_int(row.get("umpire_home_plate_id"))
-    umpire_home_plate_name = str(row.get("umpire_home_plate_name") or "")
+    umpire_home_plate_name = as_optional_str(row.get("umpire_home_plate_name"))
     home_bullpen_available = as_optional_bool(
         row.get("home_bullpen_data_available")
     )
@@ -636,12 +648,12 @@ def build_daily_context_summary(
             else "tracking_only_context_incomplete"
         ),
         "home_probable_pitcher_id": row.get("home_probable_pitcher_id"),
-        "home_probable_pitcher_name": row.get(
-            "home_probable_pitcher_name"
+        "home_probable_pitcher_name": as_optional_str(
+            row.get("home_probable_pitcher_name")
         ),
         "away_probable_pitcher_id": row.get("away_probable_pitcher_id"),
-        "away_probable_pitcher_name": row.get(
-            "away_probable_pitcher_name"
+        "away_probable_pitcher_name": as_optional_str(
+            row.get("away_probable_pitcher_name")
         ),
         "home_lineup_confirmed": home_lineup_confirmed,
         "away_lineup_confirmed": away_lineup_confirmed,
@@ -650,14 +662,18 @@ def build_daily_context_summary(
         "game_feed_available": game_feed_available,
         "home_starting_pitcher_id": home_starting_pitcher_id,
         "away_starting_pitcher_id": away_starting_pitcher_id,
-        "home_starting_pitcher_name": row.get("home_starting_pitcher_name"),
-        "away_starting_pitcher_name": row.get("away_starting_pitcher_name"),
+        "home_starting_pitcher_name": as_optional_str(
+            row.get("home_starting_pitcher_name")
+        ),
+        "away_starting_pitcher_name": as_optional_str(
+            row.get("away_starting_pitcher_name")
+        ),
         "home_top3_player_ids": home_top3_player_ids,
         "away_top3_player_ids": away_top3_player_ids,
         "home_catcher_id": as_optional_int(row.get("home_catcher_id")),
         "away_catcher_id": as_optional_int(row.get("away_catcher_id")),
-        "home_catcher_name": row.get("home_catcher_name"),
-        "away_catcher_name": row.get("away_catcher_name"),
+        "home_catcher_name": as_optional_str(row.get("home_catcher_name")),
+        "away_catcher_name": as_optional_str(row.get("away_catcher_name")),
         "weather_temp": weather_temp,
         "weather_condition": weather_condition,
         "wind_speed": wind_speed,
