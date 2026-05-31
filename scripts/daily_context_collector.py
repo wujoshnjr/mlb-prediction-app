@@ -12,6 +12,7 @@ from scripts.daily_game_context import (
     parse_utc_datetime,
 )
 from scripts.lineup_client import fetch_confirmed_lineups
+from scripts.mlb_game_feed_client import fetch_mlb_game_feed_contexts
 from scripts.pitcher_client import fetch_probable_pitchers
 
 
@@ -102,6 +103,7 @@ def _build_data_sources(
     *,
     pitcher_row: Dict[str, Any],
     lineup_row: Optional[Dict[str, Any]],
+    game_feed_row: Optional[Dict[str, Any]],
     home_bullpen_row: Optional[Dict[str, Any]],
     away_bullpen_row: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
@@ -122,6 +124,21 @@ def _build_data_sources(
             "fetched_at": (
                 lineup_row.get("lineup_fetched_at")
                 if lineup_row is not None
+                else None
+            ),
+        },
+        "game_feed": {
+            "available": game_feed_row is not None
+            and bool(game_feed_row.get("game_feed_available")),
+            "source": "mlb_statsapi_feed_live",
+            "fetched_at": (
+                game_feed_row.get("game_feed_captured_at")
+                if game_feed_row is not None
+                else None
+            ),
+            "error": (
+                game_feed_row.get("game_feed_error")
+                if game_feed_row is not None
                 else None
             ),
         },
@@ -158,6 +175,7 @@ def _build_context_for_game(
     *,
     pitcher_row: Dict[str, Any],
     lineup_row: Optional[Dict[str, Any]],
+    game_feed_row: Optional[Dict[str, Any]],
     home_bullpen_row: Optional[Dict[str, Any]],
     away_bullpen_row: Optional[Dict[str, Any]],
     captured_at: str,
@@ -179,9 +197,10 @@ def _build_context_for_game(
         return None
 
     lineup_row = lineup_row or {}
+    game_feed_row = game_feed_row or {}
     home_bullpen_row = home_bullpen_row or {}
     away_bullpen_row = away_bullpen_row or {}
-
+    
     context: Dict[str, Any] = {
         "game_id": game_id,
         "game_date": pitcher_row.get("game_date", ""),
@@ -205,10 +224,28 @@ def _build_context_for_game(
             "",
         ),
 
-        # Probable pitchers are not official pregame confirmed starters.
-        "home_starting_pitcher_confirmed": None,
-        "away_starting_pitcher_confirmed": None,
-
+        # Game feed can confirm starters after official lineup / game state appears.
+        "home_starting_pitcher_id": _optional_value(
+            game_feed_row.get("home_starting_pitcher_id")
+        ),
+        "away_starting_pitcher_id": _optional_value(
+            game_feed_row.get("away_starting_pitcher_id")
+        ),
+        "home_starting_pitcher_name": game_feed_row.get(
+            "home_starting_pitcher_name",
+            "",
+        ),
+        "away_starting_pitcher_name": game_feed_row.get(
+            "away_starting_pitcher_name",
+            "",
+        ),
+        "home_starting_pitcher_confirmed": _optional_bool(
+            game_feed_row.get("home_starting_pitcher_confirmed")
+        ),
+        "away_starting_pitcher_confirmed": _optional_bool(
+            game_feed_row.get("away_starting_pitcher_confirmed")
+        ),
+        
         "home_sp_season_era": _optional_value(
             pitcher_row.get("home_era")
         ),
@@ -222,21 +259,58 @@ def _build_context_for_game(
             pitcher_row.get("away_fip")
         ),
 
-        "home_lineup_confirmed": _optional_bool(
-            lineup_row.get("home_lineup_confirmed")
+        "home_lineup_confirmed": (
+            _optional_bool(lineup_row.get("home_lineup_confirmed"))
+            if not _is_missing(lineup_row.get("home_lineup_confirmed"))
+            else _optional_bool(game_feed_row.get("home_lineup_confirmed"))
         ),
-        "away_lineup_confirmed": _optional_bool(
-            lineup_row.get("away_lineup_confirmed")
+        "away_lineup_confirmed": (
+            _optional_bool(lineup_row.get("away_lineup_confirmed"))
+            if not _is_missing(lineup_row.get("away_lineup_confirmed"))
+            else _optional_bool(game_feed_row.get("away_lineup_confirmed"))
         ),
-        "home_lineup_player_ids_json": lineup_row.get(
-            "home_lineup_player_ids_json",
-            [],
+        "home_lineup_player_ids_json": (
+            lineup_row.get("home_lineup_player_ids_json")
+            if not _is_missing(lineup_row.get("home_lineup_player_ids_json"))
+            else game_feed_row.get("home_batting_order_ids", "")
         ),
-        "away_lineup_player_ids_json": lineup_row.get(
-            "away_lineup_player_ids_json",
-            [],
+        "away_lineup_player_ids_json": (
+            lineup_row.get("away_lineup_player_ids_json")
+            if not _is_missing(lineup_row.get("away_lineup_player_ids_json"))
+            else game_feed_row.get("away_batting_order_ids", "")
         ),
+        "home_lineup_player_count": _optional_value(
+            game_feed_row.get("home_lineup_player_count")
+        ),
+        "away_lineup_player_count": _optional_value(
+            game_feed_row.get("away_lineup_player_count")
+        ),
+        "home_top3_player_ids": game_feed_row.get("home_top3_player_ids", ""),
+        "away_top3_player_ids": game_feed_row.get("away_top3_player_ids", ""),
+        "home_catcher_id": _optional_value(game_feed_row.get("home_catcher_id")),
+        "away_catcher_id": _optional_value(game_feed_row.get("away_catcher_id")),
+        "home_catcher_name": game_feed_row.get("home_catcher_name", ""),
+        "away_catcher_name": game_feed_row.get("away_catcher_name", ""),
 
+        "venue_id": _optional_value(game_feed_row.get("venue_id")),
+        "venue_name": game_feed_row.get("venue_name", ""),
+        "weather_temp": _optional_value(game_feed_row.get("weather_temp")),
+        "weather_condition": game_feed_row.get("weather_condition", ""),
+        "wind_speed": _optional_value(game_feed_row.get("wind_speed")),
+        "wind_direction": game_feed_row.get("wind_direction", ""),
+        "umpire_home_plate_id": _optional_value(
+            game_feed_row.get("umpire_home_plate_id")
+        ),
+        "umpire_home_plate_name": game_feed_row.get(
+            "umpire_home_plate_name",
+            "",
+        ),
+        "game_feed_available": _optional_bool(
+            game_feed_row.get("game_feed_available")
+        ),
+        "game_feed_error": game_feed_row.get("game_feed_error", ""),
+        "game_feed_captured_at": game_feed_row.get("game_feed_captured_at", ""),
+        
         "home_bullpen_data_available": _optional_bool(
             home_bullpen_row.get("bullpen_data_available")
         ),
@@ -279,6 +353,7 @@ def _build_context_for_game(
         "context_data_sources_json": _build_data_sources(
             pitcher_row=pitcher_row,
             lineup_row=lineup_row if lineup_row else None,
+            game_feed_row=game_feed_row if game_feed_row else None,
             home_bullpen_row=(
                 home_bullpen_row if home_bullpen_row else None
             ),
