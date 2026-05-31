@@ -560,7 +560,7 @@ def build_daily_context_summary(
 
     weather_temp = as_optional_float(row.get("weather_temp"))
     wind_speed = as_optional_float(row.get("wind_speed"))
-    weather_condition = str(row.get("weather_condition") or "")
+    weather_condition = as_optional_str(row.get("weather_condition"))
     wind_direction = str(row.get("wind_direction") or "")
 
     umpire_home_plate_id = as_optional_int(row.get("umpire_home_plate_id"))
