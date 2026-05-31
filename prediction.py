@@ -341,6 +341,79 @@ def parse_json_list(value: Any) -> list[Any]:
     return []
 
 
+def parse_csv_int_list(value: Any) -> list[int]:
+    """Parse comma-separated player IDs such as '111,222,333' safely."""
+    if is_missing_value(value):
+        return []
+
+    if isinstance(value, list):
+        raw_items = value
+    else:
+        raw_items = str(value).split(",")
+
+    result: list[int] = []
+    for item in raw_items:
+        try:
+            text = str(item).strip()
+            if not text or text.lower() in {"nan", "none", "null"}:
+                continue
+            result.append(int(float(text)))
+        except (TypeError, ValueError):
+            continue
+
+    return result
+
+
+def as_optional_int(value: Any) -> int | None:
+    """Return int or None without converting missing values to zero."""
+    if is_missing_value(value):
+        return None
+
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def calculate_context_weather_features(
+    context_row: dict[str, Any],
+) -> dict[str, float]:
+    """Build conservative weather features from daily game context.
+
+    These are intentionally small feature values. They are feature inputs, not
+    direct probability adjustments.
+    """
+    weather_temp = as_optional_float(context_row.get("weather_temp"))
+    wind_speed = as_optional_float(context_row.get("wind_speed"))
+    wind_direction = str(context_row.get("wind_direction") or "").lower()
+    weather_condition = str(context_row.get("weather_condition") or "").lower()
+
+    temp_effect = 0.0
+    wind_effect = 0.0
+    precip_effect = 0.0
+
+    if weather_temp is not None:
+        # 72F is treated as neutral. Clamp to avoid unstable effects.
+        temp_effect = float(np.clip((weather_temp - 72.0) / 100.0, -0.03, 0.03))
+
+    if wind_speed is not None and wind_speed > 0:
+        raw_wind = float(np.clip(wind_speed / 400.0, 0.0, 0.03))
+
+        if any(token in wind_direction for token in ("out", "to cf", "to lf", "to rf")):
+            wind_effect = raw_wind
+        elif any(token in wind_direction for token in ("in", "from cf", "from lf", "from rf")):
+            wind_effect = -raw_wind
+
+    if any(token in weather_condition for token in ("rain", "drizzle", "storm")):
+        precip_effect = -0.01
+
+    return {
+        "temp_effect": temp_effect,
+        "wind_effect": wind_effect,
+        "precip_effect": precip_effect,
+    }
+
+
 def latest_daily_context_by_game(
     errors: list[str],
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
@@ -454,12 +527,37 @@ def build_daily_context_summary(
     away_sp_confirmed = as_optional_bool(
         row.get("away_starting_pitcher_confirmed")
     )
-    home_lineup_confirmed = as_optional_bool(
-        row.get("home_lineup_confirmed")
+    home_lineup_count = as_int(row.get("home_lineup_player_count"), 0)
+    away_lineup_count = as_int(row.get("away_lineup_player_count"), 0)
+
+    if home_lineup_count <= 0:
+        home_lineup_count = len(
+            parse_json_list(row.get("home_lineup_player_ids_json"))
+        )
+    if away_lineup_count <= 0:
+        away_lineup_count = len(
+            parse_json_list(row.get("away_lineup_player_ids_json"))
+        )
+
+    home_top3_player_ids = parse_csv_int_list(row.get("home_top3_player_ids"))
+    away_top3_player_ids = parse_csv_int_list(row.get("away_top3_player_ids"))
+
+    game_feed_available = as_optional_bool(row.get("game_feed_available")) is True
+
+    home_starting_pitcher_id = as_optional_int(
+        row.get("home_starting_pitcher_id")
     )
-    away_lineup_confirmed = as_optional_bool(
-        row.get("away_lineup_confirmed")
+    away_starting_pitcher_id = as_optional_int(
+        row.get("away_starting_pitcher_id")
     )
+
+    weather_temp = as_optional_float(row.get("weather_temp"))
+    wind_speed = as_optional_float(row.get("wind_speed"))
+    weather_condition = str(row.get("weather_condition") or "")
+    wind_direction = str(row.get("wind_direction") or "")
+
+    umpire_home_plate_id = as_optional_int(row.get("umpire_home_plate_id"))
+    umpire_home_plate_name = str(row.get("umpire_home_plate_name") or "")
     home_bullpen_available = as_optional_bool(
         row.get("home_bullpen_data_available")
     )
@@ -549,6 +647,23 @@ def build_daily_context_summary(
         "away_lineup_confirmed": away_lineup_confirmed,
         "home_lineup_player_count": home_lineup_count,
         "away_lineup_player_count": away_lineup_count,
+                "game_feed_available": game_feed_available,
+        "home_starting_pitcher_id": home_starting_pitcher_id,
+        "away_starting_pitcher_id": away_starting_pitcher_id,
+        "home_starting_pitcher_name": row.get("home_starting_pitcher_name"),
+        "away_starting_pitcher_name": row.get("away_starting_pitcher_name"),
+        "home_top3_player_ids": home_top3_player_ids,
+        "away_top3_player_ids": away_top3_player_ids,
+        "home_catcher_id": as_optional_int(row.get("home_catcher_id")),
+        "away_catcher_id": as_optional_int(row.get("away_catcher_id")),
+        "home_catcher_name": row.get("home_catcher_name"),
+        "away_catcher_name": row.get("away_catcher_name"),
+        "weather_temp": weather_temp,
+        "weather_condition": weather_condition,
+        "wind_speed": wind_speed,
+        "wind_direction": wind_direction,
+        "umpire_home_plate_id": umpire_home_plate_id,
+        "umpire_home_plate_name": umpire_home_plate_name,
         "home_bullpen_data_available": home_bullpen_available,
         "away_bullpen_data_available": away_bullpen_available,
         "home_bullpen_pitches_last_1d": as_optional_float(
@@ -1520,7 +1635,12 @@ def generate_predictions() -> dict[str, Any]:
             or game.get("status")
             or ""
         )
-
+        context_row = daily_context_by_game.get(str(game_id), {})
+        daily_context_summary = build_daily_context_summary(
+            game_id,
+            daily_context_by_game,
+        )
+        
         if not home_team or not away_team:
             errors.append(f"Skipping game {game_id}: missing team names.")
             continue
@@ -1594,7 +1714,11 @@ def generate_predictions() -> dict[str, Any]:
 
         if get_park_factor is not None:
             try:
-                venue = str(game.get("venue", ""))
+                venue = str(
+                    context_row.get("venue_name")
+                    or game.get("venue")
+                    or ""
+                )
                 features["dynamic_park_factor"] = as_float(
                     get_park_factor(venue),
                     1.0,
@@ -1729,8 +1853,12 @@ def generate_predictions() -> dict[str, Any]:
                     bookmaker_quotes=bookmaker_quotes,
                     odds_quality_status=odds_quality_status,
                     suspicious_odds_reason=suspicious_odds_reason,
-                    starting_pitcher_confirmed=None,
-                    lineup_confirmed=None,
+                    starting_pitcher_confirmed=(
+                        daily_context_summary.get("pitcher_status") == "confirmed"
+                    ),
+                    lineup_confirmed=(
+                        daily_context_summary.get("lineup_status") == "confirmed"
+                    ),
                 )
 
                 for summary_key in ("received", "inserted", "duplicates"):
@@ -1800,6 +1928,17 @@ def generate_predictions() -> dict[str, Any]:
             except Exception as exc:
                 errors.append(f"Weather feature failed for game {game_id}: {exc}")
 
+        context_weather_features = calculate_context_weather_features(context_row)
+
+        if features.get("wind_effect", 0.0) == 0.0:
+            features["wind_effect"] = context_weather_features["wind_effect"]
+
+        if features.get("temp_effect", 0.0) == 0.0:
+            features["temp_effect"] = context_weather_features["temp_effect"]
+
+        if features.get("precip_effect", 0.0) == 0.0:
+            features["precip_effect"] = context_weather_features["precip_effect"]
+            
         if not injury_frame.empty:
             try:
                 if "team" in injury_frame.columns:
@@ -2131,11 +2270,6 @@ def generate_predictions() -> dict[str, Any]:
             spread_recommendation = "NO BET"
             total_recommendation = "NO BET"
             recommendation_status = "TRACKING_ONLY"
-
-        daily_context_summary = build_daily_context_summary(
-            game_id,
-            daily_context_by_game,
-        )
 
         recommendation_block_reason, recommendation_block_details = (
             build_recommendation_block_reason(
