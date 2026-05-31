@@ -1373,49 +1373,6 @@ function renderPerformance(performanceData) {
   document.getElementById("positive-clv-caption").textContent =
     `${performanceData.clv_samples || 0} CLV samples`;
 }
-  document.getElementById("roi-caption").textContent =
-    `${performanceData.moneyline_bets || 0} settled ML bets`;
-
-  const winRate = document.getElementById("win-rate");
-  if (performanceData.win_rate == null) {
-    winRate.textContent = "--";
-    winRate.className = "stat-value waiting";
-  } else {
-    winRate.textContent = formatPercent(performanceData.win_rate);
-    winRate.className = "stat-value neutral";
-  }
-
-  const brier = document.getElementById("brier");
-  if (performanceData.brier == null) {
-    brier.textContent = "--";
-    brier.className = "stat-value waiting";
-  } else {
-    brier.textContent = Number(data.brier).toFixed(3);
-    brier.className = "stat-value neutral";
-  }
-
-  const avgClv = document.getElementById("avg-clv");
-  const positiveClv = document.getElementById("positive-clv");
-
-  if (performanceData.avg_clv == null) {
-    avgClv.textContent = "Waiting";
-    avgClv.className = "stat-value waiting";
-    positiveClv.textContent = "--";
-    positiveClv.className = "stat-value waiting";
-    document.getElementById("clv-caption").textContent =
-      performanceData.clv_message || "closing lines pending";
-  } else {
-    avgClv.textContent = formatPercent(data.avg_clv, 2, true);
-    avgClv.className = `stat-value ${data.avg_clv >= 0 ? "positive" : "negative"}`;
-    positiveClv.textContent = formatPercent(data.positive_clv_rate);
-    positiveClv.className = `stat-value ${performanceData.positive_clv_rate >= 0.5 ? "positive" : "negative"}`;
-    document.getElementById("clv-caption").textContent =
-      `${performanceData.clv_samples || 0} entry vs close samples`;
-  }
-
-  document.getElementById("positive-clv-caption").textContent =
-    `${data.clv_samples || 0} CLV samples`;
-}
 
 function renderGames(predictionData) {
   const rows = predictionData.today_predictions || [];
