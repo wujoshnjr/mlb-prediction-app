@@ -527,6 +527,13 @@ def build_daily_context_summary(
     away_sp_confirmed = as_optional_bool(
         row.get("away_starting_pitcher_confirmed")
     )
+    home_lineup_confirmed = as_optional_bool(
+        row.get("home_lineup_confirmed")
+    )
+    away_lineup_confirmed = as_optional_bool(
+        row.get("away_lineup_confirmed")
+    )
+
     home_lineup_count = as_int(row.get("home_lineup_player_count"), 0)
     away_lineup_count = as_int(row.get("away_lineup_player_count"), 0)
 
@@ -570,13 +577,6 @@ def build_daily_context_summary(
     context_ready = as_optional_bool(
         row.get("context_ready_for_betting")
     ) is True
-
-    home_lineup_count = len(
-        parse_json_list(row.get("home_lineup_player_ids_json"))
-    )
-    away_lineup_count = len(
-        parse_json_list(row.get("away_lineup_player_ids_json"))
-    )
 
     if home_sp_confirmed is True and away_sp_confirmed is True:
         pitcher_status = "confirmed"
@@ -647,7 +647,7 @@ def build_daily_context_summary(
         "away_lineup_confirmed": away_lineup_confirmed,
         "home_lineup_player_count": home_lineup_count,
         "away_lineup_player_count": away_lineup_count,
-                "game_feed_available": game_feed_available,
+        "game_feed_available": game_feed_available,
         "home_starting_pitcher_id": home_starting_pitcher_id,
         "away_starting_pitcher_id": away_starting_pitcher_id,
         "home_starting_pitcher_name": row.get("home_starting_pitcher_name"),
