@@ -49,6 +49,7 @@ HISTORY_PATH = Path("data/historical_predictions.csv")
 SNAPSHOT_PATH = Path("data/prediction_snapshots.csv")
 MARKET_ODDS_PATH = Path("data/market_odds_history.csv")
 DAILY_CONTEXT_PATH = Path("data/daily_game_context.csv")
+SAVANT_TOP3_CONTEXT_PATH = Path("data/savant_top3_context.csv")
 TRAINING_STATUS_PATH = Path("data/training_status.json")
 CLEAN_PIPELINE_VERSION = "baseline_v2_clean"
 
@@ -917,6 +918,11 @@ a { color:inherit; }
       <div id="health-weather-umpire-caption" class="health-caption">weather / plate umpire</div>
     </div>
     <div class="health-card">
+      <div class="health-label">Savant Top-3</div>
+      <div id="health-savant-top3" class="health-value neutral">--</div>
+      <div id="health-savant-top3-caption" class="health-caption">top-3 hitter Statcast</div>
+    </div>
+    <div class="health-card">
       <div class="health-label">Model Readiness</div>
       <div id="health-training" class="health-value neutral">--</div>
       <div id="health-training-caption" class="health-caption">training status</div>
@@ -1252,6 +1258,21 @@ function renderHealth(healthData) {
   setHealthCard(
     "health-weather-umpire",
     weatherAvailableCount > 0 || umpireAvailableCount > 0 ? "ok" : "warn"
+  );
+
+  const savantTop3 = healthData.savant_top3 || {};
+  const savantLatestRows = Number(savantTop3.latest_rows || 0);
+  const savantBothSides = Number(savantTop3.rows_with_both_sides_savant || 0);
+  const savantHomeIds = Number(savantTop3.home_rows_with_ids || 0);
+  const savantAwayIds = Number(savantTop3.away_rows_with_ids || 0);
+
+  document.getElementById("health-savant-top3").textContent =
+    `${savantBothSides} / ${savantLatestRows}`;
+  document.getElementById("health-savant-top3-caption").textContent =
+    `${savantHomeIds} home IDs / ${savantAwayIds} away IDs`;
+  setHealthCard(
+    "health-savant-top3",
+    savantLatestRows > 0 && savantBothSides > 0 ? "ok" : "warn"
   );
   
   const snapshots = healthData.snapshots || {};
@@ -1934,6 +1955,17 @@ def get_health() -> dict[str, Any]:
             "moneyline_rows": 0,
             "closing_moneyline_rows": 0,
         },
+        "savant_top3": {
+            "file_exists": False,
+            "stored_rows": 0,
+            "latest_rows": 0,
+            "home_rows_with_ids": 0,
+            "away_rows_with_ids": 0,
+            "home_available_count": 0,
+            "away_available_count": 0,
+            "rows_with_any_savant": 0,
+            "rows_with_both_sides_savant": 0,
+        },
         "training": {
             "file_exists": False,
             "trained": False,
@@ -2214,6 +2246,88 @@ def get_health() -> dict[str, Any]:
                     result["daily_context"]["umpire_available_count"] = int(
                         umpire_ready.sum()
                     )
+        savant_top3, savant_top3_error = _read_csv_safe(SAVANT_TOP3_CONTEXT_PATH)
+        if savant_top3_error is None:
+            result["savant_top3"]["file_exists"] = True
+            result["savant_top3"]["stored_rows"] = int(len(savant_top3))
+
+            latest_savant_top3 = _count_present_rows(
+                savant_top3,
+                report_date,
+            )
+            result["savant_top3"]["latest_rows"] = int(len(latest_savant_top3))
+
+            if not latest_savant_top3.empty:
+                if "home_top3_player_ids" in latest_savant_top3.columns:
+                    home_ids = (
+                        latest_savant_top3["home_top3_player_ids"]
+                        .astype(str)
+                        .str.strip()
+                    )
+                    result["savant_top3"]["home_rows_with_ids"] = int(
+                        (
+                            home_ids.ne("")
+                            & home_ids.str.lower().ne("nan")
+                        ).sum()
+                    )
+
+                if "away_top3_player_ids" in latest_savant_top3.columns:
+                    away_ids = (
+                        latest_savant_top3["away_top3_player_ids"]
+                        .astype(str)
+                        .str.strip()
+                    )
+                    result["savant_top3"]["away_rows_with_ids"] = int(
+                        (
+                            away_ids.ne("")
+                            & away_ids.str.lower().ne("nan")
+                        ).sum()
+                    )
+
+                if "home_top3_savant_available_count" in latest_savant_top3.columns:
+                    home_available = pd.to_numeric(
+                        latest_savant_top3["home_top3_savant_available_count"],
+                        errors="coerce",
+                    ).fillna(0)
+                    result["savant_top3"]["home_available_count"] = int(
+                        (home_available > 0).sum()
+                    )
+
+                if "away_top3_savant_available_count" in latest_savant_top3.columns:
+                    away_available = pd.to_numeric(
+                        latest_savant_top3["away_top3_savant_available_count"],
+                        errors="coerce",
+                    ).fillna(0)
+                    result["savant_top3"]["away_available_count"] = int(
+                        (away_available > 0).sum()
+                    )
+
+                if {
+                    "home_top3_savant_available_count",
+                    "away_top3_savant_available_count",
+                }.issubset(set(latest_savant_top3.columns)):
+                    home_available = pd.to_numeric(
+                        latest_savant_top3["home_top3_savant_available_count"],
+                        errors="coerce",
+                    ).fillna(0)
+                    away_available = pd.to_numeric(
+                        latest_savant_top3["away_top3_savant_available_count"],
+                        errors="coerce",
+                    ).fillna(0)
+
+                    result["savant_top3"]["rows_with_any_savant"] = int(
+                        ((home_available > 0) | (away_available > 0)).sum()
+                    )
+                    result["savant_top3"]["rows_with_both_sides_savant"] = int(
+                        ((home_available > 0) & (away_available > 0)).sum()
+                    )
+        else:
+            messages.append(f"Savant top-3 context file unavailable: {savant_top3_error}")
+        else:
+            messages.append(f"Savant top-3 context file unavailable: {savant_top3_error}")
+       
+        else:
+            messages.append(f"Savant top-3 context file unavailable: {savant_top3_error}")
         else:
             result["status"] = _raise_health_status(result["status"], "WARNING")
             messages.append(f"Daily context file unavailable: {context_error}")
