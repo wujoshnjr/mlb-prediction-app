@@ -902,6 +902,21 @@ a { color:inherit; }
       <div id="health-market-caption" class="health-caption">closing ML rows</div>
     </div>
     <div class="health-card">
+      <div class="health-label">Game Feed</div>
+      <div id="health-game-feed" class="health-value neutral">--</div>
+      <div id="health-game-feed-caption" class="health-caption">MLB feed rows</div>
+    </div>
+    <div class="health-card">
+      <div class="health-label">Lineup Feed</div>
+      <div id="health-lineup-feed" class="health-value neutral">--</div>
+      <div id="health-lineup-feed-caption" class="health-caption">batting order coverage</div>
+    </div>
+    <div class="health-card">
+      <div class="health-label">Weather / Umpire</div>
+      <div id="health-weather-umpire" class="health-value neutral">--</div>
+      <div id="health-weather-umpire-caption" class="health-caption">weather / plate umpire</div>
+    </div>
+    <div class="health-card">
       <div class="health-label">Model Readiness</div>
       <div id="health-training" class="health-value neutral">--</div>
       <div id="health-training-caption" class="health-caption">training status</div>
@@ -1205,6 +1220,40 @@ function renderHealth(healthData) {
     `${context.latest_context_count ?? 0} latest context rows`;
   setHealthCard("health-context", context.file_exists ? "ok" : "warn");
 
+  const latestContextCount = Number(context.latest_context_count || 0);
+  const gameFeedCount = Number(context.game_feed_available_count || 0);
+  const lineupPlayerCountRows = Number(context.lineup_player_count_rows || 0);
+  const top3AvailableCount = Number(context.top3_available_count || 0);
+  const weatherAvailableCount = Number(context.weather_available_count || 0);
+  const umpireAvailableCount = Number(context.umpire_available_count || 0);
+
+  document.getElementById("health-game-feed").textContent =
+    `${gameFeedCount} / ${latestContextCount}`;
+  document.getElementById("health-game-feed-caption").textContent =
+    "MLB feed available";
+  setHealthCard(
+    "health-game-feed",
+    latestContextCount > 0 && gameFeedCount >= latestContextCount ? "ok" : "warn"
+  );
+
+  document.getElementById("health-lineup-feed").textContent =
+    `${lineupPlayerCountRows} / ${latestContextCount}`;
+  document.getElementById("health-lineup-feed-caption").textContent =
+    `${top3AvailableCount} with top 3 IDs`;
+  setHealthCard(
+    "health-lineup-feed",
+    lineupPlayerCountRows > 0 ? "ok" : "warn"
+  );
+
+  document.getElementById("health-weather-umpire").textContent =
+    `${weatherAvailableCount} / ${umpireAvailableCount}`;
+  document.getElementById("health-weather-umpire-caption").textContent =
+    "weather / plate umpire";
+  setHealthCard(
+    "health-weather-umpire",
+    weatherAvailableCount > 0 || umpireAvailableCount > 0 ? "ok" : "warn"
+  );
+  
   const snapshots = healthData.snapshots || {};
   document.getElementById("health-snapshots").textContent =
     `${snapshots.clean_rows ?? 0} / ${snapshots.settled_rows ?? 0}`;
@@ -1546,7 +1595,17 @@ async function loadDashboard() {
       prediction_count: 0,
       scheduled_game_count: 0,
       odds: {ok: 0, suspicious: 0, unavailable: 0, missing: 0},
-      daily_context: {file_exists: false, latest_context_count: 0, ready_context_count: 0},
+   daily_context: {
+    file_exists: false,
+    latest_context_count: 0,
+    ready_context_count: 0,
+    game_feed_available_count: 0,
+    starting_pitcher_id_count: 0,
+    lineup_player_count_rows: 0,
+    top3_available_count: 0,
+    weather_available_count: 0,
+    umpire_available_count: 0
+   },
       snapshots: {file_exists: false, stored_rows: 0, clean_rows: 0, settled_rows: 0},
       market_odds_history: {file_exists: false, stored_rows: 0, closing_moneyline_rows: 0},
       training: {
@@ -1856,6 +1915,12 @@ def get_health() -> dict[str, Any]:
             "ready_context_count": 0,
             "bullpen_available_count": 0,
             "confirmed_lineup_count": 0,
+            "game_feed_available_count": 0,
+            "starting_pitcher_id_count": 0,
+            "lineup_player_count_rows": 0,
+            "top3_available_count": 0,
+            "weather_available_count": 0,
+            "umpire_available_count": 0,
         },
         "snapshots": {
             "file_exists": False,
@@ -2025,6 +2090,129 @@ def get_health() -> dict[str, Any]:
                         & _bool_series(latest_context["away_lineup_confirmed"])
                     )
                     result["daily_context"]["confirmed_lineup_count"] = int(lineup_ready.sum())
+                                    if "game_feed_available" in latest_context.columns:
+                    result["daily_context"]["game_feed_available_count"] = int(
+                        _bool_series(latest_context["game_feed_available"]).sum()
+                    )
+
+                if {
+                    "home_starting_pitcher_id",
+                    "away_starting_pitcher_id",
+                }.issubset(set(latest_context.columns)):
+                    home_sp_ids = latest_context["home_starting_pitcher_id"].astype(str).str.strip()
+                    away_sp_ids = latest_context["away_starting_pitcher_id"].astype(str).str.strip()
+                    starting_pitcher_ids_ready = (
+                        home_sp_ids.ne("")
+                        & home_sp_ids.str.lower().ne("nan")
+                        & away_sp_ids.ne("")
+                        & away_sp_ids.str.lower().ne("nan")
+                    )
+                    result["daily_context"]["starting_pitcher_id_count"] = int(
+                        starting_pitcher_ids_ready.sum()
+                    )
+
+                if {
+                    "home_lineup_player_count",
+                    "away_lineup_player_count",
+                }.issubset(set(latest_context.columns)):
+                    home_lineup_counts = pd.to_numeric(
+                        latest_context["home_lineup_player_count"],
+                        errors="coerce",
+                    ).fillna(0)
+                    away_lineup_counts = pd.to_numeric(
+                        latest_context["away_lineup_player_count"],
+                        errors="coerce",
+                    ).fillna(0)
+                    lineup_player_count_ready = (
+                        (home_lineup_counts >= 9)
+                        & (away_lineup_counts >= 9)
+                    )
+                    result["daily_context"]["lineup_player_count_rows"] = int(
+                        lineup_player_count_ready.sum()
+                    )
+
+                if {
+                    "home_top3_player_ids",
+                    "away_top3_player_ids",
+                }.issubset(set(latest_context.columns)):
+                    home_top3 = latest_context["home_top3_player_ids"].astype(str).str.strip()
+                    away_top3 = latest_context["away_top3_player_ids"].astype(str).str.strip()
+                    top3_ready = (
+                        home_top3.ne("")
+                        & home_top3.str.lower().ne("nan")
+                        & away_top3.ne("")
+                        & away_top3.str.lower().ne("nan")
+                    )
+                    result["daily_context"]["top3_available_count"] = int(
+                        top3_ready.sum()
+                    )
+
+                weather_ready = pd.Series(
+                    [False] * len(latest_context),
+                    index=latest_context.index,
+                )
+                if "weather_temp" in latest_context.columns:
+                    weather_ready = weather_ready | pd.to_numeric(
+                        latest_context["weather_temp"],
+                        errors="coerce",
+                    ).notna()
+                if "weather_condition" in latest_context.columns:
+                    weather_condition = (
+                        latest_context["weather_condition"]
+                        .astype(str)
+                        .str.strip()
+                    )
+                    weather_ready = (
+                        weather_ready
+                        | (
+                            weather_condition.ne("")
+                            & weather_condition.str.lower().ne("nan")
+                        )
+                    )
+                result["daily_context"]["weather_available_count"] = int(
+                    weather_ready.sum()
+                )
+
+                if {
+                    "umpire_home_plate_id",
+                    "umpire_home_plate_name",
+                }.intersection(set(latest_context.columns)):
+                    umpire_ready = pd.Series(
+                        [False] * len(latest_context),
+                        index=latest_context.index,
+                    )
+
+                    if "umpire_home_plate_id" in latest_context.columns:
+                        umpire_ids = (
+                            latest_context["umpire_home_plate_id"]
+                            .astype(str)
+                            .str.strip()
+                        )
+                        umpire_ready = (
+                            umpire_ready
+                            | (
+                                umpire_ids.ne("")
+                                & umpire_ids.str.lower().ne("nan")
+                            )
+                        )
+
+                    if "umpire_home_plate_name" in latest_context.columns:
+                        umpire_names = (
+                            latest_context["umpire_home_plate_name"]
+                            .astype(str)
+                            .str.strip()
+                        )
+                        umpire_ready = (
+                            umpire_ready
+                            | (
+                                umpire_names.ne("")
+                                & umpire_names.str.lower().ne("nan")
+                            )
+                        )
+
+                    result["daily_context"]["umpire_available_count"] = int(
+                        umpire_ready.sum()
+                    )
         else:
             result["status"] = _raise_health_status(result["status"], "WARNING")
             messages.append(f"Daily context file unavailable: {context_error}")
