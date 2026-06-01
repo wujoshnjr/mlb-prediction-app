@@ -9,6 +9,7 @@ import pandas as pd
 
 from scripts.bullpen_context_client import fetch_bullpen_context
 from scripts.closer_context_client import _evaluate_closer_side
+from scripts.starter_confidence_client import _evaluate_starter_side
 from scripts.daily_game_context import (
     append_context_snapshots,
     parse_utc_datetime,
@@ -261,6 +262,35 @@ def _build_context_for_game(
         fatigue_score=away_bullpen_row.get("bullpen_fatigue_score"),
     )
 
+    home_starter_context = _evaluate_starter_side(
+        probable_pitcher_id=pitcher_row.get("home_probable_pitcher_id"),
+        probable_pitcher_name=pitcher_row.get("home_probable_pitcher_name"),
+        starting_pitcher_id=game_feed_row.get("home_starting_pitcher_id"),
+        starting_pitcher_name=game_feed_row.get("home_starting_pitcher_name"),
+        starting_pitcher_confirmed=game_feed_row.get(
+            "home_starting_pitcher_confirmed"
+        ),
+        season_era=pitcher_row.get("home_era"),
+        season_fip=pitcher_row.get("home_fip"),
+        game_feed_available=game_feed_row.get("game_feed_available"),
+        captured_at=captured_at,
+        start_time=start_time,
+    )
+    away_starter_context = _evaluate_starter_side(
+        probable_pitcher_id=pitcher_row.get("away_probable_pitcher_id"),
+        probable_pitcher_name=pitcher_row.get("away_probable_pitcher_name"),
+        starting_pitcher_id=game_feed_row.get("away_starting_pitcher_id"),
+        starting_pitcher_name=game_feed_row.get("away_starting_pitcher_name"),
+        starting_pitcher_confirmed=game_feed_row.get(
+            "away_starting_pitcher_confirmed"
+        ),
+        season_era=pitcher_row.get("away_era"),
+        season_fip=pitcher_row.get("away_fip"),
+        game_feed_available=game_feed_row.get("game_feed_available"),
+        captured_at=captured_at,
+        start_time=start_time,
+    )
+
     context: Dict[str, Any] = {
         "game_id": game_id,
         "game_date": pitcher_row.get("game_date", ""),
@@ -305,6 +335,19 @@ def _build_context_for_game(
         "away_starting_pitcher_confirmed": _optional_bool(
             game_feed_row.get("away_starting_pitcher_confirmed")
         ),
+
+        "home_starter_status": home_starter_context.get("status", "unknown"),
+        "away_starter_status": away_starter_context.get("status", "unknown"),
+        "home_starter_confidence": bool(
+            home_starter_context.get("confidence")
+        ),
+        "away_starter_confidence": bool(
+            away_starter_context.get("confidence")
+        ),
+        "home_starter_confidence_score": home_starter_context.get("score", 0.0),
+        "away_starter_confidence_score": away_starter_context.get("score", 0.0),
+        "home_starter_reason": home_starter_context.get("reason", ""),
+        "away_starter_reason": away_starter_context.get("reason", ""),
         
         "home_sp_season_era": _optional_value(
             pitcher_row.get("home_era")
@@ -560,6 +603,13 @@ def collect_daily_context(
         "sample_home_closer_status": sample_context.get("home_closer_status"),
         "sample_home_closer_risk_score": sample_context.get(
             "home_closer_risk_score"
+        ),
+        "sample_home_starter_status": sample_context.get("home_starter_status"),
+        "sample_home_starter_confidence": sample_context.get(
+            "home_starter_confidence"
+        ),
+        "sample_home_starter_confidence_score": sample_context.get(
+            "home_starter_confidence_score"
         ),
         "append_summary": append_summary,
         "errors": list(error_sink),
