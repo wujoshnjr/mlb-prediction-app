@@ -144,11 +144,11 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Build Savant top-3 hitter context
+        timeout-minutes: 3
         continue-on-error: true
         run: python scripts/savant_top3_context_client.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-
       - name: Generate prediction report
         run: python prediction.py
         env:
