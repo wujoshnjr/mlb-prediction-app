@@ -997,6 +997,14 @@ def build_recommendation_block_reason(
                     f"closer={closer_status or 'unknown'}."
                 )
 
+            lineup_projection_status = context.get("lineup_projection_status")
+            if lineup_projection_status:
+                details.append(
+                    f"Lineup projection: {lineup_projection_status}."
+                )
+
+            home_starter_status = context.get("home_starter_status")
+            away_starter_status = context.get("away_starter_status")
             home_starter_status = context.get("home_starter_status")
             away_starter_status = context.get("away_starter_status")
             if home_starter_status or away_starter_status:
@@ -1072,6 +1080,13 @@ def build_recommendation_block_reason(
                 f"lineup={lineup_status or 'unknown'}, "
                 f"bullpen={bullpen_status or 'unknown'}, "
                 f"closer={closer_status or 'unknown'}."
+            )
+
+        
+        lineup_projection_status = context.get("lineup_projection_status")
+        if lineup_projection_status:
+            details.append(
+                f"Lineup projection: {lineup_projection_status}."
             )
 
         home_starter_status = context.get("home_starter_status")
