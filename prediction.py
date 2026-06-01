@@ -890,7 +890,7 @@ def build_recommendation_block_reason(
             )
         details.append("Odds quality passed.")
         details.append(f"Model source: {model_source or 'unknown'}.")
-         if context:
+        if context:
             context_status = context.get("status")
             if context_status:
                 details.append(f"Pregame context: {context_status}.")
