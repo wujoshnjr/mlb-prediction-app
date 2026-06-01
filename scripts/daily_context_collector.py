@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 from scripts.bullpen_context_client import fetch_bullpen_context
+from scripts.closer_context_client import _evaluate_closer_side
 from scripts.daily_game_context import (
     append_context_snapshots,
     parse_utc_datetime,
@@ -246,7 +247,20 @@ def _build_context_for_game(
     game_feed_row = game_feed_row or {}
     home_bullpen_row = home_bullpen_row or {}
     away_bullpen_row = away_bullpen_row or {}
-    
+
+    home_closer_context = _evaluate_closer_side(
+        bullpen_data_available=home_bullpen_row.get("bullpen_data_available"),
+        pitches_last_1d=home_bullpen_row.get("reliever_pitches_last_1d"),
+        pitches_last_3d=home_bullpen_row.get("reliever_pitches_last_3d"),
+        fatigue_score=home_bullpen_row.get("bullpen_fatigue_score"),
+    )
+    away_closer_context = _evaluate_closer_side(
+        bullpen_data_available=away_bullpen_row.get("bullpen_data_available"),
+        pitches_last_1d=away_bullpen_row.get("reliever_pitches_last_1d"),
+        pitches_last_3d=away_bullpen_row.get("reliever_pitches_last_3d"),
+        fatigue_score=away_bullpen_row.get("bullpen_fatigue_score"),
+    )
+
     context: Dict[str, Any] = {
         "game_id": game_id,
         "game_date": pitcher_row.get("game_date", ""),
@@ -400,14 +414,16 @@ def _build_context_for_game(
             away_bullpen_row.get("extra_innings_previous_game")
         ),
 
-        # This remains unknown until an audited closer availability method exists.
-        "home_closer_available": _optional_bool(
-            home_bullpen_row.get("closer_available_estimate")
-        ),
-        "away_closer_available": _optional_bool(
-            away_bullpen_row.get("closer_available_estimate")
-        ),
-
+        "home_closer_available_known": bool(home_closer_context.get("known")),
+        "away_closer_available_known": bool(away_closer_context.get("known")),
+        "home_closer_available": bool(home_closer_context.get("available")),
+        "away_closer_available": bool(away_closer_context.get("available")),
+        "home_closer_status": home_closer_context.get("status", "unknown"),
+        "away_closer_status": away_closer_context.get("status", "unknown"),
+        "home_closer_risk_score": home_closer_context.get("risk_score", 1.0),
+        "away_closer_risk_score": away_closer_context.get("risk_score", 1.0),
+        "home_closer_reason": home_closer_context.get("reason", ""),
+        "away_closer_reason": away_closer_context.get("reason", ""),
         "context_data_sources_json": _build_data_sources(
             pitcher_row=pitcher_row,
             lineup_row=lineup_row if lineup_row else None,
@@ -538,6 +554,13 @@ def collect_daily_context(
             "home_lineup_player_count"
         ),
         "sample_home_top3_player_ids": sample_context.get("home_top3_player_ids"),
+        "sample_home_closer_available_known": sample_context.get(
+            "home_closer_available_known"
+        ),
+        "sample_home_closer_status": sample_context.get("home_closer_status"),
+        "sample_home_closer_risk_score": sample_context.get(
+            "home_closer_risk_score"
+        ),
         "append_summary": append_summary,
         "errors": list(error_sink),
     }
