@@ -280,7 +280,7 @@ jobs:
       - name: Backfill historical features
         run: python scripts/historical_collector.py "${{ github.event.inputs.collect_from }}" "${{ github.event.inputs.collect_to }}"
         env:
-          PYTHONPATH: ${{ github.workspace }}
+          PYTHONPATH: ${{ github.workspace }} 
 
       - name: Commit historical data
         run: |
