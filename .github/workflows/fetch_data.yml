@@ -72,6 +72,7 @@ jobs:
             scripts/apisports_diagnostic.py \
             scripts/odds_matching_diagnostic.py \
             scripts/training_diagnostic.py \
+            scripts/context_diagnostic.py \
             scripts/daily_context_collector.py \
             scripts/savant_top3_context_client.py \
             scripts/update_results.py \
@@ -155,6 +156,12 @@ jobs:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Diagnose context readiness
+        continue-on-error: true
+        run: python scripts/context_diagnostic.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Diagnose odds matching
         continue-on-error: true
         run: python scripts/odds_matching_diagnostic.py
@@ -182,6 +189,7 @@ jobs:
             report/daily_context_collection_report.json \
             report/odds_matching_diagnostic.json \
             report/training_diagnostic.json \
+            report/context_diagnostic.json \
             data/finalized_games.csv \
             data/historical_predictions.csv \
             data/prediction_snapshots.csv \
