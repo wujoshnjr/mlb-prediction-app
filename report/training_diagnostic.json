@@ -1,0 +1,204 @@
+{
+  "generated_at": "2026-06-01T08:28:10.360060+00:00",
+  "training_status": {
+    "exists": true,
+    "error": "",
+    "trained": true,
+    "skipped": false,
+    "sample_count": 61,
+    "minimum_clean_train_samples": 60,
+    "brier": 0.1964,
+    "logloss": 0.5845,
+    "reason": "",
+    "model_type": "calibrated_logistic_regression",
+    "training_source": "clean_prediction_snapshots",
+    "pipeline_version": "baseline_v2_clean",
+    "timestamp": "2026-06-01T08:28:09.967935"
+  },
+  "training_log": {
+    "exists": true,
+    "error": "",
+    "row_count": 3,
+    "latest_num_samples": 61,
+    "latest_used_feature_count": 13,
+    "latest_brier": 0.1964,
+    "latest_logloss": 0.5845,
+    "latest_timestamp": "2026-06-01T08:28:09.968094",
+    "trend_available": true,
+    "recent_training_runs": [
+      {
+        "timestamp": "2026-06-01T07:42:29.569604",
+        "num_samples": 61,
+        "used_feature_count": 13,
+        "brier": 0.1964,
+        "logloss": 0.5845
+      },
+      {
+        "timestamp": "2026-06-01T08:21:06.591763",
+        "num_samples": 61,
+        "used_feature_count": 13,
+        "brier": 0.1964,
+        "logloss": 0.5845
+      },
+      {
+        "timestamp": "2026-06-01T08:28:09.968094",
+        "num_samples": 61,
+        "used_feature_count": 13,
+        "brier": 0.1964,
+        "logloss": 0.5845
+      }
+    ]
+  },
+  "feature_importance": {
+    "exists": true,
+    "error": "",
+    "used_feature_count": 13,
+    "top_features": [
+      {
+        "feature": "elo_diff",
+        "importance": 0.3016075628356339
+      },
+      {
+        "feature": "bt_strength_diff",
+        "importance": 0.2677016177416757
+      },
+      {
+        "feature": "pitcher_rating_diff",
+        "importance": 0.2626428551747241
+      },
+      {
+        "feature": "dynamic_park_factor",
+        "importance": 0.2141587759244767
+      },
+      {
+        "feature": "back2back_diff",
+        "importance": 0.1788550055666659
+      },
+      {
+        "feature": "winrate_diff",
+        "importance": 0.1344981819875443
+      },
+      {
+        "feature": "sp_era_diff",
+        "importance": 0.0602572891626624
+      },
+      {
+        "feature": "timezone_diff",
+        "importance": 0.0191405070587978
+      },
+      {
+        "feature": "dynamic_pythag_diff",
+        "importance": 0.0129559896946259
+      },
+      {
+        "feature": "lag30_winrate_diff",
+        "importance": 0.0129559896946259
+      },
+      {
+        "feature": "k_pct_diff",
+        "importance": 0.0129559896946259
+      },
+      {
+        "feature": "bb_pct_diff",
+        "importance": 0.0129559896946259
+      },
+      {
+        "feature": "is_day_game",
+        "importance": 0.0019764299131407
+      }
+    ],
+    "low_importance_features": [
+      {
+        "feature": "timezone_diff",
+        "importance": 0.0191405070587978
+      },
+      {
+        "feature": "dynamic_pythag_diff",
+        "importance": 0.0129559896946259
+      },
+      {
+        "feature": "lag30_winrate_diff",
+        "importance": 0.0129559896946259
+      },
+      {
+        "feature": "k_pct_diff",
+        "importance": 0.0129559896946259
+      },
+      {
+        "feature": "bb_pct_diff",
+        "importance": 0.0129559896946259
+      },
+      {
+        "feature": "is_day_game",
+        "importance": 0.0019764299131407
+      }
+    ],
+    "zero_or_missing_importance_features": []
+  },
+  "snapshots": {
+    "exists": true,
+    "error": "",
+    "total_rows": 70,
+    "clean_pipeline_rows": 70,
+    "valid_rows": 70,
+    "settled_rows": 61,
+    "clean_settled_rows": 61,
+    "target_home_win_counts": {
+      "home_win_0": 23,
+      "home_win_1": 38
+    },
+    "date_range": {
+      "min": "2026-05-27T19:34:03.285423+00:00",
+      "max": "2026-06-01T03:35:36.736814+00:00"
+    },
+    "recent_rows_sample_count": 70
+  },
+  "prediction_usage": {
+    "exists": true,
+    "error": "",
+    "prediction_count": 9,
+    "model_source_counts": {
+      "ml": 9
+    },
+    "model_feature_count_values": [
+      13,
+      13,
+      13,
+      13,
+      13,
+      13,
+      13,
+      13,
+      13
+    ],
+    "model_training_sample_count_values": [
+      61,
+      61,
+      61,
+      61,
+      61,
+      61,
+      61,
+      61,
+      61
+    ],
+    "model_load_error_count": 0,
+    "sample_model_load_errors": [],
+    "using_ml_count": 9,
+    "using_manual_count": 0
+  },
+  "model_stage": "early_model",
+  "health_flags": [
+    "model_trained",
+    "early_model_small_sample",
+    "prediction_using_ml",
+    "feature_count_ok",
+    "snapshot_count_below_production_threshold",
+    "training_metrics_available",
+    "feature_importance_available"
+  ],
+  "recommendations": [
+    "Early model is for engineering validation only; do not use it as a production betting model.",
+    "Continue collecting clean settled snapshots. Restore the 300+ sample production threshold when enough data exists."
+  ]
+}
