@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 PIPELINE_VERSION = "baseline_v2_clean"
-CONTEXT_SCHEMA_VERSION = "daily_context_v1"
+CONTEXT_SCHEMA_VERSION = "daily_context_v2"
 CONTEXT_STORE_FILE = Path("data/daily_game_context.csv")
 
 COLUMNS = [
@@ -35,6 +35,14 @@ COLUMNS = [
     "home_starting_pitcher_confirmed",
     "away_starting_pitcher_confirmed",
     "starting_pitchers_ready",
+    "home_starter_status",
+    "away_starter_status",
+    "home_starter_confidence",
+    "away_starter_confidence",
+    "home_starter_confidence_score",
+    "away_starter_confidence_score",
+    "home_starter_reason",
+    "away_starter_reason",
     "home_sp_season_era",
     "away_sp_season_era",
     "home_sp_season_fip",
@@ -110,6 +118,8 @@ COLUMNS = [
 SOURCE_BOOL_FIELDS = [
     "home_starting_pitcher_confirmed",
     "away_starting_pitcher_confirmed",
+    "home_starter_confidence",
+    "away_starter_confidence",
     "home_lineup_confirmed",
     "away_lineup_confirmed",
     "home_bullpen_data_available",
@@ -528,6 +538,22 @@ def build_context_snapshot_row(context: Dict[str, Any]) -> Dict[str, Any]:
             "away_starting_pitcher_confirmed"
         ],
         "starting_pitchers_ready": starting_pitchers_ready,
+        "home_starter_status": context.get("home_starter_status", ""),
+        "away_starter_status": context.get("away_starter_status", ""),
+        "home_starter_confidence": source_booleans[
+            "home_starter_confidence"
+        ],
+        "away_starter_confidence": source_booleans[
+            "away_starter_confidence"
+        ],
+        "home_starter_confidence_score": context.get(
+            "home_starter_confidence_score"
+        ),
+        "away_starter_confidence_score": context.get(
+            "away_starter_confidence_score"
+        ),
+        "home_starter_reason": context.get("home_starter_reason", ""),
+        "away_starter_reason": context.get("away_starter_reason", ""),
         "home_sp_season_era": context.get("home_sp_season_era"),
         "away_sp_season_era": context.get("away_sp_season_era"),
         "home_sp_season_fip": context.get("home_sp_season_fip"),
