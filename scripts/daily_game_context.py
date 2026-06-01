@@ -403,7 +403,6 @@ def calculate_data_completeness(
             normalized_context.get("away_bullpen_data_available") is True,
         ),
         (
-        (
             "home_closer_available_known",
             normalized_context.get("home_closer_available_known") is True,
         ),
