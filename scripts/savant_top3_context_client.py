@@ -27,7 +27,10 @@ STATCAST_CSV_URL = "https://baseballsavant.mlb.com/statcast_search/csv"
 
 DEFAULT_LOOKBACK_DAYS = 30
 DEFAULT_SLEEP_SECONDS = 0.25
-DEFAULT_TIMEOUT = 30
+DEFAULT_LOOKBACK_DAYS = 30
+DEFAULT_SLEEP_SECONDS = 0.25
+DEFAULT_TIMEOUT = 8
+DEFAULT_MAX_UNIQUE_PLAYERS = 18
 
 PLAYER_SUMMARY_FIELDS = [
     "player_id",
@@ -702,6 +705,7 @@ def build_savant_top3_context(
     errors: Optional[List[str]] = None,
     timeout: int = DEFAULT_TIMEOUT,
     sleep_seconds: float = DEFAULT_SLEEP_SECONDS,
+    max_unique_players: int = DEFAULT_MAX_UNIQUE_PLAYERS,
 ) -> Dict[str, Any]:
     """Build per-game Baseball Savant top-3 hitter context from daily context."""
     captured_at = _utc_now_iso()
@@ -716,6 +720,7 @@ def build_savant_top3_context(
         "output_path": str(output_path) if output_path is not None else None,
         "games_processed": 0,
         "unique_players_requested": 0,
+        "max_unique_players": int(max_unique_players),
         "player_summaries_available": 0,
         "rows_written": 0,
         "home_rows_with_top3_ids": 0,
@@ -827,6 +832,12 @@ def build_savant_top3_context(
                     summary_row = player_cache[player_id]
                 else:
                     player_errors: List[str] = []
+                if len(player_cache) >= max_unique_players:
+                    summary_row = _empty_player_summary(
+                        player_id,
+                        "Skipped by max_unique_players limit",
+                    )
+                else:
                     summary_row = fetch_batter_statcast_summary(
                         player_id=player_id,
                         start_date=start_date,
@@ -834,7 +845,8 @@ def build_savant_top3_context(
                         errors=player_errors,
                         timeout=timeout,
                     )
-                    player_cache[player_id] = summary_row
+
+                player_cache[player_id] = summary_row
 
                     for message in player_errors:
                         if message:
