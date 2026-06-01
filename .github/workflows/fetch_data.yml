@@ -68,8 +68,8 @@ jobs:
             scripts/mlb_game_feed_client.py \
             scripts/apisports_lineup_client.py \
             scripts/apisports_diagnostic.py \
-            scripts/daily_context_collector.py \
-            scripts/savant_top3_context_client.py \
+            scripts/odds_matching_diagnostic.py \
+            scripts/daily_context_collector.py \            scripts/savant_top3_context_client.py \
             scripts/update_results.py \
             scripts/backfill_final_scores.py \
             scripts/rebuild_ratings.py \
@@ -143,6 +143,12 @@ jobs:
         env:
           BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Diagnose odds matching
+        continue-on-error: true
+        run: python scripts/odds_matching_diagnostic.py
+        env:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Validate prediction report and rating state
