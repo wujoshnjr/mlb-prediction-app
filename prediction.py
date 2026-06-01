@@ -563,6 +563,23 @@ def build_daily_context_summary(
 
     game_feed_available = as_optional_bool(row.get("game_feed_available")) is True
 
+    home_starter_status = as_optional_str(row.get("home_starter_status"))
+    away_starter_status = as_optional_str(row.get("away_starter_status"))
+    home_starter_confidence = as_optional_bool(
+        row.get("home_starter_confidence")
+    )
+    away_starter_confidence = as_optional_bool(
+        row.get("away_starter_confidence")
+    )
+    home_starter_confidence_score = as_optional_float(
+        row.get("home_starter_confidence_score")
+    )
+    away_starter_confidence_score = as_optional_float(
+        row.get("away_starter_confidence_score")
+    )
+    home_starter_reason = as_optional_str(row.get("home_starter_reason"))
+    away_starter_reason = as_optional_str(row.get("away_starter_reason"))
+    
     home_starting_pitcher_id = as_optional_int(
         row.get("home_starting_pitcher_id")
     )
@@ -590,15 +607,36 @@ def build_daily_context_summary(
         row.get("context_ready_for_betting")
     ) is True
 
+    home_starter_high_confidence = (
+        home_starter_status in {"confirmed", "high_confidence_probable"}
+        or home_starter_confidence is True
+    )
+    away_starter_high_confidence = (
+        away_starter_status in {"confirmed", "high_confidence_probable"}
+        or away_starter_confidence is True
+    )
+
     if home_sp_confirmed is True and away_sp_confirmed is True:
         pitcher_status = "confirmed"
+    elif home_starter_high_confidence and away_starter_high_confidence:
+        pitcher_status = "high_confidence_probable"
+    elif home_starter_high_confidence or away_starter_high_confidence:
+        pitcher_status = "mixed_probable"
     elif (
         not is_missing_value(row.get("home_probable_pitcher_id"))
         or not is_missing_value(row.get("away_probable_pitcher_id"))
     ):
-        pitcher_status = "probable_only"
+        pitcher_status = "low_confidence_probable"
     else:
         pitcher_status = "missing"
+
+    starter_confidence_status = (
+        "known"
+        if home_starter_status and away_starter_status
+        else "partial"
+        if home_starter_status or away_starter_status
+        else "unknown"
+    )
 
     if home_lineup_confirmed is True and away_lineup_confirmed is True:
         lineup_status = "confirmed"
@@ -620,9 +658,38 @@ def build_daily_context_summary(
         else "unknown"
     )
 
-    missing_critical_fields = parse_json_list(
+    raw_missing_critical_fields = parse_json_list(
         row.get("missing_critical_fields_json")
     )
+
+    missing_critical_fields = list(raw_missing_critical_fields)
+    starter_confirmation_pending = False
+
+    if pitcher_status in {"confirmed", "high_confidence_probable"}:
+        starter_fields = {
+            "home_starting_pitcher_confirmed",
+            "away_starting_pitcher_confirmed",
+        }
+        starter_confirmation_pending = any(
+            field in missing_critical_fields for field in starter_fields
+        )
+        missing_critical_fields = [
+            field
+            for field in missing_critical_fields
+            if field not in starter_fields
+        ]
+
+    if missing_critical_fields:
+        context_not_ready_reason = (
+            "Missing critical fields: "
+            + ", ".join(str(field) for field in missing_critical_fields)
+        )
+    elif starter_confirmation_pending:
+        context_not_ready_reason = (
+            "Official starter confirmation pending, but high-confidence probable starters are available."
+        )
+    else:
+        context_not_ready_reason = row.get("context_not_ready_reason")
 
     return {
         "status": (
@@ -636,9 +703,21 @@ def build_daily_context_summary(
             row.get("data_completeness_score")
         ),
         "context_ready_for_betting": context_ready,
-        "context_not_ready_reason": row.get("context_not_ready_reason"),
+        "context_not_ready_reason": context_not_ready_reason,
+        "raw_context_not_ready_reason": row.get("context_not_ready_reason"),
         "missing_critical_fields": missing_critical_fields,
+        "raw_missing_critical_fields": raw_missing_critical_fields,
         "pitcher_status": pitcher_status,
+        "starter_confidence_status": starter_confidence_status,
+        "starter_confirmation_pending": starter_confirmation_pending,
+        "home_starter_status": home_starter_status,
+        "away_starter_status": away_starter_status,
+        "home_starter_confidence": home_starter_confidence,
+        "away_starter_confidence": away_starter_confidence,
+        "home_starter_confidence_score": home_starter_confidence_score,
+        "away_starter_confidence_score": away_starter_confidence_score,
+        "home_starter_reason": home_starter_reason,
+        "away_starter_reason": away_starter_reason,
         "lineup_status": lineup_status,
         "bullpen_status": bullpen_status,
         "closer_status": closer_status,
@@ -811,10 +890,38 @@ def build_recommendation_block_reason(
             )
         details.append("Odds quality passed.")
         details.append(f"Model source: {model_source or 'unknown'}.")
-        if context:
+         if context:
             context_status = context.get("status")
             if context_status:
                 details.append(f"Pregame context: {context_status}.")
+
+            pitcher_status = context.get("pitcher_status")
+            lineup_status = context.get("lineup_status")
+            bullpen_status = context.get("bullpen_status")
+            closer_status = context.get("closer_status")
+
+            if pitcher_status or lineup_status or bullpen_status or closer_status:
+                details.append(
+                    "Context status: "
+                    f"pitcher={pitcher_status or 'unknown'}, "
+                    f"lineup={lineup_status or 'unknown'}, "
+                    f"bullpen={bullpen_status or 'unknown'}, "
+                    f"closer={closer_status or 'unknown'}."
+                )
+
+            home_starter_status = context.get("home_starter_status")
+            away_starter_status = context.get("away_starter_status")
+            if home_starter_status or away_starter_status:
+                details.append(
+                    "Starter confidence: "
+                    f"home={home_starter_status or 'unknown'}, "
+                    f"away={away_starter_status or 'unknown'}."
+                )
+
+            reason = context.get("context_not_ready_reason")
+            if reason:
+                details.append(str(reason))
+
         return "Paper bet edge passed", details
 
     if not odds_are_usable:
@@ -869,12 +976,23 @@ def build_recommendation_block_reason(
         pitcher_status = context.get("pitcher_status")
         lineup_status = context.get("lineup_status")
         bullpen_status = context.get("bullpen_status")
-        if pitcher_status or lineup_status or bullpen_status:
+        closer_status = context.get("closer_status")
+        if pitcher_status or lineup_status or bullpen_status or closer_status:
             details.append(
                 "Context status: "
                 f"pitcher={pitcher_status or 'unknown'}, "
                 f"lineup={lineup_status or 'unknown'}, "
-                f"bullpen={bullpen_status or 'unknown'}."
+                f"bullpen={bullpen_status or 'unknown'}, "
+                f"closer={closer_status or 'unknown'}."
+            )
+
+        home_starter_status = context.get("home_starter_status")
+        away_starter_status = context.get("away_starter_status")
+        if home_starter_status or away_starter_status:
+            details.append(
+                "Starter confidence: "
+                f"home={home_starter_status or 'unknown'}, "
+                f"away={away_starter_status or 'unknown'}."
             )
 
         return "Pregame context not ready", details
