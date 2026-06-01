@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 import pandas as pd
 
 PIPELINE_VERSION = "baseline_v2_clean"
-CONTEXT_SCHEMA_VERSION = "daily_context_v2"
+CONTEXT_SCHEMA_VERSION = "daily_context_v3"
 CONTEXT_STORE_FILE = Path("data/daily_game_context.csv")
 
 COLUMNS = [
@@ -87,8 +87,16 @@ COLUMNS = [
     "away_bullpen_pitches_last_3d",
     "home_high_leverage_pitches_last_3d",
     "away_high_leverage_pitches_last_3d",
+    "home_closer_available_known",
+    "away_closer_available_known",
     "home_closer_available",
     "away_closer_available",
+    "home_closer_status",
+    "away_closer_status",
+    "home_closer_risk_score",
+    "away_closer_risk_score",
+    "home_closer_reason",
+    "away_closer_reason",
     "home_high_leverage_available_count",
     "away_high_leverage_available_count",
     "home_bullpen_fatigue_score",
@@ -124,6 +132,8 @@ SOURCE_BOOL_FIELDS = [
     "away_lineup_confirmed",
     "home_bullpen_data_available",
     "away_bullpen_data_available",
+    "home_closer_available_known",
+    "away_closer_available_known",
     "home_closer_available",
     "away_closer_available",
     "home_extra_innings_previous_game",
@@ -393,12 +403,13 @@ def calculate_data_completeness(
             normalized_context.get("away_bullpen_data_available") is True,
         ),
         (
+        (
             "home_closer_available_known",
-            normalized_context.get("home_closer_available") is not None,
+            normalized_context.get("home_closer_available_known") is True,
         ),
         (
             "away_closer_available_known",
-            normalized_context.get("away_closer_available") is not None,
+            normalized_context.get("away_closer_available_known") is True,
         ),
     ]
 
@@ -472,10 +483,10 @@ def build_context_snapshot_row(context: Dict[str, Any]) -> Dict[str, Any]:
     bullpens_ready = (
         source_booleans["home_bullpen_data_available"] is True
         and source_booleans["away_bullpen_data_available"] is True
-        and source_booleans["home_closer_available"] is not None
-        and source_booleans["away_closer_available"] is not None
+        and source_booleans["home_closer_available_known"] is True
+        and source_booleans["away_closer_available_known"] is True
     )
-
+    
     normalized_context = {
         "game_id": str(game_id),
         "start_time": start_time.isoformat(),
@@ -654,12 +665,24 @@ def build_context_snapshot_row(context: Dict[str, Any]) -> Dict[str, Any]:
         "away_high_leverage_pitches_last_3d": context.get(
             "away_high_leverage_pitches_last_3d"
         ),
+        "home_closer_available_known": source_booleans[
+            "home_closer_available_known"
+        ],
+        "away_closer_available_known": source_booleans[
+            "away_closer_available_known"
+        ],
         "home_closer_available": source_booleans[
             "home_closer_available"
         ],
         "away_closer_available": source_booleans[
             "away_closer_available"
         ],
+        "home_closer_status": context.get("home_closer_status", "unknown"),
+        "away_closer_status": context.get("away_closer_status", "unknown"),
+        "home_closer_risk_score": context.get("home_closer_risk_score"),
+        "away_closer_risk_score": context.get("away_closer_risk_score"),
+        "home_closer_reason": context.get("home_closer_reason", ""),
+        "away_closer_reason": context.get("away_closer_reason", ""),
         "home_high_leverage_available_count": context.get(
             "home_high_leverage_available_count"
         ),
