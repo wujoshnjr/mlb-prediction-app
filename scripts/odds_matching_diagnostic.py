@@ -190,11 +190,19 @@ def _filter_moneyline(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def _extract_prediction_rows(report: Dict[str, Any]) -> List[Dict[str, Any]]:
-    predictions = report.get("predictions", [])
-    if not isinstance(predictions, list):
-        return []
+    """Extract prediction rows from supported prediction report shapes."""
+    for key in (
+        "predictions",
+        "today_predictions",
+        "games",
+        "recommendations",
+        "paper_bets",
+    ):
+        rows = report.get(key, [])
+        if isinstance(rows, list) and rows:
+            return [item for item in rows if isinstance(item, dict)]
 
-    return [item for item in predictions if isinstance(item, dict)]
+    return []
 
 
 def _row_team_values(row: pd.Series) -> List[str]:
