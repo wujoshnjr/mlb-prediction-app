@@ -549,14 +549,16 @@ def build_daily_context_summary(
     home_lineup_count = as_int(row.get("home_lineup_player_count"), 0)
     away_lineup_count = as_int(row.get("away_lineup_player_count"), 0)
 
+    home_lineup_ids = parse_json_list(row.get("home_lineup_player_ids_json"))
+    away_lineup_ids = parse_json_list(row.get("away_lineup_player_ids_json"))
+
     if home_lineup_count <= 0:
-        home_lineup_count = len(
-            parse_json_list(row.get("home_lineup_player_ids_json"))
-        )
+        home_lineup_count = len(home_lineup_ids)
     if away_lineup_count <= 0:
-        away_lineup_count = len(
-            parse_json_list(row.get("away_lineup_player_ids_json"))
-        )
+        away_lineup_count = len(away_lineup_ids)
+
+    home_projected_lineup_available = home_lineup_count >= 7
+    away_projected_lineup_available = away_lineup_count >= 7
 
     home_top3_player_ids = parse_csv_int_list(row.get("home_top3_player_ids"))
     away_top3_player_ids = parse_csv_int_list(row.get("away_top3_player_ids"))
