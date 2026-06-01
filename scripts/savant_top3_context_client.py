@@ -830,21 +830,22 @@ def build_savant_top3_context(
                     summary_row = player_cache[player_id]
                 else:
                     player_errors: List[str] = []
-                if len(player_cache) >= max_unique_players:
-                    summary_row = _empty_player_summary(
-                        player_id,
-                        "Skipped by max_unique_players limit",
-                    )
-                else:
-                    summary_row = fetch_batter_statcast_summary(
-                        player_id=player_id,
-                        start_date=start_date,
-                        end_date=end_date,
-                        errors=player_errors,
-                        timeout=timeout,
-                    )
 
-                player_cache[player_id] = summary_row
+                    if len(player_cache) >= max_unique_players:
+                        summary_row = _empty_player_summary(
+                            player_id,
+                            "Skipped by max_unique_players limit",
+                        )
+                    else:
+                        summary_row = fetch_batter_statcast_summary(
+                            player_id=player_id,
+                            start_date=start_date,
+                            end_date=end_date,
+                            errors=player_errors,
+                            timeout=timeout,
+                        )
+
+                    player_cache[player_id] = summary_row
 
                     for message in player_errors:
                         if message:
@@ -854,7 +855,7 @@ def build_savant_top3_context(
                         time.sleep(sleep_seconds)
 
                 side_summaries.append(summary_row)
-
+                
                 player_error = str(summary_row.get("savant_error") or "")
                 if player_error:
                     game_errors.append(
