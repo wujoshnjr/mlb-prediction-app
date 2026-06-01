@@ -831,25 +831,72 @@ def summarize_prediction_context(
     with_context = 0
     ready = 0
     bullpen_available = 0
+    closer_known = 0
+    starter_high_confidence = 0
     lineup_confirmed = 0
+    lineup_projected_available = 0
+    tracking_only = 0
+
+    pitcher_status_counts: dict[str, int] = {}
+    lineup_status_counts: dict[str, int] = {}
+    signal_status_counts: dict[str, int] = {}
 
     for item in predictions:
         summary = item.get("daily_context_summary", {})
+
         if summary.get("status") != "CONTEXT_UNAVAILABLE":
             with_context += 1
+
         if summary.get("context_ready_for_betting") is True:
             ready += 1
+        else:
+            tracking_only += 1
+
         if summary.get("bullpen_status") == "available":
             bullpen_available += 1
+
+        if summary.get("closer_status") == "known":
+            closer_known += 1
+
+        if summary.get("pitcher_status") in {
+            "confirmed",
+            "high_confidence_probable",
+        }:
+            starter_high_confidence += 1
+
         if summary.get("lineup_status") == "confirmed":
             lineup_confirmed += 1
+
+        if summary.get("lineup_projection_status") == "available":
+            lineup_projected_available += 1
+
+        pitcher_status = str(summary.get("pitcher_status") or "unknown")
+        lineup_status = str(summary.get("lineup_status") or "unknown")
+        signal_status = str(summary.get("signal_status") or "unknown")
+
+        pitcher_status_counts[pitcher_status] = (
+            pitcher_status_counts.get(pitcher_status, 0) + 1
+        )
+        lineup_status_counts[lineup_status] = (
+            lineup_status_counts.get(lineup_status, 0) + 1
+        )
+        signal_status_counts[signal_status] = (
+            signal_status_counts.get(signal_status, 0) + 1
+        )
 
     return {
         "prediction_count": total,
         "with_context_count": with_context,
         "ready_context_count": ready,
+        "tracking_only_context_count": tracking_only,
         "bullpen_available_count": bullpen_available,
+        "closer_known_count": closer_known,
+        "starter_high_confidence_count": starter_high_confidence,
         "confirmed_lineup_context_count": lineup_confirmed,
+        "projected_lineup_available_count": lineup_projected_available,
+        "pitcher_status_counts": pitcher_status_counts,
+        "lineup_status_counts": lineup_status_counts,
+        "signal_status_counts": signal_status_counts,
     }
 
 
