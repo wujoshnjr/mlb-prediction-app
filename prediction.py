@@ -602,8 +602,24 @@ def build_daily_context_summary(
     away_bullpen_available = as_optional_bool(
         row.get("away_bullpen_data_available")
     )
-    home_closer_known = not is_missing_value(row.get("home_closer_available"))
-    away_closer_known = not is_missing_value(row.get("away_closer_available"))
+    home_closer_available_known = as_optional_bool(
+        row.get("home_closer_available_known")
+    )
+    away_closer_available_known = as_optional_bool(
+        row.get("away_closer_available_known")
+    )
+    home_closer_available = as_optional_bool(row.get("home_closer_available"))
+    away_closer_available = as_optional_bool(row.get("away_closer_available"))
+
+    home_closer_known = home_closer_available_known is True
+    away_closer_known = away_closer_available_known is True
+
+    home_closer_status = as_optional_str(row.get("home_closer_status"))
+    away_closer_status = as_optional_str(row.get("away_closer_status"))
+    home_closer_risk_score = as_optional_float(row.get("home_closer_risk_score"))
+    away_closer_risk_score = as_optional_float(row.get("away_closer_risk_score"))
+    home_closer_reason = as_optional_str(row.get("home_closer_reason"))
+    away_closer_reason = as_optional_str(row.get("away_closer_reason"))
 
     context_ready = as_optional_bool(
         row.get("context_ready_for_betting")
@@ -643,9 +659,19 @@ def build_daily_context_summary(
     if home_lineup_confirmed is True and away_lineup_confirmed is True:
         lineup_status = "confirmed"
     elif home_lineup_confirmed is True or away_lineup_confirmed is True:
-        lineup_status = "partial"
+        lineup_status = "partial_confirmed"
+    elif home_projected_lineup_available and away_projected_lineup_available:
+        lineup_status = "projected_available"
     else:
         lineup_status = "pending"
+
+    lineup_projection_status = (
+        "available"
+        if home_projected_lineup_available and away_projected_lineup_available
+        else "partial"
+        if home_projected_lineup_available or away_projected_lineup_available
+        else "missing"
+    )
 
     if home_bullpen_available is True and away_bullpen_available is True:
         bullpen_status = "available"
@@ -721,8 +747,21 @@ def build_daily_context_summary(
         "home_starter_reason": home_starter_reason,
         "away_starter_reason": away_starter_reason,
         "lineup_status": lineup_status,
+        "lineup_projection_status": lineup_projection_status,
+        "home_projected_lineup_available": home_projected_lineup_available,
+        "away_projected_lineup_available": away_projected_lineup_available,
         "bullpen_status": bullpen_status,
         "closer_status": closer_status,
+        "home_closer_available_known": home_closer_available_known,
+        "away_closer_available_known": away_closer_available_known,
+        "home_closer_available": home_closer_available,
+        "away_closer_available": away_closer_available,
+        "home_closer_status": home_closer_status,
+        "away_closer_status": away_closer_status,
+        "home_closer_risk_score": home_closer_risk_score,
+        "away_closer_risk_score": away_closer_risk_score,
+        "home_closer_reason": home_closer_reason,
+        "away_closer_reason": away_closer_reason,
         "signal_status": (
             "eligible_context"
             if context_ready
