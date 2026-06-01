@@ -175,6 +175,64 @@ def _extract_player_ids_from_entries(entries: Any) -> List[int]:
     return ids
 
 
+def _extract_batting_order_from_players_map(players_map: Any) -> List[int]:
+    """Extract batting order from MLB boxscore players map when battingOrder is missing.
+
+    Some MLB Stats API payloads do not expose teams.home.battingOrder early, but
+    player objects may already contain battingOrder-like fields. This helper
+    scans the players map and sorts by those fields.
+    """
+    if not isinstance(players_map, dict):
+        return []
+
+    candidates: List[Tuple[int, int]] = []
+
+    for key, player_obj in players_map.items():
+        if not isinstance(player_obj, dict):
+            continue
+
+        player_id = (
+            _safe_int(_safe_get(player_obj, "person.id"))
+            or _safe_int(player_obj.get("id"))
+            or _safe_int(_safe_get(player_obj, "player.id"))
+            or _safe_int(str(key).replace("ID", ""))
+        )
+
+        if player_id is None:
+            continue
+
+        order_value = (
+            _safe_int(player_obj.get("battingOrder"))
+            or _safe_int(player_obj.get("batting_order"))
+            or _safe_int(player_obj.get("battingOrderNumber"))
+            or _safe_int(player_obj.get("battingOrderSort"))
+            or _safe_int(_safe_get(player_obj, "stats.batting.battingOrder"))
+            or _safe_int(_safe_get(player_obj, "gameStatus.battingOrder"))
+        )
+
+        if order_value is None:
+            continue
+
+        # MLB sometimes encodes battingOrder as 100, 200, ... 900.
+        # Sorting by raw value still gives correct order.
+        candidates.append((order_value, player_id))
+
+    if not candidates:
+        return []
+
+    candidates.sort(key=lambda item: item[0])
+
+    ordered_ids: List[int] = []
+    seen = set()
+    for _, player_id in candidates:
+        if player_id in seen:
+            continue
+        seen.add(player_id)
+        ordered_ids.append(player_id)
+
+    return ordered_ids
+    
+
 def _game_has_started_or_finished(game_status: str, detailed_state: str) -> bool:
     """Conservative live/final detector for starter confirmation."""
     status_upper = _safe_str(game_status).upper()
@@ -432,6 +490,20 @@ def _parse_feed_data(game_id: Union[int, str], payload: Dict[str, Any]) -> Dict[
 
     home_lineup_from_batters = False
     away_lineup_from_batters = False
+    home_lineup_from_players_map = False
+    away_lineup_from_players_map = False
+
+    if not home_batting_order_ids:
+        home_batting_order_ids = _extract_batting_order_from_players_map(
+            home_players_map
+        )
+        home_lineup_from_players_map = bool(home_batting_order_ids)
+
+    if not away_batting_order_ids:
+        away_batting_order_ids = _extract_batting_order_from_players_map(
+            away_players_map
+        )
+        away_lineup_from_players_map = bool(away_batting_order_ids)
 
     if not home_batting_order_ids and home_batters_raw:
         home_batting_order_ids = _extract_player_ids_from_entries(home_batters_raw)
@@ -441,9 +513,15 @@ def _parse_feed_data(game_id: Union[int, str], payload: Dict[str, Any]) -> Dict[
         away_batting_order_ids = _extract_player_ids_from_entries(away_batters_raw)
         away_lineup_from_batters = True
 
-    home_lineup_confirmed = (not home_lineup_from_batters) and len(home_batting_order_ids) >= 9
-    away_lineup_confirmed = (not away_lineup_from_batters) and len(away_batting_order_ids) >= 9
-
+    home_lineup_confirmed = (
+        len(home_batting_order_ids) >= 9
+        and not home_lineup_from_batters
+    )
+    away_lineup_confirmed = (
+        len(away_batting_order_ids) >= 9
+        and not away_lineup_from_batters
+    )
+    
     home_lineup_player_count = len(home_batting_order_ids)
     away_lineup_player_count = len(away_batting_order_ids)
 
