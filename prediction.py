@@ -2778,7 +2778,7 @@ def generate_predictions() -> dict[str, Any]:
             )
         )
 
-                betting_readiness = evaluate_betting_readiness(
+        betting_readiness = evaluate_betting_readiness(
             daily_context_summary,
             odds_quality_status=odds_quality_status,
             moneyline_gate_status=moneyline_gate_status,
