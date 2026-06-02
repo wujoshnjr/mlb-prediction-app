@@ -464,7 +464,7 @@ def build_context_diagnostic(
     for prediction in predictions:
         summary = _daily_summary(prediction)
 
-                readiness = prediction.get("betting_readiness") or {}
+        readiness = prediction.get("betting_readiness") or {}
         readiness_status = str(
             prediction.get("betting_readiness_status")
             or readiness.get("betting_readiness_status")
