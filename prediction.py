@@ -826,7 +826,7 @@ def build_daily_context_summary(
 def summarize_prediction_context(
     predictions: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """Summarize daily context availability across prediction rows."""
+    """Summarize daily context and betting readiness across prediction rows."""
     total = len(predictions)
     with_context = 0
     ready = 0
@@ -837,13 +837,21 @@ def summarize_prediction_context(
     lineup_projected_available = 0
     tracking_only = 0
 
+    official_ready_count = 0
+    practical_ready_count = 0
+    risk_blocked_count = 0
+    live_bet_candidate_count = 0
+    betting_readiness_score_sum = 0.0
+    betting_readiness_score_count = 0
+
     pitcher_status_counts: dict[str, int] = {}
     lineup_status_counts: dict[str, int] = {}
     signal_status_counts: dict[str, int] = {}
+    betting_readiness_status_counts: dict[str, int] = {}
+    risk_flag_counts: dict[str, int] = {}
 
     for item in predictions:
         summary = item.get("daily_context_summary", {})
-
         if summary.get("status") != "CONTEXT_UNAVAILABLE":
             with_context += 1
 
@@ -884,6 +892,48 @@ def summarize_prediction_context(
             signal_status_counts.get(signal_status, 0) + 1
         )
 
+        readiness = item.get("betting_readiness") or {}
+        readiness_status = str(
+            item.get("betting_readiness_status")
+            or readiness.get("betting_readiness_status")
+            or "unknown"
+        )
+        betting_readiness_status_counts[readiness_status] = (
+            betting_readiness_status_counts.get(readiness_status, 0) + 1
+        )
+
+        if readiness_status == "official_ready":
+            official_ready_count += 1
+        if readiness_status == "practical_ready":
+            practical_ready_count += 1
+        if readiness_status == "risk_blocked":
+            risk_blocked_count += 1
+
+        if item.get("live_bet_candidate") is True:
+            live_bet_candidate_count += 1
+
+        score = item.get("betting_readiness_score")
+        if score is None:
+            score = readiness.get("betting_readiness_score")
+        score_float = as_optional_float(score)
+        if score_float is not None:
+            betting_readiness_score_sum += score_float
+            betting_readiness_score_count += 1
+
+        flags = item.get("betting_risk_flags")
+        if flags is None:
+            flags = readiness.get("betting_risk_flags")
+        if isinstance(flags, list):
+            for flag in flags:
+                key = str(flag)
+                risk_flag_counts[key] = risk_flag_counts.get(key, 0) + 1
+
+    average_score = (
+        round(betting_readiness_score_sum / betting_readiness_score_count, 4)
+        if betting_readiness_score_count > 0
+        else None
+    )
+
     return {
         "prediction_count": total,
         "with_context_count": with_context,
@@ -894,9 +944,212 @@ def summarize_prediction_context(
         "starter_high_confidence_count": starter_high_confidence,
         "confirmed_lineup_context_count": lineup_confirmed,
         "projected_lineup_available_count": lineup_projected_available,
+        "official_ready_count": official_ready_count,
+        "practical_ready_count": practical_ready_count,
+        "risk_blocked_count": risk_blocked_count,
+        "live_bet_candidate_count": live_bet_candidate_count,
+        "average_betting_readiness_score": average_score,
         "pitcher_status_counts": pitcher_status_counts,
         "lineup_status_counts": lineup_status_counts,
         "signal_status_counts": signal_status_counts,
+        "betting_readiness_status_counts": betting_readiness_status_counts,
+        "risk_flag_counts": risk_flag_counts,
+    }
+
+
+def _clamp_float(value: float, minimum: float = 0.0, maximum: float = 1.0) -> float:
+    """Clamp a numeric value to a closed interval."""
+    return max(minimum, min(maximum, float(value)))
+
+
+def evaluate_betting_readiness(
+    daily_context_summary: dict[str, Any],
+    *,
+    odds_quality_status: str,
+    moneyline_gate_status: str,
+    model_source: str,
+    model_edge_home: float | None,
+    moneyline_selected_edge: float | None,
+    min_moneyline_edge: float,
+) -> dict[str, Any]:
+    """
+    Evaluate effective betting readiness without changing model probability,
+    odds logic, or recommendation status.
+
+    This is a paper-trading readiness layer.
+    """
+    context = daily_context_summary or {}
+
+    raw_context_ready = context.get("context_ready_for_betting") is True
+
+    odds_status = str(odds_quality_status or "UNAVAILABLE").strip().upper()
+    gate_status = str(moneyline_gate_status or "").strip().upper()
+    model_source_norm = str(model_source or "").strip().lower()
+
+    missing_critical_fields = context.get("missing_critical_fields") or []
+    if not isinstance(missing_critical_fields, list):
+        missing_critical_fields = []
+
+    pitcher_status = str(context.get("pitcher_status") or "missing")
+    starter_confidence_status = str(
+        context.get("starter_confidence_status") or "unknown"
+    )
+    lineup_status = str(context.get("lineup_status") or "pending")
+    bullpen_status = str(context.get("bullpen_status") or "missing")
+    closer_status = str(context.get("closer_status") or "unknown")
+
+    home_closer_status = str(context.get("home_closer_status") or "unknown")
+    away_closer_status = str(context.get("away_closer_status") or "unknown")
+
+    starter_confirmation_pending = (
+        context.get("starter_confirmation_pending") is True
+    )
+
+    selected_edge = (
+        moneyline_selected_edge
+        if moneyline_selected_edge is not None
+        else abs(model_edge_home)
+        if model_edge_home is not None
+        else None
+    )
+
+    risk_flags: list[str] = []
+    reasons: list[str] = []
+
+    if odds_status != "OK":
+        risk_flags.append("odds_not_ok")
+        reasons.append(f"odds_quality_status={odds_status}")
+
+    if model_source_norm != "ml":
+        risk_flags.append("non_ml_model")
+        reasons.append(f"model_source={model_source_norm or 'unknown'}")
+
+    if missing_critical_fields:
+        risk_flags.append("context_missing_fields")
+        reasons.append(
+            "missing_critical_fields="
+            + ",".join(str(item) for item in missing_critical_fields[:6])
+        )
+
+    if lineup_status != "confirmed":
+        risk_flags.append("lineup_not_confirmed")
+        reasons.append(f"lineup_status={lineup_status}")
+
+    if bullpen_status != "available":
+        risk_flags.append("bullpen_not_available")
+        reasons.append(f"bullpen_status={bullpen_status}")
+
+    if starter_confirmation_pending:
+        risk_flags.append("starter_confirmation_pending")
+        reasons.append("official starter confirmation pending")
+
+    if (
+        home_closer_status == "high_fatigue_risk"
+        or away_closer_status == "high_fatigue_risk"
+    ):
+        risk_flags.append("closer_high_fatigue")
+        reasons.append(
+            f"closer_status home={home_closer_status}, away={away_closer_status}"
+        )
+    elif (
+        home_closer_status == "fatigue_risk"
+        or away_closer_status == "fatigue_risk"
+    ):
+        risk_flags.append("closer_fatigue")
+        reasons.append(
+            f"closer_status home={home_closer_status}, away={away_closer_status}"
+        )
+
+    if selected_edge is None:
+        risk_flags.append("edge_unavailable")
+        reasons.append("selected edge unavailable")
+    elif selected_edge < min_moneyline_edge:
+        risk_flags.append("edge_below_threshold")
+        reasons.append(
+            f"selected_edge={selected_edge:.4f} below threshold={min_moneyline_edge:.4f}"
+        )
+
+    practical_context_ready = (
+        not missing_critical_fields
+        and pitcher_status in {"confirmed", "high_confidence_probable"}
+        and starter_confidence_status == "known"
+        and lineup_status == "confirmed"
+        and bullpen_status == "available"
+        and closer_status == "known"
+    )
+
+    effective_context_ready = False
+    status = "context_tracking_only"
+
+    if odds_status != "OK":
+        status = "odds_blocked"
+    elif model_source_norm != "ml":
+        status = "model_blocked"
+    elif selected_edge is None or selected_edge < min_moneyline_edge:
+        status = "model_blocked"
+    elif raw_context_ready:
+        effective_context_ready = True
+        status = "official_ready"
+        reasons.append("strict official context is ready")
+    elif practical_context_ready:
+        effective_context_ready = True
+        status = "practical_ready"
+        reasons.append("effective betting context is practically ready")
+    else:
+        status = "context_tracking_only"
+
+    score = 1.0
+    unique_flags = set(risk_flags)
+
+    if "odds_not_ok" in unique_flags:
+        score -= 0.40
+    if "non_ml_model" in unique_flags:
+        score -= 0.30
+    if "context_missing_fields" in unique_flags:
+        score -= 0.30
+    if "lineup_not_confirmed" in unique_flags:
+        score -= 0.20
+    if "bullpen_not_available" in unique_flags:
+        score -= 0.15
+    if "starter_confirmation_pending" in unique_flags:
+        score -= 0.05
+    if "closer_fatigue" in unique_flags:
+        score -= 0.05
+    if "closer_high_fatigue" in unique_flags:
+        score -= 0.15
+    if "edge_unavailable" in unique_flags or "edge_below_threshold" in unique_flags:
+        score -= 0.20
+
+    score = round(_clamp_float(score), 4)
+
+    if effective_context_ready and score < 0.75:
+        effective_context_ready = False
+        status = "risk_blocked"
+        reasons.append("effective context was blocked by risk score below 0.75")
+
+    if status == "official_ready" and score >= 0.90:
+        stake_multiplier = 1.0
+    elif status == "practical_ready" and score >= 0.85:
+        stake_multiplier = 0.50
+    elif status == "practical_ready" and score >= 0.75:
+        stake_multiplier = 0.25
+    else:
+        stake_multiplier = 0.0
+
+    return {
+        "raw_context_ready_for_betting": raw_context_ready,
+        "effective_context_ready_for_betting": bool(effective_context_ready),
+        "betting_readiness_status": status,
+        "betting_readiness_score": score,
+        "betting_risk_flags": sorted(set(risk_flags)),
+        "betting_readiness_reasons": reasons,
+        "stake_multiplier": float(stake_multiplier),
+        "moneyline_gate_status": gate_status,
+        "selected_edge": (
+            round(float(selected_edge), 4)
+            if selected_edge is not None
+            else None
+        ),
     }
 
 
@@ -2524,7 +2777,40 @@ def generate_predictions() -> dict[str, Any]:
                 daily_context_summary=daily_context_summary,
             )
         )
-        
+
+                betting_readiness = evaluate_betting_readiness(
+            daily_context_summary,
+            odds_quality_status=odds_quality_status,
+            moneyline_gate_status=moneyline_gate_status,
+            model_source=model_source,
+            model_edge_home=model_edge_home,
+            moneyline_selected_edge=moneyline_selected_edge,
+            min_moneyline_edge=min_moneyline_edge,
+        )
+
+        live_bet_candidate = (
+            recommendation_status == "PAPER_BET"
+            and betting_readiness.get("effective_context_ready_for_betting") is True
+            and as_float(betting_readiness.get("stake_multiplier"), 0.0) > 0
+            and odds_quality_status == "OK"
+            and str(model_source or "").strip().lower() == "ml"
+        )
+
+        recommendation_block_details.append(
+            "Betting readiness: "
+            f"{betting_readiness.get('betting_readiness_status')}, "
+            f"score={as_float(betting_readiness.get('betting_readiness_score'), 0.0):.2f}, "
+            f"stake_multiplier={as_float(betting_readiness.get('stake_multiplier'), 0.0):.2f}."
+        )
+
+        risk_flags = betting_readiness.get("betting_risk_flags") or []
+        if risk_flags:
+            recommendation_block_details.append(
+                "Risk flags: " + ", ".join(str(flag) for flag in risk_flags) + "."
+            )
+        else:
+            recommendation_block_details.append("Risk flags: none.")
+            
         prediction_item = {
             "game_id": game_id,
             "game_date": date_str,
@@ -2580,6 +2866,19 @@ def generate_predictions() -> dict[str, Any]:
             "recommendation_block_reason": recommendation_block_reason,
             "recommendation_block_details": recommendation_block_details,
             "daily_context_summary": daily_context_summary,
+            "betting_readiness": betting_readiness,
+            "effective_context_ready_for_betting": betting_readiness[
+                "effective_context_ready_for_betting"
+            ],
+            "betting_readiness_status": betting_readiness[
+                "betting_readiness_status"
+            ],
+            "betting_readiness_score": betting_readiness[
+                "betting_readiness_score"
+            ],
+            "betting_risk_flags": betting_readiness["betting_risk_flags"],
+            "stake_multiplier": betting_readiness["stake_multiplier"],
+            "live_bet_candidate": live_bet_candidate,
             "moneyline_edge_threshold": round(min_moneyline_edge, 4),
             "max_kelly_fraction": round(max_kelly_fraction, 4),
             "moneyline_selected_side": moneyline_selected_side,
