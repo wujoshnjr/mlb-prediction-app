@@ -460,10 +460,36 @@ def build_context_diagnostic(
     starter_confidence_values: List[str] = []
     context_status_values: List[str] = []
     missing_field_counts: Dict[str, int] = {}
+    betting_score_values: List[float] = []
 
     for prediction in predictions:
         summary = _daily_summary(prediction)
 
+        # ----- Daily context summary -----
+        pitcher_status_values.append(summary.get("pitcher_status") or "unknown")
+        lineup_status_values.append(summary.get("lineup_status") or "unknown")
+        starter_confidence_values.append(
+            summary.get("starter_confidence_status") or "unknown"
+        )
+        context_status_values.append(summary.get("status") or "unknown")
+
+        missing_fields = summary.get("missing_critical_fields") or []
+        if isinstance(missing_fields, list):
+            if not missing_fields:
+                missing_field_counts["none"] = (
+                    missing_field_counts.get("none", 0) + 1
+                )
+            for field in missing_fields:
+                field_key = _safe_str(field) or "unknown"
+                missing_field_counts[field_key] = (
+                    missing_field_counts.get(field_key, 0) + 1
+                )
+        else:
+            missing_field_counts["unparseable"] = (
+                missing_field_counts.get("unparseable", 0) + 1
+            )
+
+        # ----- Betting readiness v4 -----
         readiness = prediction.get("betting_readiness") or {}
         readiness_status = str(
             prediction.get("betting_readiness_status")
@@ -480,9 +506,9 @@ def build_context_diagnostic(
 
         if readiness_status == "official_ready":
             prediction_context["official_ready_count"] += 1
-        if readiness_status == "practical_ready":
+        elif readiness_status == "practical_ready":
             prediction_context["practical_ready_count"] += 1
-        if readiness_status == "risk_blocked":
+        elif readiness_status == "risk_blocked":
             prediction_context["risk_blocked_count"] += 1
 
         if prediction.get("live_bet_candidate") is True:
@@ -492,50 +518,22 @@ def build_context_diagnostic(
         if score is None:
             score = readiness.get("betting_readiness_score")
 
-        score_float = None
         try:
             score_float = float(score)
-            if math.isnan(score_float) or math.isinf(score_float):
-                score_float = None
+            if not math.isnan(score_float) and not math.isinf(score_float):
+                betting_score_values.append(score_float)
         except (TypeError, ValueError):
-            score_float = None
-
-        if score_float is not None:
-            score_values = prediction_context.setdefault(
-                "_betting_readiness_score_values",
-                [],
-            )
-            score_values.append(score_float)
+            pass
 
         flags = prediction.get("betting_risk_flags")
         if flags is None:
             flags = readiness.get("betting_risk_flags")
+
         if isinstance(flags, list):
             risk_counts = prediction_context["risk_flag_counts"]
             for flag in flags:
                 key = str(flag)
                 risk_counts[key] = risk_counts.get(key, 0) + 1
-                
-        pitcher_status_values.append(summary.get("pitcher_status") or "unknown")
-        lineup_status_values.append(summary.get("lineup_status") or "unknown")
-        starter_confidence_values.append(
-            summary.get("starter_confidence_status") or "unknown"
-        )
-        context_status_values.append(summary.get("status") or "unknown")
-
-        missing_fields = summary.get("missing_critical_fields") or []
-        if isinstance(missing_fields, list):
-            if not missing_fields:
-                missing_field_counts["none"] = missing_field_counts.get("none", 0) + 1
-            for field in missing_fields:
-                field_key = _safe_str(field) or "unknown"
-                missing_field_counts[field_key] = (
-                    missing_field_counts.get(field_key, 0) + 1
-                )
-        else:
-            missing_field_counts["unparseable"] = (
-                missing_field_counts.get("unparseable", 0) + 1
-            )
 
     prediction_context["pitcher_status_counts"] = _count_values(
         pitcher_status_values
@@ -547,10 +545,9 @@ def build_context_diagnostic(
     prediction_context["missing_critical_field_counts"] = missing_field_counts
     prediction_context["context_status_counts"] = _count_values(context_status_values)
 
-    score_values = prediction_context.pop("_betting_readiness_score_values", [])
-    if score_values:
+    if betting_score_values:
         prediction_context["average_betting_readiness_score"] = round(
-            sum(score_values) / len(score_values),
+            sum(betting_score_values) / len(betting_score_values),
             4,
         )
 
@@ -637,6 +634,21 @@ def build_context_diagnostic(
         for prediction in predictions
     )
 
+    prediction_has_betting_readiness = any(
+        "betting_readiness" in prediction
+        or "betting_readiness_status" in prediction
+        for prediction in predictions
+    )
+
+    practical_ready_exists_when_missing_only_starter_confirmation = any(
+        (
+            prediction.get("betting_readiness_status") == "practical_ready"
+            and prediction.get("effective_context_ready_for_betting") is True
+            and _daily_summary(prediction).get("starter_confirmation_pending") is True
+        )
+        for prediction in predictions
+    )
+
     schema_checks: Dict[str, Any] = {
         "context_has_starter_confidence_columns": starter_columns.issubset(
             context_columns
@@ -648,6 +660,10 @@ def build_context_diagnostic(
         ),
         "starter_confirmation_still_in_filtered_missing_fields": (
             starter_confirmation_still_missing
+        ),
+        "prediction_has_betting_readiness": prediction_has_betting_readiness,
+        "practical_ready_exists_when_missing_only_starter_confirmation": (
+            practical_ready_exists_when_missing_only_starter_confirmation
         ),
         "prediction_has_betting_readiness": prediction_has_betting_readiness,
         "practical_ready_exists_when_missing_only_starter_confirmation": (
@@ -707,6 +723,32 @@ def build_context_diagnostic(
         )
 
         practical_ready_count = int(
+        prediction_context.get("practical_ready_count", 0) or 0
+    )
+    if practical_ready_count > 0:
+        recommendations.append(
+            "Some games are practical_ready: official starter confirmation is pending, "
+            "but effective betting context is available with reduced stake multiplier."
+        )
+
+    live_bet_candidate_count = int(
+        prediction_context.get("live_bet_candidate_count", 0) or 0
+    )
+    if live_bet_candidate_count > 0:
+        recommendations.append(
+            f"{live_bet_candidate_count} live bet candidate(s) passed effective context, odds, model, and stake filters."
+        )
+
+    risk_flag_counts = prediction_context.get("risk_flag_counts", {})
+    if isinstance(risk_flag_counts, dict) and risk_flag_counts.get(
+        "closer_high_fatigue",
+        0,
+    ) > 0:
+        recommendations.append(
+            "Closer high fatigue risk detected; consider conservative stake multiplier or manual review."
+        )
+
+    practical_ready_count = int(
         prediction_context.get("practical_ready_count", 0) or 0
     )
     if practical_ready_count > 0:
