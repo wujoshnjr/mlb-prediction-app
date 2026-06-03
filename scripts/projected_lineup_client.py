@@ -14,6 +14,7 @@ import pandas as pd
 # ---------------------------------------------------------------------------
 
 SOURCE = "projected_lineup_v1"
+DEFAULT_SAVANT_TOP3_PATH = "data/savant_top3_context.csv"
 
 OUTPUT_COLUMNS = [
     "game_id",
@@ -52,6 +53,31 @@ def _safe_read_csv(path: Path) -> Tuple[Optional[pd.DataFrame], str]:
         return None, f"File not found: {path}"
     except Exception as exc:
         return None, f"Error reading CSV {path}: {exc}"
+
+
+def _latest_savant_top3_by_game(path: str) -> Dict[str, Dict[str, Any]]:
+    """Load latest Savant top3 context by game_id."""
+    frame, _ = _safe_read_csv(Path(path))
+    if frame is None or frame.empty or "game_id" not in frame.columns:
+        return {}
+
+    frame = frame.copy()
+    frame["game_id"] = frame["game_id"].astype(str)
+
+    if "captured_at" in frame.columns:
+        frame["captured_at_dt"] = pd.to_datetime(
+            frame["captured_at"],
+            errors="coerce",
+            utc=True,
+        )
+        if frame["captured_at_dt"].notna().any():
+            frame = frame.sort_values("captured_at_dt")
+            frame = frame.groupby("game_id", as_index=False).tail(1)
+
+    return {
+        str(row["game_id"]): row.to_dict()
+        for _, row in frame.iterrows()
+    }
 
 
 def _safe_bool(value: Any) -> Optional[bool]:
@@ -301,6 +327,7 @@ def _evaluate_projected_lineup_side(
 
 def build_projected_lineup_context(
     daily_context_path: str = "data/daily_game_context.csv",
+    savant_top3_context_path: str = DEFAULT_SAVANT_TOP3_PATH,
     output_path: Optional[str] = "data/projected_lineup_context.csv",
 ) -> pd.DataFrame:
     """Build conservative projected lineup context from daily game context."""
@@ -330,10 +357,13 @@ def build_projected_lineup_context(
             frame[column] = None
 
     latest = _latest_rows_per_game(frame)
+    savant_top3_by_game = _latest_savant_top3_by_game(savant_top3_context_path)
 
     rows: List[Dict[str, Any]] = []
 
     for _, row in latest.iterrows():
+    game_id = _safe_str(row.get("game_id"))
+    savant_row = savant_top3_by_game.get(game_id, {})
         home_eval = _evaluate_projected_lineup_side(
             lineup_confirmed=row.get("home_lineup_confirmed"),
             lineup_player_count=row.get("home_lineup_player_count"),
@@ -349,7 +379,7 @@ def build_projected_lineup_context(
         )
 
         row_dict = {
-            "game_id": _safe_str(row.get("game_id")),
+            "game_id": game_id,
             "game_date": _safe_str(row.get("game_date")),
             "home_team": _safe_str(row.get("home_team")),
             "away_team": _safe_str(row.get("away_team")),
@@ -363,11 +393,13 @@ def build_projected_lineup_context(
             "away_projected_player_ids_json": _json_dumps_list(away_eval["player_ids"]),
             "home_projected_player_count": int(len(home_eval["player_ids"])),
             "away_projected_player_count": int(len(away_eval["player_ids"])),
-            "home_projected_top3_player_ids": ",".join(
-                str(player_id) for player_id in home_eval["top3_ids"]
+            top3_player_ids=(
+                row.get("home_top3_player_ids")
+                or savant_row.get("home_top3_player_ids")
             ),
-            "away_projected_top3_player_ids": ",".join(
-                str(player_id) for player_id in away_eval["top3_ids"]
+            top3_player_ids=(
+                row.get("away_top3_player_ids")
+                or savant_row.get("away_top3_player_ids")
             ),
             "home_projected_lineup_reason": str(home_eval["reason"]),
             "away_projected_lineup_reason": str(away_eval["reason"]),
