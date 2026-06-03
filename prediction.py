@@ -426,6 +426,105 @@ def calculate_context_weather_features(
     }
 
 
+def merge_projected_lineup_context(
+    frame: pd.DataFrame,
+    errors: list[str],
+) -> pd.DataFrame:
+    """Merge conservative projected lineup context into latest daily context rows."""
+    if frame.empty or not PROJECTED_LINEUP_CONTEXT_FILE.exists():
+        return frame
+
+    try:
+        projected = pd.read_csv(PROJECTED_LINEUP_CONTEXT_FILE)
+    except Exception as exc:
+        errors.append(f"Unable to read projected lineup context: {exc}")
+        return frame
+
+    if projected.empty or "game_id" not in projected.columns:
+        return frame
+
+    projected = projected.copy()
+    projected["game_id"] = projected["game_id"].astype(str)
+
+    if "projected_lineup_captured_at" in projected.columns:
+        projected["projected_lineup_captured_at_dt"] = pd.to_datetime(
+            projected["projected_lineup_captured_at"],
+            errors="coerce",
+            utc=True,
+        )
+        if projected["projected_lineup_captured_at_dt"].notna().any():
+            projected = projected.sort_values("projected_lineup_captured_at_dt")
+            projected = projected.groupby("game_id", as_index=False).tail(1)
+
+    keep_columns = [
+        "game_id",
+        "home_projected_lineup_available",
+        "away_projected_lineup_available",
+        "home_projected_lineup_status",
+        "away_projected_lineup_status",
+        "home_projected_player_count",
+        "away_projected_player_count",
+        "home_projected_top3_player_ids",
+        "away_projected_top3_player_ids",
+        "home_projected_lineup_reason",
+        "away_projected_lineup_reason",
+        "projected_lineup_source",
+        "projected_lineup_captured_at",
+    ]
+    keep_columns = [column for column in keep_columns if column in projected.columns]
+
+    merged = frame.copy()
+    merged["game_id"] = merged["game_id"].astype(str)
+    projected = projected[keep_columns].copy()
+
+    merged = merged.merge(
+        projected,
+        on="game_id",
+        how="left",
+        suffixes=("", "_projected_source"),
+    )
+
+    for column in (
+        "home_projected_top3_player_ids",
+        "away_projected_top3_player_ids",
+        "home_projected_lineup_status",
+        "away_projected_lineup_status",
+        "home_projected_player_count",
+        "away_projected_player_count",
+        "home_projected_lineup_reason",
+        "away_projected_lineup_reason",
+        "projected_lineup_source",
+        "projected_lineup_captured_at",
+    ):
+        source_column = f"{column}_projected_source"
+        if source_column in merged.columns:
+            if column in merged.columns:
+                merged[column] = merged[column].where(
+                    merged[column].notna(),
+                    merged[source_column],
+                )
+            else:
+                merged[column] = merged[source_column]
+            merged.drop(columns=[source_column], inplace=True)
+
+    for column in (
+        "home_projected_lineup_available",
+        "away_projected_lineup_available",
+    ):
+        source_column = f"{column}_projected_source"
+        if source_column in merged.columns:
+            if column in merged.columns:
+                merged[column] = merged[column].where(
+                    merged[column].notna(),
+                    merged[source_column],
+                )
+            else:
+                merged[column] = merged[source_column]
+            merged.drop(columns=[source_column], inplace=True)
+
+    return merged
+
+
 def latest_daily_context_by_game(
     errors: list[str],
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
@@ -467,6 +566,7 @@ def latest_daily_context_by_game(
 
     frame = frame.copy()
     frame["game_id"] = frame["game_id"].astype(str)
+    frame = merge_projected_lineup_context(frame, errors)
 
     if "is_pregame" in frame.columns:
         frame = frame[
@@ -557,11 +657,39 @@ def build_daily_context_summary(
     if away_lineup_count <= 0:
         away_lineup_count = len(away_lineup_ids)
 
-    home_projected_lineup_available = home_lineup_count >= 7
-    away_projected_lineup_available = away_lineup_count >= 7
+    home_top3_player_ids = parse_csv_int_list(
+        row.get("home_top3_player_ids")
+        or row.get("home_projected_top3_player_ids")
+    )
+    away_top3_player_ids = parse_csv_int_list(
+        row.get("away_top3_player_ids")
+        or row.get("away_projected_top3_player_ids")
+    )
 
-    home_top3_player_ids = parse_csv_int_list(row.get("home_top3_player_ids"))
-    away_top3_player_ids = parse_csv_int_list(row.get("away_top3_player_ids"))
+    home_projected_lineup_available = (
+        home_lineup_count >= 7
+        or as_optional_bool(row.get("home_projected_lineup_available")) is True
+    )
+    away_projected_lineup_available = (
+        away_lineup_count >= 7
+        or as_optional_bool(row.get("away_projected_lineup_available")) is True
+    )
+
+    home_projected_lineup_status = as_optional_str(
+        row.get("home_projected_lineup_status")
+    )
+    away_projected_lineup_status = as_optional_str(
+        row.get("away_projected_lineup_status")
+    )
+
+    home_top3_available = (
+        home_projected_lineup_status == "projected_top3_available"
+        or len(home_top3_player_ids) >= 3
+    )
+    away_top3_available = (
+        away_projected_lineup_status == "projected_top3_available"
+        or len(away_top3_player_ids) >= 3
+    )
 
     game_feed_available = as_optional_bool(row.get("game_feed_available")) is True
 
@@ -670,6 +798,10 @@ def build_daily_context_summary(
         if home_projected_lineup_available and away_projected_lineup_available
         else "partial"
         if home_projected_lineup_available or away_projected_lineup_available
+        else "top3_only"
+        if home_top3_available and away_top3_available
+        else "partial_top3"
+        if home_top3_available or away_top3_available
         else "missing"
     )
 
@@ -750,6 +882,16 @@ def build_daily_context_summary(
         "lineup_projection_status": lineup_projection_status,
         "home_projected_lineup_available": home_projected_lineup_available,
         "away_projected_lineup_available": away_projected_lineup_available,
+        "home_projected_lineup_status": home_projected_lineup_status,
+        "away_projected_lineup_status": away_projected_lineup_status,
+        "home_top3_available": home_top3_available,
+        "away_top3_available": away_top3_available,
+        "home_projected_lineup_reason": as_optional_str(
+            row.get("home_projected_lineup_reason")
+        ),
+        "away_projected_lineup_reason": as_optional_str(
+            row.get("away_projected_lineup_reason")
+        ),
         "bullpen_status": bullpen_status,
         "closer_status": closer_status,
         "home_closer_available_known": home_closer_available_known,
