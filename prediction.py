@@ -105,6 +105,7 @@ LAST_GAME_FILE = Path("data/team_last_game.json")
 MODEL_FILE = Path("data/calibrator.pkl")
 DAILY_CONTEXT_FILE = Path("data/daily_game_context.csv")
 PROJECTED_LINEUP_CONTEXT_FILE = Path("data/projected_lineup_context.csv")
+SAVANT_TOP3_CONTEXT_FILE = Path("data/savant_top3_context.csv")
 
 TEAM_NAME_MAP = {
     "Arizona Diamondbacks": "D-backs",
@@ -524,6 +525,41 @@ def merge_projected_lineup_context(
             merged.drop(columns=[source_column], inplace=True)
 
     return merged
+
+
+def latest_savant_top3_context_by_game(
+    errors: list[str],
+) -> dict[str, dict[str, Any]]:
+    """Load latest Savant top-3 hitter context by game_id."""
+    if not SAVANT_TOP3_CONTEXT_FILE.exists():
+        return {}
+
+    try:
+        frame = pd.read_csv(SAVANT_TOP3_CONTEXT_FILE)
+    except Exception as exc:
+        errors.append(f"Unable to read Savant top3 context: {exc}")
+        return {}
+
+    if frame.empty or "game_id" not in frame.columns:
+        return {}
+
+    frame = frame.copy()
+    frame["game_id"] = frame["game_id"].astype(str)
+
+    if "captured_at" in frame.columns:
+        frame["captured_at_parsed"] = pd.to_datetime(
+            frame["captured_at"],
+            errors="coerce",
+            utc=True,
+        )
+        if frame["captured_at_parsed"].notna().any():
+            frame = frame.sort_values("captured_at_parsed")
+            frame = frame.groupby("game_id", as_index=False).tail(1)
+
+    return {
+        str(row["game_id"]): row.to_dict()
+        for _, row in frame.iterrows()
+    }
 
 
 def latest_daily_context_by_game(
@@ -2284,6 +2320,7 @@ def generate_predictions() -> dict[str, Any]:
     daily_context_by_game, daily_context_load_summary = (
         latest_daily_context_by_game(errors)
     )
+    savant_top3_by_game = latest_savant_top3_context_by_game(errors)
     dynamic_pythag_exponent = 2.0
     if not team_frame.empty:
         run_scored_total = as_float(team_frame["runs_scored"].sum(), 0.0)
@@ -2324,6 +2361,7 @@ def generate_predictions() -> dict[str, Any]:
             or ""
         )
         context_row = daily_context_by_game.get(str(game_id), {})
+        savant_top3_row = savant_top3_by_game.get(str(game_id), {})
         daily_context_summary = build_daily_context_summary(
             game_id,
             daily_context_by_game,
@@ -2687,9 +2725,48 @@ def generate_predictions() -> dict[str, Any]:
             except Exception as exc:
                 errors.append(f"Pitch matchup failed for game {game_id}: {exc}")
 
-        home_top3_woba = as_float(game.get("home_top3_avg_woba"), 0.320)
-        away_top3_woba = as_float(game.get("away_top3_avg_woba"), 0.320)
-        features["top3_woba_diff"] = home_top3_woba - away_top3_woba
+home_top3_count = as_int(
+    savant_top3_row.get("home_top3_savant_available_count"),
+    0,
+)
+away_top3_count = as_int(
+    savant_top3_row.get("away_top3_savant_available_count"),
+    0,
+)
+
+savant_top3_available = home_top3_count > 0 and away_top3_count > 0
+
+if savant_top3_available:
+    features["top3_woba_diff"] = round(
+        as_float(savant_top3_row.get("top3_woba_diff"), 0.0),
+        4,
+    )
+
+    if features.get("statcast_woba_diff", 0.0) == 0.0:
+        features["statcast_woba_diff"] = round(
+            as_float(savant_top3_row.get("top3_xwoba_diff"), 0.0),
+            4,
+        )
+
+    if features.get("statcast_hard_hit_diff", 0.0) == 0.0:
+        features["statcast_hard_hit_diff"] = round(
+            as_float(savant_top3_row.get("top3_hard_hit_rate_diff"), 0.0),
+            4,
+        )
+
+    if features.get("statcast_barrel_diff", 0.0) == 0.0:
+        features["statcast_barrel_diff"] = round(
+            as_float(savant_top3_row.get("top3_barrel_rate_diff"), 0.0),
+            4,
+        )
+
+    if features.get("statcast_launch_speed_diff", 0.0) == 0.0:
+        features["statcast_launch_speed_diff"] = round(
+            as_float(savant_top3_row.get("top3_avg_launch_speed_diff"), 0.0),
+            4,
+        )
+else:
+    features["top3_woba_diff"] = 0.0
 
         features["bt_strength_diff"] = (
             bradley_terry_strengths.get(home_team, 0.0)
@@ -3010,7 +3087,21 @@ def generate_predictions() -> dict[str, Any]:
             )
         else:
             recommendation_block_details.append("Risk flags: none.")
-            
+
+feature_health_flags = []
+
+if not savant_top3_available:
+    feature_health_flags.append("savant_top3_unavailable")
+
+if features.get("top3_woba_diff", 0.0) == 0.0:
+    feature_health_flags.append("top3_woba_zero")
+
+if (
+    features.get("statcast_woba_diff", 0.0) == 0.0
+    and features.get("statcast_barrel_diff", 0.0) == 0.0
+    and features.get("statcast_hard_hit_diff", 0.0) == 0.0
+):
+    feature_health_flags.append("statcast_core_zero")
         prediction_item = {
             "game_id": game_id,
             "game_date": date_str,
