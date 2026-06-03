@@ -1082,7 +1082,20 @@ def evaluate_betting_readiness(
         reasons.append(
             f"model_training_sample_count={sample_count} below production threshold={production_sample_threshold}"
         )
-        
+
+    selected_edge_abs = abs(float(selected_edge)) if selected_edge is not None else None
+    large_edge_threshold = 0.08
+
+    if (
+        selected_edge_abs is not None
+        and selected_edge_abs >= large_edge_threshold
+        and sample_count < production_sample_threshold
+    ):
+        risk_flags.append("large_anti_market_edge_early_model")
+        reasons.append(
+            f"selected_edge_abs={selected_edge_abs:.4f} exceeds large-edge threshold={large_edge_threshold:.4f} while model is below production sample threshold"
+        )
+
     practical_context_ready = (
         not missing_critical_fields
         and pitcher_status in {"confirmed", "high_confidence_probable"}
@@ -1135,13 +1148,21 @@ def evaluate_betting_readiness(
         score -= 0.20
     if "early_model_small_sample" in unique_flags:
         score -= 0.20
+    if "large_anti_market_edge_early_model" in unique_flags:
+        score -= 0.15
 
     score = round(_clamp_float(score), 4)
-
     if effective_context_ready and score < 0.75:
         effective_context_ready = False
         status = "risk_blocked"
         reasons.append("effective context was blocked by risk score below 0.75")
+
+    if "large_anti_market_edge_early_model" in unique_flags:
+        effective_context_ready = False
+        status = "risk_blocked"
+        reasons.append(
+            "large anti-market edge blocked because model is still early-stage and recent CLV is negative"
+        )
 
     if status == "official_ready" and score >= 0.90:
         stake_multiplier = 1.0
@@ -1152,7 +1173,12 @@ def evaluate_betting_readiness(
     else:
         stake_multiplier = 0.0
 
-    if sample_count < production_sample_threshold:
+    if "large_anti_market_edge_early_model" in unique_flags:
+        stake_multiplier = 0.0
+        reasons.append(
+            "stake multiplier forced to 0.00 because large anti-market edges are blocked during early model validation"
+        )
+    elif sample_count < production_sample_threshold:
         stake_multiplier = min(stake_multiplier, 0.10)
         reasons.append(
             "stake multiplier capped at 0.10 because model is still below production sample threshold"
@@ -1175,6 +1201,10 @@ def evaluate_betting_readiness(
         "model_training_sample_count": sample_count,
         "production_sample_threshold": production_sample_threshold,
         "early_model_guard_active": sample_count < production_sample_threshold,
+        "large_edge_threshold": large_edge_threshold,
+        "large_anti_market_edge_guard_active": (
+            "large_anti_market_edge_early_model" in unique_flags
+        ),
     }
 
 
