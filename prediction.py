@@ -1071,6 +1071,18 @@ def evaluate_betting_readiness(
             f"selected_edge={selected_edge:.4f} below threshold={min_moneyline_edge:.4f}"
         )
 
+    sample_count = (
+        int(model_training_sample_count)
+        if model_training_sample_count is not None
+        else 0
+    )
+
+    if sample_count < production_sample_threshold:
+        risk_flags.append("early_model_small_sample")
+        reasons.append(
+            f"model_training_sample_count={sample_count} below production threshold={production_sample_threshold}"
+        )
+        
     practical_context_ready = (
         not missing_critical_fields
         and pitcher_status in {"confirmed", "high_confidence_probable"}
@@ -1121,6 +1133,8 @@ def evaluate_betting_readiness(
         score -= 0.15
     if "edge_unavailable" in unique_flags or "edge_below_threshold" in unique_flags:
         score -= 0.20
+    if "early_model_small_sample" in unique_flags:
+        score -= 0.20
 
     score = round(_clamp_float(score), 4)
 
@@ -1138,6 +1152,12 @@ def evaluate_betting_readiness(
     else:
         stake_multiplier = 0.0
 
+    if sample_count < production_sample_threshold:
+        stake_multiplier = min(stake_multiplier, 0.10)
+        reasons.append(
+            "stake multiplier capped at 0.10 because model is still below production sample threshold"
+        )
+
     return {
         "raw_context_ready_for_betting": raw_context_ready,
         "effective_context_ready_for_betting": bool(effective_context_ready),
@@ -1152,6 +1172,9 @@ def evaluate_betting_readiness(
             if selected_edge is not None
             else None
         ),
+        "model_training_sample_count": sample_count,
+        "production_sample_threshold": production_sample_threshold,
+        "early_model_guard_active": sample_count < production_sample_threshold,
     }
 
 
@@ -2788,6 +2811,8 @@ def generate_predictions() -> dict[str, Any]:
             model_edge_home=model_edge_home,
             moneyline_selected_edge=moneyline_selected_edge,
             min_moneyline_edge=min_moneyline_edge,
+            model_training_sample_count=clean_model_sample_count,
+            production_sample_threshold=300,
         )
 
         live_bet_candidate = (
@@ -2850,6 +2875,31 @@ def generate_predictions() -> dict[str, Any]:
                 if model_edge_home is not None
                 else None
             ),
+            "model_disagreement_with_market": (
+                round(abs(model_edge_home), 4)
+                if model_edge_home is not None
+                else None
+            ),
+            "edge_bucket": (
+                "8pct_plus"
+                if moneyline_selected_edge is not None
+                and abs(moneyline_selected_edge) >= 0.08
+                else "5_to_8pct"
+                if moneyline_selected_edge is not None
+                and abs(moneyline_selected_edge) >= 0.05
+                else "3_to_5pct"
+                if moneyline_selected_edge is not None
+                and abs(moneyline_selected_edge) >= 0.03
+                else "below_threshold"
+            ),
+            "risk_profile": (
+                "blocked"
+                if live_bet_candidate is False
+                else "reduced_stake"
+                if as_float(betting_readiness.get("stake_multiplier"), 0.0) < 1.0
+                else "full_paper_stake"
+            ),
+            "missing_signal_flags": betting_readiness.get("betting_risk_flags", []),
             "model_source": model_source,
             "model_feature_count": len(model_features or []),
             "model_training_sample_count": clean_model_sample_count,
