@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-06-03T09:01:22.144862+00:00",
+  "generated_at": "2026-06-03T09:16:28.403771+00:00",
   "daily_context": {
     "exists": true,
     "error": "",
-    "row_count": 924,
+    "row_count": 939,
     "column_count": 108,
     "schema_versions": [
       "daily_context_v1",
       "daily_context_v2",
       "daily_context_v3"
     ],
-    "latest_captured_at": "2026-06-03T09:00:44.993117+00:00",
+    "latest_captured_at": "2026-06-03T09:15:41.288876+00:00",
     "latest_game_count": 15,
     "columns_present": [
       "home_starter_status",
@@ -72,6 +72,15 @@
       "edge_below_threshold": 3,
       "closer_fatigue": 2
     },
+    "feature_health_flag_counts": {
+      "savant_top3_unavailable": 15,
+      "top3_woba_zero": 15,
+      "statcast_core_zero": 15
+    },
+    "savant_top3_available_count": 0,
+    "savant_top3_unavailable_count": 15,
+    "statcast_core_zero_count": 15,
+    "top3_woba_zero_count": 15,
     "practical_ready_count": 0,
     "official_ready_count": 0,
     "risk_blocked_count": 5
@@ -113,6 +122,9 @@
     "Closer high fatigue risk detected; consider conservative stake multiplier or manual review.",
     "Early model guard is active. Keep live betting disabled until sample size and CLV improve.",
     "Lineup confirmation remains a betting blocker. Prioritize projected/confirmed lineup integration.",
-    "Large anti-market edges are being blocked while the model is still early-stage."
+    "Large anti-market edges are being blocked while the model is still early-stage.",
+    "Savant top-3 context is unavailable for current predictions. Check savant_top3_context_client output and top3 player ID mapping.",
+    "Core Statcast features are zero in current predictions. Check Savant / pybaseball integration before trusting advanced hitting features.",
+    "Top-3 wOBA feature is zero. The model is not receiving useful top-order hitter strength signals yet."
   ]
 }
