@@ -701,32 +701,6 @@ def build_context_diagnostic(
             "Check closer_context_client, daily_context_collector, and schema persistence."
         )
 
-        practical_ready_count = int(
-        prediction_context.get("practical_ready_count", 0) or 0
-    )
-    if practical_ready_count > 0:
-        recommendations.append(
-            "Some games are practical_ready: official starter confirmation is pending, "
-            "but effective betting context is available with reduced stake multiplier."
-        )
-
-    live_bet_candidate_count = int(
-        prediction_context.get("live_bet_candidate_count", 0) or 0
-    )
-    if live_bet_candidate_count > 0:
-        recommendations.append(
-            f"{live_bet_candidate_count} live bet candidate(s) passed effective context, odds, model, and stake filters."
-        )
-
-    risk_flag_counts = prediction_context.get("risk_flag_counts", {})
-    if isinstance(risk_flag_counts, dict) and risk_flag_counts.get(
-        "closer_high_fatigue",
-        0,
-    ) > 0:
-        recommendations.append(
-            "Closer high fatigue risk detected; consider conservative stake multiplier or manual review."
-        )
-
     practical_ready_count = int(
         prediction_context.get("practical_ready_count", 0) or 0
     )
@@ -745,39 +719,23 @@ def build_context_diagnostic(
         )
 
     risk_flag_counts = prediction_context.get("risk_flag_counts", {})
-    if isinstance(risk_flag_counts, dict) and risk_flag_counts.get(
-        "closer_high_fatigue",
-        0,
-    ) > 0:
-        recommendations.append(
-            "Closer high fatigue risk detected; consider conservative stake multiplier or manual review."
-        )
-
-    practical_ready_count = int(
-        prediction_context.get("practical_ready_count", 0) or 0
-    )
-    if practical_ready_count > 0:
-        recommendations.append(
-            "Some games are practical_ready: official starter confirmation is pending, "
-            "but effective betting context is available with reduced stake multiplier."
-        )
-
-    live_bet_candidate_count = int(
-        prediction_context.get("live_bet_candidate_count", 0) or 0
-    )
-    if live_bet_candidate_count > 0:
-        recommendations.append(
-            f"{live_bet_candidate_count} live bet candidate(s) passed effective context, odds, model, and stake filters."
-        )
-
-    risk_flag_counts = prediction_context.get("risk_flag_counts", {})
-    if isinstance(risk_flag_counts, dict) and risk_flag_counts.get(
-        "closer_high_fatigue",
-        0,
-    ) > 0:
-        recommendations.append(
-            "Closer high fatigue risk detected; consider conservative stake multiplier or manual review."
-        )
+    if isinstance(risk_flag_counts, dict):
+        if risk_flag_counts.get("closer_high_fatigue", 0) > 0:
+            recommendations.append(
+                "Closer high fatigue risk detected; consider conservative stake multiplier or manual review."
+            )
+        if risk_flag_counts.get("early_model_small_sample", 0) > 0:
+            recommendations.append(
+                "Early model guard is active. Keep live betting disabled until sample size and CLV improve."
+            )
+        if risk_flag_counts.get("lineup_not_confirmed", 0) > 0:
+            recommendations.append(
+                "Lineup confirmation remains a betting blocker. Prioritize projected/confirmed lineup integration."
+            )
+        if risk_flag_counts.get("large_anti_market_edge_early_model", 0) > 0:
+            recommendations.append(
+                "Large anti-market edges are being blocked while the model is still early-stage."
+            )
         
     if not recommendations:
         recommendations.append(
