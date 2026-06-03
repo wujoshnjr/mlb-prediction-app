@@ -2725,48 +2725,48 @@ def generate_predictions() -> dict[str, Any]:
             except Exception as exc:
                 errors.append(f"Pitch matchup failed for game {game_id}: {exc}")
 
-home_top3_count = as_int(
-    savant_top3_row.get("home_top3_savant_available_count"),
-    0,
-)
-away_top3_count = as_int(
-    savant_top3_row.get("away_top3_savant_available_count"),
-    0,
-)
-
-savant_top3_available = home_top3_count > 0 and away_top3_count > 0
-
-if savant_top3_available:
-    features["top3_woba_diff"] = round(
-        as_float(savant_top3_row.get("top3_woba_diff"), 0.0),
-        4,
-    )
-
-    if features.get("statcast_woba_diff", 0.0) == 0.0:
-        features["statcast_woba_diff"] = round(
-            as_float(savant_top3_row.get("top3_xwoba_diff"), 0.0),
-            4,
+        home_top3_count = as_int(
+            savant_top3_row.get("home_top3_savant_available_count"),
+            0,
+        )
+        away_top3_count = as_int(
+            savant_top3_row.get("away_top3_savant_available_count"),
+            0,
         )
 
-    if features.get("statcast_hard_hit_diff", 0.0) == 0.0:
-        features["statcast_hard_hit_diff"] = round(
-            as_float(savant_top3_row.get("top3_hard_hit_rate_diff"), 0.0),
-            4,
-        )
+        savant_top3_available = home_top3_count > 0 and away_top3_count > 0
 
-    if features.get("statcast_barrel_diff", 0.0) == 0.0:
-        features["statcast_barrel_diff"] = round(
-            as_float(savant_top3_row.get("top3_barrel_rate_diff"), 0.0),
-            4,
-        )
+        if savant_top3_available:
+            features["top3_woba_diff"] = round(
+                as_float(savant_top3_row.get("top3_woba_diff"), 0.0),
+                4,
+            )
 
-    if features.get("statcast_launch_speed_diff", 0.0) == 0.0:
-        features["statcast_launch_speed_diff"] = round(
-            as_float(savant_top3_row.get("top3_avg_launch_speed_diff"), 0.0),
-            4,
-        )
-else:
-    features["top3_woba_diff"] = 0.0
+            if features.get("statcast_woba_diff", 0.0) == 0.0:
+                features["statcast_woba_diff"] = round(
+                    as_float(savant_top3_row.get("top3_xwoba_diff"), 0.0),
+                    4,
+                )
+
+            if features.get("statcast_hard_hit_diff", 0.0) == 0.0:
+                features["statcast_hard_hit_diff"] = round(
+                    as_float(savant_top3_row.get("top3_hard_hit_rate_diff"), 0.0),
+                    4,
+                )
+
+            if features.get("statcast_barrel_diff", 0.0) == 0.0:
+                features["statcast_barrel_diff"] = round(
+                    as_float(savant_top3_row.get("top3_barrel_rate_diff"), 0.0),
+                    4,
+                )
+
+            if features.get("statcast_launch_speed_diff", 0.0) == 0.0:
+                features["statcast_launch_speed_diff"] = round(
+                    as_float(savant_top3_row.get("top3_avg_launch_speed_diff"), 0.0),
+                    4,
+                )
+        else:
+            features["top3_woba_diff"] = 0.0
 
         features["bt_strength_diff"] = (
             bradley_terry_strengths.get(home_team, 0.0)
@@ -3088,20 +3088,21 @@ else:
         else:
             recommendation_block_details.append("Risk flags: none.")
 
-feature_health_flags = []
+        feature_health_flags = []
 
-if not savant_top3_available:
-    feature_health_flags.append("savant_top3_unavailable")
+        if not savant_top3_available:
+            feature_health_flags.append("savant_top3_unavailable")
 
-if features.get("top3_woba_diff", 0.0) == 0.0:
-    feature_health_flags.append("top3_woba_zero")
+        if features.get("top3_woba_diff", 0.0) == 0.0:
+            feature_health_flags.append("top3_woba_zero")
 
-if (
-    features.get("statcast_woba_diff", 0.0) == 0.0
-    and features.get("statcast_barrel_diff", 0.0) == 0.0
-    and features.get("statcast_hard_hit_diff", 0.0) == 0.0
-):
-    feature_health_flags.append("statcast_core_zero")
+        if (
+            features.get("statcast_woba_diff", 0.0) == 0.0
+            and features.get("statcast_barrel_diff", 0.0) == 0.0
+            and features.get("statcast_hard_hit_diff", 0.0) == 0.0
+        ):
+            feature_health_flags.append("statcast_core_zero")
+
         prediction_item = {
             "game_id": game_id,
             "game_date": date_str,
