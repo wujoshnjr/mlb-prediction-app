@@ -632,36 +632,6 @@ def build_context_diagnostic(
         for prediction in predictions
     )
 
-    prediction_has_betting_readiness = any(
-        "betting_readiness" in prediction
-        or "betting_readiness_status" in prediction
-        for prediction in predictions
-    )
-
-    practical_ready_exists_when_missing_only_starter_confirmation = any(
-        (
-            prediction.get("betting_readiness_status") == "practical_ready"
-            and prediction.get("effective_context_ready_for_betting") is True
-            and _daily_summary(prediction).get("starter_confirmation_pending") is True
-        )
-        for prediction in predictions
-    )
-
-        prediction_has_betting_readiness = any(
-        "betting_readiness" in prediction
-        or "betting_readiness_status" in prediction
-        for prediction in predictions
-    )
-
-    practical_ready_exists_when_missing_only_starter_confirmation = any(
-        (
-            prediction.get("betting_readiness_status") == "practical_ready"
-            and prediction.get("effective_context_ready_for_betting") is True
-            and _daily_summary(prediction).get("starter_confirmation_pending") is True
-        )
-        for prediction in predictions
-    )
-
     schema_checks: Dict[str, Any] = {
         "context_has_starter_confidence_columns": starter_columns.issubset(
             context_columns
@@ -673,10 +643,6 @@ def build_context_diagnostic(
         ),
         "starter_confirmation_still_in_filtered_missing_fields": (
             starter_confirmation_still_missing
-        ),
-        "prediction_has_betting_readiness": prediction_has_betting_readiness,
-        "practical_ready_exists_when_missing_only_starter_confirmation": (
-            practical_ready_exists_when_missing_only_starter_confirmation
         ),
         "prediction_has_betting_readiness": prediction_has_betting_readiness,
         "practical_ready_exists_when_missing_only_starter_confirmation": (
