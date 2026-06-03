@@ -213,7 +213,15 @@ def _feature_group(feature_name: str) -> str:
     if "weather" in name or "wind" in name or "temp" in name or "precip" in name:
         return "weather"
 
-    if "umpire" in name or "zone" in name:
+    if (
+        "timezone" in name
+        or "day_game" in name
+        or "back2back" in name
+        or "rest" in name
+    ):
+        return "schedule"
+
+    if "umpire" in name or name in {"zone_size"}:
         return "umpire"
 
     if "elo" in name or "rating" in name or "winrate" in name or "strength" in name:
@@ -221,9 +229,6 @@ def _feature_group(feature_name: str) -> str:
 
     if "park" in name:
         return "park"
-
-    if "timezone" in name or "day_game" in name or "back2back" in name or "rest" in name:
-        return "schedule"
 
     return "other"
 
