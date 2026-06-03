@@ -3234,6 +3234,8 @@ def generate_predictions() -> dict[str, Any]:
             "nrfi_fallback_reason": nrfi_fallback_reason,
             "feature_health_flags": feature_health_flags,
             "savant_top3_available": savant_top3_available,
+            "feature_health_flags": feature_health_flags,
+            "savant_top3_available": bool(savant_top3_available),
             "features": {
                 feature: round(as_float(features.get(feature), 0.0), 6)
                 for feature in EXPECTED_FEATURES
