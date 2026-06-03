@@ -82,6 +82,9 @@ jobs:
             scripts/glicko2_ratings.py \
             scripts/historical_collector.py \
             scripts/validate_predictions.py
+            scripts/evaluation_clv_diagnostic.py \
+            scripts/feature_availability_diagnostic.py \
+            scripts/projected_lineup_client.py \
 
       - name: Update finalized game results
         run: python scripts/update_results.py
@@ -168,6 +171,18 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Diagnose evaluation and CLV
+        continue-on-error: true
+        run: python scripts/evaluation_clv_diagnostic.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Diagnose feature availability
+        continue-on-error: true
+        run: python scripts/feature_availability_diagnostic.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Validate prediction report and rating state
         run: python scripts/validate_predictions.py
         env:
@@ -190,6 +205,9 @@ jobs:
             report/odds_matching_diagnostic.json \
             report/training_diagnostic.json \
             report/context_diagnostic.json \
+            report/evaluation_clv_diagnostic.json \
+            report/feature_availability_diagnostic.json \
+            data/projected_lineup_context.csv \
             data/finalized_games.csv \
             data/historical_predictions.csv \
             data/prediction_snapshots.csv \
