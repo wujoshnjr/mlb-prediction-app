@@ -450,6 +450,11 @@ def build_context_diagnostic(
         "live_bet_candidate_count": 0,
         "average_betting_readiness_score": None,
         "risk_flag_counts": {},
+        "feature_health_flag_counts": {},
+        "savant_top3_available_count": 0,
+        "savant_top3_unavailable_count": 0,
+        "statcast_core_zero_count": 0,
+        "top3_woba_zero_count": 0,
         "practical_ready_count": 0,
         "official_ready_count": 0,
         "risk_blocked_count": 0,
@@ -533,6 +538,33 @@ def build_context_diagnostic(
                 key = str(flag)
                 risk_counts[key] = risk_counts.get(key, 0) + 1
 
+            feature_flags = prediction.get("feature_health_flags") or []
+        if isinstance(feature_flags, list):
+            feature_health_counts = prediction_context["feature_health_flag_counts"]
+
+            if not feature_flags:
+                feature_health_counts["none"] = (
+                    feature_health_counts.get("none", 0) + 1
+                )
+
+            for flag in feature_flags:
+                key = str(flag)
+                feature_health_counts[key] = (
+                    feature_health_counts.get(key, 0) + 1
+                )
+
+            if "savant_top3_unavailable" in feature_flags:
+                prediction_context["savant_top3_unavailable_count"] += 1
+
+            if "statcast_core_zero" in feature_flags:
+                prediction_context["statcast_core_zero_count"] += 1
+
+            if "top3_woba_zero" in feature_flags:
+                prediction_context["top3_woba_zero_count"] += 1
+
+        if prediction.get("savant_top3_available") is True:
+            prediction_context["savant_top3_available_count"] += 1
+            
     prediction_context["pitcher_status_counts"] = _count_values(
         pitcher_status_values
     )
@@ -736,7 +768,26 @@ def build_context_diagnostic(
             recommendations.append(
                 "Large anti-market edges are being blocked while the model is still early-stage."
             )
-        
+
+    feature_health_flag_counts = prediction_context.get(
+        "feature_health_flag_counts",
+        {},
+    )
+    if isinstance(feature_health_flag_counts, dict):
+        if feature_health_flag_counts.get("savant_top3_unavailable", 0) > 0:
+            recommendations.append(
+                "Savant top-3 context is unavailable for current predictions. Check savant_top3_context_client output and top3 player ID mapping."
+            )
+
+        if feature_health_flag_counts.get("statcast_core_zero", 0) > 0:
+            recommendations.append(
+                "Core Statcast features are zero in current predictions. Check Savant / pybaseball integration before trusting advanced hitting features."
+            )
+
+        if feature_health_flag_counts.get("top3_woba_zero", 0) > 0:
+            recommendations.append(
+                "Top-3 wOBA feature is zero. The model is not receiving useful top-order hitter strength signals yet."
+            )
     if not recommendations:
         recommendations.append(
             "Context pipeline schema and prediction summary look healthy."
