@@ -465,7 +465,6 @@ def build_context_diagnostic(
     for prediction in predictions:
         summary = _daily_summary(prediction)
 
-        # ----- Daily context summary -----
         pitcher_status_values.append(summary.get("pitcher_status") or "unknown")
         lineup_status_values.append(summary.get("lineup_status") or "unknown")
         starter_confidence_values.append(
@@ -489,7 +488,6 @@ def build_context_diagnostic(
                 missing_field_counts.get("unparseable", 0) + 1
             )
 
-        # ----- Betting readiness v4 -----
         readiness = prediction.get("betting_readiness") or {}
         readiness_status = str(
             prediction.get("betting_readiness_status")
@@ -649,6 +647,21 @@ def build_context_diagnostic(
         for prediction in predictions
     )
 
+        prediction_has_betting_readiness = any(
+        "betting_readiness" in prediction
+        or "betting_readiness_status" in prediction
+        for prediction in predictions
+    )
+
+    practical_ready_exists_when_missing_only_starter_confirmation = any(
+        (
+            prediction.get("betting_readiness_status") == "practical_ready"
+            and prediction.get("effective_context_ready_for_betting") is True
+            and _daily_summary(prediction).get("starter_confirmation_pending") is True
+        )
+        for prediction in predictions
+    )
+
     schema_checks: Dict[str, Any] = {
         "context_has_starter_confidence_columns": starter_columns.issubset(
             context_columns
@@ -723,6 +736,32 @@ def build_context_diagnostic(
         )
 
         practical_ready_count = int(
+        prediction_context.get("practical_ready_count", 0) or 0
+    )
+    if practical_ready_count > 0:
+        recommendations.append(
+            "Some games are practical_ready: official starter confirmation is pending, "
+            "but effective betting context is available with reduced stake multiplier."
+        )
+
+    live_bet_candidate_count = int(
+        prediction_context.get("live_bet_candidate_count", 0) or 0
+    )
+    if live_bet_candidate_count > 0:
+        recommendations.append(
+            f"{live_bet_candidate_count} live bet candidate(s) passed effective context, odds, model, and stake filters."
+        )
+
+    risk_flag_counts = prediction_context.get("risk_flag_counts", {})
+    if isinstance(risk_flag_counts, dict) and risk_flag_counts.get(
+        "closer_high_fatigue",
+        0,
+    ) > 0:
+        recommendations.append(
+            "Closer high fatigue risk detected; consider conservative stake multiplier or manual review."
+        )
+
+    practical_ready_count = int(
         prediction_context.get("practical_ready_count", 0) or 0
     )
     if practical_ready_count > 0:
