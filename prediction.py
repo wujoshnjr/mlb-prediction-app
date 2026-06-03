@@ -971,6 +971,8 @@ def evaluate_betting_readiness(
     model_edge_home: float | None,
     moneyline_selected_edge: float | None,
     min_moneyline_edge: float,
+    model_training_sample_count: int | None = None,
+    production_sample_threshold: int = 300,
 ) -> dict[str, Any]:
     """
     Evaluate effective betting readiness without changing model probability,
