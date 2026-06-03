@@ -104,6 +104,7 @@ HISTORICAL_DIR = Path("data/historical")
 LAST_GAME_FILE = Path("data/team_last_game.json")
 MODEL_FILE = Path("data/calibrator.pkl")
 DAILY_CONTEXT_FILE = Path("data/daily_game_context.csv")
+PROJECTED_LINEUP_CONTEXT_FILE = Path("data/projected_lineup_context.csv")
 
 TEAM_NAME_MAP = {
     "Arizona Diamondbacks": "D-backs",
