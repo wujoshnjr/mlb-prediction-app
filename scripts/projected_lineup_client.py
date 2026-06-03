@@ -362,22 +362,30 @@ def build_projected_lineup_context(
     rows: List[Dict[str, Any]] = []
 
     for _, row in latest.iterrows():
-    game_id = _safe_str(row.get("game_id"))
-    savant_row = savant_top3_by_game.get(game_id, {})
+        game_id = _safe_str(row.get("game_id"))
+        savant_row = savant_top3_by_game.get(game_id, {})
+
         home_eval = _evaluate_projected_lineup_side(
             lineup_confirmed=row.get("home_lineup_confirmed"),
             lineup_player_count=row.get("home_lineup_player_count"),
             lineup_ids_json=row.get("home_lineup_player_ids_json"),
-            top3_player_ids=row.get("home_top3_player_ids"),
+            top3_player_ids=(
+                row.get("home_top3_player_ids")
+                or savant_row.get("home_top3_player_ids")
+            ),
         )
 
         away_eval = _evaluate_projected_lineup_side(
             lineup_confirmed=row.get("away_lineup_confirmed"),
             lineup_player_count=row.get("away_lineup_player_count"),
             lineup_ids_json=row.get("away_lineup_player_ids_json"),
-            top3_player_ids=row.get("away_top3_player_ids"),
+            top3_player_ids=(
+                row.get("away_top3_player_ids")
+                or savant_row.get("away_top3_player_ids")
+            ),
         )
 
+        
         row_dict = {
             "game_id": game_id,
             "game_date": _safe_str(row.get("game_date")),
@@ -393,13 +401,11 @@ def build_projected_lineup_context(
             "away_projected_player_ids_json": _json_dumps_list(away_eval["player_ids"]),
             "home_projected_player_count": int(len(home_eval["player_ids"])),
             "away_projected_player_count": int(len(away_eval["player_ids"])),
-            top3_player_ids=(
-                row.get("home_top3_player_ids")
-                or savant_row.get("home_top3_player_ids")
+            "home_projected_top3_player_ids": ",".join(
+                str(player_id) for player_id in home_eval["top3_ids"]
             ),
-            top3_player_ids=(
-                row.get("away_top3_player_ids")
-                or savant_row.get("away_top3_player_ids")
+            "away_projected_top3_player_ids": ",".join(
+                str(player_id) for player_id in away_eval["top3_ids"]
             ),
             "home_projected_lineup_reason": str(home_eval["reason"]),
             "away_projected_lineup_reason": str(away_eval["reason"]),
