@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-04T15:00:54.491183+00:00",
+  "generated_at": "2026-06-04T17:50:16.327144+00:00",
   "input_files": {
     "prediction": {
       "exists": true,
@@ -8,7 +8,7 @@
     "feature_importance": {
       "exists": true,
       "error": "",
-      "row_count": 52,
+      "row_count": 53,
       "feature_count": 13
     }
   },
@@ -536,13 +536,13 @@
       "feature": "temp_effect",
       "group": "weather",
       "missing_count": 0,
-      "zero_count": 9,
-      "non_zero_count": 0,
+      "zero_count": 6,
+      "non_zero_count": 3,
       "missing_rate": 0.0,
-      "zero_rate": 1.0,
-      "non_zero_rate": 0.0,
+      "zero_rate": 0.6667,
+      "non_zero_rate": 0.3333,
       "latest_importance": 0.0,
-      "status": "all_zero"
+      "status": "sparse"
     },
     {
       "feature": "top3_woba_diff",
@@ -718,10 +718,10 @@
     "weather": {
       "feature_count": 3,
       "healthy_count": 0,
-      "sparse_count": 2,
-      "all_zero_count": 1,
+      "sparse_count": 3,
+      "all_zero_count": 0,
       "missing_count": 0,
-      "avg_non_zero_rate": 0.1111,
+      "avg_non_zero_rate": 0.2222,
       "features": [
         "precip_effect",
         "temp_effect",
@@ -782,7 +782,6 @@
     "statcast_launch_speed_diff",
     "statcast_woba_diff",
     "swing_miss_diff",
-    "temp_effect",
     "top3_woba_diff",
     "zone_size"
   ],
@@ -790,6 +789,7 @@
     "is_day_game",
     "dynamic_pythag_diff",
     "precip_effect",
+    "temp_effect",
     "wind_effect"
   ],
   "missing_features": [],
@@ -799,7 +799,6 @@
     "Some pitching features are all-zero; check probable pitcher enrichment, FIP, CSW, Stuff+, K%, and BB% sources.",
     "Lineup/platoon/top3 features are incomplete; projected or confirmed lineup integration should be prioritized.",
     "Catcher-related features are incomplete; verify catcher context source and catcher ERA / caught-stealing mapping.",
-    "Weather-related features are incomplete; verify Open-Meteo integration and weather-to-feature mapping.",
     "Umpire-related features are incomplete; verify umpire source and zone-size feature mapping."
   ]
 }
