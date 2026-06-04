@@ -2497,6 +2497,8 @@ weather_context_by_game = latest_weather_context_by_game(errors)
         )
         context_row = daily_context_by_game.get(str(game_id), {})
         savant_top3_row = savant_top3_by_game.get(str(game_id), {})
+        weather_context_row = weather_context_by_game.get(str(game_id), {})
+        weather_context_summary = build_weather_context_summary(weather_context_row)
         daily_context_summary = build_daily_context_summary(
             game_id,
             daily_context_by_game,
