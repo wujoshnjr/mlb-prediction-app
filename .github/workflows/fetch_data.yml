@@ -88,6 +88,7 @@ jobs:
             scripts/risk_guard.py \
             scripts/market_residual_model.py \
             scripts/train_market_residual_shadow.py \
+            scripts/weather_context_client.py \
             scripts/projected_lineup_client.py
 
       - name: Update finalized game results
@@ -142,6 +143,13 @@ jobs:
           APISPORTS_BASEBALL_LEAGUE_ID: ${{ secrets.APISPORTS_BASEBALL_LEAGUE_ID }}
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build weather context
+        continue-on-error: true
+        run: python scripts/weather_context_client.py
+        env:
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
+          PYTHONPATH: ${{ github.workspace }}
+          
       - name: Diagnose API-Sports Baseball
         continue-on-error: true
         run: python scripts/apisports_diagnostic.py
@@ -239,6 +247,7 @@ jobs:
             data/prediction_snapshots.csv \
             data/market_odds_history.csv \
             data/daily_game_context.csv \
+            data/weather_context.csv \
             data/savant_top3_context.csv \
             data/new_final_results.json \
             data/elo_ratings.json \
