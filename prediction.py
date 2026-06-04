@@ -2456,7 +2456,7 @@ def generate_predictions() -> dict[str, Any]:
     )
     savant_top3_by_game = latest_savant_top3_context_by_game(errors)
     weather_context_by_game = latest_weather_context_by_game(errors)
-        dynamic_pythag_exponent = 2.0
+    dynamic_pythag_exponent = 2.0
     if not team_frame.empty:
         run_scored_total = as_float(team_frame["runs_scored"].sum(), 0.0)
         run_allowed_total = as_float(team_frame["runs_allowed"].sum(), 0.0)
