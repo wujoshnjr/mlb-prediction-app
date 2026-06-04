@@ -107,6 +107,7 @@ MODEL_FILE = Path("data/calibrator.pkl")
 DAILY_CONTEXT_FILE = Path("data/daily_game_context.csv")
 PROJECTED_LINEUP_CONTEXT_FILE = Path("data/projected_lineup_context.csv")
 SAVANT_TOP3_CONTEXT_FILE = Path("data/savant_top3_context.csv")
+WEATHER_CONTEXT_FILE = Path("data/weather_context.csv")
 RISK_GUARD = LiveBetRiskGuard(
     market_research_report_path="report/market_edge_research.json"
 )
@@ -563,6 +564,77 @@ def latest_savant_top3_context_by_game(
     return {
         str(row["game_id"]): row.to_dict()
         for _, row in frame.iterrows()
+    }
+
+
+def latest_weather_context_by_game(
+    errors: list[str],
+) -> dict[str, dict[str, Any]]:
+    """Load latest weather context by game_id."""
+    if not WEATHER_CONTEXT_FILE.exists():
+        return {}
+
+    try:
+        frame = pd.read_csv(WEATHER_CONTEXT_FILE)
+    except Exception as exc:
+        errors.append(f"Unable to read weather context: {exc}")
+        return {}
+
+    if frame.empty or "game_id" not in frame.columns:
+        return {}
+
+    frame = frame.copy()
+    frame["game_id"] = frame["game_id"].astype(str)
+
+    if "weather_captured_at" in frame.columns:
+        frame["weather_captured_at_parsed"] = pd.to_datetime(
+            frame["weather_captured_at"],
+            errors="coerce",
+            utc=True,
+        )
+        if frame["weather_captured_at_parsed"].notna().any():
+            frame = frame.sort_values("weather_captured_at_parsed")
+            frame = frame.groupby("game_id", as_index=False).tail(1)
+
+    return {
+        str(row["game_id"]): row.to_dict()
+        for _, row in frame.iterrows()
+    }
+
+
+def build_weather_context_summary(
+    weather_row: dict[str, Any],
+) -> dict[str, Any]:
+    """Return compact weather context summary for prediction report."""
+    if not weather_row:
+        return {
+            "available": False,
+            "weather_source_status": "missing",
+            "weather_reason": "No weather_context row matched this game_id",
+        }
+
+    return {
+        "available": True,
+        "weather_source": str(weather_row.get("weather_source", "")),
+        "weather_source_status": str(weather_row.get("weather_source_status", "")),
+        "weather_captured_at": str(weather_row.get("weather_captured_at", "")),
+        "weather_forecast_time": str(weather_row.get("weather_forecast_time", "")),
+        "venue_name": str(weather_row.get("venue_name", "")),
+        "weather_is_dome": bool(weather_row.get("weather_is_dome", False)),
+        "weather_temp_f": as_float(weather_row.get("weather_temp_f"), None),
+        "weather_wind_speed_mph": as_float(
+            weather_row.get("weather_wind_speed_mph"),
+            None,
+        ),
+        "weather_precip_probability": as_float(
+            weather_row.get("weather_precip_probability"),
+            None,
+        ),
+        "weather_condition": str(weather_row.get("weather_condition", "")),
+        "temp_effect": as_float(weather_row.get("temp_effect"), 0.0),
+        "wind_effect": as_float(weather_row.get("wind_effect"), 0.0),
+        "precip_effect": as_float(weather_row.get("precip_effect"), 0.0),
+        "weather_reason": str(weather_row.get("weather_reason", "")),
     }
 
 
@@ -2379,10 +2451,11 @@ def generate_predictions() -> dict[str, Any]:
     historical_df, _ = load_historical_frames(errors)
     last_game_data = load_last_game_data()
 
-    daily_context_by_game, daily_context_load_summary = (
-        latest_daily_context_by_game(errors)
-    )
-    savant_top3_by_game = latest_savant_top3_context_by_game(errors)
+daily_context_by_game, daily_context_load_summary = (
+    latest_daily_context_by_game(errors)
+)
+savant_top3_by_game = latest_savant_top3_context_by_game(errors)
+weather_context_by_game = latest_weather_context_by_game(errors)
     dynamic_pythag_exponent = 2.0
     if not team_frame.empty:
         run_scored_total = as_float(team_frame["runs_scored"].sum(), 0.0)
