@@ -156,7 +156,7 @@ def train_market_residual_shadow(
     snapshots_path: str = "data/prediction_snapshots.csv",
     model_output_path: str = str(MODEL_OUTPUT_PATH),
     report_output_path: str = str(REPORT_OUTPUT_PATH),
-    min_samples: int = 120,
+    min_samples: int = 80,
 ) -> Dict[str, Any]:
     generated_at = _current_utc_iso()
     frame, error = _safe_read_csv(Path(snapshots_path))
