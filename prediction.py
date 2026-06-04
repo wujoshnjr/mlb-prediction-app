@@ -2801,7 +2801,18 @@ weather_context_by_game = latest_weather_context_by_game(errors)
 
         if features.get("precip_effect", 0.0) == 0.0:
             features["precip_effect"] = context_weather_features["precip_effect"]
-            
+
+        if weather_context_row:
+            for feature_name in ("temp_effect", "wind_effect", "precip_effect"):
+                if feature_name in weather_context_row:
+                    raw_weather_value = weather_context_row.get(feature_name)
+                    raw_weather_text = str(raw_weather_value).strip().lower()
+                    if raw_weather_text not in {"", "nan", "none", "null"}:
+                        features[feature_name] = round(
+                            as_float(raw_weather_value, 0.0),
+                            4,
+                        )
+                        
         if not injury_frame.empty:
             try:
                 if "team" in injury_frame.columns:
