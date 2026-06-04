@@ -87,6 +87,7 @@ jobs:
             scripts/market_edge_research.py \
             scripts/risk_guard.py \
             scripts/market_residual_model.py \
+            scripts/train_market_residual_shadow.py \
             scripts/projected_lineup_client.py
 
       - name: Update finalized game results
@@ -193,6 +194,12 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Train market residual shadow model
+        continue-on-error: true
+        run: python scripts/train_market_residual_shadow.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          
       - name: Diagnose feature availability
         continue-on-error: true
         run: python scripts/feature_availability_diagnostic.py
