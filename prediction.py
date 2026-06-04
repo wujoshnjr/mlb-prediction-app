@@ -27,6 +27,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from model import UnifiedSportsModel
 from scripts.feature_schema import EXPECTED_FEATURES
+from scripts.risk_guard import LiveBetRiskGuard
 
 try:
     import config
@@ -106,6 +107,9 @@ MODEL_FILE = Path("data/calibrator.pkl")
 DAILY_CONTEXT_FILE = Path("data/daily_game_context.csv")
 PROJECTED_LINEUP_CONTEXT_FILE = Path("data/projected_lineup_context.csv")
 SAVANT_TOP3_CONTEXT_FILE = Path("data/savant_top3_context.csv")
+RISK_GUARD = LiveBetRiskGuard(
+    market_research_report_path="report/market_edge_research.json"
+)
 
 TEAM_NAME_MAP = {
     "Arizona Diamondbacks": "D-backs",
@@ -3103,6 +3107,53 @@ def generate_predictions() -> dict[str, Any]:
         ):
             feature_health_flags.append("statcast_core_zero")
 
+        selected_model_probability_for_guard = (
+            premarket_model_home_prob
+            if moneyline_selected_side == "home"
+            else 1.0 - premarket_model_home_prob
+            if moneyline_selected_side == "away"
+            else premarket_model_home_prob
+        )
+
+        selected_market_probability_for_guard = (
+            market_probability
+            if moneyline_selected_side == "home"
+            else 1.0 - market_probability
+            if moneyline_selected_side == "away" and market_probability is not None
+            else market_probability
+        )
+
+        risk_guard_context = {
+            "lineup_status": daily_context_summary.get("lineup_status"),
+            "feature_health_flags": feature_health_flags,
+        }
+
+        risk_guard_approved = False
+        risk_guard_reason = "NOT_EVALUATED"
+
+        if (
+            recommendation_status == "PAPER_BET"
+            and selected_market_probability_for_guard is not None
+            and moneyline_selected_side in {"home", "away"}
+        ):
+            risk_guard_approved, risk_guard_reason = RISK_GUARD.validate_bet_candidate(
+                context=risk_guard_context,
+                model_prob=float(selected_model_probability_for_guard),
+                market_no_vig_prob=float(selected_market_probability_for_guard),
+                features=features,
+            )
+        elif recommendation_status == "PAPER_BET":
+            risk_guard_reason = "REJECT: market probability or selected side unavailable"
+
+        if recommendation_status == "PAPER_BET" and not risk_guard_approved:
+            if "risk_guard_rejected" not in risk_flags:
+                risk_flags.append("risk_guard_rejected")
+            recommendation_block_details.append(
+                f"Risk guard: {risk_guard_reason}."
+            )
+
+        live_bet_candidate = live_bet_candidate and bool(risk_guard_approved)
+
         prediction_item = {
             "game_id": game_id,
             "game_date": date_str,
@@ -3180,6 +3231,8 @@ def generate_predictions() -> dict[str, Any]:
             "market_adjustment_applied": market_adjustment_applied,
             "recommendation_status": recommendation_status,
             "moneyline_gate_status": moneyline_gate_status,
+            "risk_guard_approved": bool(risk_guard_approved),
+            "risk_guard_reason": risk_guard_reason,
             "recommendation_block_reason": recommendation_block_reason,
             "recommendation_block_details": recommendation_block_details,
             "daily_context_summary": daily_context_summary,
@@ -3193,7 +3246,7 @@ def generate_predictions() -> dict[str, Any]:
             "betting_readiness_score": betting_readiness[
                 "betting_readiness_score"
             ],
-            "betting_risk_flags": betting_readiness["betting_risk_flags"],
+            "betting_risk_flags": sorted(set(risk_flags)),
             "stake_multiplier": betting_readiness["stake_multiplier"],
             "live_bet_candidate": live_bet_candidate,
             "moneyline_edge_threshold": round(min_moneyline_edge, 4),
@@ -3232,8 +3285,6 @@ def generate_predictions() -> dict[str, Any]:
             "nrfi_recommendation": nrfi_recommendation,
             "nrfi_source": nrfi_source,
             "nrfi_fallback_reason": nrfi_fallback_reason,
-            "feature_health_flags": feature_health_flags,
-            "savant_top3_available": savant_top3_available,
             "feature_health_flags": feature_health_flags,
             "savant_top3_available": bool(savant_top3_available),
             "features": {
