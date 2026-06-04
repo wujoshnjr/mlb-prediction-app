@@ -1,0 +1,92 @@
+{
+  "generated_at": "2026-06-04T06:08:23.509566+00:00",
+  "input_file": {
+    "path": "data/prediction_snapshots.csv",
+    "exists": true,
+    "error": "",
+    "rows": 109
+  },
+  "settled_rows": 75,
+  "paper_bet_rows": 75,
+  "overall": {
+    "count": 75,
+    "win_rate": 0.52,
+    "avg_clv": null,
+    "model_brier": 0.24356581440000008,
+    "market_brier": 0.2529780865333333,
+    "model_logloss": 0.6818751904354089,
+    "market_logloss": 0.710456770669978,
+    "beaten_market_brier": true,
+    "beaten_market_logloss": true
+  },
+  "edge_buckets": {
+    "3-5%": {
+      "count": 13,
+      "win_rate": 0.6153846153846154,
+      "avg_clv": null,
+      "model_brier": 0.2121812146153846,
+      "market_brier": 0.2208697776923077,
+      "model_logloss": 0.6159833807224848,
+      "market_logloss": 0.6338714915721236,
+      "beaten_market_brier": true,
+      "beaten_market_logloss": true
+    },
+    "5-8%": {
+      "count": 19,
+      "win_rate": 0.5263157894736842,
+      "avg_clv": null,
+      "model_brier": 0.2332919521052631,
+      "market_brier": 0.2360778536842105,
+      "model_logloss": 0.6583429830274851,
+      "market_logloss": 0.6654787045340675,
+      "beaten_market_brier": true,
+      "beaten_market_logloss": true
+    },
+    "8%+": {
+      "count": 43,
+      "win_rate": 0.4883720930232558,
+      "avg_clv": null,
+      "model_brier": 0.2575937953488372,
+      "market_brier": 0.2701527944186046,
+      "model_logloss": 0.7121939222265381,
+      "market_logloss": 0.7534844889224063,
+      "beaten_market_brier": true,
+      "beaten_market_logloss": true
+    }
+  },
+  "data_health_buckets": {
+    "healthy": {
+      "count": 0,
+      "win_rate": null,
+      "avg_clv": null,
+      "model_brier": null,
+      "market_brier": null,
+      "model_logloss": null,
+      "market_logloss": null,
+      "beaten_market_brier": false,
+      "beaten_market_logloss": false
+    },
+    "degraded": {
+      "count": 75,
+      "win_rate": 0.52,
+      "avg_clv": null,
+      "model_brier": 0.24356581440000008,
+      "market_brier": 0.2529780865333333,
+      "model_logloss": 0.6818751904354089,
+      "market_logloss": 0.710456770669978,
+      "beaten_market_brier": true,
+      "beaten_market_logloss": true
+    }
+  },
+  "promote_ready": false,
+  "promote_reasons": [
+    "sample_count_below_300",
+    "avg_clv_not_positive",
+    "8pct_plus_edge_bucket_clv_not_positive"
+  ],
+  "recommendations": [
+    "Average CLV is not positive; keep all live bet candidates blocked.",
+    "8%+ edge bucket has not proven positive CLV; continue large-edge guard.",
+    "Settled sample count below 300; use report for research only."
+  ]
+}
