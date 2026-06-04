@@ -1391,6 +1391,64 @@ def evaluate_betting_readiness(
     }
 
 
+def calculate_accuracy_safe_model_weight(
+    *,
+    sample_count: int,
+    features: dict[str, Any],
+    selected_edge_abs: float | None,
+) -> tuple[float, list[str]]:
+    """
+    Return model weight for market blending.
+
+    Lower model weight means stronger market anchoring.
+    This is an accuracy/calibration safety layer, not a betting gate.
+    """
+    reasons: list[str] = []
+
+    if sample_count < 120:
+        model_weight = 0.55
+        reasons.append("sample_count_below_120")
+    elif sample_count < 300:
+        model_weight = 0.65
+        reasons.append("sample_count_below_300")
+    elif sample_count < 500:
+        model_weight = 0.75
+        reasons.append("sample_count_below_500")
+    else:
+        model_weight = 0.85
+
+    statcast_core_zero = (
+        as_float(features.get("statcast_woba_diff"), 0.0) == 0.0
+        and as_float(features.get("statcast_barrel_diff"), 0.0) == 0.0
+        and as_float(features.get("statcast_hard_hit_diff"), 0.0) == 0.0
+    )
+
+    top3_zero = as_float(features.get("top3_woba_diff"), 0.0) == 0.0
+    pitcher_advanced_zero = (
+        as_float(features.get("sp_fip_diff"), 0.0) == 0.0
+        and as_float(features.get("sp_csw_diff"), 0.0) == 0.0
+    )
+
+    if statcast_core_zero:
+        model_weight = min(model_weight, 0.55)
+        reasons.append("statcast_core_zero")
+
+    if top3_zero:
+        model_weight = min(model_weight, 0.55)
+        reasons.append("top3_woba_zero")
+
+    if pitcher_advanced_zero:
+        model_weight = min(model_weight, 0.60)
+        reasons.append("pitcher_advanced_zero")
+
+    if selected_edge_abs is not None and selected_edge_abs >= 0.08:
+        model_weight = min(model_weight, 0.50)
+        reasons.append("large_edge_market_anchor")
+
+    model_weight = float(np.clip(model_weight, 0.35, 0.90))
+    return model_weight, reasons
+
+
 def compute_market_no_vig_home_prob(
     home_odds: float | None,
     away_odds: float | None,
@@ -2849,13 +2907,32 @@ def generate_predictions() -> dict[str, Any]:
         )
 
         market_adjustment_applied = False
+        accuracy_safe_model_weight = 1.0
+        accuracy_safe_market_weight = 0.0
+        accuracy_safe_blend_reasons: list[str] = []
+
         if market_probability is not None:
+            selected_edge_abs_for_blend = (
+                abs(model_edge_home)
+                if model_edge_home is not None
+                else None
+            )
+
+            accuracy_safe_model_weight, accuracy_safe_blend_reasons = (
+                calculate_accuracy_safe_model_weight(
+                    sample_count=clean_model_sample_count,
+                    features=features,
+                    selected_edge_abs=selected_edge_abs_for_blend,
+                )
+            )
+            accuracy_safe_market_weight = 1.0 - accuracy_safe_model_weight
+
             predicted_home_win = (
-                premarket_model_home_prob * 0.90
-                + market_probability * 0.10
+                premarket_model_home_prob * accuracy_safe_model_weight
+                + market_probability * accuracy_safe_market_weight
             )
             market_adjustment_applied = True
-
+            
         predicted_home_win = float(np.clip(predicted_home_win, 0.05, 0.95))
         displayed_home_win_pct = predicted_home_win
 
