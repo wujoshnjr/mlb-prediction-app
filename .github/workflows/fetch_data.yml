@@ -84,6 +84,9 @@ jobs:
             scripts/validate_predictions.py \
             scripts/evaluation_clv_diagnostic.py \
             scripts/feature_availability_diagnostic.py \
+            scripts/market_edge_research.py \
+            scripts/risk_guard.py \
+            scripts/market_residual_model.py \
             scripts/projected_lineup_client.py
 
       - name: Update finalized game results
@@ -181,6 +184,12 @@ jobs:
       - name: Diagnose evaluation and CLV
         continue-on-error: true
         run: python scripts/evaluation_clv_diagnostic.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Research market edge buckets
+        continue-on-error: true
+        run: python scripts/market_edge_research.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
