@@ -3391,6 +3391,7 @@ weather_context_by_game = latest_weather_context_by_game(errors)
             "recommendation_block_reason": recommendation_block_reason,
             "recommendation_block_details": recommendation_block_details,
             "daily_context_summary": daily_context_summary,
+            "weather_context_summary": weather_context_summary,
             "betting_readiness": betting_readiness,
             "effective_context_ready_for_betting": betting_readiness[
                 "effective_context_ready_for_betting"
