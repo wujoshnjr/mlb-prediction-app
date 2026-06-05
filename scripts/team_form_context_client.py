@@ -546,6 +546,8 @@ def _team_window_stats(prior: pd.DataFrame, team: str, game_date: pd.Timestamp, 
     if window.empty:
         last_date = team_all["game_date"].max()
         rest_days = int((game_date - last_date).days) if pd.notna(last_date) else None
+        if rest_days is not None and rest_days > MAX_SAFE_REST_DAYS:
+            rest_days = None
         return {
             "games": 0,
             "winrate": None,
@@ -576,6 +578,8 @@ def _team_window_stats(prior: pd.DataFrame, team: str, game_date: pd.Timestamp, 
 
     last_date = team_all["game_date"].max()
     rest_days = int((game_date - last_date).days) if pd.notna(last_date) else None
+    if rest_days is not None and rest_days > MAX_SAFE_REST_DAYS:
+        rest_days = None
     back2back = bool(rest_days is not None and rest_days <= 1)
 
     return {
