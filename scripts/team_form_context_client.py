@@ -213,12 +213,22 @@ def normalise_team(value: Any) -> str:
     if key in TEAM_ALIASES:
         return TEAM_ALIASES[key]
 
+    # Exact full-name match before any fuzzy matching.
+    for full_name in TEAM_ID_MAP:
+        if _normalise_key(full_name) == key:
+            return full_name
+
+    # Only allow fuzzy contains for reasonably long aliases.
+    # This prevents short aliases like "as" from matching "texas rangers".
     for alias, full in TEAM_ALIASES.items():
-        if key == alias or key in alias or alias in key:
+        alias_key = _normalise_key(alias)
+        if len(alias_key) < 4:
+            continue
+        if key == alias_key or key in alias_key or alias_key in key:
             return full
 
     return raw
-
+    
 
 def team_id_from_name(value: Any) -> Optional[int]:
     team = normalise_team(value)
