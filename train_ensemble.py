@@ -18,7 +18,11 @@ from sklearn.metrics import brier_score_loss, log_loss
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from scripts.feature_schema import MODEL_FEATURES, AVAILABILITY_FLAG_FEATURES
+from scripts.feature_schema import (
+    MODEL_FEATURES,
+    AVAILABILITY_FLAG_FEATURES,
+    TRACKING_ONLY_FEATURES,
+)
 from scripts.snapshot_store import read_snapshot_rows
 try:
     import config
@@ -53,6 +57,8 @@ MODEL_OUTPUT = Path("data/calibrator.pkl")
 STATUS_FILE = Path("data/training_status.json")
 TRAINING_LOG = Path("data/training_log.csv")
 FEATURE_IMPORTANCE_LOG = Path("data/feature_importance.csv")
+MODEL_SCHEMA_VERSION = "v3-feature-governed"
+MODEL_TYPE = "calibrated_logistic_regression_with_imputer"
 
 def write_status(
     trained: bool,
@@ -61,12 +67,16 @@ def write_status(
     reason: str | None = None,
     brier: float | None = None,
     logloss: float | None = None,
+    used_feature_count: int | None = None,
+    transformed_feature_count: int | None = None,
+    removed_features: list[str] | None = None,
 ) -> None:
     status = {
         "pipeline_version": PIPELINE_VERSION,
+        "schema_version": MODEL_SCHEMA_VERSION,
         "training_source": "clean_prediction_snapshots",
         "allow_legacy_training_data": ALLOW_LEGACY_TRAINING_DATA,
-        "model_type": "calibrated_logistic_regression",
+        "model_type": MODEL_TYPE,
         "minimum_clean_train_samples": MIN_TRAIN_SAMPLES,
         "trained": trained,
         "skipped": skipped,
@@ -74,6 +84,15 @@ def write_status(
         "reason": reason,
         "brier": brier,
         "logloss": logloss,
+        "model_feature_count": len(MODEL_FEATURES),
+        "availability_flag_feature_count": len(AVAILABILITY_FLAG_FEATURES),
+        "tracking_only_feature_count": len(TRACKING_ONLY_FEATURES),
+        "used_feature_count": used_feature_count,
+        "transformed_feature_count": transformed_feature_count,
+        "removed_low_variance_features": removed_features or [],
+        "training_allowed_for_production": (
+            trained is True and sample_count >= MIN_TRAIN_SAMPLES
+        ),
         "timestamp": datetime.now().isoformat(),
     }
 
@@ -85,14 +104,41 @@ def write_status(
 
 
 def append_csv(path: Path, row: dict[str, Any]) -> None:
+    """Append one row while preserving schema when columns evolve."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame([row]).to_csv(
-        path,
-        mode="a",
-        header=not path.exists(),
-        index=False,
-        encoding="utf-8",
+    new_frame = pd.DataFrame([row])
+
+    if not path.exists():
+        new_frame.to_csv(path, index=False, encoding="utf-8")
+        return
+
+    try:
+        existing = pd.read_csv(path)
+    except Exception:
+        backup_path = path.with_suffix(path.suffix + ".bak")
+        path.replace(backup_path)
+        new_frame.to_csv(path, index=False, encoding="utf-8")
+        return
+
+    columns = list(existing.columns)
+    for column in new_frame.columns:
+        if column not in columns:
+            columns.append(column)
+
+    for column in columns:
+        if column not in existing.columns:
+            existing[column] = np.nan
+        if column not in new_frame.columns:
+            new_frame[column] = np.nan
+
+    combined = pd.concat(
+        [
+            existing[columns],
+            new_frame[columns],
+        ],
+        ignore_index=True,
     )
+    combined.to_csv(path, index=False, encoding="utf-8")
 
 
 def prepare_data() -> (
