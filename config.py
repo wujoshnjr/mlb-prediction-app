@@ -30,10 +30,9 @@ BETTING_MODE = "paper_trading"
 ALLOW_LEGACY_TRAINING_DATA = False
 SNAPSHOT_STORE_FILE = "data/prediction_snapshots.csv"
 
-# Temporary early-model threshold.
-# This allows the clean model pipeline to produce an experimental artifact
-# for engineering validation before the production 300+ sample threshold.
-MIN_CLEAN_TRAIN_SAMPLES = 60
+# Clean forward-collected sample threshold.
+# Below this level, training may be skipped and live/production ML usage is blocked.
+MIN_CLEAN_TRAIN_SAMPLES = 300
 
 # Moneyline recommendation gate.
 # A paper-trading Moneyline recommendation is created only when the model
