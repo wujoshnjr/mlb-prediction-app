@@ -813,12 +813,12 @@ def build_data_quality_status(
     lineup_status = str(daily_context_summary.get("lineup_status", "")).lower()
     starter_status = str(daily_context_summary.get("starter_status", "")).lower()
 
-    if "confirmed" not in lineup_status:
+    if lineup_status != "confirmed":
         missing_important_sources.append("confirmed_lineup")
 
-    if "confirmed" not in starter_status:
+    if starter_status != "confirmed":
         missing_important_sources.append("confirmed_starter")
-
+        
     if not weather_context_row:
         missing_important_sources.append("weather")
 
@@ -3391,7 +3391,8 @@ def generate_predictions() -> dict[str, Any]:
         nrfi_fallback_reason = ""
 
         if (
-            nrfi_model_available
+            NRFI_USE_ML
+            and nrfi_model_available
             and nrfi_model is not None
             and extract_nrf_features is not None
         ):
@@ -3762,6 +3763,19 @@ def generate_predictions() -> dict[str, Any]:
             "model_feature_count": len(model_features or []),
             "model_training_sample_count": clean_model_sample_count,
             "model_load_error": model_error,
+            "model_governance_status": model_governance_status,
+            "live_betting_allowed": bool(
+                model_governance_status.get("live_betting_allowed", False)
+            ),
+            "shadow_live_allowed": bool(
+                model_governance_status.get("shadow_live_allowed", False)
+            ),
+            "data_quality_status": data_quality_status,
+            "data_quality_grade": data_quality_status.get("data_quality_grade"),
+            "prediction_allowed": bool(
+                data_quality_status.get("prediction_allowed", True)
+            ),
+            "bet_allowed": bool(data_quality_status.get("bet_allowed", False)),
             "home_moneyline_odds": home_odds,
             "away_moneyline_odds": away_odds,
             "spread_line": spread_line,
