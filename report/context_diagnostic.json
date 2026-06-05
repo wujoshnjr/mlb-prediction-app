@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-06-05T01:52:52.581852+00:00",
+  "generated_at": "2026-06-05T03:10:57.690132+00:00",
   "daily_context": {
     "exists": true,
     "error": "",
-    "row_count": 1232,
+    "row_count": 1247,
     "column_count": 108,
     "schema_versions": [
       "daily_context_v1",
       "daily_context_v2",
       "daily_context_v3"
     ],
-    "latest_captured_at": "2026-06-05T01:44:57.685994+00:00",
+    "latest_captured_at": "2026-06-05T02:50:36.869036+00:00",
     "latest_game_count": 15,
     "columns_present": [
       "home_starter_status",
@@ -56,35 +56,33 @@
       "TRACKING_ONLY_CONTEXT_NOT_READY": 15
     },
     "betting_readiness_status_counts": {
-      "context_tracking_only": 4,
-      "risk_blocked": 6,
-      "model_blocked": 5
+      "context_tracking_only": 6,
+      "risk_blocked": 7,
+      "model_blocked": 2
     },
     "live_bet_candidate_count": 0,
-    "average_betting_readiness_score": 0.0633,
+    "average_betting_readiness_score": 0.0867,
     "risk_flag_counts": {
-      "closer_high_fatigue": 6,
+      "closer_high_fatigue": 8,
       "context_missing_fields": 15,
       "early_model_small_sample": 15,
       "lineup_not_confirmed": 15,
-      "risk_guard_rejected": 10,
+      "risk_guard_rejected": 13,
       "starter_confirmation_pending": 14,
-      "large_anti_market_edge_early_model": 6,
-      "closer_fatigue": 5,
-      "edge_below_threshold": 5
+      "large_anti_market_edge_early_model": 7,
+      "closer_fatigue": 3,
+      "edge_below_threshold": 2
     },
     "feature_health_flag_counts": {
-      "none": 5,
-      "top3_woba_zero": 10,
-      "statcast_core_zero": 9
+      "none": 15
     },
     "savant_top3_available_count": 15,
     "savant_top3_unavailable_count": 0,
-    "statcast_core_zero_count": 9,
-    "top3_woba_zero_count": 10,
+    "statcast_core_zero_count": 0,
+    "top3_woba_zero_count": 0,
     "practical_ready_count": 0,
     "official_ready_count": 0,
-    "risk_blocked_count": 6
+    "risk_blocked_count": 7
   },
   "schema_checks": {
     "context_has_starter_confidence_columns": true,
@@ -123,8 +121,6 @@
     "Closer high fatigue risk detected; consider conservative stake multiplier or manual review.",
     "Early model guard is active. Keep live betting disabled until sample size and CLV improve.",
     "Lineup confirmation remains a betting blocker. Prioritize projected/confirmed lineup integration.",
-    "Large anti-market edges are being blocked while the model is still early-stage.",
-    "Core Statcast features are zero in current predictions. Check Savant / pybaseball integration before trusting advanced hitting features.",
-    "Top-3 wOBA feature is zero. The model is not receiving useful top-order hitter strength signals yet."
+    "Large anti-market edges are being blocked while the model is still early-stage."
   ]
 }
