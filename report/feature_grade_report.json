@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-06-05T18:15:00.484942+00:00",
+  "generated_at": "2026-06-05T20:14:51.290118+00:00",
   "source": "report/feature_availability_diagnostic.json",
   "model_feature_count": 26,
   "tracking_only_feature_count": 33,
   "grade_counts": {
     "A": 37,
-    "B": 4,
+    "B": 5,
     "C": 3,
-    "D": 15
+    "D": 14
   },
   "model_features": [
     "elo_diff",
@@ -568,17 +568,17 @@
       "recommendation": "tracking_only_by_schema"
     },
     {
-      "feature": "precip_effect",
-      "group": "weather",
+      "feature": "lineup_context_available",
+      "group": "lineup",
       "grade": "B",
       "availability_rate": 1.0,
-      "non_zero_rate": 0.2,
+      "non_zero_rate": 0.2667,
       "missing_rate": 0.0,
-      "zero_rate": 0.8,
+      "zero_rate": 0.7333,
       "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
+      "training_allowed_by_schema": true,
+      "tracking_only_by_schema": false,
+      "recommendation": "allowed_in_main_model"
     },
     {
       "feature": "rest_diff",
@@ -588,6 +588,19 @@
       "non_zero_rate": 0.4,
       "missing_rate": 0.0,
       "zero_rate": 0.6,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "temp_effect",
+      "group": "weather",
+      "grade": "B",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.2,
+      "missing_rate": 0.0,
+      "zero_rate": 0.8,
       "latest_importance": 0.0,
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
@@ -633,17 +646,17 @@
       "recommendation": "tracking_only_by_schema"
     },
     {
-      "feature": "lineup_context_available",
-      "group": "lineup",
+      "feature": "precip_effect",
+      "group": "weather",
       "grade": "C",
       "availability_rate": 1.0,
-      "non_zero_rate": 0.0667,
+      "non_zero_rate": 0.1333,
       "missing_rate": 0.0,
-      "zero_rate": 0.9333,
+      "zero_rate": 0.8667,
       "latest_importance": 0.0,
-      "training_allowed_by_schema": true,
-      "tracking_only_by_schema": false,
-      "recommendation": "exclude_until_stable"
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
     },
     {
       "feature": "barrel_bb_pct_diff",
@@ -804,19 +817,6 @@
     {
       "feature": "swing_miss_diff",
       "group": "statcast",
-      "grade": "D",
-      "availability_rate": 1.0,
-      "non_zero_rate": 0.0,
-      "missing_rate": 0.0,
-      "zero_rate": 1.0,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
-    },
-    {
-      "feature": "temp_effect",
-      "group": "weather",
       "grade": "D",
       "availability_rate": 1.0,
       "non_zero_rate": 0.0,
