@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-05T00:24:51.016212+00:00",
+  "generated_at": "2026-06-05T00:45:52.354064+00:00",
   "input_files": {
     "prediction": {
       "exists": true,
@@ -8,7 +8,7 @@
     "feature_importance": {
       "exists": true,
       "error": "",
-      "row_count": 57,
+      "row_count": 58,
       "feature_count": 13
     }
   },
@@ -68,11 +68,11 @@
       "feature": "pitcher_rating_diff",
       "group": "pitching",
       "missing_count": 0,
-      "zero_count": 2,
-      "non_zero_count": 13,
+      "zero_count": 1,
+      "non_zero_count": 14,
       "missing_rate": 0.0,
-      "zero_rate": 0.1333,
-      "non_zero_rate": 0.8667,
+      "zero_rate": 0.0667,
+      "non_zero_rate": 0.9333,
       "latest_importance": 0.15996692,
       "status": "healthy"
     },
@@ -104,11 +104,11 @@
       "feature": "sp_era_diff",
       "group": "pitching",
       "missing_count": 0,
-      "zero_count": 1,
-      "non_zero_count": 14,
+      "zero_count": 0,
+      "non_zero_count": 15,
       "missing_rate": 0.0,
-      "zero_rate": 0.0667,
-      "non_zero_rate": 0.9333,
+      "zero_rate": 0.0,
+      "non_zero_rate": 1.0,
       "latest_importance": 0.11185793,
       "status": "healthy"
     },
@@ -116,25 +116,25 @@
       "feature": "bb_pct_diff",
       "group": "pitching",
       "missing_count": 0,
-      "zero_count": 15,
-      "non_zero_count": 0,
+      "zero_count": 14,
+      "non_zero_count": 1,
       "missing_rate": 0.0,
-      "zero_rate": 1.0,
-      "non_zero_rate": 0.0,
+      "zero_rate": 0.9333,
+      "non_zero_rate": 0.0667,
       "latest_importance": 0.09318866,
-      "status": "all_zero"
+      "status": "sparse"
     },
     {
       "feature": "k_pct_diff",
       "group": "pitching",
       "missing_count": 0,
-      "zero_count": 15,
-      "non_zero_count": 0,
+      "zero_count": 14,
+      "non_zero_count": 1,
       "missing_rate": 0.0,
-      "zero_rate": 1.0,
-      "non_zero_rate": 0.0,
+      "zero_rate": 0.9333,
+      "non_zero_rate": 0.0667,
       "latest_importance": 0.09318791,
-      "status": "all_zero"
+      "status": "sparse"
     },
     {
       "feature": "dynamic_pythag_diff",
@@ -560,11 +560,11 @@
       "feature": "wind_effect",
       "group": "weather",
       "missing_count": 0,
-      "zero_count": 11,
-      "non_zero_count": 4,
+      "zero_count": 12,
+      "non_zero_count": 3,
       "missing_rate": 0.0,
-      "zero_rate": 0.7333,
-      "non_zero_rate": 0.2667,
+      "zero_rate": 0.8,
+      "non_zero_rate": 0.2,
       "latest_importance": 0.0,
       "status": "sparse"
     },
@@ -615,10 +615,10 @@
     "pitching": {
       "feature_count": 8,
       "healthy_count": 2,
-      "sparse_count": 0,
-      "all_zero_count": 6,
+      "sparse_count": 2,
+      "all_zero_count": 4,
       "missing_count": 0,
-      "avg_non_zero_rate": 0.225,
+      "avg_non_zero_rate": 0.2583,
       "features": [
         "pitcher_rating_diff",
         "sp_era_diff",
@@ -721,7 +721,7 @@
       "sparse_count": 3,
       "all_zero_count": 0,
       "missing_count": 0,
-      "avg_non_zero_rate": 0.1778,
+      "avg_non_zero_rate": 0.1556,
       "features": [
         "precip_effect",
         "temp_effect",
@@ -750,8 +750,6 @@
   ],
   "all_zero_features": [
     "lag30_winrate_diff",
-    "bb_pct_diff",
-    "k_pct_diff",
     "avg_bat_speed_diff",
     "barrel_bb_pct_diff",
     "barrel_pa_diff",
@@ -787,6 +785,8 @@
   "sparse_features": [
     "is_day_game",
     "back2back_diff",
+    "bb_pct_diff",
+    "k_pct_diff",
     "dynamic_pythag_diff",
     "precip_effect",
     "temp_effect",
