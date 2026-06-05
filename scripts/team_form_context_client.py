@@ -9,7 +9,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
+import requests
 
+MLB_BASE_URL = "https://statsapi.mlb.com/api/v1"
+REQUEST_TIMEOUT = 15
+RECENT_HISTORY_LOOKBACK_DAYS = 45
+MAX_SAFE_REST_DAYS = 14
 OUTPUT_COLUMNS = [
     "game_id",
     "game_date",
@@ -120,6 +125,39 @@ TEAM_ALIASES: Dict[str, str] = {
     "nationals": "Washington Nationals",
 }
 
+TEAM_ID_MAP: Dict[str, int] = {
+    "Arizona Diamondbacks": 109,
+    "Athletics": 133,
+    "Atlanta Braves": 144,
+    "Baltimore Orioles": 110,
+    "Boston Red Sox": 111,
+    "Chicago Cubs": 112,
+    "Chicago White Sox": 145,
+    "Cincinnati Reds": 113,
+    "Cleveland Guardians": 114,
+    "Colorado Rockies": 115,
+    "Detroit Tigers": 116,
+    "Houston Astros": 117,
+    "Kansas City Royals": 118,
+    "Los Angeles Angels": 108,
+    "Los Angeles Dodgers": 119,
+    "Miami Marlins": 146,
+    "Milwaukee Brewers": 158,
+    "Minnesota Twins": 142,
+    "New York Mets": 121,
+    "New York Yankees": 147,
+    "Philadelphia Phillies": 143,
+    "Pittsburgh Pirates": 134,
+    "San Diego Padres": 135,
+    "San Francisco Giants": 137,
+    "Seattle Mariners": 136,
+    "St. Louis Cardinals": 138,
+    "Tampa Bay Rays": 139,
+    "Texas Rangers": 140,
+    "Toronto Blue Jays": 141,
+    "Washington Nationals": 120,
+}
+
 
 def _current_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -180,6 +218,11 @@ def normalise_team(value: Any) -> str:
             return full
 
     return raw
+
+
+def team_id_from_name(value: Any) -> Optional[int]:
+    team = normalise_team(value)
+    return TEAM_ID_MAP.get(team)
 
 
 def _parse_date(value: Any) -> Optional[pd.Timestamp]:
@@ -321,6 +364,159 @@ def _load_history_frames(
         keep="last",
     )
     return combined.sort_values("game_date").reset_index(drop=True), notes
+
+
+def _request_json(
+    url: str,
+    params: Optional[Dict[str, Any]] = None,
+) -> Tuple[Optional[Dict[str, Any]], str]:
+    try:
+        response = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
+    except requests.exceptions.RequestException as exc:
+        return None, f"request_failed: {exc}"
+
+    if response.status_code != 200:
+        return None, f"http_{response.status_code}: {response.text[:160]}"
+
+    try:
+        data = response.json()
+    except Exception as exc:
+        return None, f"json_error: {exc}"
+
+    if not isinstance(data, dict):
+        return None, "json_not_object"
+
+    return data, ""
+
+
+def _fetch_recent_mlb_team_games(
+    team_name: str,
+    game_date: pd.Timestamp,
+    cache: Dict[Tuple[str, str], Tuple[pd.DataFrame, str]],
+) -> Tuple[pd.DataFrame, str]:
+    team = normalise_team(team_name)
+    team_id = team_id_from_name(team)
+
+    if team_id is None:
+        return pd.DataFrame(), f"missing_team_id:{team_name}"
+
+    end_date = (game_date - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+    start_date = (game_date - pd.Timedelta(days=RECENT_HISTORY_LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+    cache_key = (str(team_id), f"{start_date}:{end_date}")
+
+    if cache_key in cache:
+        return cache[cache_key]
+
+    data, error = _request_json(
+        f"{MLB_BASE_URL}/schedule",
+        params={
+            "sportId": 1,
+            "teamId": team_id,
+            "startDate": start_date,
+            "endDate": end_date,
+        },
+    )
+
+    if data is None:
+        result = (pd.DataFrame(), f"schedule_api_failed:{error}")
+        cache[cache_key] = result
+        return result
+
+    rows: List[Dict[str, Any]] = []
+
+    for date_block in data.get("dates", []):
+        if not isinstance(date_block, dict):
+            continue
+
+        for game in date_block.get("games", []):
+            if not isinstance(game, dict):
+                continue
+
+            status = game.get("status", {})
+            detailed_state = _safe_str(status.get("detailedState")).lower()
+            coded_state = _safe_str(status.get("codedGameState")).lower()
+
+            if "final" not in detailed_state and coded_state not in {"f", "fr", "o"}:
+                continue
+
+            teams = game.get("teams", {})
+            home = teams.get("home", {})
+            away = teams.get("away", {})
+
+            home_team = normalise_team(
+                home.get("team", {}).get("name")
+                if isinstance(home.get("team"), dict)
+                else ""
+            )
+            away_team = normalise_team(
+                away.get("team", {}).get("name")
+                if isinstance(away.get("team"), dict)
+                else ""
+            )
+
+            home_score = _safe_int(home.get("score"))
+            away_score = _safe_int(away.get("score"))
+
+            official_date = _safe_str(game.get("officialDate"))
+            game_dt = _parse_date(official_date)
+
+            if (
+                game_dt is None
+                or not home_team
+                or not away_team
+                or home_score is None
+                or away_score is None
+            ):
+                continue
+
+            rows.append(
+                {
+                    "game_date": game_dt,
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "home_score": int(home_score),
+                    "away_score": int(away_score),
+                    "source": "mlb_stats_schedule_recent",
+                    "home_win": bool(home_score > away_score),
+                }
+            )
+
+    frame = pd.DataFrame(rows)
+    result = (frame, "ok" if not frame.empty else "schedule_no_recent_final_games")
+    cache[cache_key] = result
+    return result
+
+
+def _augment_recent_history_for_game(
+    base_history: pd.DataFrame,
+    home_team: str,
+    away_team: str,
+    game_date: pd.Timestamp,
+    schedule_cache: Dict[Tuple[str, str], Tuple[pd.DataFrame, str]],
+) -> Tuple[pd.DataFrame, List[str]]:
+    frames = []
+    notes: List[str] = []
+
+    if base_history is not None and not base_history.empty:
+        frames.append(base_history)
+
+    for team in (home_team, away_team):
+        recent_frame, note = _fetch_recent_mlb_team_games(team, game_date, schedule_cache)
+        notes.append(f"{team}:{note}")
+        if not recent_frame.empty:
+            frames.append(recent_frame)
+
+    if not frames:
+        return pd.DataFrame(), notes
+
+    combined = pd.concat(frames, ignore_index=True)
+    combined = combined.drop_duplicates(
+        subset=["game_date", "home_team", "away_team", "home_score", "away_score"],
+        keep="last",
+    )
+    combined = combined.sort_values("game_date").reset_index(drop=True)
+
+    return combined, notes
 
 
 def _team_games(prior: pd.DataFrame, team: str) -> pd.DataFrame:
