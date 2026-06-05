@@ -2118,6 +2118,34 @@ def load_ml_model() -> tuple[Any | None, list[str] | None, int, str]:
             0,
         )
 
+        expected_model_type = "calibrated_logistic_regression_with_imputer"
+        artifact_model_type = str(artifact.get("model_type", "")).strip()
+
+        if artifact_model_type != expected_model_type:
+            return (
+                None,
+                None,
+                training_sample_count,
+                (
+                    "Model artifact type mismatch: "
+                    f"expected {expected_model_type}, "
+                    f"found {artifact_model_type or 'missing'}."
+                ),
+            )
+
+        artifact_features = list(artifact.get("features") or [])
+        unexpected_features = sorted(set(artifact_features) - set(MODEL_FEATURES))
+        if unexpected_features:
+            return (
+                None,
+                None,
+                training_sample_count,
+                (
+                    "Model artifact contains non-model or tracking-only features: "
+                    + ",".join(unexpected_features[:12])
+                ),
+            )
+
         if artifact_pipeline_version != required_pipeline_version:
             found_version = artifact_pipeline_version or "missing"
             return (
