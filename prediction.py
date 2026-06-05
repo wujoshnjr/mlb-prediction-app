@@ -26,7 +26,7 @@ import pandas as pd
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from model import UnifiedSportsModel
-from scripts.feature_schema import EXPECTED_FEATURES
+from scripts.feature_schema import EXPECTED_FEATURES, AVAILABILITY_FLAG_FEATURES
 from scripts.risk_guard import LiveBetRiskGuard
 
 try:
@@ -2618,6 +2618,90 @@ def calculate_manual_nrfi(
     return nrfi_probability, recommendation, "manual", ""
 
 
+def _row_has_value(row: dict[str, Any], key: str) -> bool:
+    if not row or key not in row:
+        return False
+    value = row.get(key)
+    text = str(value).strip().lower()
+    return text not in {"", "nan", "none", "null"}
+
+
+def apply_feature_availability_flags(
+    *,
+    features: dict[str, float],
+    odds_are_usable: bool,
+    daily_context_summary: dict[str, Any],
+    savant_top3_available: bool,
+    weather_context_row: dict[str, Any],
+    pitcher_advanced_row: dict[str, Any],
+    context_bridge_row: dict[str, Any],
+    team_form_row: dict[str, Any],
+) -> None:
+    """Add explicit availability flags to separate true zero from missing data."""
+    for feature_name in AVAILABILITY_FLAG_FEATURES:
+        features[feature_name] = 0.0
+
+    features["odds_available"] = 1.0 if odds_are_usable else 0.0
+
+    lineup_status = str(
+        daily_context_summary.get("lineup_status", "")
+    ).strip().lower()
+    starter_status = str(
+        daily_context_summary.get("starter_status", "")
+    ).strip().lower()
+
+    features["lineup_context_available"] = (
+        1.0 if lineup_status in {"confirmed", "projected_available"} else 0.0
+    )
+    features["starter_context_available"] = (
+        1.0 if starter_status in {"confirmed", "probable"} else 0.0
+    )
+
+    features["weather_available"] = (
+        1.0
+        if weather_context_row
+        and str(weather_context_row.get("weather_source_status", "")).strip().lower()
+        in {"forecast_ok", "current_ok", "dome_neutral"}
+        else 0.0
+    )
+
+    features["pitcher_advanced_available"] = (
+        1.0
+        if pitcher_advanced_row
+        and str(pitcher_advanced_row.get("pitcher_advanced_source_status", "")).strip().lower()
+        in {"ok", "partial"}
+        else 0.0
+    )
+
+    features["sp_fip_diff_available"] = (
+        1.0 if _row_has_value(pitcher_advanced_row, "sp_fip_diff") else 0.0
+    )
+    features["sp_csw_diff_available"] = (
+        1.0 if _row_has_value(pitcher_advanced_row, "sp_csw_diff") else 0.0
+    )
+    features["sp_stuff_plus_diff_available"] = (
+        1.0 if _row_has_value(pitcher_advanced_row, "sp_stuff_plus_diff") else 0.0
+    )
+
+    features["bullpen_context_available"] = (
+        1.0
+        if context_bridge_row
+        and str(context_bridge_row.get("context_bridge_source_status", "")).strip().lower()
+        in {"ok", "partial"}
+        else 0.0
+    )
+
+    features["team_form_available"] = (
+        1.0
+        if team_form_row
+        and str(team_form_row.get("team_form_source_status", "")).strip().lower() == "ok"
+        else 0.0
+    )
+
+    features["top3_woba_available"] = 1.0 if savant_top3_available else 0.0
+    features["statcast_woba_available"] = 1.0 if savant_top3_available else 0.0
+
+
 def generate_predictions() -> dict[str, Any]:
     """Gather inputs, create daily predictions, and return the output report."""
     errors: list[str] = []
@@ -3269,7 +3353,18 @@ def generate_predictions() -> dict[str, Any]:
                     lower_bound, upper_bound = bounds
                     value = max(lower_bound, min(upper_bound, value))
                     features[feature_name] = round(value, 4)
-                    
+
+        apply_feature_availability_flags(
+            features=features,
+            odds_are_usable=odds_are_usable,
+            daily_context_summary=daily_context_summary,
+            savant_top3_available=savant_top3_available,
+            weather_context_row=weather_context_row,
+            pitcher_advanced_row=pitcher_advanced_row,
+            context_bridge_row=context_bridge_row,
+            team_form_row=team_form_row,
+        )
+                
         if calculate_pitcher_ratings is not None and pitcher_data is not None:
             try:
                 rating_result = calculate_pitcher_ratings(pitcher_data)
