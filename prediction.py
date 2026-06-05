@@ -110,6 +110,7 @@ SAVANT_TOP3_CONTEXT_FILE = Path("data/savant_top3_context.csv")
 WEATHER_CONTEXT_FILE = Path("data/weather_context.csv")
 PITCHER_ADVANCED_CONTEXT_FILE = Path("data/pitcher_advanced_context.csv")
 CONTEXT_FEATURE_BRIDGE_FILE = Path("data/context_feature_bridge.csv")
+TEAM_FORM_CONTEXT_FILE = Path("data/team_form_context.csv")
 RISK_GUARD = LiveBetRiskGuard(
     market_research_report_path="report/market_edge_research.json"
 )
@@ -2509,6 +2510,12 @@ def generate_predictions() -> dict[str, Any]:
         errors,
         "context feature bridge",
     )
+    team_form_by_game = latest_context_csv_by_game(
+        TEAM_FORM_CONTEXT_FILE,
+        "team_form_captured_at",
+        errors,
+        "team form context",
+    )
 
     dynamic_pythag_exponent = 2.0
     if not team_frame.empty:
@@ -2555,6 +2562,7 @@ def generate_predictions() -> dict[str, Any]:
         weather_context_summary = build_weather_context_summary(weather_context_row)
         pitcher_advanced_row = pitcher_advanced_by_game.get(str(game_id), {})
         context_bridge_row = context_bridge_by_game.get(str(game_id), {})
+        team_form_row = team_form_by_game.get(str(game_id), {})
         daily_context_summary = build_daily_context_summary(
             game_id,
             daily_context_by_game,
@@ -3035,6 +3043,35 @@ def generate_predictions() -> dict[str, Any]:
                         as_float(raw_value, 0.0),
                         4,
                     )
+                    
+        if team_form_row:
+            team_form_status = str(
+                team_form_row.get("team_form_source_status", "")
+            ).strip().lower()
+
+            if team_form_status == "ok":
+                team_form_bounds = {
+                    "lag30_winrate_diff": (-0.75, 0.75),
+                    "lag30_runs_diff": (-5.0, 5.0),
+                    "rest_diff": (-3.0, 3.0),
+                    "log5_prob": (0.25, 0.75),
+                    "elo_momentum_7d": (-1.0, 1.0),
+                    "elo_momentum_30d": (-1.0, 1.0),
+                }
+
+                for feature_name, bounds in team_form_bounds.items():
+                    raw_value = team_form_row.get(feature_name)
+                    raw_text = str(raw_value).strip().lower()
+                    if raw_text in {"", "nan", "none", "null"}:
+                        continue
+
+                    value = as_float(raw_value, None)
+                    if value is None:
+                        continue
+
+                    lower_bound, upper_bound = bounds
+                    value = max(lower_bound, min(upper_bound, value))
+                    features[feature_name] = round(value, 4)
                     
         if calculate_pitcher_ratings is not None and pitcher_data is not None:
             try:
