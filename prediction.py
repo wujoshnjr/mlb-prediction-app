@@ -26,7 +26,11 @@ import pandas as pd
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from model import UnifiedSportsModel
-from scripts.feature_schema import EXPECTED_FEATURES, AVAILABILITY_FLAG_FEATURES
+from scripts.feature_schema import (
+    EXPECTED_FEATURES,
+    MODEL_FEATURES,
+    AVAILABILITY_FLAG_FEATURES,
+)
 from scripts.risk_guard import LiveBetRiskGuard
 
 try:
