@@ -3007,34 +3007,7 @@ def generate_predictions() -> dict[str, Any]:
                 - as_float(away_row.get("away_bb_pct"), 0.08)
             )
 
-                if pitcher_advanced_row:
-            for feature_name in (
-                "sp_fip_diff",
-                "sp_csw_diff",
-                "sp_stuff_plus_diff",
-                "k_pct_diff",
-                "bb_pct_diff",
-            ):
-                raw_value = pitcher_advanced_row.get(feature_name)
-                raw_text = str(raw_value).strip().lower()
-                if raw_text not in {"", "nan", "none", "null"}:
-                    features[feature_name] = round(
-                        as_float(raw_value, 0.0),
-                        4,
-                    )
-
-        if context_bridge_row:
-            for feature_name in (
-                "bullpen_ip_diff",
-                "bullpen_availability_diff",
-            ):
-                raw_value = context_bridge_row.get(feature_name)
-                raw_text = str(raw_value).strip().lower()
-                if raw_text not in {"", "nan", "none", "null"}:
-                    features[feature_name] = round(
-                        as_float(raw_value, 0.0),
-                        4,
-                    )        if pitcher_advanced_row:
+        if pitcher_advanced_row:
             for feature_name in (
                 "sp_fip_diff",
                 "sp_csw_diff",
