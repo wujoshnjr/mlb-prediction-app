@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-06-05T15:22:35.131534+00:00",
+  "generated_at": "2026-06-05T16:14:01.881653+00:00",
   "source": "report/feature_availability_diagnostic.json",
   "model_feature_count": 26,
   "tracking_only_feature_count": 33,
   "grade_counts": {
     "A": 37,
     "B": 4,
-    "C": 3,
-    "D": 15
+    "C": 4,
+    "D": 14
   },
   "model_features": [
     "elo_diff",
@@ -633,6 +633,19 @@
       "recommendation": "tracking_only_by_schema"
     },
     {
+      "feature": "lineup_context_available",
+      "group": "lineup",
+      "grade": "C",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.0667,
+      "missing_rate": 0.0,
+      "zero_rate": 0.9333,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": true,
+      "tracking_only_by_schema": false,
+      "recommendation": "exclude_until_stable"
+    },
+    {
       "feature": "temp_effect",
       "group": "weather",
       "grade": "C",
@@ -722,19 +735,6 @@
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
       "recommendation": "tracking_only_by_schema"
-    },
-    {
-      "feature": "lineup_context_available",
-      "group": "lineup",
-      "grade": "D",
-      "availability_rate": 1.0,
-      "non_zero_rate": 0.0,
-      "missing_rate": 0.0,
-      "zero_rate": 1.0,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": true,
-      "tracking_only_by_schema": false,
-      "recommendation": "exclude_until_stable"
     },
     {
       "feature": "odds_change",
