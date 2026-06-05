@@ -94,8 +94,9 @@ jobs:
             scripts/team_form_context_client.py \
             scripts/context_feature_bridge_client.py \
             scripts/feature_zero_root_cause_diagnostic.py \
+            scripts/feature_grade_report.py \
             scripts/projected_lineup_client.py
-
+            
       - name: Update finalized game results
         run: python scripts/update_results.py
         env:
@@ -245,6 +246,12 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build feature grade report
+        continue-on-error: true
+        run: python scripts/feature_grade_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Diagnose feature zero root cause
         continue-on-error: true
         run: python scripts/feature_zero_root_cause_diagnostic.py
@@ -300,6 +307,7 @@ jobs:
             report/market_edge_research.json \
             report/market_residual_training_report.json \
             report/feature_zero_root_cause_diagnostic.json \
+            report/feature_grade_report.json \
             data/top3_player_context.csv \
             data/pitcher_advanced_context.csv \
             data/team_form_context.csv \
