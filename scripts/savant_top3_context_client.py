@@ -29,6 +29,7 @@ DEFAULT_LOOKBACK_DAYS = 30
 DEFAULT_SLEEP_SECONDS = 0.05
 DEFAULT_TIMEOUT = 5
 DEFAULT_MAX_UNIQUE_PLAYERS = 12
+TOP3_PLAYER_CONTEXT_FILE = Path("data/top3_player_context.csv")
 
 PLAYER_SUMMARY_FIELDS = [
     "player_id",
@@ -695,6 +696,41 @@ def _latest_context_rows(frame: pd.DataFrame) -> pd.DataFrame:
     return working.drop_duplicates(subset=["game_id"], keep="last")
 
 
+def _load_top3_player_context_by_game(
+    path: Union[str, Path] = TOP3_PLAYER_CONTEXT_FILE,
+) -> Dict[str, Dict[str, Any]]:
+    """Load top3 player source rows by game_id."""
+    context_path = Path(path)
+    if not context_path.exists():
+        return {}
+
+    try:
+        frame = pd.read_csv(context_path)
+    except Exception:
+        return {}
+
+    if frame.empty or "game_id" not in frame.columns:
+        return {}
+
+    working = frame.copy()
+    working["game_id"] = working["game_id"].astype(str)
+
+    if "top3_player_captured_at" in working.columns:
+        working["top3_player_captured_at_dt"] = pd.to_datetime(
+            working["top3_player_captured_at"],
+            errors="coerce",
+            utc=True,
+        )
+        if working["top3_player_captured_at_dt"].notna().any():
+            working = working.sort_values(["game_id", "top3_player_captured_at_dt"])
+            working = working.groupby("game_id", as_index=False).tail(1)
+
+    return {
+        str(row["game_id"]): row.to_dict()
+        for _, row in working.iterrows()
+    }
+
+
 def build_savant_top3_context(
     daily_context_path: Union[str, Path] = "data/daily_game_context.csv",
     output_path: Union[str, Path, None] = "data/savant_top3_context.csv",
@@ -770,6 +806,7 @@ def build_savant_top3_context(
         return summary
 
     latest_frame = _latest_context_rows(context_frame)
+    top3_player_context_by_game = _load_top3_player_context_by_game()
 
     if latest_frame.empty:
         summary["status"] = "empty"
@@ -782,8 +819,16 @@ def build_savant_top3_context(
         game_id = str(row.get("game_id", ""))
         game_date = str(row.get("game_date", ""))[:10]
 
-        home_ids = parse_player_ids(row.get("home_top3_player_ids"))
-        away_ids = parse_player_ids(row.get("away_top3_player_ids"))
+        top3_source_row = top3_player_context_by_game.get(game_id, {})
+
+        home_ids = parse_player_ids(
+            top3_source_row.get("home_top3_player_ids")
+            or row.get("home_top3_player_ids")
+        )
+        away_ids = parse_player_ids(
+            top3_source_row.get("away_top3_player_ids")
+            or row.get("away_top3_player_ids")
+        )
 
         if home_ids:
             summary["home_rows_with_top3_ids"] += 1
