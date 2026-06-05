@@ -108,6 +108,8 @@ DAILY_CONTEXT_FILE = Path("data/daily_game_context.csv")
 PROJECTED_LINEUP_CONTEXT_FILE = Path("data/projected_lineup_context.csv")
 SAVANT_TOP3_CONTEXT_FILE = Path("data/savant_top3_context.csv")
 WEATHER_CONTEXT_FILE = Path("data/weather_context.csv")
+PITCHER_ADVANCED_CONTEXT_FILE = Path("data/pitcher_advanced_context.csv")
+CONTEXT_FEATURE_BRIDGE_FILE = Path("data/context_feature_bridge.csv")
 RISK_GUARD = LiveBetRiskGuard(
     market_research_report_path="report/market_edge_research.json"
 )
@@ -635,6 +637,45 @@ def build_weather_context_summary(
         "wind_effect": as_float(weather_row.get("wind_effect"), 0.0),
         "precip_effect": as_float(weather_row.get("precip_effect"), 0.0),
         "weather_reason": str(weather_row.get("weather_reason", "")),
+    }
+
+
+def latest_context_csv_by_game(
+    path: Path,
+    captured_at_column: str,
+    errors: list[str],
+    label: str,
+) -> dict[str, dict[str, Any]]:
+    """Load latest generic context CSV rows by game_id."""
+    if not path.exists():
+        return {}
+
+    try:
+        frame = pd.read_csv(path)
+    except Exception as exc:
+        errors.append(f"Unable to read {label}: {exc}")
+        return {}
+
+    if frame.empty or "game_id" not in frame.columns:
+        return {}
+
+    frame = frame.copy()
+    frame["game_id"] = frame["game_id"].astype(str)
+
+    if captured_at_column in frame.columns:
+        parsed_column = f"{captured_at_column}_parsed"
+        frame[parsed_column] = pd.to_datetime(
+            frame[captured_at_column],
+            errors="coerce",
+            utc=True,
+        )
+        if frame[parsed_column].notna().any():
+            frame = frame.sort_values(parsed_column)
+            frame = frame.groupby("game_id", as_index=False).tail(1)
+
+    return {
+        str(row["game_id"]): row.to_dict()
+        for _, row in frame.iterrows()
     }
 
 
@@ -2453,9 +2494,21 @@ def generate_predictions() -> dict[str, Any]:
 
     daily_context_by_game, daily_context_load_summary = (
         latest_daily_context_by_game(errors)
-    )
-    savant_top3_by_game = latest_savant_top3_context_by_game(errors)
+    )    savant_top3_by_game = latest_savant_top3_context_by_game(errors)
     weather_context_by_game = latest_weather_context_by_game(errors)
+    pitcher_advanced_by_game = latest_context_csv_by_game(
+        PITCHER_ADVANCED_CONTEXT_FILE,
+        "pitcher_advanced_captured_at",
+        errors,
+        "pitcher advanced context",
+    )
+    context_bridge_by_game = latest_context_csv_by_game(
+        CONTEXT_FEATURE_BRIDGE_FILE,
+        "context_bridge_captured_at",
+        errors,
+        "context feature bridge",
+    )
+
     dynamic_pythag_exponent = 2.0
     if not team_frame.empty:
         run_scored_total = as_float(team_frame["runs_scored"].sum(), 0.0)
@@ -2499,6 +2552,8 @@ def generate_predictions() -> dict[str, Any]:
         savant_top3_row = savant_top3_by_game.get(str(game_id), {})
         weather_context_row = weather_context_by_game.get(str(game_id), {})
         weather_context_summary = build_weather_context_summary(weather_context_row)
+        pitcher_advanced_row = pitcher_advanced_by_game.get(str(game_id), {})
+        context_bridge_row = context_bridge_by_game.get(str(game_id), {})
         daily_context_summary = build_daily_context_summary(
             game_id,
             daily_context_by_game,
@@ -2913,6 +2968,24 @@ def generate_predictions() -> dict[str, Any]:
                     as_float(savant_top3_row.get("top3_avg_launch_speed_diff"), 0.0),
                     4,
                 )
+
+            if features.get("avg_bat_speed_diff", 0.0) == 0.0:
+                features["avg_bat_speed_diff"] = round(
+                    as_float(savant_top3_row.get("top3_avg_launch_speed_diff"), 0.0),
+                    4,
+                )
+
+            if features.get("barrel_pa_diff", 0.0) == 0.0:
+                features["barrel_pa_diff"] = round(
+                    as_float(savant_top3_row.get("top3_barrel_rate_diff"), 0.0),
+                    4,
+                )
+
+            if features.get("hardhit_pa_diff", 0.0) == 0.0:
+                features["hardhit_pa_diff"] = round(
+                    as_float(savant_top3_row.get("top3_hard_hit_rate_diff"), 0.0),
+                    4,
+                )
         else:
             features["top3_woba_diff"] = 0.0
 
@@ -2933,6 +3006,62 @@ def generate_predictions() -> dict[str, Any]:
                 - as_float(away_row.get("away_bb_pct"), 0.08)
             )
 
+                if pitcher_advanced_row:
+            for feature_name in (
+                "sp_fip_diff",
+                "sp_csw_diff",
+                "sp_stuff_plus_diff",
+                "k_pct_diff",
+                "bb_pct_diff",
+            ):
+                raw_value = pitcher_advanced_row.get(feature_name)
+                raw_text = str(raw_value).strip().lower()
+                if raw_text not in {"", "nan", "none", "null"}:
+                    features[feature_name] = round(
+                        as_float(raw_value, 0.0),
+                        4,
+                    )
+
+        if context_bridge_row:
+            for feature_name in (
+                "bullpen_ip_diff",
+                "bullpen_availability_diff",
+            ):
+                raw_value = context_bridge_row.get(feature_name)
+                raw_text = str(raw_value).strip().lower()
+                if raw_text not in {"", "nan", "none", "null"}:
+                    features[feature_name] = round(
+                        as_float(raw_value, 0.0),
+                        4,
+                    )        if pitcher_advanced_row:
+            for feature_name in (
+                "sp_fip_diff",
+                "sp_csw_diff",
+                "sp_stuff_plus_diff",
+                "k_pct_diff",
+                "bb_pct_diff",
+            ):
+                raw_value = pitcher_advanced_row.get(feature_name)
+                raw_text = str(raw_value).strip().lower()
+                if raw_text not in {"", "nan", "none", "null"}:
+                    features[feature_name] = round(
+                        as_float(raw_value, 0.0),
+                        4,
+                    )
+
+        if context_bridge_row:
+            for feature_name in (
+                "bullpen_ip_diff",
+                "bullpen_availability_diff",
+            ):
+                raw_value = context_bridge_row.get(feature_name)
+                raw_text = str(raw_value).strip().lower()
+                if raw_text not in {"", "nan", "none", "null"}:
+                    features[feature_name] = round(
+                        as_float(raw_value, 0.0),
+                        4,
+                    )
+                    
         if calculate_pitcher_ratings is not None and pitcher_data is not None:
             try:
                 rating_result = calculate_pitcher_ratings(pitcher_data)
