@@ -691,6 +691,188 @@ def latest_context_csv_by_game(
     }
 
 
+def load_model_governance_status(
+    *,
+    clean_model_sample_count: int,
+    errors: list[str],
+) -> dict[str, Any]:
+    """Build global model governance status for live-betting control."""
+    governance: dict[str, Any] = {
+        "mode": "paper_trading_only",
+        "force_paper_trading_only": FORCE_PAPER_TRADING_ONLY,
+        "live_betting_allowed": False,
+        "shadow_live_allowed": False,
+        "clean_model_sample_count": int(clean_model_sample_count or 0),
+        "min_clean_train_samples": MIN_CLEAN_TRAIN_SAMPLES,
+        "min_live_bet_samples": MIN_LIVE_BET_SAMPLES,
+        "min_production_samples": MIN_PRODUCTION_SAMPLES,
+        "avg_clv": None,
+        "positive_clv_rate": None,
+        "evaluated_clv_picks": 0,
+        "live_bet_candidate_count": 0,
+        "block_reasons": [],
+    }
+
+    block_reasons: list[str] = []
+
+    if FORCE_PAPER_TRADING_ONLY:
+        block_reasons.append("force_paper_trading_only_enabled")
+
+    if clean_model_sample_count < MIN_CLEAN_TRAIN_SAMPLES:
+        block_reasons.append(
+            f"clean_model_sample_count_below_train_min:{clean_model_sample_count}<{MIN_CLEAN_TRAIN_SAMPLES}"
+        )
+
+    if clean_model_sample_count < MIN_LIVE_BET_SAMPLES:
+        block_reasons.append(
+            f"clean_model_sample_count_below_live_min:{clean_model_sample_count}<{MIN_LIVE_BET_SAMPLES}"
+        )
+
+    if EVALUATION_CLV_DIAGNOSTIC_FILE.exists():
+        try:
+            evaluation = json.loads(
+                EVALUATION_CLV_DIAGNOSTIC_FILE.read_text(encoding="utf-8")
+            )
+            clv_summary = evaluation.get("clv_summary") or {}
+            current_summary = evaluation.get("current_prediction_summary") or {}
+
+            avg_clv_raw = clv_summary.get("avg_clv")
+            avg_clv = as_float(avg_clv_raw, 0.0) if avg_clv_raw is not None else None
+            positive_count = as_float(clv_summary.get("positive_clv_count"), 0.0)
+            evaluated_count = as_float(clv_summary.get("evaluated_picks"), 0.0)
+
+            governance["avg_clv"] = round(avg_clv, 6) if avg_clv is not None else None
+            governance["evaluated_clv_picks"] = int(evaluated_count or 0)
+
+            if evaluated_count and evaluated_count > 0:
+                positive_clv_rate = float(positive_count) / float(evaluated_count)
+                governance["positive_clv_rate"] = round(positive_clv_rate, 4)
+            else:
+                positive_clv_rate = None
+                governance["positive_clv_rate"] = None
+
+            governance["live_bet_candidate_count"] = int(
+                as_float(current_summary.get("live_bet_candidate_count"), 0.0)
+            )
+
+            if avg_clv is None or avg_clv <= 0:
+                block_reasons.append("avg_clv_not_positive")
+
+            if positive_clv_rate is None or positive_clv_rate <= MIN_POSITIVE_CLV_RATE:
+                block_reasons.append("positive_clv_rate_below_threshold")
+
+        except Exception as exc:
+            errors.append(f"Unable to load model governance evaluation: {exc}")
+            block_reasons.append("evaluation_clv_diagnostic_unreadable")
+    else:
+        block_reasons.append("evaluation_clv_diagnostic_missing")
+
+    governance["block_reasons"] = sorted(set(block_reasons))
+    governance["live_betting_allowed"] = len(governance["block_reasons"]) == 0
+
+    governance["shadow_live_allowed"] = (
+        governance["clean_model_sample_count"] >= MIN_CLEAN_TRAIN_SAMPLES
+        and governance.get("avg_clv") is not None
+        and as_float(governance.get("avg_clv"), -1.0) > 0
+        and as_float(governance.get("positive_clv_rate"), 0.0) > MIN_POSITIVE_CLV_RATE
+    )
+
+    if governance["live_betting_allowed"]:
+        governance["mode"] = "live_eligible"
+    elif governance["shadow_live_allowed"]:
+        governance["mode"] = "shadow_live_only"
+    else:
+        governance["mode"] = "paper_trading_only"
+
+    return governance
+
+
+def build_data_quality_status(
+    *,
+    schedule_fetch_ok: bool,
+    odds_quality_status: str,
+    odds_are_usable: bool,
+    daily_context_summary: dict[str, Any],
+    weather_context_row: dict[str, Any],
+    pitcher_advanced_row: dict[str, Any],
+    context_bridge_row: dict[str, Any],
+    team_form_row: dict[str, Any],
+    savant_top3_available: bool,
+) -> dict[str, Any]:
+    """Build per-game data quality status for prediction and betting controls."""
+    missing_critical_sources: list[str] = []
+    missing_important_sources: list[str] = []
+    missing_optional_sources: list[str] = []
+
+    if not schedule_fetch_ok:
+        missing_critical_sources.append("schedule")
+
+    if not odds_are_usable or odds_quality_status != "OK":
+        missing_critical_sources.append("odds")
+
+    lineup_status = str(daily_context_summary.get("lineup_status", "")).lower()
+    starter_status = str(daily_context_summary.get("starter_status", "")).lower()
+
+    if "confirmed" not in lineup_status:
+        missing_important_sources.append("confirmed_lineup")
+
+    if "confirmed" not in starter_status:
+        missing_important_sources.append("confirmed_starter")
+
+    if not weather_context_row:
+        missing_important_sources.append("weather")
+
+    if not pitcher_advanced_row:
+        missing_important_sources.append("pitcher_advanced")
+
+    if not context_bridge_row:
+        missing_important_sources.append("bullpen_context")
+
+    if not team_form_row:
+        missing_important_sources.append("team_form")
+
+    if not savant_top3_available:
+        missing_critical_sources.append("core_statcast_or_top3_proxy")
+
+    checked_source_count = 9
+    missing_source_count = (
+        len(missing_critical_sources)
+        + len(missing_important_sources)
+        + len(missing_optional_sources)
+    )
+    feature_imputation_rate = missing_source_count / checked_source_count
+
+    if not schedule_fetch_ok:
+        grade = "F"
+        prediction_allowed = False
+    elif missing_critical_sources:
+        grade = "D"
+        prediction_allowed = True
+    elif len(missing_important_sources) >= 2:
+        grade = "C"
+        prediction_allowed = True
+    elif missing_important_sources:
+        grade = "B"
+        prediction_allowed = True
+    else:
+        grade = "A"
+        prediction_allowed = True
+
+    bet_allowed = grade in {"A", "B"} and not missing_critical_sources
+
+    return {
+        "data_quality_grade": grade,
+        "prediction_allowed": prediction_allowed,
+        "bet_allowed": bet_allowed,
+        "missing_critical_sources": sorted(set(missing_critical_sources)),
+        "missing_important_sources": sorted(set(missing_important_sources)),
+        "missing_optional_sources": sorted(set(missing_optional_sources)),
+        "feature_imputation_rate": round(feature_imputation_rate, 4),
+        "lineup_status": lineup_status,
+        "starter_status": starter_status,
+    }
+
+
 def latest_daily_context_by_game(
     errors: list[str],
 ) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
@@ -2527,6 +2709,10 @@ def generate_predictions() -> dict[str, Any]:
         errors,
         "team form context",
     )
+    model_governance_status = load_model_governance_status(
+        clean_model_sample_count=clean_model_sample_count,
+        errors=errors,
+    )
 
     dynamic_pythag_exponent = 2.0
     if not team_frame.empty:
@@ -3380,9 +3566,21 @@ def generate_predictions() -> dict[str, Any]:
             moneyline_selected_edge=moneyline_selected_edge,
             min_moneyline_edge=min_moneyline_edge,
             model_training_sample_count=clean_model_sample_count,
-            production_sample_threshold=300,
+            production_sample_threshold=MIN_CLEAN_TRAIN_SAMPLES,
         )
 
+        data_quality_status = build_data_quality_status(
+            schedule_fetch_ok=schedule_fetch_ok,
+            odds_quality_status=odds_quality_status,
+            odds_are_usable=odds_are_usable,
+            daily_context_summary=daily_context_summary,
+            weather_context_row=weather_context_row,
+            pitcher_advanced_row=pitcher_advanced_row,
+            context_bridge_row=context_bridge_row,
+            team_form_row=team_form_row,
+            savant_top3_available=bool(savant_top3_available),
+        )
+        
         live_bet_candidate = (
             recommendation_status == "PAPER_BET"
             and betting_readiness.get("effective_context_ready_for_betting") is True
@@ -3399,13 +3597,43 @@ def generate_predictions() -> dict[str, Any]:
         )
 
         risk_flags = betting_readiness.get("betting_risk_flags") or []
+        
+        governance_block_reasons = list(
+            model_governance_status.get("block_reasons", [])
+        )
+
+        if not model_governance_status.get("live_betting_allowed", False):
+            live_bet_candidate = False
+            if "model_governance_live_locked" not in risk_flags:
+                risk_flags.append("model_governance_live_locked")
+            governance_reason_text = ", ".join(governance_block_reasons)
+            recommendation_block_details.append(
+                "Model governance: live betting locked"
+                + (f" ({governance_reason_text})." if governance_reason_text else ".")
+            )
+
+        if not data_quality_status.get("bet_allowed", False):
+            live_bet_candidate = False
+            if "data_quality_bet_blocked" not in risk_flags:
+                risk_flags.append("data_quality_bet_blocked")
+            recommendation_block_details.append(
+                "Data quality: bet blocked "
+                f"(grade={data_quality_status.get('data_quality_grade')}, "
+                f"missing_critical={data_quality_status.get('missing_critical_sources')})."
+            )
+
+        if not model_governance_status.get("live_betting_allowed", False):
+            betting_readiness["stake_multiplier"] = 0.0
+            home_kelly = 0.0
+            away_kelly = 0.0
+            
         if risk_flags:
             recommendation_block_details.append(
                 "Risk flags: " + ", ".join(str(flag) for flag in risk_flags) + "."
             )
         else:
             recommendation_block_details.append("Risk flags: none.")
-
+   
         feature_health_flags = []
 
         if not savant_top3_available:
