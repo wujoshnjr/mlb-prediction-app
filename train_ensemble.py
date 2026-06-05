@@ -142,7 +142,7 @@ def append_csv(path: Path, row: dict[str, Any]) -> None:
 
 
 def prepare_data() -> (
-    tuple[np.ndarray, np.ndarray, np.ndarray, pd.DataFrame, list[str], int]
+    tuple[np.ndarray, np.ndarray, np.ndarray, pd.DataFrame, list[str], list[str], int]
     | None
 ):
     """Load forward-collected, settled clean snapshots only."""
@@ -275,7 +275,7 @@ def prepare_data() -> (
         if retained
     ]
     
-    return matrix[:, keep], target, weights, frame, used_features, sample_count
+    return matrix[:, keep], target, weights, frame, used_features, removed_features, sample_count
 
 def make_calibrator(estimator: Any) -> CalibratedClassifierCV:
     """Create a sigmoid calibrator around an already fitted estimator."""
@@ -299,7 +299,7 @@ def train() -> None:
     if prepared is None:
         return
 
-    matrix, target, weights, all_rows, used_features, sample_count = prepared
+    matrix, target, weights, all_rows, used_features, removed_features, sample_count = prepared
 
     row_count = len(matrix)
     train_end = int(row_count * 0.70)
@@ -395,10 +395,10 @@ def train() -> None:
         "model": calibrated,
         "features": used_features,
         "transformed_features": transformed_features,
-        "schema_version": "v3-feature-governed",
+        "schema_version": "MODEL_SCHEMA_VERSION",
         "pipeline_version": PIPELINE_VERSION,
         "training_source": "clean_prediction_snapshots",
-        "model_type": "calibrated_logistic_regression_with_imputer",
+        "model_type": "MODEL_TYPE",
         "trained_at": datetime.now().isoformat(),
         "training_sample_count": sample_count,
         "test_brier": round(test_brier, 4),
@@ -414,6 +414,9 @@ def train() -> None:
         sample_count,
         brier=round(test_brier, 4),
         logloss=round(test_logloss, 4),
+        used_feature_count=len(used_features),
+        transformed_feature_count=len(transformed_features),
+        removed_features=removed_features,
     )
 
     append_csv(
@@ -421,10 +424,14 @@ def train() -> None:
         {
             "timestamp": datetime.now().isoformat(),
             "pipeline_version": PIPELINE_VERSION,
+            "schema_version": MODEL_SCHEMA_VERSION,
             "training_source": "clean_prediction_snapshots",
-            "model_type": "calibrated_logistic_regression",
+            "model_type": MODEL_TYPE,
             "num_samples": len(all_rows),
+            "model_feature_count": len(MODEL_FEATURES),
             "used_feature_count": len(used_features),
+            "transformed_feature_count": len(transformed_features),
+            "removed_feature_count": len(removed_features),
             "brier": round(test_brier, 4),
             "logloss": round(test_logloss, 4),
         },
@@ -444,8 +451,12 @@ def train() -> None:
         for feature, value in zip(importance_feature_names, absolute_coefficients)
     }
     importance_row["timestamp"] = datetime.now().isoformat()
+    importance_row["timestamp"] = datetime.now().isoformat()
     importance_row["pipeline_version"] = PIPELINE_VERSION
-    importance_row["model_type"] = "calibrated_logistic_regression"
+    importance_row["schema_version"] = MODEL_SCHEMA_VERSION
+    importance_row["model_type"] = MODEL_TYPE
+    importance_row["used_feature_count"] = len(used_features)
+    importance_row["transformed_feature_count"] = len(transformed_features)
     append_csv(FEATURE_IMPORTANCE_LOG, importance_row)
 
     sorted_indices = np.argsort(absolute_coefficients)
