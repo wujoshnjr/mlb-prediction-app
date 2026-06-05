@@ -104,6 +104,8 @@ HISTORY_FILE = Path("data/historical_predictions.csv")
 HISTORICAL_DIR = Path("data/historical")
 LAST_GAME_FILE = Path("data/team_last_game.json")
 MODEL_FILE = Path("data/calibrator.pkl")
+EVALUATION_CLV_DIAGNOSTIC_FILE = Path("report/evaluation_clv_diagnostic.json")
+
 DAILY_CONTEXT_FILE = Path("data/daily_game_context.csv")
 PROJECTED_LINEUP_CONTEXT_FILE = Path("data/projected_lineup_context.csv")
 SAVANT_TOP3_CONTEXT_FILE = Path("data/savant_top3_context.csv")
@@ -111,6 +113,15 @@ WEATHER_CONTEXT_FILE = Path("data/weather_context.csv")
 PITCHER_ADVANCED_CONTEXT_FILE = Path("data/pitcher_advanced_context.csv")
 CONTEXT_FEATURE_BRIDGE_FILE = Path("data/context_feature_bridge.csv")
 TEAM_FORM_CONTEXT_FILE = Path("data/team_form_context.csv")
+
+MIN_CLEAN_TRAIN_SAMPLES = 300
+MIN_LIVE_BET_SAMPLES = 500
+MIN_PRODUCTION_SAMPLES = 1000
+MIN_POSITIVE_CLV_RATE = 0.55
+FORCE_PAPER_TRADING_ONLY = True
+
+NRFI_USE_ML = False
+
 RISK_GUARD = LiveBetRiskGuard(
     market_research_report_path="report/market_edge_research.json"
 )
