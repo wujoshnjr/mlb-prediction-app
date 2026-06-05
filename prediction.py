@@ -2688,7 +2688,7 @@ def generate_predictions() -> dict[str, Any]:
 
     daily_context_by_game, daily_context_load_summary = (
         latest_daily_context_by_game(errors)
-    )    
+    )
     savant_top3_by_game = latest_savant_top3_context_by_game(errors)
     weather_context_by_game = latest_weather_context_by_game(errors)
     pitcher_advanced_by_game = latest_context_csv_by_game(
