@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-06-05T15:53:42.969035+00:00",
+  "generated_at": "2026-06-05T16:37:27.302311+00:00",
   "training_status": {
     "exists": true,
     "error": "",
-    "trained": true,
-    "skipped": false,
+    "trained": false,
+    "skipped": true,
     "sample_count": 109,
-    "minimum_clean_train_samples": 60,
-    "brier": 0.2775,
-    "logloss": 0.7486,
-    "reason": "",
-    "model_type": "calibrated_logistic_regression",
+    "minimum_clean_train_samples": 300,
+    "brier": "",
+    "logloss": "",
+    "reason": "Not enough settled baseline_v2_clean snapshots (109 < 300).",
+    "model_type": "calibrated_logistic_regression_with_imputer",
     "training_source": "clean_prediction_snapshots",
     "pipeline_version": "baseline_v2_clean",
-    "timestamp": "2026-06-05T15:53:42.441767"
+    "timestamp": "2026-06-05T16:37:26.831838"
   },
   "training_log": {
     "exists": true,
@@ -198,18 +198,16 @@
     "using_ml_count": 15,
     "using_manual_count": 0
   },
-  "model_stage": "early_model",
+  "model_stage": "unknown",
   "health_flags": [
-    "model_trained",
-    "early_model_small_sample",
+    "model_not_trained",
     "prediction_using_ml",
     "feature_count_low",
     "snapshot_count_below_production_threshold",
-    "training_metrics_available",
+    "training_metrics_missing",
     "feature_importance_available"
   ],
   "recommendations": [
-    "Early model is for engineering validation only; do not use it as a production betting model.",
     "Very few features are active. Investigate snapshot feature extraction and zero-variance columns.",
     "Continue collecting clean settled snapshots. Restore the 300+ sample production threshold when enough data exists."
   ]

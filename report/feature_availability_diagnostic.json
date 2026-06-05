@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-05T16:14:01.788930+00:00",
+  "generated_at": "2026-06-05T16:57:25.396065+00:00",
   "input_files": {
     "prediction": {
       "exists": true,
@@ -644,13 +644,13 @@
       "feature": "temp_effect",
       "group": "weather",
       "missing_count": 0,
-      "zero_count": 14,
-      "non_zero_count": 1,
+      "zero_count": 15,
+      "non_zero_count": 0,
       "missing_rate": 0.0,
-      "zero_rate": 0.9333,
-      "non_zero_rate": 0.0667,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
       "latest_importance": 0.0,
-      "status": "sparse"
+      "status": "all_zero"
     },
     {
       "feature": "top3_woba_available",
@@ -873,10 +873,10 @@
     "weather": {
       "feature_count": 4,
       "healthy_count": 1,
-      "sparse_count": 3,
-      "all_zero_count": 0,
+      "sparse_count": 2,
+      "all_zero_count": 1,
       "missing_count": 0,
-      "avg_non_zero_rate": 0.3667,
+      "avg_non_zero_rate": 0.35,
       "features": [
         "precip_effect",
         "temp_effect",
@@ -915,6 +915,7 @@
     "sprint_speed_diff",
     "starter_context_available",
     "swing_miss_diff",
+    "temp_effect",
     "zone_size"
   ],
   "sparse_features": [
@@ -924,7 +925,6 @@
     "lineup_context_available",
     "precip_effect",
     "rest_diff",
-    "temp_effect",
     "wind_effect"
   ],
   "missing_features": [],
@@ -934,6 +934,7 @@
     "Some pitching features are all-zero; check probable pitcher enrichment, FIP, CSW, Stuff+, K%, and BB% sources.",
     "Lineup/platoon/top3 features are incomplete; projected or confirmed lineup integration should be prioritized.",
     "Catcher-related features are incomplete; verify catcher context source and catcher ERA / caught-stealing mapping.",
+    "Weather-related features are incomplete; verify Open-Meteo integration and weather-to-feature mapping.",
     "Umpire-related features are incomplete; verify umpire source and zone-size feature mapping."
   ]
 }
