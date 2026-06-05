@@ -1092,10 +1092,17 @@ def build_savant_top3_context(
                     player_errors: List[str] = []
 
                     if len(player_cache) >= max_unique_players:
-                        summary_row = _empty_player_summary(
-                            player_id,
-                            "Skipped by max_unique_players limit",
+                        season = _season_from_game_date(end_date)
+                        summary_row = _build_mlb_hitting_proxy_summary(
+                            player_id=player_id,
+                            season=season,
+                            timeout=timeout,
                         )
+                        proxy_error = str(summary_row.get("savant_error") or "")
+                        if proxy_error:
+                            player_errors.append(
+                                f"player {player_id}: max_unique_players reached; {proxy_error}"
+                            )
                     else:
                         summary_row = fetch_batter_statcast_summary(
                             player_id=player_id,
@@ -1104,7 +1111,6 @@ def build_savant_top3_context(
                             errors=player_errors,
                             timeout=timeout,
                         )
-
                     player_cache[player_id] = summary_row
 
                     for message in player_errors:
