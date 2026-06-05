@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-05T16:37:27.302311+00:00",
+  "generated_at": "2026-06-05T17:54:01.367654+00:00",
   "training_status": {
     "exists": true,
     "error": "",
@@ -13,7 +13,7 @@
     "model_type": "calibrated_logistic_regression_with_imputer",
     "training_source": "clean_prediction_snapshots",
     "pipeline_version": "baseline_v2_clean",
-    "timestamp": "2026-06-05T16:37:26.831838"
+    "timestamp": "2026-06-05T17:54:00.904875"
   },
   "training_log": {
     "exists": true,
@@ -157,24 +157,24 @@
     "error": "",
     "prediction_count": 15,
     "model_source_counts": {
-      "ml": 15
+      "manual": 15
     },
     "model_feature_count_values": [
-      9,
-      9,
-      9,
-      9,
-      9,
-      9,
-      9,
-      9,
-      9,
-      9,
-      9,
-      9,
-      9,
-      9,
-      9
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
     ],
     "model_training_sample_count_values": [
       109,
@@ -193,22 +193,31 @@
       109,
       109
     ],
-    "model_load_error_count": 0,
-    "sample_model_load_errors": [],
-    "using_ml_count": 15,
-    "using_manual_count": 0
+    "model_load_error_count": 15,
+    "sample_model_load_errors": [
+      "Clean model artifact has insufficient training samples: 109 < 300.",
+      "Clean model artifact has insufficient training samples: 109 < 300.",
+      "Clean model artifact has insufficient training samples: 109 < 300.",
+      "Clean model artifact has insufficient training samples: 109 < 300.",
+      "Clean model artifact has insufficient training samples: 109 < 300."
+    ],
+    "using_ml_count": 0,
+    "using_manual_count": 15
   },
-  "model_stage": "unknown",
+  "model_stage": "no_model",
   "health_flags": [
     "model_not_trained",
-    "prediction_using_ml",
+    "prediction_still_manual",
     "feature_count_low",
     "snapshot_count_below_production_threshold",
     "training_metrics_missing",
+    "model_load_errors_present",
     "feature_importance_available"
   ],
   "recommendations": [
+    "Prediction is still using manual fallback. Check data/calibrator.pkl and model loading in prediction.py.",
     "Very few features are active. Investigate snapshot feature extraction and zero-variance columns.",
-    "Continue collecting clean settled snapshots. Restore the 300+ sample production threshold when enough data exists."
+    "Continue collecting clean settled snapshots. Restore the 300+ sample production threshold when enough data exists.",
+    "Model load errors detected. Check artifact compatibility, pickle/joblib versions, and feature alignment."
   ]
 }
