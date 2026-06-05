@@ -255,7 +255,29 @@ jobs:
         run: python scripts/validate_predictions.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-          
+
+      - name: Upload daily prediction artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-prediction-artifacts
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            report/*.json
+            data/calibrator.pkl
+            data/market_residual_model.pkl
+            data/prediction_snapshots.csv
+            data/market_odds_history.csv
+            data/daily_game_context.csv
+            data/weather_context.csv
+            data/top3_player_context.csv
+            data/savant_top3_context.csv
+            data/pitcher_advanced_context.csv
+            data/team_form_context.csv
+            data/context_feature_bridge.csv
+            data/projected_lineup_context.csv
+
       - name: Commit validated outputs
         run: |
           git config --global user.name "github-actions[bot]"
