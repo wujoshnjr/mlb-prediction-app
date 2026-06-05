@@ -305,6 +305,13 @@ def train() -> None:
 
     base_model = Pipeline(
         [
+            (
+                "imputer",
+                SimpleImputer(
+                    strategy="median",
+                    add_indicator=True,
+                ),
+            ),
             ("scaler", StandardScaler()),
             (
                 "model",
@@ -331,13 +338,21 @@ def train() -> None:
     test_brier = float(brier_score_loss(y_test, probabilities))
     test_logloss = float(log_loss(y_test, probabilities))
 
+    try:
+        transformed_features = list(
+            base_model.named_steps["imputer"].get_feature_names_out(used_features)
+        )
+    except Exception:
+        transformed_features = list(used_features)
+        
     artifact = {
         "model": calibrated,
         "features": used_features,
-        "schema_version": "v2-shared-schema",
+        "transformed_features": transformed_features,
+        "schema_version": "v3-feature-governed",
         "pipeline_version": PIPELINE_VERSION,
         "training_source": "clean_prediction_snapshots",
-        "model_type": "calibrated_logistic_regression",
+        "model_type": "calibrated_logistic_regression_with_imputer",
         "trained_at": datetime.now().isoformat(),
         "training_sample_count": sample_count,
         "test_brier": round(test_brier, 4),
@@ -372,9 +387,15 @@ def train() -> None:
     coefficients = base_model.named_steps["model"].coef_[0]
     absolute_coefficients = np.abs(coefficients)
 
+    importance_feature_names = (
+        transformed_features
+        if len(transformed_features) == len(absolute_coefficients)
+        else used_features
+    )
+
     importance_row = {
         feature: float(value)
-        for feature, value in zip(used_features, absolute_coefficients)
+        for feature, value in zip(importance_feature_names, absolute_coefficients)
     }
     importance_row["timestamp"] = datetime.now().isoformat()
     importance_row["pipeline_version"] = PIPELINE_VERSION
@@ -384,7 +405,10 @@ def train() -> None:
     sorted_indices = np.argsort(absolute_coefficients)
     print("Five lowest absolute clean-model coefficients:")
     for index in sorted_indices[:5]:
-        print(f"  {used_features[index]}: {absolute_coefficients[index]:.6f}")
+        print(
+            f"  {importance_feature_names[index]}: "
+            f"{absolute_coefficients[index]:.6f}"
+        )
 
     print(
         "Clean training completed. "
