@@ -89,6 +89,11 @@ jobs:
             scripts/market_residual_model.py \
             scripts/train_market_residual_shadow.py \
             scripts/weather_context_client.py \
+            scripts/top3_player_source_client.py \
+            scripts/pitcher_advanced_context_client.py \
+            scripts/team_form_context_client.py \
+            scripts/context_feature_bridge_client.py \
+            scripts/feature_zero_root_cause_diagnostic.py \
             scripts/projected_lineup_client.py
 
       - name: Update finalized game results
@@ -149,6 +154,13 @@ jobs:
         env:
           OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
           PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build top-3 player source
+        timeout-minutes: 4
+        continue-on-error: true
+        run: python scripts/top3_player_source_client.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
           
       - name: Diagnose API-Sports Baseball
         continue-on-error: true
@@ -159,9 +171,28 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Build Savant top-3 hitter context
-        timeout-minutes: 3
+        timeout-minutes: 4
         continue-on-error: true
         run: python scripts/savant_top3_context_client.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build pitcher advanced context
+        timeout-minutes: 4
+        continue-on-error: true
+        run: python scripts/pitcher_advanced_context_client.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build team form context
+        continue-on-error: true
+        run: python scripts/team_form_context_client.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build context feature bridge
+        continue-on-error: true
+        run: python scripts/context_feature_bridge_client.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -214,6 +245,12 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Diagnose feature zero root cause
+        continue-on-error: true
+        run: python scripts/feature_zero_root_cause_diagnostic.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Validate prediction report and rating state
         run: python scripts/validate_predictions.py
         env:
@@ -240,6 +277,11 @@ jobs:
             report/feature_availability_diagnostic.json \
             report/market_edge_research.json \
             report/market_residual_training_report.json \
+            report/feature_zero_root_cause_diagnostic.json \
+            data/top3_player_context.csv \
+            data/pitcher_advanced_context.csv \
+            data/team_form_context.csv \
+            data/context_feature_bridge.csv \
             data/market_residual_model.pkl \
             data/projected_lineup_context.csv \
             data/finalized_games.csv \
