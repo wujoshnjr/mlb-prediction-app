@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-05T14:06:56.440500+00:00",
+  "generated_at": "2026-06-05T15:02:55.069066+00:00",
   "training_status": {
     "exists": true,
     "error": "",
@@ -7,32 +7,25 @@
     "skipped": false,
     "sample_count": 109,
     "minimum_clean_train_samples": 60,
-    "brier": 0.2942,
-    "logloss": 0.7985,
+    "brier": 0.2775,
+    "logloss": 0.7486,
     "reason": "",
     "model_type": "calibrated_logistic_regression",
     "training_source": "clean_prediction_snapshots",
     "pipeline_version": "baseline_v2_clean",
-    "timestamp": "2026-06-05T14:06:56.008049"
+    "timestamp": "2026-06-05T15:02:54.563344"
   },
   "training_log": {
     "exists": true,
     "error": "",
-    "row_count": 68,
+    "row_count": 69,
     "latest_num_samples": 109,
-    "latest_used_feature_count": 13,
-    "latest_brier": 0.2942,
-    "latest_logloss": 0.7985,
-    "latest_timestamp": "2026-06-05T14:06:56.008231",
+    "latest_used_feature_count": 9,
+    "latest_brier": 0.2775,
+    "latest_logloss": 0.7486,
+    "latest_timestamp": "2026-06-05T15:02:54.563517",
     "trend_available": true,
     "recent_training_runs": [
-      {
-        "timestamp": "2026-06-05T09:06:25.045382",
-        "num_samples": 109,
-        "used_feature_count": 13,
-        "brier": 0.2942,
-        "logloss": 0.7985
-      },
       {
         "timestamp": "2026-06-05T09:24:55.643115",
         "num_samples": 109,
@@ -60,69 +53,86 @@
         "used_feature_count": 13,
         "brier": 0.2942,
         "logloss": 0.7985
+      },
+      {
+        "timestamp": "2026-06-05T15:02:54.563517",
+        "num_samples": 109,
+        "used_feature_count": 9,
+        "brier": 0.2775,
+        "logloss": 0.7486
       }
     ]
   },
   "feature_importance": {
     "exists": true,
     "error": "",
-    "used_feature_count": 13,
+    "used_feature_count": 9,
     "top_features": [
       {
-        "feature": "lag30_winrate_diff",
-        "importance": 0.4027647209911778
-      },
-      {
-        "feature": "bt_strength_diff",
-        "importance": 0.3880718364008809
+        "feature": "sp_era_diff",
+        "importance": 0.461146718260284
       },
       {
         "feature": "elo_diff",
-        "importance": 0.3345013852445748
-      },
-      {
-        "feature": "dynamic_pythag_diff",
-        "importance": 0.3320898598902026
-      },
-      {
-        "feature": "bb_pct_diff",
-        "importance": 0.3162592583171655
-      },
-      {
-        "feature": "is_day_game",
-        "importance": 0.2874490696455184
-      },
-      {
-        "feature": "pitcher_rating_diff",
-        "importance": 0.2746883670965718
-      },
-      {
-        "feature": "k_pct_diff",
-        "importance": 0.2707139579652823
+        "importance": 0.4538314696425063
       },
       {
         "feature": "back2back_diff",
-        "importance": 0.1489649865240405
+        "importance": 0.2518129208033488
+      },
+      {
+        "feature": "dynamic_pythag_diff",
+        "importance": 0.1648160784351174
+      },
+      {
+        "feature": "is_day_game",
+        "importance": 0.1500942721690356
       },
       {
         "feature": "timezone_diff",
-        "importance": 0.1404760769715381
+        "importance": 0.11442467304435
+      },
+      {
+        "feature": "k_pct_diff",
+        "importance": 0.03752979451366
       },
       {
         "feature": "dynamic_park_factor",
-        "importance": 0.1321880500908556
+        "importance": 0.0240735722221167
       },
       {
-        "feature": "sp_era_diff",
-        "importance": 0.0756575969870421
+        "feature": "lag30_winrate_diff",
+        "importance": 0.0171602849736947
+      },
+      {
+        "feature": "bb_pct_diff",
+        "importance": 0.0
+      },
+      {
+        "feature": "pitcher_rating_diff",
+        "importance": 0.0
       },
       {
         "feature": "winrate_diff",
-        "importance": 0.0550359220250221
+        "importance": 0.0
+      },
+      {
+        "feature": "bt_strength_diff",
+        "importance": 0.0
       }
     ],
-    "low_importance_features": [],
-    "zero_or_missing_importance_features": []
+    "low_importance_features": [
+      {
+        "feature": "lag30_winrate_diff",
+        "importance": 0.0171602849736947
+      }
+    ],
+    "zero_or_missing_importance_features": [
+      "bb_pct_diff",
+      "pitcher_rating_diff",
+      "winrate_diff",
+      "bt_strength_diff"
+    ]
   },
   "snapshots": {
     "exists": true,
@@ -193,13 +203,14 @@
     "model_trained",
     "early_model_small_sample",
     "prediction_using_ml",
-    "feature_count_ok",
+    "feature_count_low",
     "snapshot_count_below_production_threshold",
     "training_metrics_available",
     "feature_importance_available"
   ],
   "recommendations": [
     "Early model is for engineering validation only; do not use it as a production betting model.",
+    "Very few features are active. Investigate snapshot feature extraction and zero-variance columns.",
     "Continue collecting clean settled snapshots. Restore the 300+ sample production threshold when enough data exists."
   ]
 }
