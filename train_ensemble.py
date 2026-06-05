@@ -12,12 +12,13 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import brier_score_loss, log_loss
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from scripts.feature_schema import EXPECTED_FEATURES
+from scripts.feature_schema import MODEL_FEATURES, AVAILABILITY_FLAG_FEATURES
 from scripts.snapshot_store import read_snapshot_rows
 try:
     import config
@@ -178,13 +179,17 @@ def prepare_data() -> (
         )
         return None
 
-    for column in EXPECTED_FEATURES:
+    for column in MODEL_FEATURES:
         if column not in frame.columns:
-            frame[column] = 0.0
+            frame[column] = np.nan
+
         frame[column] = pd.to_numeric(
             frame[column],
             errors="coerce",
-        ).fillna(0.0)
+        )
+
+        if column in AVAILABILITY_FLAG_FEATURES:
+            frame[column] = frame[column].fillna(0.0).clip(lower=0.0, upper=1.0)
 
     latest_snapshot = frame["snapshot_created_at"].max()
     frame["days_ago"] = (
@@ -194,11 +199,11 @@ def prepare_data() -> (
         -frame["days_ago"] / 365 * np.log(2)
     ).clip(lower=0.1)
 
-    matrix = frame[EXPECTED_FEATURES].to_numpy(dtype=float)
+    matrix = frame[MODEL_FEATURES].to_numpy(dtype=float)
     target = frame["home_win"].to_numpy(dtype=int)
     weights = frame["sample_weight"].to_numpy(dtype=float)
 
-    variance = np.var(matrix, axis=0)
+    variance = np.nanvar(matrix, axis=0)
     keep = variance > 1e-8
 
     if not np.any(keep):
@@ -212,7 +217,7 @@ def prepare_data() -> (
 
     removed_features = [
         feature
-        for feature, retained in zip(EXPECTED_FEATURES, keep)
+        for feature, retained in zip(MODEL_FEATURES, keep)
         if not retained
     ]
     if removed_features:
@@ -220,10 +225,10 @@ def prepare_data() -> (
 
     used_features = [
         feature
-        for feature, retained in zip(EXPECTED_FEATURES, keep)
+        for feature, retained in zip(MODEL_FEATURES, keep)
         if retained
     ]
-
+    
     return matrix[:, keep], target, weights, frame, used_features, sample_count
 
 def make_calibrator(estimator: Any) -> CalibratedClassifierCV:
