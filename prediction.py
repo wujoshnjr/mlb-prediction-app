@@ -3758,7 +3758,7 @@ def generate_predictions() -> dict[str, Any]:
                 if as_float(betting_readiness.get("stake_multiplier"), 0.0) < 1.0
                 else "full_paper_stake"
             ),
-            "missing_signal_flags": betting_readiness.get("betting_risk_flags", []),
+            "missing_signal_flags": sorted(set(risk_flags)),
             "model_source": model_source,
             "model_feature_count": len(model_features or []),
             "model_training_sample_count": clean_model_sample_count,
