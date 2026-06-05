@@ -642,7 +642,8 @@ def build_team_form_context(
         historical_predictions_path=historical_predictions_path,
         historical_glob=historical_glob,
     )
-
+    schedule_cache: Dict[Tuple[str, str], Tuple[pd.DataFrame, str]] = {}
+    
     rows: List[Dict[str, Any]] = []
 
     for _, row in latest_frame.iterrows():
@@ -704,14 +705,34 @@ def build_team_form_context(
             rows.append(output)
             continue
 
-        prior = history_frame[history_frame["game_date"] < game_date].copy()
+        augmented_history, recent_notes = _augment_recent_history_for_game(
+            base_history=history_frame,
+            home_team=home_team,
+            away_team=away_team,
+            game_date=game_date,
+            schedule_cache=schedule_cache,
+        )
 
-        if prior.empty:
-            output["team_form_source_status"] = "sparse_history"
-            output["team_form_reason"] = "No prior finalized games before game_date"
+        if augmented_history.empty:
+            output["team_form_source_status"] = "no_history"
+            output["team_form_reason"] = (
+                "No usable local or MLB schedule history; "
+                + "; ".join(history_notes + recent_notes)
+            )
             rows.append(output)
             continue
 
+        prior = augmented_history[augmented_history["game_date"] < game_date].copy()
+
+        if prior.empty:
+            output["team_form_source_status"] = "sparse_history"
+            output["team_form_reason"] = (
+                "No prior finalized games before game_date after MLB schedule augment; "
+                + "; ".join(history_notes + recent_notes)
+            )
+            rows.append(output)
+            continue
+            
         home30 = _team_window_stats(prior, home_team, game_date, 30)
         away30 = _team_window_stats(prior, away_team, game_date, 30)
         home7 = _team_window_stats(prior, home_team, game_date, 7)
@@ -785,6 +806,8 @@ def build_team_form_context(
             reason_parts.append("away_lag30_missing")
         if history_notes:
             reason_parts.append("history_notes=" + ",".join(history_notes[:5]))
+        if recent_notes:
+            reason_parts.append("recent_schedule_notes=" + ",".join(recent_notes[:4]))
 
         if home30["games"] > 0 and away30["games"] > 0:
             output["team_form_source_status"] = "ok"
