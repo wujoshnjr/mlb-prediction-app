@@ -395,10 +395,10 @@ def train() -> None:
         "model": calibrated,
         "features": used_features,
         "transformed_features": transformed_features,
-        "schema_version": "MODEL_SCHEMA_VERSION",
+        "schema_version": MODEL_SCHEMA_VERSION,
         "pipeline_version": PIPELINE_VERSION,
         "training_source": "clean_prediction_snapshots",
-        "model_type": "MODEL_TYPE",
+        "model_type": MODEL_TYPE,
         "trained_at": datetime.now().isoformat(),
         "training_sample_count": sample_count,
         "test_brier": round(test_brier, 4),
@@ -450,7 +450,6 @@ def train() -> None:
         feature: float(value)
         for feature, value in zip(importance_feature_names, absolute_coefficients)
     }
-    importance_row["timestamp"] = datetime.now().isoformat()
     importance_row["timestamp"] = datetime.now().isoformat()
     importance_row["pipeline_version"] = PIPELINE_VERSION
     importance_row["schema_version"] = MODEL_SCHEMA_VERSION
