@@ -43,6 +43,12 @@ OPTIONAL_JSON_REPORTS = {
 REQUIRED_NON_JSON_FILES = {
     "html_report": REPORT_DIR / "index.html",
     "walkforward_predictions": REPORT_DIR / "walkforward_predictions.csv",
+    "rolling_walkforward_predictions": REPORT_DIR / "rolling_walkforward_predictions.csv",
+}
+
+OPTIONAL_NON_JSON_FILES = {
+    "decision_audit_csv": REPORT_DIR / "decision_audit.csv",
+    "paper_trading_ledger_csv": DATA_DIR / "paper_trading_ledger.csv",
 }
 
 
@@ -273,9 +279,16 @@ def build_contract_report() -> Dict[str, Any]:
     for name, path in REQUIRED_JSON_REPORTS.items():
         data, status = _load_json(path)
         file_status[name] = status
-
         if data is None:
             errors.append(f"{name}: required JSON missing or invalid ({status.get('error')})")
+        else:
+            reports[name] = data
+
+    for name, path in OPTIONAL_JSON_REPORTS.items():
+        data, status = _load_json(path)
+        file_status[name] = status
+        if data is None:
+            warnings.append(f"{name}: optional JSON missing or invalid ({status.get('error')})")
         else:
             reports[name] = data
 
@@ -285,10 +298,18 @@ def build_contract_report() -> Dict[str, Any]:
             "exists": path.exists(),
             "error": "" if path.exists() else "file_missing",
         }
-
         if not path.exists():
             errors.append(f"{name}: required file missing: {path}")
 
+    for name, path in OPTIONAL_NON_JSON_FILES.items():
+        file_status[name] = {
+            "path": str(path),
+            "exists": path.exists(),
+            "error": "" if path.exists() else "file_missing",
+        }
+        if not path.exists():
+            warnings.append(f"{name}: optional file missing: {path}")
+            
     if "prediction" in reports:
         _validate_prediction(reports["prediction"], errors)
 
@@ -309,6 +330,22 @@ def build_contract_report() -> Dict[str, Any]:
 
     if "walkforward" in reports:
         _validate_walkforward(reports["walkforward"], errors)
+
+    for standard_name in (
+        "rolling_walkforward",
+        "lineup_starter_slice",
+        "market_close",
+        "research_quality",
+        "settle_reliability",
+        "model_registry_report",
+        "promotion_gate",
+        "decision_audit",
+        "paper_trading_ledger_report",
+        "risk_exposure",
+        "artifact_retention",
+    ):
+        if standard_name in reports:
+            _validate_standard_report(standard_name, reports[standard_name], errors)
 
     _validate_feature_reports(reports, errors)
 
