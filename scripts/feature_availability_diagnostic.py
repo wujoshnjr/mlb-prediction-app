@@ -372,22 +372,7 @@ def build_feature_availability_diagnostic(
     sparse_features = []
     missing_features = []
 
-    for item in feature_rows:
-        feature = str(item["feature"])
-        status = str(item["status"])
-        importance = float(item.get("latest_importance") or 0.0)
-
-        if status == "all_zero":
-            all_zero_features.append(feature)
-        elif status == "sparse":
-            sparse_features.append(feature)
-        elif status == "missing":
-            missing_features.append(feature)
-
-if (
-    f["latest_importance"] > 0.03
-    and f["status"] in ("all_zero", "sparse")
-    and f["feature"] not in {
+    optional_or_tracking_only_all_zero_features = {
         "rest_diff",
         "back2back_diff",
         "catcher_era_diff",
@@ -403,9 +388,26 @@ if (
         "swing_miss_diff",
         "zone_size",
     }
-):
-    high_risk.append(f["feature"])
-    
+
+    for item in feature_rows:
+        feature = str(item["feature"])
+        status = str(item["status"])
+        importance = float(item.get("latest_importance") or 0.0)
+
+        if status == "all_zero":
+            all_zero_features.append(feature)
+        elif status == "sparse":
+            sparse_features.append(feature)
+        elif status == "missing":
+            missing_features.append(feature)
+
+        if (
+            importance > 0.03
+            and status in ("all_zero", "sparse")
+            and feature not in optional_or_tracking_only_all_zero_features
+        ):
+            high_risk_features.append(feature)
+
     report["high_risk_features"] = high_risk_features
     report["all_zero_features"] = all_zero_features
     report["sparse_features"] = sparse_features
