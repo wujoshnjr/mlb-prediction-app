@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-06-06T07:12:47.812939+00:00",
+  "generated_at": "2026-06-06T07:58:07.984364+00:00",
   "source": "report/feature_availability_diagnostic.json",
   "model_feature_count": 26,
-  "tracking_only_feature_count": 33,
+  "tracking_only_feature_count": 36,
   "grade_counts": {
     "A": 38,
-    "B": 2,
+    "B": 5,
     "C": 2,
     "D": 17
   },
@@ -39,7 +39,6 @@
   ],
   "tracking_only_features": [
     "is_day_game",
-    "back2back_diff",
     "catcher_era_diff",
     "cs_diff",
     "wind_effect",
@@ -51,6 +50,10 @@
     "lag30_winrate_diff",
     "lag30_runs_diff",
     "rest_diff",
+    "back2back_diff",
+    "games_last_3d_diff",
+    "games_last_7d_diff",
+    "rest_pressure_diff",
     "pitch_movement_diff",
     "avg_bat_speed_diff",
     "odds_change",
@@ -566,6 +569,45 @@
       "training_allowed_by_schema": true,
       "tracking_only_by_schema": false,
       "recommendation": "allowed_in_main_model"
+    },
+    {
+      "feature": "games_last_3d_diff",
+      "group": "other",
+      "grade": "B",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.4,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "games_last_7d_diff",
+      "group": "other",
+      "grade": "B",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.2667,
+      "missing_rate": 0.0,
+      "zero_rate": 0.7333,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "rest_pressure_diff",
+      "group": "schedule",
+      "grade": "B",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.4667,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5333,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
     },
     {
       "feature": "temp_effect",
