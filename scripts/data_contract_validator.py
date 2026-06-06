@@ -20,10 +20,24 @@ REQUIRED_JSON_REPORTS = {
     "clv_by_lineup_status": REPORT_DIR / "clv_by_lineup_status.json",
     "calibration": REPORT_DIR / "calibration_report.json",
     "walkforward": REPORT_DIR / "walkforward_evaluation.json",
+    "rolling_walkforward": REPORT_DIR / "rolling_walkforward_evaluation.json",
+    "lineup_starter_slice": REPORT_DIR / "lineup_starter_slice_report.json",
+    "market_close": REPORT_DIR / "market_close_report.json",
+    "research_quality": REPORT_DIR / "research_quality_report.json",
+    "settle_reliability": REPORT_DIR / "settle_reliability_report.json",
     "feature_availability": REPORT_DIR / "feature_availability_diagnostic.json",
     "feature_zero_root_cause": REPORT_DIR / "feature_zero_root_cause_diagnostic.json",
     "feature_grade": REPORT_DIR / "feature_grade_report.json",
     "training_status": DATA_DIR / "training_status.json",
+}
+
+OPTIONAL_JSON_REPORTS = {
+    "model_registry_report": REPORT_DIR / "model_registry_report.json",
+    "promotion_gate": REPORT_DIR / "promotion_gate_report.json",
+    "decision_audit": REPORT_DIR / "decision_audit_report.json",
+    "paper_trading_ledger_report": REPORT_DIR / "paper_trading_ledger_report.json",
+    "risk_exposure": REPORT_DIR / "risk_exposure_report.json",
+    "artifact_retention": REPORT_DIR / "artifact_retention_manifest.json",
 }
 
 REQUIRED_NON_JSON_FILES = {
