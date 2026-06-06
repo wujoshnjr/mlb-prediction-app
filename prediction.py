@@ -3404,10 +3404,14 @@ def generate_predictions() -> dict[str, Any]:
             ).strip().lower()
 
             if team_form_status == "ok":
-                team_form_bounds = {
+                   team_form_bounds = {
                     "lag30_winrate_diff": (-0.75, 0.75),
                     "lag30_runs_diff": (-5.0, 5.0),
                     "rest_diff": (-3.0, 3.0),
+                    "back2back_diff": (-1.0, 1.0),
+                    "games_last_3d_diff": (-3.0, 3.0),
+                    "games_last_7d_diff": (-7.0, 7.0),
+                    "rest_pressure_diff": (-5.0, 5.0),
                     "log5_prob": (0.25, 0.75),
                     "elo_momentum_7d": (-1.0, 1.0),
                     "elo_momentum_30d": (-1.0, 1.0),
