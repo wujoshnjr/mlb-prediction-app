@@ -245,7 +245,32 @@ jobs:
         run: python scripts/train_market_residual_shadow.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-          
+
+      - name: Build baseline comparison report
+        run: python scripts/baseline_comparison_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build CLV slice reports
+        run: python scripts/clv_slice_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build calibration report
+        run: python scripts/calibration_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build walk-forward evaluation report
+        run: python scripts/walkforward_evaluation.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build HTML report
+        run: python scripts/html_report_builder.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+           
       - name: Diagnose feature availability
         continue-on-error: false
         run: python scripts/feature_availability_diagnostic.py
@@ -269,6 +294,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Run tests
+        run: pytest -q
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Validate prediction report and rating state
         run: python scripts/validate_predictions.py
         env:
@@ -283,6 +313,8 @@ jobs:
           if-no-files-found: warn
           path: |
             report/*.json
+            report/index.html
+            report/walkforward_predictions.csv
             data/calibrator.pkl
             data/market_residual_model.pkl
             data/prediction_snapshots.csv
@@ -319,6 +351,15 @@ jobs:
             report/market_residual_training_report.json \
             report/feature_zero_root_cause_diagnostic.json \
             report/feature_grade_report.json \
+            report/baseline_comparison_report.json \
+            report/clv_by_edge_bucket.json \
+            report/clv_by_side.json \
+            report/clv_by_odds_range.json \
+            report/clv_by_lineup_status.json \
+            report/calibration_report.json \
+            report/walkforward_evaluation.json \
+            report/index.html \
+            report/walkforward_predictions.csv \
             data/top3_player_context.csv \
             data/pitcher_advanced_context.csv \
             data/team_form_context.csv \
