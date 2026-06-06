@@ -904,7 +904,9 @@ def build_data_quality_status(
         "missing_optional_sources": sorted(set(missing_optional_sources)),
         "feature_imputation_rate": round(feature_imputation_rate, 4),
         "lineup_status": lineup_status,
-        "starter_status": starter_status,
+        "pitcher_status": pitcher_status,
+        "starter_confidence_status": starter_confidence_status,
+        "starter_confirmation_pending": starter_confirmation_pending,
     }
 
 
