@@ -633,11 +633,17 @@ def build_weather_context_summary(
 
     return {
         "available": True,
-        "weather_source": str(weather_row.get("weather_source", "")),
-        "weather_source_status": str(weather_row.get("weather_source_status", "")),
-        "weather_captured_at": str(weather_row.get("weather_captured_at", "")),
-        "weather_forecast_time": str(weather_row.get("weather_forecast_time", "")),
-        "venue_name": str(weather_row.get("venue_name", "")),
+        "weather_source": as_optional_str(weather_row.get("weather_source")),
+        "weather_source_status": as_optional_str(
+            weather_row.get("weather_source_status")
+        ),
+        "weather_captured_at": as_optional_str(
+            weather_row.get("weather_captured_at")
+        ),
+        "weather_forecast_time": as_optional_str(
+            weather_row.get("weather_forecast_time")
+        ),
+        "venue_name": as_optional_str(weather_row.get("venue_name")),
         "weather_is_dome": bool(weather_row.get("weather_is_dome", False)),
         "weather_temp_f": as_float(weather_row.get("weather_temp_f"), None),
         "weather_wind_speed_mph": as_float(
@@ -648,11 +654,13 @@ def build_weather_context_summary(
             weather_row.get("weather_precip_probability"),
             None,
         ),
-        "weather_condition": str(weather_row.get("weather_condition", "")),
+        "weather_condition": as_optional_str(
+            weather_row.get("weather_condition")
+        ),
         "temp_effect": as_float(weather_row.get("temp_effect"), 0.0),
         "wind_effect": as_float(weather_row.get("wind_effect"), 0.0),
         "precip_effect": as_float(weather_row.get("precip_effect"), 0.0),
-        "weather_reason": str(weather_row.get("weather_reason", "")),
+        "weather_reason": as_optional_str(weather_row.get("weather_reason")),
     }
 
 
