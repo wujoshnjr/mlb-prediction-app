@@ -1,0 +1,328 @@
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+
+REPORT_DIR = Path("report")
+DATA_DIR = Path("data")
+
+OUTPUT_PATH = REPORT_DIR / "data_contract_report.json"
+
+REQUIRED_JSON_REPORTS = {
+    "prediction": REPORT_DIR / "prediction.json",
+    "baseline_comparison": REPORT_DIR / "baseline_comparison_report.json",
+    "clv_by_edge_bucket": REPORT_DIR / "clv_by_edge_bucket.json",
+    "clv_by_side": REPORT_DIR / "clv_by_side.json",
+    "clv_by_odds_range": REPORT_DIR / "clv_by_odds_range.json",
+    "clv_by_lineup_status": REPORT_DIR / "clv_by_lineup_status.json",
+    "calibration": REPORT_DIR / "calibration_report.json",
+    "walkforward": REPORT_DIR / "walkforward_evaluation.json",
+    "feature_availability": REPORT_DIR / "feature_availability_diagnostic.json",
+    "feature_zero_root_cause": REPORT_DIR / "feature_zero_root_cause_diagnostic.json",
+    "feature_grade": REPORT_DIR / "feature_grade_report.json",
+    "training_status": DATA_DIR / "training_status.json",
+}
+
+REQUIRED_NON_JSON_FILES = {
+    "html_report": REPORT_DIR / "index.html",
+    "walkforward_predictions": REPORT_DIR / "walkforward_predictions.csv",
+}
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _load_json(path: Path) -> tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
+    status = {"path": str(path), "exists": path.exists(), "error": "", "type": None}
+    if not path.exists():
+        status["error"] = "file_missing"
+        return None, status
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        status["error"] = str(exc)
+        return None, status
+
+    status["type"] = type(data).__name__
+    if not isinstance(data, dict):
+        status["error"] = "json_not_object"
+        return None, status
+
+    return data, status
+
+
+def _predictions(report: Dict[str, Any]) -> List[Dict[str, Any]]:
+    raw = report.get("predictions") or report.get("today_predictions") or report.get("games") or []
+    if not isinstance(raw, list):
+        return []
+    return [item for item in raw if isinstance(item, dict)]
+
+
+def _require_keys(obj: Dict[str, Any], keys: List[str], errors: List[str], context: str) -> None:
+    for key in keys:
+        if key not in obj:
+            errors.append(f"{context}: missing key '{key}'")
+
+
+def _validate_prediction(report: Dict[str, Any], errors: List[str]) -> None:
+    predictions = _predictions(report)
+    if not predictions:
+        errors.append("prediction.json: no predictions found")
+        return
+
+    required = [
+        "game_id",
+        "recommendation",
+        "model_governance_status",
+        "data_quality_status",
+        "live_betting_allowed",
+        "live_bet_candidate",
+        "stake_multiplier",
+        "features",
+    ]
+
+    for index, item in enumerate(predictions[:50]):
+        context = f"prediction[{index}]"
+        _require_keys(item, required, errors, context)
+
+        if item.get("live_betting_allowed") is False:
+            if item.get("live_bet_candidate") is not False:
+                errors.append(
+                    f"{context}: live_bet_candidate must be false when live_betting_allowed is false"
+                )
+
+            try:
+                stake = float(item.get("stake_multiplier") or 0.0)
+            except Exception:
+                stake = 999.0
+
+            if stake != 0.0:
+                errors.append(
+                    f"{context}: stake_multiplier must be 0.0 when live_betting_allowed is false"
+                )
+
+        data_quality = item.get("data_quality_status")
+        if isinstance(data_quality, dict):
+            _require_keys(
+                data_quality,
+                [
+                    "data_quality_grade",
+                    "prediction_allowed",
+                    "bet_allowed",
+                    "missing_critical_sources",
+                    "missing_important_sources",
+                ],
+                errors,
+                f"{context}.data_quality_status",
+            )
+        else:
+            errors.append(f"{context}: data_quality_status is not an object")
+
+        governance = item.get("model_governance_status")
+        if isinstance(governance, dict):
+            _require_keys(
+                governance,
+                [
+                    "live_betting_allowed",
+                    "mode",
+                    "block_reasons",
+                    "clean_model_sample_count",
+                    "min_clean_train_samples",
+                ],
+                errors,
+                f"{context}.model_governance_status",
+            )
+        else:
+            errors.append(f"{context}: model_governance_status is not an object")
+
+
+def _validate_standard_report(name: str, report: Dict[str, Any], errors: List[str]) -> None:
+    _require_keys(report, ["generated_at", "status", "recommendations"], errors, name)
+
+
+def _validate_baseline(report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report("baseline_comparison_report", report, errors)
+    _require_keys(
+        report,
+        ["settled_prediction_count", "baselines", "comparison", "skipped_baselines"],
+        errors,
+        "baseline_comparison_report",
+    )
+
+
+def _validate_clv(name: str, report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report(name, report, errors)
+    _require_keys(report, ["slice_type", "slices"], errors, name)
+
+    slices = report.get("slices")
+    if not isinstance(slices, list):
+        errors.append(f"{name}: slices must be a list")
+        return
+
+    for index, item in enumerate(slices[:50]):
+        if not isinstance(item, dict):
+            errors.append(f"{name}.slices[{index}]: slice item is not object")
+            continue
+
+        _require_keys(
+            item,
+            [
+                "slice",
+                "count",
+                "avg_clv",
+                "positive_clv_rate",
+                "paper_bet_count",
+                "live_bet_candidate_count",
+                "block_live_bet",
+            ],
+            errors,
+            f"{name}.slices[{index}]",
+        )
+
+
+def _validate_calibration(report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report("calibration_report", report, errors)
+    _require_keys(
+        report,
+        [
+            "calibration_ready",
+            "total_count",
+            "bins",
+            "weighted_ece",
+            "max_calibration_error",
+            "min_recommended_samples",
+        ],
+        errors,
+        "calibration_report",
+    )
+
+
+def _validate_walkforward(report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report("walkforward_evaluation", report, errors)
+    _require_keys(
+        report,
+        [
+            "min_required_oos_predictions",
+            "total_oos_predictions",
+            "walkforward_ready",
+            "fold_count",
+        ],
+        errors,
+        "walkforward_evaluation",
+    )
+
+
+def _validate_feature_reports(reports: Dict[str, Dict[str, Any]], errors: List[str]) -> None:
+    feature_availability = reports.get("feature_availability") or {}
+    if "high_risk_features" not in feature_availability:
+        errors.append("feature_availability_diagnostic: missing high_risk_features")
+    if "non_blocking_features" not in feature_availability:
+        errors.append("feature_availability_diagnostic: missing non_blocking_features")
+
+    feature_zero = reports.get("feature_zero_root_cause") or {}
+    if "still_zero_features" not in feature_zero:
+        errors.append("feature_zero_root_cause_diagnostic: missing still_zero_features")
+
+    feature_grade = reports.get("feature_grade") or {}
+    if "grade_counts" not in feature_grade:
+        errors.append("feature_grade_report: missing grade_counts")
+
+
+def _validate_training_status(report: Dict[str, Any], errors: List[str]) -> None:
+    _require_keys(
+        report,
+        [
+            "sample_count",
+            "minimum_clean_train_samples",
+            "trained",
+            "skipped",
+            "training_allowed_for_production",
+        ],
+        errors,
+        "training_status",
+    )
+
+
+def build_contract_report() -> Dict[str, Any]:
+    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+
+    errors: List[str] = []
+    warnings: List[str] = []
+    file_status: Dict[str, Any] = {}
+    reports: Dict[str, Dict[str, Any]] = {}
+
+    for name, path in REQUIRED_JSON_REPORTS.items():
+        data, status = _load_json(path)
+        file_status[name] = status
+
+        if data is None:
+            errors.append(f"{name}: required JSON missing or invalid ({status.get('error')})")
+        else:
+            reports[name] = data
+
+    for name, path in REQUIRED_NON_JSON_FILES.items():
+        file_status[name] = {
+            "path": str(path),
+            "exists": path.exists(),
+            "error": "" if path.exists() else "file_missing",
+        }
+
+        if not path.exists():
+            errors.append(f"{name}: required file missing: {path}")
+
+    if "prediction" in reports:
+        _validate_prediction(reports["prediction"], errors)
+
+    if "baseline_comparison" in reports:
+        _validate_baseline(reports["baseline_comparison"], errors)
+
+    for key in (
+        "clv_by_edge_bucket",
+        "clv_by_side",
+        "clv_by_odds_range",
+        "clv_by_lineup_status",
+    ):
+        if key in reports:
+            _validate_clv(key, reports[key], errors)
+
+    if "calibration" in reports:
+        _validate_calibration(reports["calibration"], errors)
+
+    if "walkforward" in reports:
+        _validate_walkforward(reports["walkforward"], errors)
+
+    _validate_feature_reports(reports, errors)
+
+    if "training_status" in reports:
+        _validate_training_status(reports["training_status"], errors)
+
+    report = {
+        "generated_at": _utc_now(),
+        "status": "failed" if errors else "ok",
+        "error_count": len(errors),
+        "warning_count": len(warnings),
+        "errors": errors,
+        "warnings": warnings,
+        "file_status": file_status,
+        "recommendations": []
+        if not errors
+        else ["Fix data contract errors before treating the pipeline output as engineering-grade."],
+    }
+
+    OUTPUT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
+    return report
+
+
+def main() -> int:
+    report = build_contract_report()
+    print(json.dumps(report, indent=2, ensure_ascii=True))
+    return 1 if report["error_count"] else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
