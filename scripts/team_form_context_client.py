@@ -711,6 +711,13 @@ def build_team_form_context(
                 "home_back2back": False,
                 "away_back2back": False,
                 "back2back_diff": 0,
+                "home_games_last_3d": 0,
+                "away_games_last_3d": 0,
+                "games_last_3d_diff": 0,
+                "home_games_last_7d": 0,
+                "away_games_last_7d": 0,
+                "games_last_7d_diff": 0,
+                "rest_pressure_diff": 0.0,
                 "home_log5_strength": 0.5,
                 "away_log5_strength": 0.5,
                 "log5_prob": 0.5,
@@ -769,6 +776,18 @@ def build_team_form_context(
         away30 = _team_window_stats(prior, away_team, game_date, 30)
         home7 = _team_window_stats(prior, home_team, game_date, 7)
         away7 = _team_window_stats(prior, away_team, game_date, 7)
+        home_games_last_3d = _team_recent_game_count(prior, home_team, game_date, 3)
+        away_games_last_3d = _team_recent_game_count(prior, away_team, game_date, 3)
+        home_games_last_7d = _team_recent_game_count(prior, home_team, game_date, 7)
+        away_games_last_7d = _team_recent_game_count(prior, away_team, game_date, 7)
+
+        output["home_games_last_3d"] = int(home_games_last_3d)
+        output["away_games_last_3d"] = int(away_games_last_3d)
+        output["games_last_3d_diff"] = int(home_games_last_3d - away_games_last_3d)
+
+        output["home_games_last_7d"] = int(home_games_last_7d)
+        output["away_games_last_7d"] = int(away_games_last_7d)
+        output["games_last_7d_diff"] = int(home_games_last_7d - away_games_last_7d)
 
         if home30["winrate"] is not None:
             output["home_lag30_winrate"] = round(float(home30["winrate"]), 4)
@@ -813,8 +832,25 @@ def build_team_form_context(
 
         output["home_back2back"] = bool(home30["back2back"])
         output["away_back2back"] = bool(away30["back2back"])
-        output["back2back_diff"] = int(output["home_back2back"]) - int(output["away_back2back"])
+        output["back2back_diff"] = (
+            int(output["home_back2back"]) - int(output["away_back2back"])
+        )
 
+        home_rest_pressure = (
+            (1.0 / max(1.0, float(home30["rest_days"] or 1)))
+            + 0.35 * float(home_games_last_3d)
+            + 0.15 * float(home_games_last_7d)
+        )
+        away_rest_pressure = (
+            (1.0 / max(1.0, float(away30["rest_days"] or 1)))
+            + 0.35 * float(away_games_last_3d)
+            + 0.15 * float(away_games_last_7d)
+        )
+        output["rest_pressure_diff"] = round(
+            float(away_rest_pressure - home_rest_pressure),
+            4,
+        )
+        
         output["log5_prob"] = round(
             _log5(
                 home30["winrate"],
