@@ -184,17 +184,45 @@ def _check_feature_availability(report: Dict[str, Any], errors: List[str], warni
                     )
 
 
-def _check_feature_zero_root_cause(report: Dict[str, Any], errors: List[str]) -> None:
+def _check_feature_zero_root_cause(
+    report: Dict[str, Any],
+    errors: List[str],
+    warnings: List[str],
+) -> None:
     still_zero = report.get("still_zero_features") or []
 
     if not isinstance(still_zero, list):
         errors.append("feature_zero_root_cause_diagnostic still_zero_features is not a list.")
         return
 
-    if still_zero:
+    still_zero_set = {str(feature) for feature in still_zero}
+    model_features = set(MODEL_FEATURES)
+    tracking_only_features = set(TRACKING_ONLY_FEATURES)
+
+    blocking_zero_features = sorted(still_zero_set & model_features)
+    tracking_only_zero_features = sorted(still_zero_set & tracking_only_features)
+    unknown_zero_features = sorted(
+        feature
+        for feature in still_zero_set
+        if feature not in model_features and feature not in tracking_only_features
+    )
+
+    if blocking_zero_features:
         errors.append(
-            "feature_zero_root_cause_diagnostic still has zero features: "
-            + ", ".join(str(feature) for feature in still_zero[:20])
+            "feature_zero_root_cause_diagnostic still has MODEL_FEATURES all-zero: "
+            + ", ".join(blocking_zero_features[:20])
+        )
+
+    if unknown_zero_features:
+        errors.append(
+            "feature_zero_root_cause_diagnostic still has unknown all-zero features: "
+            + ", ".join(unknown_zero_features[:20])
+        )
+
+    if tracking_only_zero_features:
+        warnings.append(
+            "feature_zero_root_cause_diagnostic still has tracking-only all-zero features: "
+            + ", ".join(tracking_only_zero_features[:20])
         )
 
 
@@ -258,7 +286,7 @@ def main() -> int:
         _check_feature_availability(feature_availability, errors, warnings)
 
     if feature_zero_root_cause:
-        _check_feature_zero_root_cause(feature_zero_root_cause, errors)
+        _check_feature_zero_root_cause(feature_zero_root_cause, errors, warnings)
 
     if feature_grade:
         _check_feature_grade(feature_grade, errors)
