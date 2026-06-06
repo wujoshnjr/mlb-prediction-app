@@ -101,6 +101,8 @@ jobs:
             scripts/calibration_report.py \
             scripts/walkforward_evaluation.py \
             scripts/html_report_builder.py \
+            scripts/data_contract_validator.py \
+            scripts/pipeline_manifest.py \
             scripts/projected_lineup_client.py
             
       - name: Update finalized game results
@@ -289,11 +291,21 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Validate data contracts
+        run: python scripts/data_contract_validator.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build pipeline manifest
+        run: python scripts/pipeline_manifest.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Validate report health gate
         run: python scripts/report_health_gate.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-
+          
       - name: Run tests
         run: pytest -q
         env:
@@ -313,6 +325,8 @@ jobs:
           if-no-files-found: warn
           path: |
             report/*.json
+            report/data_contract_report.json
+            report/pipeline_manifest.json
             report/index.html
             report/walkforward_predictions.csv
             data/calibrator.pkl
@@ -358,6 +372,8 @@ jobs:
             report/clv_by_lineup_status.json \
             report/calibration_report.json \
             report/walkforward_evaluation.json \
+            report/data_contract_report.json \
+            report/pipeline_manifest.json \
             report/index.html \
             report/walkforward_predictions.csv \
             data/top3_player_context.csv \
