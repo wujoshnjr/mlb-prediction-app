@@ -103,6 +103,7 @@ jobs:
             scripts/html_report_builder.py \
             scripts/data_contract_validator.py \
             scripts/pipeline_manifest.py \
+            scripts/sanitize_prediction_snapshots.py \
             scripts/settle_reliability_report.py \
             scripts/rolling_walkforward_evaluation.py \
             scripts/lineup_starter_slice_report.py \
@@ -387,6 +388,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
           
+      - name: Sanitize prediction snapshots for no-leakage policy
+        run: python scripts/sanitize_prediction_snapshots.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Run tests
         run: pytest -q
         env:
@@ -464,6 +470,7 @@ jobs:
             report/market_close_report.json \
             report/research_quality_report.json \
             report/settle_reliability_report.json \
+            report/snapshot_sanitization_report.json \
             report/model_registry_report.json \
             report/promotion_gate_report.json \
             report/decision_audit_report.json \
