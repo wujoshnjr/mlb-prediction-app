@@ -36,6 +36,13 @@ OUTPUT_COLUMNS = [
     "home_back2back",
     "away_back2back",
     "back2back_diff",
+    "home_games_last_3d",
+    "away_games_last_3d",
+    "games_last_3d_diff",
+    "home_games_last_7d",
+    "away_games_last_7d",
+    "games_last_7d_diff",
+    "rest_pressure_diff",
     "home_log5_strength",
     "away_log5_strength",
     "log5_prob",
@@ -601,6 +608,21 @@ def _team_window_stats(prior: pd.DataFrame, team: str, game_date: pd.Timestamp, 
         "back2back": back2back,
         "momentum_proxy": (winrate - 0.5) if winrate is not None else 0.0,
     }
+
+
+def _team_recent_game_count(
+    prior: pd.DataFrame,
+    team: str,
+    game_date: pd.Timestamp,
+    days: int,
+) -> int:
+    team_all = _team_games(prior, team)
+    if team_all.empty:
+        return 0
+
+    cutoff = game_date - pd.Timedelta(days=int(days))
+    window = team_all[team_all["game_date"] >= cutoff].copy()
+    return int(len(window))
 
 
 def _log5(home_strength: Optional[float], away_strength: Optional[float]) -> float:
