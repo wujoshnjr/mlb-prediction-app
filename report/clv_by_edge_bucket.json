@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-06T11:49:56.210593+00:00",
-  "status": "insufficient_samples",
+  "generated_at": "2026-06-06T13:20:41.386984+00:00",
+  "status": "partial",
   "input_files": {
     "prediction": {
       "path": "report/prediction.json",
@@ -17,7 +17,7 @@
     "market_odds_history": {
       "path": "data/market_odds_history.csv",
       "exists": true,
-      "rows": 27294,
+      "rows": 27518,
       "error": ""
     },
     "finalized_games": {
@@ -34,8 +34,56 @@
     }
   },
   "slice_type": "edge_bucket",
-  "slices": [],
+  "slices": [
+    {
+      "slice": "3_to_5pct",
+      "count": 16,
+      "avg_clv": 0.003333,
+      "positive_clv_rate": null,
+      "positive_clv_count": null,
+      "negative_clv_count": null,
+      "paper_bet_count": 16,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": true,
+      "block_reasons": [
+        "per_pick_positive_clv_unavailable"
+      ],
+      "source": "evaluation_clv_diagnostic.edge_bucket_summary"
+    },
+    {
+      "slice": "5_to_8pct",
+      "count": 22,
+      "avg_clv": 0.003158,
+      "positive_clv_rate": null,
+      "positive_clv_count": null,
+      "negative_clv_count": null,
+      "paper_bet_count": 22,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": true,
+      "block_reasons": [
+        "per_pick_positive_clv_unavailable"
+      ],
+      "source": "evaluation_clv_diagnostic.edge_bucket_summary"
+    },
+    {
+      "slice": "8pct_plus",
+      "count": 54,
+      "avg_clv": -0.923039,
+      "positive_clv_rate": null,
+      "positive_clv_count": null,
+      "negative_clv_count": null,
+      "paper_bet_count": 54,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": true,
+      "block_reasons": [
+        "negative_avg_clv",
+        "per_pick_positive_clv_unavailable"
+      ],
+      "source": "evaluation_clv_diagnostic.edge_bucket_summary"
+    }
+  ],
   "recommendations": [
-    "No per-pick CLV rows were available."
+    "Using aggregate CLV diagnostic fallback because per-pick CLV rows are not available.",
+    "Live betting remains blocked because positive CLV rate cannot be validated from aggregate fallback."
   ]
 }
