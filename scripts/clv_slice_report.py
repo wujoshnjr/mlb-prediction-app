@@ -300,10 +300,77 @@ def _summarise_slice(frame: pd.DataFrame, column: str) -> List[Dict[str, Any]]:
                 ),
                 "block_live_bet": bool(reasons),
                 "block_reasons": reasons,
+                "source": "per_pick_clv",
             }
         )
 
     return sorted(output, key=lambda item: item["slice"])
+    
+
+def _slice_from_aggregate_summary(
+    summary: Dict[str, Any],
+    *,
+    source_name: str,
+) -> List[Dict[str, Any]]:
+    output: List[Dict[str, Any]] = []
+
+    for name, stats in summary.items():
+        if not isinstance(stats, dict):
+            continue
+
+        count = _as_int(stats.get("settled_count"), _as_int(stats.get("count"), 0)) or 0
+        avg_clv = _as_float(stats.get("avg_clv"))
+
+        reasons: List[str] = []
+        if count < MIN_SLICE_SAMPLE:
+            reasons.append("insufficient_slice_sample")
+        if avg_clv is not None and avg_clv < 0:
+            reasons.append("negative_avg_clv")
+        reasons.append("per_pick_positive_clv_unavailable")
+
+        output.append(
+            {
+                "slice": str(name),
+                "count": count,
+                "avg_clv": round(avg_clv, 6) if avg_clv is not None else None,
+                "positive_clv_rate": None,
+                "positive_clv_count": None,
+                "negative_clv_count": None,
+                "paper_bet_count": count,
+                "live_bet_candidate_count": 0,
+                "block_live_bet": True,
+                "block_reasons": reasons,
+                "source": source_name,
+            }
+        )
+
+    return sorted(output, key=lambda item: item["slice"])
+
+
+def _fallback_slices_from_diagnostic(
+    diagnostic: Optional[Dict[str, Any]],
+    slice_type: str,
+) -> List[Dict[str, Any]]:
+    if not diagnostic:
+        return []
+
+    if slice_type == "edge_bucket":
+        summary = diagnostic.get("edge_bucket_summary") or {}
+        if isinstance(summary, dict):
+            return _slice_from_aggregate_summary(
+                summary,
+                source_name="evaluation_clv_diagnostic.edge_bucket_summary",
+            )
+
+    if slice_type == "side":
+        summary = diagnostic.get("side_summary") or {}
+        if isinstance(summary, dict):
+            return _slice_from_aggregate_summary(
+                summary,
+                source_name="evaluation_clv_diagnostic.side_summary",
+            )
+
+    return []
 
 
 def _write_report(
@@ -335,7 +402,7 @@ def build_clv_slice_reports() -> Dict[str, Any]:
     snapshots, snapshots_status = _safe_read_csv(SNAPSHOTS_CSV)
     _, market_status = _safe_read_csv(MARKET_ODDS_CSV)
     finalized, finalized_status = _safe_read_csv(FINALIZED_CSV)
-    _, clv_diag_status = _safe_read_json(CLV_DIAGNOSTIC_JSON)
+    clv_diagnostic, clv_diag_status = _safe_read_json(CLV_DIAGNOSTIC_JSON)
 
     input_files = {
         "prediction": prediction_status,
@@ -357,15 +424,36 @@ def build_clv_slice_reports() -> Dict[str, Any]:
     }
 
     for path, (column, slice_type) in reports.items():
-        slices = _summarise_slice(clv_rows, column)
+        if not clv_rows.empty:
+            slices = _summarise_slice(clv_rows, column)
+            report_status = "ok" if slices else "insufficient_samples"
+            report_recommendations = (
+                []
+                if slices
+                else [f"No per-pick CLV rows available for slice type '{slice_type}'."]
+            )
+        else:
+            slices = _fallback_slices_from_diagnostic(clv_diagnostic, slice_type)
+            if slices:
+                report_status = "partial"
+                report_recommendations = [
+                    "Using aggregate CLV diagnostic fallback because per-pick CLV rows are not available.",
+                    "Live betting remains blocked because positive CLV rate cannot be validated from aggregate fallback.",
+                ]
+            else:
+                report_status = "insufficient_samples"
+                report_recommendations = [
+                    f"No per-pick or aggregate CLV data available for slice type '{slice_type}'."
+                ]
+
         _write_report(
             path,
             generated_at=generated_at,
-            status=status,
+            status=report_status,
             input_files=input_files,
             slice_type=slice_type,
             slices=slices,
-            recommendations=recommendations,
+            recommendations=report_recommendations,
         )
 
     return {
