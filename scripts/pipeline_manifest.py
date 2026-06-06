@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional
 REPORT_DIR = Path("report")
 OUTPUT_PATH = REPORT_DIR / "pipeline_manifest.json"
 
+
 TRACKED_FILES = [
     "report/prediction.json",
     "report/evaluation_clv_diagnostic.json",
@@ -41,31 +42,7 @@ TRACKED_FILES = [
     "report/data_contract_report.json",
     "report/pipeline_manifest.json",
     "report/index.html",
-    "report/walkforward_pr:contentReference[oaicite:4]{index=4}on 爆掉的大錯，但工程級 manifest 最好要自我追蹤。
-
----
-
-# 修改 3：清掉重複的 `_as_int`
-
-## 檔案：`scripts/clv_slice_report.py`
-
-目前 `_as_int()` 被定義了兩次，雖然不會直接造成 crash，但應該清掉。fileciteturn663file0L48-L59
-
-你現在有：
-
-```python
-def _as_int(value: Any, default: Optional[int] = None) -> Optional[int]:
-    parsed = _as_float(value)
-    if parsed is None:
-        return default
-    return int(parsed)
-
-
-def _as_int(value: Any, default: Optional[int] = None) -> Optional[int]:
-    parsed = _as_float(value)
-    if parsed is None:
-        return default
-    return int(parsed)
+    "report/walkforward_predictions.csv",
     "data/model_registry.json",
     "data/paper_trading_ledger.csv",
     "data/training_status.json",
@@ -95,6 +72,7 @@ def _sha256(path: Path) -> Optional[str]:
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
+
     return digest.hexdigest()
 
 
@@ -102,21 +80,38 @@ def _json_summary(path: Path) -> Dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
-        return {"json_valid": False, "json_error": str(exc)}
+        return {
+            "json_valid": False,
+            "json_error": str(exc),
+        }
 
     if not isinstance(data, dict):
-        return {"json_valid": True, "json_type": type(data).__name__}
+        return {
+            "json_valid": True,
+            "json_type": type(data).__name__,
+        }
 
     summary: Dict[str, Any] = {
         "json_valid": True,
         "json_type": "dict",
     }
 
-    for key in ("generated_at", "status", "error_count", "warning_count"):
+    for key in (
+        "generated_at",
+        "status",
+        "error_count",
+        "warning_count",
+        "research_grade",
+        "risk_status",
+    ):
         if key in data:
             summary[key] = data.get(key)
 
-    predictions = data.get("predictions") or data.get("today_predictions") or data.get("games")
+    predictions = (
+        data.get("predictions")
+        or data.get("today_predictions")
+        or data.get("games")
+    )
     if isinstance(predictions, list):
         summary["prediction_count"] = len(predictions)
 
@@ -127,6 +122,24 @@ def _json_summary(path: Path) -> Dict[str, Any]:
     bins = data.get("bins")
     if isinstance(bins, list):
         summary["bin_count"] = len(bins)
+
+    rows = data.get("rows")
+    if isinstance(rows, list):
+        summary["row_count_in_json"] = len(rows)
+
+    for key in (
+        "settled_prediction_count",
+        "total_oos_predictions",
+        "audit_count",
+        "ledger_count",
+        "file_count",
+        "tracked_file_count",
+        "missing_file_count",
+        "promotion_allowed",
+        "production_allowed",
+    ):
+        if key in data:
+            summary[key] = data.get(key)
 
     return summary
 
@@ -144,17 +157,21 @@ def _csv_row_count(path: Path) -> Optional[int]:
 
 def _file_record(path_text: str) -> Dict[str, Any]:
     path = Path(path_text)
+
+    exists = path.exists()
+    size_bytes = path.stat().st_size if exists and path.is_file() else 0
+
     record: Dict[str, Any] = {
         "path": path_text,
-        "exists": path.exists(),
-        "size_bytes": path.stat().st_size if path.exists() and path.is_file() else 0,
+        "exists": exists,
+        "size_bytes": size_bytes,
         "sha256": _sha256(path),
     }
 
-    if path.suffix.lower() == ".json" and path.exists():
+    if path.suffix.lower() == ".json" and exists:
         record.update(_json_summary(path))
 
-    if path.suffix.lower() == ".csv" and path.exists():
+    if path.suffix.lower() == ".csv" and exists:
         record["row_count"] = _csv_row_count(path)
 
     return record
@@ -164,23 +181,63 @@ def build_manifest() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
     files = [_file_record(path) for path in TRACKED_FILES]
-    missing = [item["path"] for item in files if not item["exists"]]
+
+    missing_files = [
+        item["path"]
+        for item in files
+        if not item["exists"]
+    ]
+
+    invalid_json_files = [
+        item["path"]
+        for item in files
+        if item["path"].endswith(".json")
+        and item["exists"]
+        and item.get("json_valid") is False
+    ]
+
+    status = "ok"
+    if invalid_json_files:
+        status = "failed"
+    elif missing_files:
+        status = "partial"
+
+    recommendations = []
+    if missing_files:
+        recommendations.append(
+            "Some tracked files are missing; check whether they are optional, not generated yet, or failed upstream."
+        )
+    if invalid_json_files:
+        recommendations.append(
+            "Some tracked JSON files are invalid; fix these before trusting generated reports."
+        )
+    if not recommendations:
+        recommendations.append("All tracked pipeline artifacts are present and readable.")
 
     report = {
-        "generated_at": _utc_now(),
-        "status": "ok" if not missing else "partial",
-        "tracked_file_count": len(files),
-        "missing_file_count": len(missing),
-        "missing_files": missing,
-        "files": files,
-        "recommendations": []
-        if not missing
-        else [
+        "generated = []
+    if missing_files:
+        recommendations.append(
             "Some tracked files are missing; check whether they are optional, not generated yet, or failed upstream."
-        ],
+        )
+    if invalid_json_files:
+        recommendations.append(
+            "Some tracked JSON files are invalid; fix these before trusting_at": _utc_now(),
+        "status": status,
+        "tracked_file_count": len(files),
+        "missing_file_count": len(missing_files),
+        "invalid_json_file_count": len(invalid_json_files),
+        "missing_files": missing_files,
+        "invalid_json_files": invalid_json_files,
+        "files": files,
+        "recommendations": recommendations,
     }
 
-    OUTPUT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
+    OUTPUT_PATH.write_text(
+        json.dumps(report, indent=2, ensure_ascii=True),
+        encoding="utf-8",
+    )
+
     return report
 
 
@@ -192,6 +249,7 @@ def main() -> None:
                 "status": manifest["status"],
                 "tracked_file_count": manifest["tracked_file_count"],
                 "missing_file_count": manifest["missing_file_count"],
+                "invalid_json_file_count": manifest["invalid_json_file_count"],
                 "output_path": str(OUTPUT_PATH),
             },
             indent=2,
