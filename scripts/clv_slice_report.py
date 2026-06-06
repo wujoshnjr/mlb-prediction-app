@@ -50,6 +50,13 @@ def _as_int(value: Any, default: Optional[int] = None) -> Optional[int]:
     return int(parsed)
 
 
+def _as_int(value: Any, default: Optional[int] = None) -> Optional[int]:
+    parsed = _as_float(value)
+    if parsed is None:
+        return default
+    return int(parsed)
+
+
 def _safe_read_json(path: Path) -> Tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
     status = {"path": str(path), "exists": path.exists(), "rows": None, "error": ""}
     if not path.exists():
