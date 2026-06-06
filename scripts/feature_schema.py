@@ -54,7 +54,6 @@ MODEL_FEATURES = CORE_MODEL_FEATURES + AVAILABILITY_FLAG_FEATURES
 
 TRACKING_ONLY_FEATURES = [
     "is_day_game",
-    "back2back_diff",
     "catcher_era_diff",
     "cs_diff",
     "wind_effect",
