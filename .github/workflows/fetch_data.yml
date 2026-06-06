@@ -103,6 +103,17 @@ jobs:
             scripts/html_report_builder.py \
             scripts/data_contract_validator.py \
             scripts/pipeline_manifest.py \
+            scripts/settle_reliability_report.py \
+            scripts/rolling_walkforward_evaluation.py \
+            scripts/lineup_starter_slice_report.py \
+            scripts/market_close_report.py \
+            scripts/research_quality_report.py \
+            scripts/model_registry.py \
+            scripts/promotion_gate.py \
+            scripts/decision_audit_report.py \
+            scripts/paper_trading_ledger.py \
+            scripts/risk_exposure_report.py \
+            scripts/artifact_retention_manifest.py \
             scripts/projected_lineup_client.py
             
       - name: Update finalized game results
@@ -267,7 +278,22 @@ jobs:
         run: python scripts/walkforward_evaluation.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-           
+
+      - name: Build rolling walk-forward evaluation report
+        run: python scripts/rolling_walkforward_evaluation.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build lineup and starter slice report
+        run: python scripts/lineup_starter_slice_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build market close report
+        run: python scripts/market_close_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Diagnose feature availability
         continue-on-error: false
         run: python scripts/feature_availability_diagnostic.py
@@ -286,6 +312,21 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build settle reliability report
+        run: python scripts/settle_reliability_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build research quality report
+        run: python scripts/research_quality_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build model registry
+        run: python scripts/model_registry.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Build HTML report
         run: python scripts/html_report_builder.py
         env:
@@ -297,6 +338,46 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Build pipeline manifest
+        run: python scripts/pipeline_manifest.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build promotion gate report
+        run: python scripts/promotion_gate.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build decision audit report
+        run: python scripts/decision_audit_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build paper trading ledger
+        run: python scripts/paper_trading_ledger.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build risk exposure report
+        run: python scripts/risk_exposure_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build artifact retention manifest
+        run: python scripts/artifact_retention_manifest.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build final HTML report
+        run: python scripts/html_report_builder.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Validate final data contracts
+        run: python scripts/data_contract_validator.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build final pipeline manifest
         run: python scripts/pipeline_manifest.py
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -325,10 +406,15 @@ jobs:
           if-no-files-found: warn
           path: |
             report/*.json
+            report/*.csv
             report/data_contract_report.json
             report/pipeline_manifest.json
             report/index.html
             report/walkforward_predictions.csv
+            report/rolling_walkforward_predictions.csv
+            report/decision_audit.csv
+            data/model_registry.json
+            data/paper_trading_ledger.csv
             data/calibrator.pkl
             data/market_residual_model.pkl
             data/prediction_snapshots.csv
@@ -372,10 +458,25 @@ jobs:
             report/clv_by_lineup_status.json \
             report/calibration_report.json \
             report/walkforward_evaluation.json \
+            report/rolling_walkforward_evaluation.json \
+            report/rolling_walkforward_predictions.csv \
+            report/lineup_starter_slice_report.json \
+            report/market_close_report.json \
+            report/research_quality_report.json \
+            report/settle_reliability_report.json \
+            report/model_registry_report.json \
+            report/promotion_gate_report.json \
+            report/decision_audit_report.json \
+            report/decision_audit.csv \
+            report/paper_trading_ledger_report.json \
+            report/risk_exposure_report.json \
+            report/artifact_retention_manifest.json \
             report/data_contract_report.json \
             report/pipeline_manifest.json \
             report/index.html \
             report/walkforward_predictions.csv \
+            data/model_registry.json \
+            data/paper_trading_ledger.csv \
             data/top3_player_context.csv \
             data/pitcher_advanced_context.csv \
             data/team_form_context.csv \
