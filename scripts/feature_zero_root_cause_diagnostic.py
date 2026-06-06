@@ -32,6 +32,9 @@ SOURCE_TO_FEATURES: Dict[str, List[str]] = {
         "lag30_runs_diff",
         "rest_diff",
         "back2back_diff",
+        "games_last_3d_diff",
+        "games_last_7d_diff",
+        "rest_pressure_diff",
         "log5_prob",
         "elo_momentum_7d",
         "elo_momentum_30d",
@@ -51,6 +54,15 @@ SOURCE_FILES: Dict[str, str] = {
     "context_bridge": "data/context_feature_bridge.csv",
 }
 
+EXPECTED_NEUTRAL_ZERO_FEATURES = {
+    "rest_diff",
+    "back2back_diff",
+}
+
+FEATURE_SIGNAL_ALTERNATIVES = {
+    "rest_diff": ["rest_pressure_diff", "games_last_3d_diff", "games_last_7d_diff"],
+    "back2back_diff": ["rest_pressure_diff", "games_last_3d_diff", "games_last_7d_diff"],
+}
 
 def _current_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -153,6 +165,27 @@ def _likely_root_cause(
         return "source_present_but_not_integrated_or_no_signal"
 
     return "repaired_or_active"
+
+
+def _has_alternative_signal(
+    feature: str,
+    predictions: List[Dict[str, Any]],
+) -> bool:
+    alternatives = FEATURE_SIGNAL_ALTERNATIVES.get(feature, [])
+    if not alternatives:
+        return False
+
+    for prediction in predictions:
+        features = prediction.get("features")
+        if not isinstance(features, dict):
+            continue
+
+        for alternative in alternatives:
+            value = _as_float(features.get(alternative))
+            if value is not None and value != 0.0:
+                return True
+
+    return False
 
 
 def build_feature_zero_root_cause_diagnostic(
@@ -258,11 +291,18 @@ def build_feature_zero_root_cause_diagnostic(
         }
         feature_zero_summary.append(item)
 
-        if non_zero_count > 0:
+        expected_neutral_zero = (
+            feature in EXPECTED_NEUTRAL_ZERO_FEATURES
+            and _has_alternative_signal(feature, predictions)
+        )
+
+        item["expected_neutral_zero"] = bool(expected_neutral_zero)
+
+        if non_zero_count > 0 or expected_neutral_zero:
             repaired_features.append(feature)
         else:
             still_zero_features.append(feature)
-
+            
     report["feature_zero_summary"] = sorted(
         feature_zero_summary,
         key=lambda item: (item["source"], item["feature"]),
