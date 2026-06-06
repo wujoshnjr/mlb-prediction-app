@@ -43,6 +43,13 @@ def _as_float(value: Any, default: Optional[float] = None) -> Optional[float]:
         return default
 
 
+def _as_int(value: Any, default: Optional[int] = None) -> Optional[int]:
+    parsed = _as_float(value)
+    if parsed is None:
+        return default
+    return int(parsed)
+
+
 def _safe_read_json(path: Path) -> Tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
     status = {"path": str(path), "exists": path.exists(), "rows": None, "error": ""}
     if not path.exists():
@@ -413,8 +420,6 @@ def build_clv_slice_reports() -> Dict[str, Any]:
     }
 
     clv_rows = _prepare_clv_rows(snapshots, finalized)
-    status = "ok" if not clv_rows.empty else "insufficient_samples"
-    recommendations = [] if not clv_rows.empty else ["No per-pick CLV rows were available."]
 
     reports = {
         OUTPUT_EDGE: ("edge_bucket", "edge_bucket"),
@@ -423,6 +428,9 @@ def build_clv_slice_reports() -> Dict[str, Any]:
         OUTPUT_LINEUP: ("lineup_status", "lineup_status"),
     }
 
+    status_by_report: Dict[str, str] = {}
+    row_count_by_report: Dict[str, int] = {}
+    
     for path, (column, slice_type) in reports.items():
         if not clv_rows.empty:
             slices = _summarise_slice(clv_rows, column)
@@ -456,11 +464,25 @@ def build_clv_slice_reports() -> Dict[str, Any]:
             recommendations=report_recommendations,
         )
 
+        status_by_report[str(path)] = report_status
+        row_count_by_report[str(path)] = len(slices)
+
+    overall_status = (
+        "ok"
+        if any(status == "ok" for status in status_by_report.values())
+        else (
+            "partial"
+            if any(status == "partial" for status in status_by_report.values())
+            else "insufficient_samples"
+        )
+    )
+
     return {
         "generated_at": generated_at,
-        "status": status,
+        "status": overall_status,
         "evaluated_clv_rows": int(len(clv_rows)),
-        "outputs": [str(path) for path in reports],
+        "outputs": status_by_report,
+        "slice_counts": row_count_by_report,
     }
 
 
