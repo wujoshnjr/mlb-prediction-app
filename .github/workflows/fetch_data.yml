@@ -265,11 +265,6 @@ jobs:
         run: python scripts/walkforward_evaluation.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build HTML report
-        run: python scripts/html_report_builder.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
            
       - name: Diagnose feature availability
         continue-on-error: false
@@ -286,6 +281,11 @@ jobs:
       - name: Diagnose feature zero root cause
         continue-on-error: false
         run: python scripts/feature_zero_root_cause_diagnostic.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build HTML report
+        run: python scripts/html_report_builder.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
