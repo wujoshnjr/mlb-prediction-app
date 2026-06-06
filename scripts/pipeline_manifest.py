@@ -32,6 +32,7 @@ TRACKED_FILES = [
     "report/market_close_report.json",
     "report/research_quality_report.json",
     "report/settle_reliability_report.json",
+    "report/snapshot_sanitization_report.json",
     "report/model_registry_report.json",
     "report/promotion_gate_report.json",
     "report/decision_audit_report.json",
