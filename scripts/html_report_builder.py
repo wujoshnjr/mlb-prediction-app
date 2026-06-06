@@ -374,10 +374,6 @@ def build_html() -> str:
         [
             f"<footer><p class='muted'>Generated at {_escape(datetime.now(timezone.utc).isoformat())}</p></footer>",
             "</body>",
-    html_parts.extend(
-        [
-            f"<footer><p class='muted'>Generated at {_escape(datetime.now(timezone.utc).isoformat())}</p></footer>",
-            "</body>",
             "</html>",
         ]
     )
