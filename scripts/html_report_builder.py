@@ -303,16 +303,10 @@ def build_html() -> str:
         )
     )
 
-    html_parts.extend(
-        [
-            f"<footer><p class='muted'>Generated at {_escape(datetime.now(timezone.utc).isoformat())}</p></footer>",
-            "</body>",
-            "</html>",
-        ]
-    )
-
     # Engineering grade summary
-    html_parts.append("<div class='section'><h2>Engineering Grade Summary</h2>")
+    engineering_rows = [
+        "<table><tr><th>Report</th><th>Status</th><th>Key Metric</th><th>Notes</th></tr>"
+    ]
 
     engineering_sources = {
         "Settle Reliability": data.get("settle_reliability"),
@@ -330,14 +324,10 @@ def build_html() -> str:
         "Pipeline Manifest": data.get("pipeline_manifest"),
     }
 
-    html_parts.append(
-        "<table><tr><th>Report</th><th>Status</th><th>Key Metric</th><th>Notes</th></tr>"
-    )
-
     for title, report_data in engineering_sources.items():
         if not report_data:
-            html_parts.append(
-                f"<tr><td>{esc(title)}</td><td>unavailable</td><td>-</td><td>Report missing</td></tr>"
+            engineering_rows.append(
+                f"<tr><td>{_escape(title)}</td><td>unavailable</td><td>-</td><td>Report missing</td></tr>"
             )
             continue
 
@@ -345,21 +335,21 @@ def build_html() -> str:
 
         key_metric = "-"
         if title == "Settle Reliability":
-            key_metric = f"settle_rate={esc(report_data.get('settle_rate'))}"
+            key_metric = f"settle_rate={_escape(report_data.get('settle_rate'))}"
         elif title == "Rolling Walk-forward":
-            key_metric = f"oos={esc(report_data.get('total_oos_predictions'))}"
+            key_metric = f"oos={_escape(report_data.get('total_oos_predictions'))}"
         elif title == "Research Quality":
-            key_metric = f"grade={esc(report_data.get('research_grade'))}"
+            key_metric = f"grade={_escape(report_data.get('research_grade'))}"
         elif title == "Promotion Gate":
-            key_metric = f"promotion_allowed={esc(report_data.get('promotion_allowed'))}"
+            key_metric = f"promotion_allowed={_escape(report_data.get('promotion_allowed'))}"
         elif title == "Decision Audit":
-            key_metric = f"audit_count={esc(report_data.get('audit_count'))}"
+            key_metric = f"audit_count={_escape(report_data.get('audit_count'))}"
         elif title == "Paper Trading Ledger":
-            key_metric = f"ledger_count={esc(report_data.get('ledger_count'))}"
+            key_metric = f"ledger_count={_escape(report_data.get('ledger_count'))}"
         elif title == "Risk Exposure":
-            key_metric = f"open_units={esc(report_data.get('total_open_paper_units'))}"
+            key_metric = f"open_units={_escape(report_data.get('total_open_paper_units'))}"
         elif title == "Pipeline Manifest":
-            key_metric = f"tracked={esc(report_data.get('tracked_file_count'))}"
+            key_metric = f"tracked={_escape(report_data.get('tracked_file_count'))}"
 
         recommendations = report_data.get("recommendations", [])
         if isinstance(recommendations, list) and recommendations:
@@ -367,12 +357,30 @@ def build_html() -> str:
         else:
             notes = ""
 
-        html_parts.append(
-            f"<tr><td>{esc(title)}</td><td>{esc(status)}</td><td>{esc(key_metric)}</td><td>{esc(notes)}</td></tr>"
+        engineering_rows.append(
+            f"<tr><td>{_escape(title)}</td><td>{_escape(status)}</td><td>{_escape(key_metric)}</td><td>{_escape(notes)}</td></tr>"
         )
 
-    html_parts.append("</table>")
-    html_parts.append("</div>")
+    engineering_rows.append("</table>")
+
+    html_parts.append(
+        _section(
+            "Engineering Grade Summary",
+            "\n".join(engineering_rows),
+        )
+    )
+
+    html_parts.extend(
+        [
+            f"<footer><p class='muted'>Generated at {_escape(datetime.now(timezone.utc).isoformat())}</p></footer>",
+            "</body>",
+    html_parts.extend(
+        [
+            f"<footer><p class='muted'>Generated at {_escape(datetime.now(timezone.utc).isoformat())}</p></footer>",
+            "</body>",
+            "</html>",
+        ]
+    )
 
     html_content = "\n".join(html_parts)
     OUTPUT_HTML.write_text(html_content, encoding="utf-8")
