@@ -39,8 +39,33 @@ TRACKED_FILES = [
     "report/risk_exposure_report.json",
     "report/artifact_retention_manifest.json",
     "report/data_contract_report.json",
+    "report/pipeline_manifest.json",
     "report/index.html",
-    "report/walkforward_predictions.csv",
+    "report/walkforward_pr:contentReference[oaicite:4]{index=4}on 爆掉的大錯，但工程級 manifest 最好要自我追蹤。
+
+---
+
+# 修改 3：清掉重複的 `_as_int`
+
+## 檔案：`scripts/clv_slice_report.py`
+
+目前 `_as_int()` 被定義了兩次，雖然不會直接造成 crash，但應該清掉。fileciteturn663file0L48-L59
+
+你現在有：
+
+```python
+def _as_int(value: Any, default: Optional[int] = None) -> Optional[int]:
+    parsed = _as_float(value)
+    if parsed is None:
+        return default
+    return int(parsed)
+
+
+def _as_int(value: Any, default: Optional[int] = None) -> Optional[int]:
+    parsed = _as_float(value)
+    if parsed is None:
+        return default
+    return int(parsed)
     "data/model_registry.json",
     "data/paper_trading_ledger.csv",
     "data/training_status.json",
