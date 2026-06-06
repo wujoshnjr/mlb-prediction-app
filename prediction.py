@@ -3960,6 +3960,7 @@ def generate_predictions() -> dict[str, Any]:
             "accuracy_safe_model_weight": round(accuracy_safe_model_weight, 4),
             "accuracy_safe_market_weight": round(accuracy_safe_market_weight, 4),
             "accuracy_safe_blend_reasons": accuracy_safe_blend_reasons,
+            "recommendation": moneyline_recommendation,
             "recommendation_status": recommendation_status,
             "moneyline_gate_status": moneyline_gate_status,
             "risk_guard_approved": bool(risk_guard_approved),
