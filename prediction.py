@@ -865,11 +865,19 @@ def build_data_quality_status(
     )
     feature_imputation_rate = missing_source_count / checked_source_count
 
+    lineup_or_starter_not_confirmed = (
+        "confirmed_lineup" in missing_important_sources
+        or "confirmed_starter" in missing_important_sources
+    )
+
     if not schedule_fetch_ok:
         grade = "F"
         prediction_allowed = False
     elif missing_critical_sources:
         grade = "D"
+        prediction_allowed = True
+    elif lineup_or_starter_not_confirmed:
+        grade = "C"
         prediction_allowed = True
     elif len(missing_important_sources) >= 2:
         grade = "C"
@@ -881,8 +889,12 @@ def build_data_quality_status(
         grade = "A"
         prediction_allowed = True
 
-    bet_allowed = grade in {"A", "B"} and not missing_critical_sources
-
+    bet_allowed = (
+        grade in {"A", "B"}
+        and not missing_critical_sources
+        and not lineup_or_starter_not_confirmed
+    )
+    
     return {
         "data_quality_grade": grade,
         "prediction_allowed": prediction_allowed,
