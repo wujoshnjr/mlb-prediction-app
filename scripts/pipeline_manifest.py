@@ -157,7 +157,6 @@ def _csv_row_count(path: Path) -> Optional[int]:
 
 def _file_record(path_text: str) -> Dict[str, Any]:
     path = Path(path_text)
-
     exists = path.exists()
     size_bytes = path.stat().st_size if exists and path.is_file() else 0
 
@@ -215,14 +214,7 @@ def build_manifest() -> Dict[str, Any]:
         recommendations.append("All tracked pipeline artifacts are present and readable.")
 
     report = {
-        "generated = []
-    if missing_files:
-        recommendations.append(
-            "Some tracked files are missing; check whether they are optional, not generated yet, or failed upstream."
-        )
-    if invalid_json_files:
-        recommendations.append(
-            "Some tracked JSON files are invalid; fix these before trusting_at": _utc_now(),
+        "generated_at": _utc_now(),
         "status": status,
         "tracked_file_count": len(files),
         "missing_file_count": len(missing_files),
