@@ -313,6 +313,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Sanitize prediction snapshots for no-leakage policy
+        run: python scripts/sanitize_prediction_snapshots.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Build settle reliability report
         run: python scripts/settle_reliability_report.py
         env:
