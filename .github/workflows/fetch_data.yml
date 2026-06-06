@@ -95,6 +95,7 @@ jobs:
             scripts/context_feature_bridge_client.py \
             scripts/feature_zero_root_cause_diagnostic.py \
             scripts/feature_grade_report.py \
+            scripts/report_health_gate.py \
             scripts/projected_lineup_client.py
             
       - name: Update finalized game results
@@ -241,20 +242,25 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}
           
       - name: Diagnose feature availability
-        continue-on-error: true
+        continue-on-error: false
         run: python scripts/feature_availability_diagnostic.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Build feature grade report
-        continue-on-error: true
+        continue-on-error: false
         run: python scripts/feature_grade_report.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
       - name: Diagnose feature zero root cause
-        continue-on-error: true
+        continue-on-error: false
         run: python scripts/feature_zero_root_cause_diagnostic.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Validate report health gate
+        run: python scripts/report_health_gate.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
