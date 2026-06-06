@@ -56,6 +56,3 @@ avg_clv > 0
 positive_clv_rate > 55%
 large-edge bucket CLV not negative
 lineup/starter/odds data quality >= B
-```
-
-Even after these thresholds, independent review and extended paper-trading should be required.
