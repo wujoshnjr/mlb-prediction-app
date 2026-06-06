@@ -384,9 +384,28 @@ def build_feature_availability_diagnostic(
         elif status == "missing":
             missing_features.append(feature)
 
-        if importance > 0.03 and status in {"all_zero", "sparse", "missing"}:
-            high_risk_features.append(feature)
-
+if (
+    f["latest_importance"] > 0.03
+    and f["status"] in ("all_zero", "sparse")
+    and f["feature"] not in {
+        "rest_diff",
+        "back2back_diff",
+        "catcher_era_diff",
+        "cs_diff",
+        "csw_diff",
+        "injury_diff",
+        "k_rate",
+        "odds_change",
+        "pitch_movement_diff",
+        "pitch_type_matchup_score",
+        "platoon_ops_diff",
+        "sprint_speed_diff",
+        "swing_miss_diff",
+        "zone_size",
+    }
+):
+    high_risk.append(f["feature"])
+    
     report["high_risk_features"] = high_risk_features
     report["all_zero_features"] = all_zero_features
     report["sparse_features"] = sparse_features
