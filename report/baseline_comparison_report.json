@@ -1,0 +1,87 @@
+{
+  "generated_at": "2026-06-06T11:49:55.644618+00:00",
+  "status": "ok",
+  "input_files": {
+    "prediction": {
+      "path": "report/prediction.json",
+      "exists": true,
+      "rows": 15,
+      "error": ""
+    },
+    "prediction_snapshots": {
+      "path": "data/prediction_snapshots.csv",
+      "exists": true,
+      "rows": 139,
+      "error": ""
+    },
+    "finalized_games": {
+      "path": "data/finalized_games.csv",
+      "exists": true,
+      "rows": 795,
+      "error": ""
+    },
+    "market_odds_history": {
+      "path": "data/market_odds_history.csv",
+      "exists": true,
+      "rows": 27294,
+      "error": ""
+    }
+  },
+  "settled_prediction_count": 124,
+  "baselines": {
+    "model": {
+      "name": "model",
+      "count": 124,
+      "brier": 0.252651,
+      "logloss": 0.699175,
+      "accuracy": 0.532258
+    },
+    "market_no_vig": {
+      "name": "market_no_vig",
+      "count": 121,
+      "brier": 0.275404,
+      "logloss": 0.78339,
+      "accuracy": 0.570248
+    },
+    "elo": {
+      "name": "elo",
+      "count": 124,
+      "brier": 0.251636,
+      "logloss": 0.695981,
+      "accuracy": 0.532258
+    },
+    "constant_50": {
+      "name": "constant_50",
+      "count": 124,
+      "brier": 0.25,
+      "logloss": 0.693147,
+      "accuracy": 0.532258
+    },
+    "home_historical_rate": {
+      "name": "home_historical_rate",
+      "count": 124,
+      "brier": 0.248967,
+      "logloss": 0.691079,
+      "accuracy": 0.532258
+    },
+    "log5": {
+      "name": "log5",
+      "count": 124,
+      "brier": 0.532258,
+      "logloss": 14.706834,
+      "accuracy": 0.467742
+    }
+  },
+  "comparison": {
+    "model_brier": 0.252651,
+    "market_brier": 0.275404,
+    "model_logloss": 0.699175,
+    "market_logloss": 0.78339,
+    "model_beats_market_brier": true,
+    "model_beats_market_logloss": true
+  },
+  "skipped_baselines": [],
+  "recommendations": [
+    "Settled sample count is below 300; baseline comparisons are not production-reliable."
+  ]
+}
