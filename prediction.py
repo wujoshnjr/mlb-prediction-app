@@ -814,13 +814,32 @@ def build_data_quality_status(
     if not odds_are_usable or odds_quality_status != "OK":
         missing_critical_sources.append("odds")
 
-    lineup_status = str(daily_context_summary.get("lineup_status", "")).lower()
-    starter_status = str(daily_context_summary.get("starter_status", "")).lower()
+    lineup_status = str(
+        daily_context_summary.get("lineup_status", "")
+    ).strip().lower()
 
-    if lineup_status != "confirmed":
+    pitcher_status = str(
+        daily_context_summary.get("pitcher_status", "")
+    ).strip().lower()
+
+    starter_confidence_status = str(
+        daily_context_summary.get("starter_confidence_status", "")
+    ).strip().lower()
+
+    starter_confirmation_pending = (
+        daily_context_summary.get("starter_confirmation_pending") is True
+    )
+
+    lineup_confirmed_for_bet = lineup_status == "confirmed"
+    starter_confirmed_for_bet = (
+        pitcher_status == "confirmed"
+        and starter_confirmation_pending is False
+    )
+
+    if not lineup_confirmed_for_bet:
         missing_important_sources.append("confirmed_lineup")
 
-    if starter_status != "confirmed":
+    if not starter_confirmed_for_bet:
         missing_important_sources.append("confirmed_starter")
         
     if not weather_context_row:
