@@ -311,6 +311,69 @@ def build_html() -> str:
         ]
     )
 
+    # Engineering grade summary
+    html_parts.append("<div class='section'><h2>Engineering Grade Summary</h2>")
+
+    engineering_sources = {
+        "Settle Reliability": data.get("settle_reliability"),
+        "Rolling Walk-forward": data.get("rolling_walkforward"),
+        "Lineup / Starter Slice": data.get("lineup_starter_slice"),
+        "Market Close": data.get("market_close"),
+        "Research Quality": data.get("research_quality"),
+        "Model Registry": data.get("model_registry"),
+        "Promotion Gate": data.get("promotion_gate"),
+        "Decision Audit": data.get("decision_audit"),
+        "Paper Trading Ledger": data.get("paper_trading_ledger"),
+        "Risk Exposure": data.get("risk_exposure"),
+        "Artifact Retention": data.get("artifact_retention"),
+        "Data Contract": data.get("data_contract"),
+        "Pipeline Manifest": data.get("pipeline_manifest"),
+    }
+
+    html_parts.append(
+        "<table><tr><th>Report</th><th>Status</th><th>Key Metric</th><th>Notes</th></tr>"
+    )
+
+    for title, report_data in engineering_sources.items():
+        if not report_data:
+            html_parts.append(
+                f"<tr><td>{esc(title)}</td><td>unavailable</td><td>-</td><td>Report missing</td></tr>"
+            )
+            continue
+
+        status = report_data.get("status", report_data.get("risk_status", "unavailable"))
+
+        key_metric = "-"
+        if title == "Settle Reliability":
+            key_metric = f"settle_rate={esc(report_data.get('settle_rate'))}"
+        elif title == "Rolling Walk-forward":
+            key_metric = f"oos={esc(report_data.get('total_oos_predictions'))}"
+        elif title == "Research Quality":
+            key_metric = f"grade={esc(report_data.get('research_grade'))}"
+        elif title == "Promotion Gate":
+            key_metric = f"promotion_allowed={esc(report_data.get('promotion_allowed'))}"
+        elif title == "Decision Audit":
+            key_metric = f"audit_count={esc(report_data.get('audit_count'))}"
+        elif title == "Paper Trading Ledger":
+            key_metric = f"ledger_count={esc(report_data.get('ledger_count'))}"
+        elif title == "Risk Exposure":
+            key_metric = f"open_units={esc(report_data.get('total_open_paper_units'))}"
+        elif title == "Pipeline Manifest":
+            key_metric = f"tracked={esc(report_data.get('tracked_file_count'))}"
+
+        recommendations = report_data.get("recommendations", [])
+        if isinstance(recommendations, list) and recommendations:
+            notes = recommendations[0]
+        else:
+            notes = ""
+
+        html_parts.append(
+            f"<tr><td>{esc(title)}</td><td>{esc(status)}</td><td>{esc(key_metric)}</td><td>{esc(notes)}</td></tr>"
+        )
+
+    html_parts.append("</table>")
+    html_parts.append("</div>")
+
     html_content = "\n".join(html_parts)
     OUTPUT_HTML.write_text(html_content, encoding="utf-8")
     return html_content
