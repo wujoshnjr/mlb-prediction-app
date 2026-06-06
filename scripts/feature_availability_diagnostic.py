@@ -8,7 +8,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
-
+try:
+    from scripts.feature_schema import MODEL_FEATURES, TRACKING_ONLY_FEATURES
+except Exception:
+    MODEL_FEATURES = []
+    TRACKING_ONLY_FEATURES = []
+    
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -233,6 +238,42 @@ def _feature_group(feature_name: str) -> str:
     return "other"
 
 
+EXPECTED_NEUTRAL_ZERO_FEATURES = {
+    "rest_diff",
+    "back2back_diff",
+}
+
+EXPECTED_CONTEXT_GATE_ZERO_FEATURES = {
+    "lineup_context_available",
+    "starter_context_available",
+}
+
+OPTIONAL_TRACKING_GROUPS = {
+    "catcher",
+    "umpire",
+}
+
+
+def _is_non_blocking_feature(feature_name: str, group: str | None = None) -> bool:
+    """Return True for features that should not trigger current health warnings."""
+    feature = str(feature_name)
+    feature_group = str(group or "")
+
+    if feature in set(TRACKING_ONLY_FEATURES):
+        return True
+
+    if feature in EXPECTED_NEUTRAL_ZERO_FEATURES:
+        return True
+
+    if feature in EXPECTED_CONTEXT_GATE_ZERO_FEATURES:
+        return True
+
+    if feature_group in OPTIONAL_TRACKING_GROUPS:
+        return True
+
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Main diagnostic
 # ---------------------------------------------------------------------------
@@ -372,27 +413,18 @@ def build_feature_availability_diagnostic(
     sparse_features = []
     missing_features = []
 
-    optional_or_tracking_only_all_zero_features = {
-        "rest_diff",
-        "back2back_diff",
-        "catcher_era_diff",
-        "cs_diff",
-        "csw_diff",
-        "injury_diff",
-        "k_rate",
-        "odds_change",
-        "pitch_movement_diff",
-        "pitch_type_matchup_score",
-        "platoon_ops_diff",
-        "sprint_speed_diff",
-        "swing_miss_diff",
-        "zone_size",
-    }
+    non_blocking_features = []
 
     for item in feature_rows:
         feature = str(item["feature"])
         status = str(item["status"])
+        group = str(item.get("group", ""))
         importance = float(item.get("latest_importance") or 0.0)
+        is_non_blocking = _is_non_blocking_feature(feature, group)
+
+        item["training_allowed_by_schema"] = feature in set(MODEL_FEATURES)
+        item["tracking_only_by_schema"] = feature in set(TRACKING_ONLY_FEATURES)
+        item["non_blocking_zero_or_missing"] = bool(is_non_blocking)
 
         if status == "all_zero":
             all_zero_features.append(feature)
@@ -401,13 +433,17 @@ def build_feature_availability_diagnostic(
         elif status == "missing":
             missing_features.append(feature)
 
+        if is_non_blocking and status in {"all_zero", "sparse", "missing"}:
+            non_blocking_features.append(feature)
+
         if (
             importance > 0.03
-            and status in ("all_zero", "sparse")
-            and feature not in optional_or_tracking_only_all_zero_features
+            and status in ("all_zero", "sparse", "missing")
+            and not is_non_blocking
         ):
             high_risk_features.append(feature)
 
+    report["non_blocking_features"] = sorted(set(non_blocking_features))
     report["high_risk_features"] = high_risk_features
     report["all_zero_features"] = all_zero_features
     report["sparse_features"] = sparse_features
@@ -425,24 +461,45 @@ def build_feature_availability_diagnostic(
                 "sparse_count": 0,
                 "all_zero_count": 0,
                 "missing_count": 0,
+                "blocking_sparse_count": 0,
+                "blocking_all_zero_count": 0,
+                "blocking_missing_count": 0,
+                "non_blocking_count": 0,
                 "avg_non_zero_rate": 0.0,
                 "features": [],
+                "blocking_features": [],
+                "non_blocking_features": [],
             },
         )
 
         status = str(item["status"])
+        feature = str(item["feature"])
+        is_non_blocking = bool(item.get("non_blocking_zero_or_missing"))
+
         group_info["feature_count"] += 1
-        group_info["features"].append(item["feature"])
+        group_info["features"].append(feature)
         group_info["avg_non_zero_rate"] += float(item["non_zero_rate"])
+
+        if is_non_blocking and status in {"sparse", "all_zero", "missing"}:
+            group_info["non_blocking_count"] += 1
+            group_info["non_blocking_features"].append(feature)
+        elif status in {"sparse", "all_zero", "missing"}:
+            group_info["blocking_features"].append(feature)
 
         if status == "healthy":
             group_info["healthy_count"] += 1
         elif status == "sparse":
             group_info["sparse_count"] += 1
+            if not is_non_blocking:
+                group_info["blocking_sparse_count"] += 1
         elif status == "all_zero":
             group_info["all_zero_count"] += 1
+            if not is_non_blocking:
+                group_info["blocking_all_zero_count"] += 1
         elif status == "missing":
             group_info["missing_count"] += 1
+            if not is_non_blocking:
+                group_info["blocking_missing_count"] += 1
 
     for group, group_info in group_summary.items():
         feature_count = int(group_info["feature_count"])
@@ -468,51 +525,51 @@ def build_feature_availability_diagnostic(
         )
 
     statcast_group = group_summary.get("statcast", {})
-    if statcast_group and int(statcast_group.get("all_zero_count", 0)) > 0:
+    if statcast_group and int(statcast_group.get("blocking_all_zero_count", 0)) > 0:
         recommendations.append(
-            "Statcast-related features are all-zero or sparse; check Savant top-3 context and prediction feature mapping."
+            "Blocking Statcast features are all-zero; check Savant top-3 context and prediction feature mapping."
         )
 
     pitching_group = group_summary.get("pitching", {})
-    if pitching_group and int(pitching_group.get("all_zero_count", 0)) > 0:
+    if pitching_group and int(pitching_group.get("blocking_all_zero_count", 0)) > 0:
         recommendations.append(
-            "Some pitching features are all-zero; check probable pitcher enrichment, FIP, CSW, Stuff+, K%, and BB% sources."
+            "Blocking pitching features are all-zero; check probable pitcher enrichment, FIP, CSW, Stuff+, K%, and BB% sources."
         )
 
     lineup_group = group_summary.get("lineup", {})
     if lineup_group and (
-        int(lineup_group.get("all_zero_count", 0)) > 0
-        or int(lineup_group.get("missing_count", 0)) > 0
+        int(lineup_group.get("blocking_all_zero_count", 0)) > 0
+        or int(lineup_group.get("blocking_missing_count", 0)) > 0
     ):
         recommendations.append(
-            "Lineup/platoon/top3 features are incomplete; projected or confirmed lineup integration should be prioritized."
+            "Blocking lineup features are incomplete; check confirmed/projected lineup integration."
         )
 
     catcher_group = group_summary.get("catcher", {})
     if catcher_group and (
-        int(catcher_group.get("all_zero_count", 0)) > 0
-        or int(catcher_group.get("missing_count", 0)) > 0
+        int(catcher_group.get("blocking_all_zero_count", 0)) > 0
+        or int(catcher_group.get("blocking_missing_count", 0)) > 0
     ):
         recommendations.append(
-            "Catcher-related features are incomplete; verify catcher context source and catcher ERA / caught-stealing mapping."
+            "Blocking catcher features are incomplete; verify catcher context source."
         )
 
     weather_group = group_summary.get("weather", {})
     if weather_group and (
-        int(weather_group.get("all_zero_count", 0)) > 0
-        or int(weather_group.get("missing_count", 0)) > 0
+        int(weather_group.get("blocking_all_zero_count", 0)) > 0
+        or int(weather_group.get("blocking_missing_count", 0)) > 0
     ):
         recommendations.append(
-            "Weather-related features are incomplete; verify Open-Meteo integration and weather-to-feature mapping."
+            "Blocking weather features are incomplete; verify weather integration and weather-to-feature mapping."
         )
 
     umpire_group = group_summary.get("umpire", {})
     if umpire_group and (
-        int(umpire_group.get("all_zero_count", 0)) > 0
-        or int(umpire_group.get("missing_count", 0)) > 0
+        int(umpire_group.get("blocking_all_zero_count", 0)) > 0
+        or int(umpire_group.get("blocking_missing_count", 0)) > 0
     ):
         recommendations.append(
-            "Umpire-related features are incomplete; verify umpire source and zone-size feature mapping."
+            "Blocking umpire features are incomplete; verify umpire source and zone-size feature mapping."
         )
 
     if not recommendations:
