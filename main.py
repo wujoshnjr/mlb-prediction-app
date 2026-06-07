@@ -1068,10 +1068,6 @@ a { color:inherit; }
           </div>
           <div class="terminal-line">
             <span>Execution</span>
-            <span>Disabled</span>
-          </div>
-          <div class="terminal-line">
-            <span>Execution</span>
             <span>No Automated Wagering</span>
           </div>
           <div class="terminal-line">
