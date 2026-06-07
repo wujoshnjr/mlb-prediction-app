@@ -44,6 +44,7 @@ OPTIONAL_JSON_REPORTS = {
     "risk_exposure": REPORT_DIR / "risk_exposure_report.json",
     "artifact_retention": REPORT_DIR / "artifact_retention_manifest.json",
     "world_class_trading_system": REPORT_DIR / "world_class_trading_system_report.json",
+    "saas_readiness": REPORT_DIR / "saas_readiness_report.json",
 }
 
 REQUIRED_NON_JSON_FILES = {
@@ -352,6 +353,7 @@ def build_contract_report() -> Dict[str, Any]:
         "risk_exposure",
         "artifact_retention",
         "world_class_trading_system",
+        "saas_readiness",
         "sample_state",
         "sample_state_report",
     ):
