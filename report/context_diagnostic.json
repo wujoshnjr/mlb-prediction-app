@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-06-06T13:42:53.133309+00:00",
+  "generated_at": "2026-06-07T02:19:16.032388+00:00",
   "daily_context": {
     "exists": true,
     "error": "",
-    "row_count": 1555,
+    "row_count": 1570,
     "column_count": 108,
     "schema_versions": [
       "daily_context_v1",
       "daily_context_v2",
       "daily_context_v3"
     ],
-    "latest_captured_at": "2026-06-06T13:40:39.003341+00:00",
+    "latest_captured_at": "2026-06-07T02:16:35.987455+00:00",
     "latest_game_count": 15,
     "columns_present": [
       "home_starter_status",
@@ -37,8 +37,8 @@
     "error": "",
     "prediction_count": 15,
     "pitcher_status_counts": {
-      "high_confidence_probable": 12,
-      "mixed_probable": 3
+      "high_confidence_probable": 14,
+      "mixed_probable": 1
     },
     "lineup_status_counts": {
       "pending": 15
@@ -49,43 +49,52 @@
     "missing_critical_field_counts": {
       "home_lineup_confirmed": 15,
       "away_lineup_confirmed": 15,
-      "home_starting_pitcher_confirmed": 3,
-      "away_starting_pitcher_confirmed": 3
+      "home_bullpen_data_available": 1,
+      "away_bullpen_data_available": 1,
+      "home_closer_available_known": 1,
+      "away_closer_available_known": 1,
+      "home_starting_pitcher_confirmed": 1,
+      "away_starting_pitcher_confirmed": 1
     },
     "context_status_counts": {
       "TRACKING_ONLY_CONTEXT_NOT_READY": 15
     },
     "betting_readiness_status_counts": {
-      "risk_blocked": 11,
-      "model_blocked": 4
+      "model_blocked": 6,
+      "risk_blocked": 7,
+      "odds_blocked": 2
     },
     "live_bet_candidate_count": 0,
     "average_betting_readiness_score": 0.0,
     "risk_flag_counts": {
-      "closer_fatigue": 3,
+      "closer_high_fatigue": 10,
       "context_missing_fields": 15,
       "data_quality_bet_blocked": 15,
       "early_model_small_sample": 15,
-      "large_anti_market_edge_early_model": 11,
       "lineup_not_confirmed": 15,
       "model_governance_live_locked": 15,
       "non_ml_model": 15,
-      "risk_guard_rejected": 13,
-      "starter_confirmation_pending": 12,
-      "closer_high_fatigue": 12,
-      "edge_below_threshold": 2
+      "risk_guard_rejected": 9,
+      "starter_confirmation_pending": 14,
+      "large_anti_market_edge_early_model": 7,
+      "bullpen_not_available": 1,
+      "edge_below_threshold": 4,
+      "edge_unavailable": 2,
+      "odds_not_ok": 2,
+      "closer_fatigue": 1
     },
     "feature_health_flag_counts": {
-      "top3_woba_zero": 15,
-      "statcast_core_zero": 15
+      "top3_woba_zero": 13,
+      "statcast_core_zero": 13,
+      "none": 2
     },
     "savant_top3_available_count": 15,
     "savant_top3_unavailable_count": 0,
-    "statcast_core_zero_count": 15,
-    "top3_woba_zero_count": 15,
+    "statcast_core_zero_count": 13,
+    "top3_woba_zero_count": 13,
     "practical_ready_count": 0,
     "official_ready_count": 0,
-    "risk_blocked_count": 11
+    "risk_blocked_count": 7
   },
   "schema_checks": {
     "context_has_starter_confidence_columns": true,
@@ -97,16 +106,16 @@
     "practical_ready_exists_when_missing_only_starter_confirmation": false
   },
   "latest_snapshot_checks": {
-    "latest_rows": 108,
+    "latest_rows": 123,
     "starter_status_counts": {
       "home": {
-        "high_confidence_probable": 75,
+        "high_confidence_probable": 90,
         "unknown": 32,
         "confirmed": 1
       },
       "away": {
-        "high_confidence_probable": 75,
-        "unknown": 31,
+        "high_confidence_probable": 89,
+        "unknown": 32,
         "medium_confidence_probable": 1,
         "confirmed": 1
       }
@@ -115,10 +124,10 @@
       "confirmed": 82,
       "partial_confirmed": 8,
       "projected_available": 0,
-      "pending": 18
+      "pending": 33
     },
-    "closer_known_count": 78,
-    "high_confidence_starter_count": 78,
+    "closer_known_count": 92,
+    "high_confidence_starter_count": 93,
     "projected_lineup_available_count": 0,
     "confirmed_lineup_count": 82
   },

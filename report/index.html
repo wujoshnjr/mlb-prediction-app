@@ -15,43 +15,58 @@ code{background:#eee;padding:.1rem .25rem;border-radius:4px;}
 <body>
 <h1>MLB Prediction App Dashboard</h1>
 <div class='banner'><strong>Current status:</strong> experimental paper-trading only.<br><strong>Live betting:</strong> disabled by governance.<br>For research and educational use only. No guaranteed profit. Not financial or gambling advice.</div>
-<section class='section'><h2>Model Readiness</h2><p>Training sample count: 124</p><p>Minimum clean train samples: 300</p><p>Model trained: False</p><p>Model type: calibrated_logistic_regression_with_imputer</p></section>
+<section class='section'><h2>Model Readiness</h2><p>Training sample count: 134</p><p>Minimum clean train samples: 300</p><p>Model trained: False</p><p>Model type: calibrated_logistic_regression_with_imputer</p></section>
 <section class='section'><h2>Governance</h2><p>Mode: paper_trading_only</p><p>Live betting allowed: False</p><p>Shadow live allowed: False</p><h3>Block reasons</h3><ul><li>avg_clv_not_positive</li><li>clean_model_sample_count_below_live_min:109&lt;500</li><li>clean_model_sample_count_below_train_min:109&lt;300</li><li>force_paper_trading_only_enabled</li><li>positive_clv_rate_below_threshold</li></ul></section>
 <section class='section'><h2>Data Quality</h2><p>Grade: C</p><p>Prediction allowed: True</p><p>Bet allowed: False</p><h3>Missing critical sources</h3><p class='muted'>None</p><h3>Missing important sources</h3><ul><li>confirmed_lineup</li><li>confirmed_starter</li></ul></section>
 <section class='section'><h2>Baseline Comparison</h2><table><tr><th>Baseline</th><th>Count</th><th>Brier</th><th>Logloss</th><th>Accuracy</th></tr>
-<tr><td>model</td><td>124</td><td>0.252651</td><td>0.699175</td><td>0.532258</td></tr>
-<tr><td>market_no_vig</td><td>121</td><td>0.275404</td><td>0.78339</td><td>0.570248</td></tr>
-<tr><td>elo</td><td>124</td><td>0.251636</td><td>0.695981</td><td>0.532258</td></tr>
-<tr><td>constant_50</td><td>124</td><td>0.25</td><td>0.693147</td><td>0.532258</td></tr>
-<tr><td>home_historical_rate</td><td>124</td><td>0.248967</td><td>0.691079</td><td>0.532258</td></tr>
-<tr><td>log5</td><td>124</td><td>0.532258</td><td>14.706834</td><td>0.467742</td></tr>
+<tr><td>model</td><td>134</td><td>0.253309</td><td>0.700472</td><td>0.522388</td></tr>
+<tr><td>market_no_vig</td><td>131</td><td>0.274715</td><td>0.779036</td><td>0.564885</td></tr>
+<tr><td>elo</td><td>134</td><td>0.251736</td><td>0.696805</td><td>0.537313</td></tr>
+<tr><td>constant_50</td><td>134</td><td>0.25</td><td>0.693147</td><td>0.537313</td></tr>
+<tr><td>home_historical_rate</td><td>134</td><td>0.248668</td><td>0.690481</td><td>0.537313</td></tr>
+<tr><td>log5</td><td>134</td><td>0.512136</td><td>13.663035</td><td>0.470149</td></tr>
 </table></section>
 <section class='section'><h2>CLV Summary</h2><h3>Edge Bucket</h3>
 <table><tr><th>Slice</th><th>Count</th><th>Avg CLV</th><th>Positive CLV Rate</th><th>Block Live</th></tr>
-<tr><td>3_to_5pct</td><td>16</td><td>0.003333</td><td>unavailable</td><td>True</td></tr>
-<tr><td>5_to_8pct</td><td>22</td><td>0.003158</td><td>unavailable</td><td>True</td></tr>
-<tr><td>8pct_plus</td><td>54</td><td>-0.923039</td><td>unavailable</td><td>True</td></tr>
+<tr><td>3_to_5pct</td><td>19</td><td>0.018667</td><td>unavailable</td><td>True</td></tr>
+<tr><td>5_to_8pct</td><td>23</td><td>0.0035</td><td>unavailable</td><td>True</td></tr>
+<tr><td>8pct_plus</td><td>58</td><td>-0.857909</td><td>unavailable</td><td>True</td></tr>
 </table>
 <h3>Side</h3>
 <table><tr><th>Slice</th><th>Count</th><th>Avg CLV</th><th>Positive CLV Rate</th><th>Block Live</th></tr>
-<tr><td>away</td><td>57</td><td>-0.445588</td><td>unavailable</td><td>True</td></tr>
-<tr><td>home</td><td>35</td><td>-0.782258</td><td>unavailable</td><td>True</td></tr>
+<tr><td>away</td><td>61</td><td>-0.408818</td><td>unavailable</td><td>True</td></tr>
+<tr><td>home</td><td>39</td><td>-0.695714</td><td>unavailable</td><td>True</td></tr>
 </table>
 <h3>Odds Range</h3><p class='muted'>No slices available.</p>
 <h3>Lineup Status</h3><p class='muted'>No slices available.</p></section>
-<section class='section'><h2>Calibration Summary</h2><p>Total count: 124</p><p>Calibration ready: False</p><p>Weighted ECE: 0.076971</p>
+<section class='section'><h2>Calibration Summary</h2><p>Total count: 134</p><p>Calibration ready: False</p><p>Weighted ECE: 0.083814</p>
 <table><tr><th>Bin</th><th>Count</th><th>Avg Predicted</th><th>Actual Win Rate</th><th>Error</th></tr>
-<tr><td>0.35-0.40</td><td>18</td><td>0.377567</td><td>0.555556</td><td>0.177989</td></tr>
+<tr><td>0.35-0.40</td><td>19</td><td>0.377447</td><td>0.526316</td><td>0.148868</td></tr>
 <tr><td>0.40-0.45</td><td>6</td><td>0.423883</td><td>0.5</td><td>0.076117</td></tr>
-<tr><td>0.45-0.50</td><td>22</td><td>0.4811</td><td>0.545455</td><td>0.064355</td></tr>
-<tr><td>0.50-0.55</td><td>25</td><td>0.52336</td><td>0.52</td><td>0.00336</td></tr>
+<tr><td>0.45-0.50</td><td>25</td><td>0.482468</td><td>0.6</td><td>0.117532</td></tr>
+<tr><td>0.50-0.55</td><td>29</td><td>0.523217</td><td>0.551724</td><td>0.028507</td></tr>
 <tr><td>0.55-0.60</td><td>13</td><td>0.568123</td><td>0.538462</td><td>0.029662</td></tr>
-<tr><td>0.60-0.65</td><td>18</td><td>0.623911</td><td>0.666667</td><td>0.042756</td></tr>
+<tr><td>0.60-0.65</td><td>20</td><td>0.622845</td><td>0.6</td><td>0.022845</td></tr>
 <tr><td>0.65-0.70</td><td>6</td><td>0.666233</td><td>0.333333</td><td>0.3329</td></tr>
 </table></section>
-<section class='section'><h2>Walk-forward Status</h2><p>Status: insufficient_samples</p><p>Ready: False</p><p>Total OOS predictions: 124</p></section>
-<section class='section'><h2>Feature Health</h2><p>Availability high risk features: []</p><p>Zero root cause still-zero features: [&#x27;avg_bat_speed_diff&#x27;, &#x27;barrel_pa_diff&#x27;, &#x27;hardhit_pa_diff&#x27;, &#x27;statcast_barrel_diff&#x27;, &#x27;statcast_hard_hit_diff&#x27;, &#x27;statcast_launch_speed_diff&#x27;, &#x27;statcast_woba_diff&#x27;, &#x27;top3_woba_diff&#x27;]</p><p>Feature grade counts: {&#x27;A&#x27;: 30, &#x27;B&#x27;: 4, &#x27;C&#x27;: 3, &#x27;D&#x27;: 25}</p></section>
+<section class='section'><h2>Walk-forward Status</h2><p>Status: insufficient_samples</p><p>Ready: False</p><p>Total OOS predictions: 134</p></section>
+<section class='section'><h2>Feature Health</h2><p>Availability high risk features: []</p><p>Zero root cause still-zero features: []</p><p>Feature grade counts: {&#x27;A&#x27;: 30, &#x27;B&#x27;: 4, &#x27;C&#x27;: 11, &#x27;D&#x27;: 17}</p></section>
 <section class='section'><h2>Risk Disclosure</h2><p>This project is for research and educational use only. It does not provide financial advice, gambling advice, guaranteed profit, or betting instructions. Sports betting is risky and markets can be highly efficient. Paper trading is the default and live betting is disabled by governance.</p></section>
-<footer><p class='muted'>Generated at 2026-06-06T13:43:02.112465+00:00</p></footer>
+<section class='section'><h2>Engineering Grade Summary</h2><table><tr><th>Report</th><th>Status</th><th>Key Metric</th><th>Notes</th></tr>
+<tr><td>Settle Reliability</td><td>ok</td><td>settle_rate=0.0</td><td></td></tr>
+<tr><td>Rolling Walk-forward</td><td>insufficient_samples</td><td>oos=0</td><td>Need at least 300 settled rows for rolling walk-forward evaluation.</td></tr>
+<tr><td>Lineup / Starter Slice</td><td>insufficient_samples</td><td>-</td><td>Use these slices for research only; live betting remains blocked.</td></tr>
+<tr><td>Market Close</td><td>ok</td><td>-</td><td>Store closing odds per game to improve CLV and market-close diagnostics.</td></tr>
+<tr><td>Research Quality</td><td>ok</td><td>grade=C</td><td>Use this report for research readiness only; it must not enable live betting.</td></tr>
+<tr><td>Model Registry</td><td>ok</td><td>-</td><td>Registry records are for audit only; promotion remains blocked until promotion_gate_report allows it.</td></tr>
+<tr><td>Promotion Gate</td><td>insufficient_samples</td><td>promotion_allowed=False</td><td>Promotion gate is audit-only. Live betting remains disabled unless governance is explicitly changed.</td></tr>
+<tr><td>Decision Audit</td><td>ok</td><td>audit_count=15</td><td>Decision audit is for transparency only; it must not enable live betting.</td></tr>
+<tr><td>Paper Trading Ledger</td><td>ok</td><td>ledger_count=9</td><td>Ledger records paper trades only. Live stake remains zero.</td></tr>
+<tr><td>Risk Exposure</td><td>ok</td><td>open_units=2.25</td><td>Live exposure must remain zero. Paper exposure should stay small until model evidence improves.</td></tr>
+<tr><td>Artifact Retention</td><td>ok</td><td>-</td><td>Store large generated data outside git when possible.</td></tr>
+<tr><td>Data Contract</td><td>ok</td><td>-</td><td></td></tr>
+<tr><td>Pipeline Manifest</td><td>partial</td><td>tracked=46</td><td>Some tracked files are missing; check whether they are optional, not generated yet, or failed upstream.</td></tr>
+</table></section>
+<footer><p class='muted'>Generated at 2026-06-07T02:19:28.502765+00:00</p></footer>
 </body>
 </html>

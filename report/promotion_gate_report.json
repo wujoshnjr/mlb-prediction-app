@@ -1,0 +1,85 @@
+{
+  "generated_at": "2026-06-07T02:19:27.397890+00:00",
+  "status": "insufficient_samples",
+  "input_files": {
+    "training_status": {
+      "path": "data/training_status.json",
+      "exists": true,
+      "error": ""
+    },
+    "baseline_comparison": {
+      "path": "report/baseline_comparison_report.json",
+      "exists": true,
+      "error": ""
+    },
+    "calibration": {
+      "path": "report/calibration_report.json",
+      "exists": true,
+      "error": ""
+    },
+    "walkforward": {
+      "path": "report/walkforward_evaluation.json",
+      "exists": true,
+      "error": ""
+    },
+    "rolling_walkforward": {
+      "path": "report/rolling_walkforward_evaluation.json",
+      "exists": true,
+      "error": ""
+    },
+    "clv_by_edge_bucket": {
+      "path": "report/clv_by_edge_bucket.json",
+      "exists": true,
+      "error": ""
+    },
+    "research_quality": {
+      "path": "report/research_quality_report.json",
+      "exists": true,
+      "error": ""
+    },
+    "data_contract": {
+      "path": "report/data_contract_report.json",
+      "exists": true,
+      "error": ""
+    },
+    "pipeline_manifest": {
+      "path": "report/pipeline_manifest.json",
+      "exists": true,
+      "error": ""
+    }
+  },
+  "promotion_allowed": false,
+  "shadow_live_allowed": false,
+  "production_allowed": false,
+  "blockers": [
+    "clean settled samples < 500",
+    "walk-forward predictions < 300",
+    "missing model/market brier comparison",
+    "missing model/market logloss comparison",
+    "avg_clv missing",
+    "positive_clv_rate missing",
+    "calibration_ready is false",
+    "large-edge bucket has negative CLV",
+    "live betting disabled by governance"
+  ],
+  "warnings": [],
+  "errors": [],
+  "evaluated_conditions": {
+    "clean_settled_samples": 134,
+    "min_clean_settled_samples": 500,
+    "walkforward_predictions": 0,
+    "min_walkforward_predictions": 300,
+    "model_brier": null,
+    "market_brier": null,
+    "model_logloss": null,
+    "market_logloss": null,
+    "avg_clv": null,
+    "positive_clv_rate": null,
+    "calibration_ready": false,
+    "data_contract_ok": true,
+    "research_grade": "C"
+  },
+  "recommendations": [
+    "Promotion gate is audit-only. Live betting remains disabled unless governance is explicitly changed."
+  ]
+}
