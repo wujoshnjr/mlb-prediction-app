@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-06-07T06:23:07.913047+00:00",
+  "generated_at": "2026-06-07T07:02:01.031968+00:00",
   "status": "paper_trading_only_blocked_for_live",
   "world_class_stage": "advanced_shadow_trading_candidate",
-  "overall_score": 82.84,
+  "overall_score": 76.84,
   "overall_grade": "B",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
@@ -65,20 +65,20 @@
     "research_quality": {
       "name": "Layer 2 - Research Quality",
       "status": "blocked",
-      "score": 65,
-      "grade": "C",
+      "score": 35,
+      "grade": "F",
       "signals": [
         {
           "name": "model_beats_market_brier",
-          "passed": true,
+          "passed": false,
           "weight": 15,
-          "details": 0.249893
+          "details": null
         },
         {
           "name": "model_beats_market_logloss",
-          "passed": true,
+          "passed": false,
           "weight": 15,
-          "details": 0.69292
+          "details": null
         },
         {
           "name": "avg_clv_positive",
@@ -96,7 +96,7 @@
           "name": "calibration_ready",
           "passed": false,
           "weight": 10,
-          "details": 138
+          "details": 0
         },
         {
           "name": "walkforward_ready",
@@ -114,11 +114,11 @@
           "name": "settled_samples_at_least_500",
           "passed": false,
           "weight": 5,
-          "details": 138
+          "details": 0
         }
       ],
       "blockers": [
-        "settled prediction samples < 500 (138)",
+        "settled prediction samples < 500 (0)",
         "rolling OOS predictions < 300 (0)",
         "calibration is not ready"
       ],
@@ -203,7 +203,7 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 4
+          "details": 5
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
@@ -258,7 +258,7 @@
           "name": "artifact_retention_ok",
           "passed": true,
           "weight": 15,
-          "details": 64
+          "details": 65
         },
         {
           "name": "decision_audit_ok",
@@ -270,7 +270,7 @@
           "name": "paper_ledger_ok",
           "passed": true,
           "weight": 10,
-          "details": 15
+          "details": 16
         },
         {
           "name": "risk_exposure_ok",
@@ -289,7 +289,7 @@
   },
   "critical_blockers": [],
   "blockers": [
-    "research_quality: settled prediction samples < 500 (138)",
+    "research_quality: settled prediction samples < 500 (0)",
     "research_quality: rolling OOS predictions < 300 (0)",
     "research_quality: calibration is not ready",
     "model_upgrade_path: clean training samples below threshold: 138 < 300",
