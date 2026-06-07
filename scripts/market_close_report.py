@@ -58,19 +58,187 @@ def _first_existing(row: pd.Series, columns: List[str]) -> Optional[Any]:
     return None
 
 
+def _bool_series(series: pd.Series) -> pd.Series:
+    return (
+        series.astype(str)
+        .str.strip()
+        .str.lower()
+        .map({"true": True, "false": False, "1": True, "0": False, "yes": True, "no": False})
+        .fillna(False)
+        .astype(bool)
+    )
+
+
+def _selected_side(row: pd.Series) -> str:
+    side = str(row.get("moneyline_selected_side", "") or row.get("side", "") or "").strip().lower()
+    if side in {"home", "away"}:
+        return side
+
+    recommendation = str(
+        row.get("moneyline_recommendation", "")
+        or row.get("recommendation", "")
+        or ""
+    ).strip().lower()
+    home_team = str(row.get("home_team", "") or "").strip().lower()
+    away_team = str(row.get("away_team", "") or "").strip().lower()
+
+    if home_team and home_team in recommendation:
+        return "home"
+    if away_team and away_team in recommendation:
+        return "away"
+
+    edge = _to_float(row.get("model_edge_home"))
+    if edge is not None:
+        return "home" if edge >= 0 else "away"
+
+    return "unknown"
+
+
+def _entry_odds(row: pd.Series, side: str) -> Optional[float]:
+    if side == "home":
+        return _to_float(row.get("home_moneyline_odds"))
+    if side == "away":
+        return _to_float(row.get("away_moneyline_odds"))
+    return None
+
+
+def _market_moneyline_odds_by_game(
+    odds: Optional[pd.DataFrame],
+    *,
+    closing_only: bool,
+) -> pd.DataFrame:
+    columns = ["game_id", "closing_home_odds", "closing_away_odds"]
+    if odds is None or odds.empty:
+        return pd.DataFrame(columns=columns)
+
+    required = {"game_id", "market", "side", "odds"}
+    if not required.issubset(odds.columns):
+        return pd.DataFrame(columns=columns)
+
+    frame = odds.copy()
+    frame["game_id"] = frame["game_id"].astype(str)
+    frame["market"] = frame["market"].astype(str).str.strip().str.lower()
+    frame["side"] = frame["side"].astype(str).str.strip().str.lower()
+    frame["odds"] = pd.to_numeric(frame["odds"], errors="coerce")
+
+    frame = frame[
+        (frame["market"] == "moneyline")
+        & frame["side"].isin(["home", "away"])
+        & frame["odds"].notna()
+        & (frame["odds"] > 1.0)
+    ].copy()
+
+    if frame.empty:
+        return pd.DataFrame(columns=columns)
+
+    if "captured_at" in frame.columns:
+        frame["_captured_at"] = pd.to_datetime(frame["captured_at"], errors="coerce", utc=True)
+        frame = frame.sort_values("_captured_at")
+
+    if closing_only:
+        if "is_closing_snapshot" not in frame.columns:
+            return pd.DataFrame(columns=columns)
+        frame = frame[_bool_series(frame["is_closing_snapshot"])].copy()
+        if frame.empty:
+            return pd.DataFrame(columns=columns)
+    else:
+        if "is_closing_snapshot" in frame.columns:
+            closing = frame[_bool_series(frame["is_closing_snapshot"])].copy()
+        else:
+            closing = pd.DataFrame()
+
+        group_keys = ["game_id", "side"]
+        if "bookmaker_key" in frame.columns:
+            group_keys.append("bookmaker_key")
+
+        latest = frame.groupby(group_keys, as_index=False).tail(1)
+
+        if not closing.empty:
+            latest_keys = latest[group_keys].astype(str).agg("|".join, axis=1)
+            closing_keys = set(closing[group_keys].astype(str).agg("|".join, axis=1))
+            latest = latest[~latest_keys.isin(closing_keys)]
+            frame = pd.concat([latest, closing], ignore_index=True)
+        else:
+            frame = latest
+
+    aggregated = (
+        frame.groupby(["game_id", "side"], as_index=False)["odds"]
+        .mean()
+        .copy()
+    )
+
+    if aggregated.empty:
+        return pd.DataFrame(columns=columns)
+
+    pivot = aggregated.pivot_table(
+        index="game_id",
+        columns="side",
+        values="odds",
+        aggfunc="mean",
+    ).reset_index()
+
+    if "home" not in pivot.columns:
+        pivot["home"] = None
+    if "away" not in pivot.columns:
+        pivot["away"] = None
+
+    pivot = pivot.rename(
+        columns={
+            "home": "closing_home_odds",
+            "away": "closing_away_odds",
+        }
+    )
+
+    return pivot[columns].copy()
+
+
+def _merge_closing_odds(
+    snapshots: pd.DataFrame,
+    closing_odds: pd.DataFrame,
+) -> pd.DataFrame:
+    if snapshots.empty or closing_odds.empty or "game_id" not in snapshots.columns:
+        return snapshots
+
+    frame = snapshots.copy()
+    frame["game_id"] = frame["game_id"].astype(str)
+    merged = frame.merge(
+        closing_odds,
+        on="game_id",
+        how="left",
+        suffixes=("", "_from_market"),
+    )
+
+    for column in ("closing_home_odds", "closing_away_odds"):
+        source = f"{column}_from_market"
+        if source not in merged.columns:
+            continue
+
+        source_values = pd.to_numeric(merged[source], errors="coerce")
+
+        if column in merged.columns:
+            current_values = pd.to_numeric(merged[column], errors="coerce")
+            merged[column] = current_values.combine_first(source_values)
+        else:
+            merged[column] = source_values
+
+        merged.drop(columns=[source], inplace=True)
+
+    return merged
+
+
 def _suspicious_reasons(row: pd.Series) -> List[str]:
     reasons: List[str] = []
 
     home_odds = _to_float(
         _first_existing(
             row,
-            ["home_moneyline_odds", "home_odds", "home_closing_odds", "closing_home_odds"],
+            ["home_moneyline_odds", "home_odds"],
         )
     )
     away_odds = _to_float(
         _first_existing(
             row,
-            ["away_moneyline_odds", "away_odds", "away_closing_odds", "closing_away_odds"],
+            ["away_moneyline_odds", "away_odds"],
         )
     )
 
@@ -91,26 +259,25 @@ def _suspicious_reasons(row: pd.Series) -> List[str]:
     return reasons
 
 
-def _latest_odds_by_game(odds: Optional[pd.DataFrame]) -> pd.DataFrame:
-    if odds is None or odds.empty or "game_id" not in odds.columns:
-        return pd.DataFrame()
+def _compute_selected_clv(row: pd.Series) -> Optional[float]:
+    side = _selected_side(row)
+    if side not in {"home", "away"}:
+        return None
 
-    frame = odds.copy()
-    frame["game_id"] = frame["game_id"].astype(str)
+    entry = _entry_odds(row, side)
+    closing = (
+        _to_float(row.get("closing_home_odds"))
+        if side == "home"
+        else _to_float(row.get("closing_away_odds"))
+    )
 
-    time_col = None
-    for candidate in ("odds_captured_at", "captured_at", "snapshot_created_at", "created_at"):
-        if candidate in frame.columns:
-            time_col = candidate
-            break
+    if entry is None or closing is None:
+        return None
 
-    if time_col:
-        frame["_odds_dt"] = pd.to_datetime(frame[time_col], errors="coerce", utc=True)
-        frame = frame.sort_values("_odds_dt").groupby("game_id", as_index=False).tail(1)
-    else:
-        frame = frame.groupby("game_id", as_index=False).tail(1)
+    if entry <= 1.0 or closing <= 1.0:
+        return None
 
-    return frame
+    return float(math.log(entry) - math.log(closing))
 
 
 def build_report() -> Dict[str, Any]:
@@ -138,6 +305,8 @@ def build_report() -> Dict[str, Any]:
             "closing_odds_coverage_rate": 0.0,
             "clv_available_count": 0,
             "clv_available_rate": 0.0,
+            "avg_clv": None,
+            "positive_clv_rate": None,
             "avg_time_from_snapshot_to_close_minutes": None,
             "missing_closing_game_ids": [],
             "suspicious_odds_count": 0,
@@ -164,22 +333,36 @@ def build_report() -> Dict[str, Any]:
             else len(snap.dropna(subset=list(opening_columns)))
         )
 
-    latest_odds = _latest_odds_by_game(odds)
+    closing_odds = _market_moneyline_odds_by_game(odds, closing_only=True)
+
     games_with_closing = 0
     missing_closing_game_ids: List[str] = []
 
-    if not latest_odds.empty and "game_id" in snap.columns:
-        closing_ids = set(latest_odds["game_id"].dropna().astype(str))
+    if not closing_odds.empty and "game_id" in snap.columns:
+        closing_ids = set(closing_odds["game_id"].dropna().astype(str))
         prediction_ids = set(snap["game_id"].dropna().astype(str))
         games_with_closing = len(prediction_ids & closing_ids)
         missing_closing_game_ids = sorted(prediction_ids - closing_ids)[:50]
     else:
-        warnings.append("market_odds_history.csv missing or does not contain game_id")
+        warnings.append("No closing moneyline odds were available from market_odds_history.csv")
 
-    clv_columns = [col for col in ("clv", "clv_home_moneyline", "clv_away_moneyline") if col in snap.columns]
-    clv_available_count = 0
-    if clv_columns:
-        clv_available_count = int(snap[clv_columns].notna().any(axis=1).sum())
+    snap_with_closing = _merge_closing_odds(snap, closing_odds)
+
+    clv_values: List[float] = []
+    if not snap_with_closing.empty:
+        for _, row in snap_with_closing.iterrows():
+            clv = _compute_selected_clv(row)
+            if clv is not None:
+                clv_values.append(clv)
+
+    clv_available_count = len(clv_values)
+    clv_rate = clv_available_count / prediction_count if prediction_count else 0.0
+    avg_clv = sum(clv_values) / clv_available_count if clv_available_count else None
+    positive_clv_rate = (
+        len([value for value in clv_values if value > 0]) / clv_available_count
+        if clv_available_count
+        else None
+    )
 
     suspicious_examples: List[Dict[str, Any]] = []
     for _, row in snap.iterrows():
@@ -198,13 +381,21 @@ def build_report() -> Dict[str, Any]:
         else 0.0
     )
 
-    clv_rate = clv_available_count / prediction_count if prediction_count else 0.0
-
     status = "ok"
     if prediction_count == 0:
         status = "partial"
-    if games_with_closing == 0:
+    elif games_with_closing == 0:
         status = "partial"
+
+    recommendations = []
+    if clv_available_count == 0:
+        recommendations.append(
+            "Per-pick CLV is unavailable because no prediction snapshots matched closing moneyline odds."
+        )
+    else:
+        recommendations.append(
+            "Per-pick CLV is now derived from prediction snapshots joined to closing moneyline odds."
+        )
 
     report = {
         "generated_at": _utc_now(),
@@ -216,15 +407,15 @@ def build_report() -> Dict[str, Any]:
         "closing_odds_coverage_rate": round(closing_rate, 4),
         "clv_available_count": clv_available_count,
         "clv_available_rate": round(clv_rate, 4),
+        "avg_clv": round(avg_clv, 6) if avg_clv is not None else None,
+        "positive_clv_rate": round(positive_clv_rate, 4) if positive_clv_rate is not None else None,
         "avg_time_from_snapshot_to_close_minutes": None,
         "missing_closing_game_ids": missing_closing_game_ids,
         "suspicious_odds_count": len(suspicious_examples),
         "suspicious_odds_examples": suspicious_examples[:20],
         "errors": errors,
         "warnings": warnings,
-        "recommendations": [
-            "Store closing odds per game to improve CLV and market-close diagnostics."
-        ],
+        "recommendations": recommendations,
     }
 
     OUTPUT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
