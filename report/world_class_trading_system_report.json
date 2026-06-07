@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-06-07T07:02:01.031968+00:00",
+  "generated_at": "2026-06-07T07:31:32.245669+00:00",
   "status": "paper_trading_only_blocked_for_live",
   "world_class_stage": "advanced_shadow_trading_candidate",
-  "overall_score": 76.84,
+  "overall_score": 81.0,
   "overall_grade": "B",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
@@ -18,7 +18,7 @@
         {
           "name": "data_contract_ok",
           "passed": true,
-          "weight": 20,
+          "weight": 15,
           "details": "ok"
         },
         {
@@ -42,7 +42,7 @@
         {
           "name": "decision_audit_matches_prediction_count",
           "passed": true,
-          "weight": 15,
+          "weight": 10,
           "details": {
             "prediction_count": 15,
             "audit_count": 15
@@ -51,34 +51,43 @@
         {
           "name": "per_pick_clv_joined",
           "passed": true,
-          "weight": 20,
+          "weight": 15,
           "details": 126
+        },
+        {
+          "name": "settled_prediction_link_report_ok",
+          "passed": true,
+          "weight": 15,
+          "details": {
+            "linked_game_count": 138
+          }
         }
       ],
       "blockers": [],
       "warnings": [],
       "recommendations": [
         "Keep event-time, snapshot-time, entry odds, closing odds, decision audit, and settle result linked by game_id.",
-        "Prediction sanitizer change_count should remain zero after prediction.py source cleanup."
+        "Prediction sanitizer change_count should remain zero after prediction.py source cleanup.",
+        "finalized_games.csv must be the only trusted outcome source for research evidence."
       ]
     },
     "research_quality": {
       "name": "Layer 2 - Research Quality",
       "status": "blocked",
-      "score": 35,
-      "grade": "F",
+      "score": 65,
+      "grade": "C",
       "signals": [
         {
           "name": "model_beats_market_brier",
-          "passed": false,
+          "passed": true,
           "weight": 15,
-          "details": null
+          "details": 0.249893
         },
         {
           "name": "model_beats_market_logloss",
-          "passed": false,
+          "passed": true,
           "weight": 15,
-          "details": null
+          "details": 0.69292
         },
         {
           "name": "avg_clv_positive",
@@ -96,13 +105,13 @@
           "name": "calibration_ready",
           "passed": false,
           "weight": 10,
-          "details": 0
+          "details": 138
         },
         {
           "name": "walkforward_ready",
           "passed": false,
           "weight": 10,
-          "details": 138
+          "details": 0
         },
         {
           "name": "rolling_oos_at_least_300",
@@ -114,11 +123,11 @@
           "name": "settled_samples_at_least_500",
           "passed": false,
           "weight": 5,
-          "details": 0
+          "details": 138
         }
       ],
       "blockers": [
-        "settled prediction samples < 500 (0)",
+        "settled prediction samples < 500 (138)",
         "rolling OOS predictions < 300 (0)",
         "calibration is not ready"
       ],
@@ -181,7 +190,7 @@
     "model_upgrade_path": {
       "name": "Layer 4 - Model Upgrade Path",
       "status": "blocked",
-      "score": 49.2,
+      "score": 40.0,
       "grade": "D",
       "signals": [
         {
@@ -189,7 +198,7 @@
           "passed": false,
           "weight": 20,
           "details": {
-            "sample_count": 138,
+            "sample_count": 0,
             "minimum": 300
           }
         },
@@ -203,13 +212,13 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 5
+          "details": 6
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
           "passed": true,
           "weight": 20,
-          "details": 0.6935483870967742
+          "details": 0.5806451612903226
         },
         {
           "name": "rolling_oos_started",
@@ -219,7 +228,7 @@
         }
       ],
       "blockers": [
-        "clean training samples below threshold: 138 < 300",
+        "clean training samples below threshold: 0 < 300",
         "model is not trained yet"
       ],
       "warnings": [
@@ -258,7 +267,7 @@
           "name": "artifact_retention_ok",
           "passed": true,
           "weight": 15,
-          "details": 65
+          "details": 66
         },
         {
           "name": "decision_audit_ok",
@@ -289,10 +298,10 @@
   },
   "critical_blockers": [],
   "blockers": [
-    "research_quality: settled prediction samples < 500 (0)",
+    "research_quality: settled prediction samples < 500 (138)",
     "research_quality: rolling OOS predictions < 300 (0)",
     "research_quality: calibration is not ready",
-    "model_upgrade_path: clean training samples below threshold: 138 < 300",
+    "model_upgrade_path: clean training samples below threshold: 0 < 300",
     "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
@@ -391,6 +400,12 @@
     },
     "risk_exposure": {
       "path": "report/risk_exposure_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "settled_prediction_link": {
+      "path": "report/settled_prediction_link_report.json",
       "exists": true,
       "error": "",
       "type": "dict"

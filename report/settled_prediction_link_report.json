@@ -1,0 +1,183 @@
+{
+  "generated_at": "2026-06-07T07:31:32.204360+00:00",
+  "status": "ok",
+  "input_files": {
+    "prediction_snapshots": {
+      "path": "data/prediction_snapshots.csv",
+      "exists": true,
+      "rows": 154,
+      "error": ""
+    },
+    "finalized_games": {
+      "path": "data/finalized_games.csv",
+      "exists": true,
+      "rows": 933,
+      "error": ""
+    }
+  },
+  "snapshot_rows": 154,
+  "snapshot_game_count": 154,
+  "finalized_rows": 933,
+  "finalized_game_count": 933,
+  "linked_game_count": 138,
+  "linked_snapshot_row_count": 138,
+  "link_rate": 0.896104,
+  "unlinked_snapshot_game_count": 16,
+  "pending_past_snapshot_game_count": 1,
+  "snapshot_date_range": {
+    "min": "2026-05-27",
+    "max": "2026-06-08"
+  },
+  "finalized_date_range": {
+    "min": "2025-08-01",
+    "max": "2026-06-07"
+  },
+  "sample_linked_game_ids": [
+    "822727",
+    "822728",
+    "822729",
+    "822730",
+    "822731",
+    "822732",
+    "822808",
+    "822810",
+    "822891",
+    "822892",
+    "822893",
+    "822894",
+    "822895",
+    "822896",
+    "822897",
+    "822971",
+    "822973",
+    "822974",
+    "822975",
+    "822976",
+    "822978",
+    "823048",
+    "823049",
+    "823050",
+    "823051"
+  ],
+  "sample_unlinked_snapshots": [
+    {
+      "game_id": "823539",
+      "game_date": "2026-06-06",
+      "home_team": "Yankees",
+      "away_team": "Red Sox",
+      "start_time": "2026-06-06T23:35:00Z"
+    },
+    {
+      "game_id": "824916",
+      "game_date": "2026-06-07",
+      "home_team": "Braves",
+      "away_team": "Pirates",
+      "start_time": "2026-06-07T17:35:00Z"
+    },
+    {
+      "game_id": "823453",
+      "game_date": "2026-06-07",
+      "home_team": "Phillies",
+      "away_team": "White Sox",
+      "start_time": "2026-06-07T17:35:00Z"
+    },
+    {
+      "game_id": "823537",
+      "game_date": "2026-06-07",
+      "home_team": "Yankees",
+      "away_team": "Red Sox",
+      "start_time": "2026-06-07T17:35:00Z"
+    },
+    {
+      "game_id": "822807",
+      "game_date": "2026-06-07",
+      "home_team": "Blue Jays",
+      "away_team": "Orioles",
+      "start_time": "2026-06-07T17:37:00Z"
+    },
+    {
+      "game_id": "824268",
+      "game_date": "2026-06-07",
+      "home_team": "Tigers",
+      "away_team": "Mariners",
+      "start_time": "2026-06-07T17:40:00Z"
+    },
+    {
+      "game_id": "823857",
+      "game_date": "2026-06-07",
+      "home_team": "Marlins",
+      "away_team": "Rays",
+      "start_time": "2026-06-07T17:40:00Z"
+    },
+    {
+      "game_id": "824183",
+      "game_date": "2026-06-07",
+      "home_team": "Astros",
+      "away_team": "Athletics",
+      "start_time": "2026-06-07T18:10:00Z"
+    },
+    {
+      "game_id": "823696",
+      "game_date": "2026-06-07",
+      "home_team": "Twins",
+      "away_team": "Royals",
+      "start_time": "2026-06-07T18:10:00Z"
+    },
+    {
+      "game_id": "823047",
+      "game_date": "2026-06-07",
+      "home_team": "Cardinals",
+      "away_team": "Reds",
+      "start_time": "2026-06-07T18:15:00Z"
+    },
+    {
+      "game_id": "822890",
+      "game_date": "2026-06-07",
+      "home_team": "Rangers",
+      "away_team": "Guardians",
+      "start_time": "2026-06-07T18:35:00Z"
+    },
+    {
+      "game_id": "824349",
+      "game_date": "2026-06-07",
+      "home_team": "Rockies",
+      "away_team": "Brewers",
+      "start_time": "2026-06-07T19:10:00Z"
+    },
+    {
+      "game_id": "825074",
+      "game_date": "2026-06-07",
+      "home_team": "D-backs",
+      "away_team": "Nationals",
+      "start_time": "2026-06-07T19:15:00Z"
+    },
+    {
+      "game_id": "823941",
+      "game_date": "2026-06-07",
+      "home_team": "Dodgers",
+      "away_team": "Angels",
+      "start_time": "2026-06-07T20:10:00Z"
+    },
+    {
+      "game_id": "823291",
+      "game_date": "2026-06-07",
+      "home_team": "Padres",
+      "away_team": "Mets",
+      "start_time": "2026-06-07T20:10:00Z"
+    },
+    {
+      "game_id": "824670",
+      "game_date": "2026-06-08",
+      "home_team": "Cubs",
+      "away_team": "Giants",
+      "start_time": "2026-06-08T00:30:00Z"
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "recommendations": [
+    "Use finalized_games.csv as the only trusted outcome source for baseline, calibration, ROI, and rolling OOS evaluation.",
+    "Run update_results.py before evaluation reports so newly finalized snapshot games are appended to finalized_games.csv.",
+    "If linked_game_count remains zero, inspect MLB game_id source consistency between prediction snapshots and finalized game collection."
+  ]
+}
