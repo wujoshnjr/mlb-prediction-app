@@ -33,6 +33,7 @@ INPUTS = {
     "model_registry": REPORT_DIR / "model_registry_report.json",
     "feature_grade": REPORT_DIR / "feature_grade_report.json",
     "artifact_retention": REPORT_DIR / "artifact_retention_manifest.json",
+    "saas_readiness": REPORT_DIR / "saas_readiness_report.json",
     "html_report": REPORT_DIR / "index.html",
     "training_status": DATA_DIR / "training_status.json",
     "sample_state": DATA_DIR / "sample_state.json",
@@ -570,6 +571,7 @@ def _evaluate_product_readiness(
     data_contract = reports.get("data_contract")
     pipeline_manifest = reports.get("pipeline_manifest")
     artifact_retention = reports.get("artifact_retention")
+    saas_readiness = reports.get("saas_readiness") or {}
     decision_audit = reports.get("decision_audit")
     paper_ledger = reports.get("paper_trading_ledger")
     risk_exposure = reports.get("risk_exposure")
@@ -583,14 +585,28 @@ def _evaluate_product_readiness(
     ledger_ok = paper_ledger is not None and paper_ledger.get("status") == "ok"
     risk_ok = risk_exposure is not None and risk_exposure.get("status") == "ok"
 
+    saas_readiness_present = bool(saas_readiness)
+    saas_governance_safe = (
+        bool(saas_readiness)
+        and saas_readiness.get("live_betting_allowed") is False
+        and saas_readiness.get("automated_wagering_allowed") is False
+        and saas_readiness.get("user_funds_handled") is False
+    )
+
     signals = [
-        _signal("html_dashboard_exists", html_exists, 20, html_status.get("path")),
-        _signal("data_contract_ok", data_contract_ok, 20, data_contract.get("status") if data_contract else None),
+        _signal("html_dashboard_exists", html_exists, 15, html_status.get("path")),
+        _signal("data_contract_ok", data_contract_ok, 15, data_contract.get("status") if data_contract else None),
         _signal("pipeline_manifest_readable", manifest_readable, 15, pipeline_manifest.get("status") if pipeline_manifest else None),
-        _signal("artifact_retention_ok", artifact_retention_ok, 15, artifact_retention.get("file_count") if artifact_retention else None),
+        _signal("artifact_retention_ok", artifact_retention_ok, 10, artifact_retention.get("file_count") if artifact_retention else None),
         _signal("decision_audit_ok", decision_audit_ok, 10, decision_audit.get("audit_count") if decision_audit else None),
         _signal("paper_ledger_ok", ledger_ok, 10, paper_ledger.get("ledger_count") if paper_ledger else None),
         _signal("risk_exposure_ok", risk_ok, 10, risk_exposure.get("risk_status") if risk_exposure else None),
+        _signal("saas_readiness_report_present", saas_readiness_present, 5, saas_readiness.get("status") if saas_readiness else None),
+        _signal("saas_governance_safe", saas_governance_safe, 10, {
+            "live_betting_allowed": saas_readiness.get("live_betting_allowed"),
+            "automated_wagering_allowed": saas_readiness.get("automated_wagering_allowed"),
+            "user_funds_handled": saas_readiness.get("user_funds_handled"),
+        } if saas_readiness else None),
     ]
 
     score = sum(item["weight"] for item in signals if item["passed"])
@@ -606,6 +622,12 @@ def _evaluate_product_readiness(
     if not decision_audit_ok:
         warnings.append("decision audit is missing or empty")
 
+    if not saas_readiness_present:
+        warnings.append("SaaS readiness report is not available yet")
+
+    if saas_readiness_present and not saas_governance_safe:
+        blockers.append("SaaS readiness governance flags are unsafe")
+
     return _layer_result(
         "product_readiness",
         score,
@@ -613,11 +635,12 @@ def _evaluate_product_readiness(
         blockers,
         warnings,
         [
-            "Dashboard should show prediction, decision audit, CLV, promotion gate, research grade, paper PnL, and risk exposure.",
+            "Dashboard should show prediction, decision audit, CLV, promotion gate, research grade, paper PnL, risk exposure, and SaaS readiness.",
             "All product-facing output should be generated from validated reports, not ad-hoc script state.",
+            "SaaS readiness is a maturity indicator only; it must not enable commercial API access, billing, or live betting.",
         ],
     )
-
+    
 
 def _overall_status(
     layers: Dict[str, Dict[str, Any]],
