@@ -29,6 +29,7 @@ INPUTS = {
     "decision_audit": REPORT_DIR / "decision_audit_report.json",
     "paper_trading_ledger": REPORT_DIR / "paper_trading_ledger_report.json",
     "risk_exposure": REPORT_DIR / "risk_exposure_report.json",
+    "settled_prediction_link": REPORT_DIR / "settled_prediction_link_report.json",
     "model_registry": REPORT_DIR / "model_registry_report.json",
     "feature_grade": REPORT_DIR / "feature_grade_report.json",
     "artifact_retention": REPORT_DIR / "artifact_retention_manifest.json",
