@@ -92,6 +92,117 @@ def _normalise_game_id(frame: pd.DataFrame) -> pd.DataFrame:
     return frame
 
 
+def _bool_series(series: pd.Series) -> pd.Series:
+    return (
+        series.astype(str)
+        .str.strip()
+        .str.lower()
+        .map({"true": True, "false": False, "1": True, "0": False, "yes": True, "no": False})
+        .fillna(False)
+        .astype(bool)
+    )
+
+
+def _closing_moneyline_odds_by_game(
+    odds: Optional[pd.DataFrame],
+) -> pd.DataFrame:
+    columns = ["game_id", "closing_home_odds", "closing_away_odds"]
+    if odds is None or odds.empty:
+        return pd.DataFrame(columns=columns)
+
+    required = {"game_id", "market", "side", "odds"}
+    if not required.issubset(odds.columns):
+        return pd.DataFrame(columns=columns)
+
+    frame = odds.copy()
+    frame["game_id"] = frame["game_id"].astype(str)
+    frame["market"] = frame["market"].astype(str).str.strip().str.lower()
+    frame["side"] = frame["side"].astype(str).str.strip().str.lower()
+    frame["odds"] = pd.to_numeric(frame["odds"], errors="coerce")
+
+    frame = frame[
+        (frame["market"] == "moneyline")
+        & frame["side"].isin(["home", "away"])
+        & frame["odds"].notna()
+        & (frame["odds"] > 1.0)
+    ].copy()
+
+    if frame.empty:
+        return pd.DataFrame(columns=columns)
+
+    if "is_closing_snapshot" not in frame.columns:
+        return pd.DataFrame(columns=columns)
+
+    frame = frame[_bool_series(frame["is_closing_snapshot"])].copy()
+    if frame.empty:
+        return pd.DataFrame(columns=columns)
+
+    aggregated = (
+        frame.groupby(["game_id", "side"], as_index=False)["odds"]
+        .mean()
+        .copy()
+    )
+
+    if aggregated.empty:
+        return pd.DataFrame(columns=columns)
+
+    pivot = aggregated.pivot_table(
+        index="game_id",
+        columns="side",
+        values="odds",
+        aggfunc="mean",
+    ).reset_index()
+
+    if "home" not in pivot.columns:
+        pivot["home"] = None
+    if "away" not in pivot.columns:
+        pivot["away"] = None
+
+    pivot = pivot.rename(
+        columns={
+            "home": "closing_home_odds",
+            "away": "closing_away_odds",
+        }
+    )
+
+    return pivot[columns].copy()
+
+
+def _merge_closing_odds(
+    snapshots: pd.DataFrame,
+    market_odds: Optional[pd.DataFrame],
+) -> pd.DataFrame:
+    closing = _closing_moneyline_odds_by_game(market_odds)
+    if snapshots.empty or closing.empty or "game_id" not in snapshots.columns:
+        return snapshots
+
+    frame = snapshots.copy()
+    frame["game_id"] = frame["game_id"].astype(str)
+    merged = frame.merge(
+        closing,
+        on="game_id",
+        how="left",
+        suffixes=("", "_from_market"),
+    )
+
+    for column in ("closing_home_odds", "closing_away_odds"):
+        source = f"{column}_from_market"
+        if source not in merged.columns:
+            continue
+
+        source_values = pd.to_numeric(merged[source], errors="coerce")
+
+        if column in merged.columns:
+            current_values = pd.to_numeric(merged[column], errors="coerce")
+            merged[column] = current_values.combine_first(source_values)
+        else:
+            merged[column] = source_values
+
+        merged.drop(columns=[source], inplace=True)
+
+    return merged
+
+
 def _selected_side(row: pd.Series) -> str:
     side = str(row.get("side", "") or "").strip().lower()
     if side in {"home", "away"}:
@@ -199,12 +310,14 @@ def _lineup_status(row: pd.Series) -> str:
 def _prepare_clv_rows(
     snapshots: Optional[pd.DataFrame],
     finalized: Optional[pd.DataFrame],
+    market_odds: Optional[pd.DataFrame],
 ) -> pd.DataFrame:
     if snapshots is None or snapshots.empty or "game_id" not in snapshots.columns:
         return pd.DataFrame()
 
     frame = _normalise_game_id(snapshots)
-
+    frame = _merge_closing_odds(frame, market_odds)
+    
     if finalized is not None and not finalized.empty and "game_id" in finalized.columns:
         final = _normalise_game_id(finalized)
         needed = [col for col in ["game_id", "home_win"] if col in final.columns]
@@ -407,7 +520,7 @@ def build_clv_slice_reports() -> Dict[str, Any]:
 
     _, prediction_status = _safe_read_json(PREDICTION_JSON)
     snapshots, snapshots_status = _safe_read_csv(SNAPSHOTS_CSV)
-    _, market_status = _safe_read_csv(MARKET_ODDS_CSV)
+    market_odds, market_status = _safe_read_csv(MARKET_ODDS_CSV)
     finalized, finalized_status = _safe_read_csv(FINALIZED_CSV)
     clv_diagnostic, clv_diag_status = _safe_read_json(CLV_DIAGNOSTIC_JSON)
 
@@ -419,7 +532,7 @@ def build_clv_slice_reports() -> Dict[str, Any]:
         "evaluation_clv_diagnostic": clv_diag_status,
     }
 
-    clv_rows = _prepare_clv_rows(snapshots, finalized)
+    clv_rows = _prepare_clv_rows(snapshots, finalized, market_odds)
 
     reports = {
         OUTPUT_EDGE: ("edge_bucket", "edge_bucket"),
