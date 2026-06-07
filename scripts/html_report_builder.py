@@ -31,6 +31,7 @@ SOURCES = {
     "paper_trading_ledger": REPORT_DIR / "paper_trading_ledger_report.json",
     "risk_exposure": REPORT_DIR / "risk_exposure_report.json",
     "artifact_retention": REPORT_DIR / "artifact_retention_manifest.json",
+    "world_class_trading_system": REPORT_DIR / "world_class_trading_system_report.json",
     "data_contract": REPORT_DIR / "data_contract_report.json",
     "pipeline_manifest": REPORT_DIR / "pipeline_manifest.json",
     "feature_availability": REPORT_DIR / "feature_availability_diagnostic.json",
@@ -320,6 +321,7 @@ def build_html() -> str:
         "Paper Trading Ledger": data.get("paper_trading_ledger"),
         "Risk Exposure": data.get("risk_exposure"),
         "Artifact Retention": data.get("artifact_retention"),
+        "World-Class Trading System": data.get("world_class_trading_system"),
         "Data Contract": data.get("data_contract"),
         "Pipeline Manifest": data.get("pipeline_manifest"),
     }
@@ -348,6 +350,12 @@ def build_html() -> str:
             key_metric = f"ledger_count={_escape(report_data.get('ledger_count'))}"
         elif title == "Risk Exposure":
             key_metric = f"open_units={_escape(report_data.get('total_open_paper_units'))}"
+        elif title == "World-Class Trading System":
+            key_metric = (
+                f"score={_escape(report_data.get('overall_score'))}; "
+                f"stage={_escape(report_data.get('world_class_stage'))}; "
+                f"grade={_escape(report_data.get('overall_grade'))}"
+            )
         elif title == "Pipeline Manifest":
             key_metric = f"tracked={_escape(report_data.get('tracked_file_count'))}"
 
