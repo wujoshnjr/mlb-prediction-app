@@ -293,11 +293,21 @@ def _selected_closing_odds_from_snapshot(row: pd.Series, side: str) -> Optional[
     return None
 
 
+def _selected_clv(entry_odds: Optional[float], closing_odds: Optional[float]) -> Optional[float]:
+    if entry_odds is None or closing_odds is None:
+        return None
+
+    if entry_odds <= 1.0 or closing_odds <= 1.0:
+        return None
+
+    return float(math.log(entry_odds) - math.log(closing_odds))
+
+
 def _selected_probability_from_snapshot(row: pd.Series, side: str) -> Optional[float]:
     home_prob = (
-        _safe_float(row.get("premarket_model_home_prob"))
+        _safe_float(row.get("displayed_home_win_pct"))
         or _safe_float(row.get("predicted_home_win_pct"))
-        or _safe_float(row.get("displayed_home_win_pct"))
+        or _safe_float(row.get("premarket_model_home_prob"))
     )
 
     if home_prob is None:
@@ -343,8 +353,10 @@ def _current_prediction_rows(predictions: List[Dict[str, Any]]) -> List[Dict[str
         )
 
         selected_prob = None
-        home_prob = _safe_float(item.get("premarket_model_home_prob")) or _safe_float(
-            item.get("predicted_home_win_pct")
+        home_prob = (
+            _safe_float(item.get("displayed_home_win_pct"))
+            or _safe_float(item.get("predicted_home_win_pct"))
+            or _safe_float(item.get("premarket_model_home_prob"))
         )
         if home_prob is not None:
             if side == "home":
@@ -462,11 +474,7 @@ def _snapshot_rows(
                 "edge_bucket": _edge_bucket(edge),
                 "entry_odds": entry_odds,
                 "closing_odds": closing_odds,
-                "clv": (
-                    closing_odds - entry_odds
-                    if closing_odds is not None and entry_odds is not None
-                    else None
-                ),
+                "clv": _selected_clv(entry_odds, closing_odds),
                 "selected_model_probability": selected_prob,
                 "home_model_probability": (
                     _safe_float(row.get("premarket_model_home_prob"))
@@ -504,9 +512,10 @@ def _summarize_group(frame: pd.DataFrame) -> Dict[str, Any]:
             "stake_weighted_roi": None,
             "avg_edge": None,
             "avg_clv": None,
+            "positive_clv_rate": None,
         }
 
-    settled = frame[frame["won"].notna()].copy()
+    settled = frame[frame["won"].notna()].copy() if "won" in frame.columns else pd.DataFrame()
 
     profits = [
         _safe_float(value)
@@ -529,7 +538,7 @@ def _summarize_group(frame: pd.DataFrame) -> Dict[str, Any]:
 
     clv_values = [
         _safe_float(value)
-        for value in settled.get("clv", pd.Series(dtype=float)).tolist()
+        for value in frame.get("clv", pd.Series(dtype=float)).tolist()
     ]
     clv_values = [value for value in clv_values if value is not None]
 
@@ -539,10 +548,16 @@ def _summarize_group(frame: pd.DataFrame) -> Dict[str, Any]:
     ]
     edge_values = [value for value in edge_values if value is not None]
 
+    won_values = (
+        [int(value) for value in settled["won"].dropna().tolist()]
+        if not settled.empty and "won" in settled.columns
+        else []
+    )
+
     return {
         "count": int(len(frame)),
         "settled_count": int(len(settled)),
-        "win_rate": _rate_or_none([int(value) for value in settled["won"].dropna().tolist()]),
+        "win_rate": _rate_or_none(won_values),
         "roi_flat": _mean_or_none(profits),
         "stake_weighted_roi": (
             float(sum(stake_profit) / stake_sum)
@@ -551,8 +566,13 @@ def _summarize_group(frame: pd.DataFrame) -> Dict[str, Any]:
         ),
         "avg_edge": _mean_or_none(edge_values),
         "avg_clv": _mean_or_none(clv_values),
+        "positive_clv_rate": (
+            float(sum(1 for value in clv_values if value > 0) / len(clv_values))
+            if clv_values
+            else None
+        ),
     }
-
+    
 
 def _bucket_summary(frame: pd.DataFrame, bucket_column: str) -> Dict[str, Any]:
     if frame is None or frame.empty or bucket_column not in frame.columns:
@@ -616,34 +636,44 @@ def _closing_odds_lookup(odds_frame: Optional[pd.DataFrame]) -> Dict[Tuple[str, 
 
     frame = odds_frame.copy()
     frame["game_id"] = frame["game_id"].astype(str)
-    frame["market"] = frame["market"].astype(str).str.lower()
-    frame["side"] = frame["side"].astype(str).str.lower()
+    frame["market"] = frame["market"].astype(str).str.strip().str.lower()
+    frame["side"] = frame["side"].astype(str).str.strip().str.lower()
+    frame["odds"] = pd.to_numeric(frame["odds"], errors="coerce")
 
-    frame = frame[frame["market"] == "moneyline"].copy()
-
-    if "is_closing_snapshot" in frame.columns:
-        closing_mask = frame["is_closing_snapshot"].astype(str).str.lower().isin(
-            {"true", "1", "yes"}
-        )
-        frame = frame[closing_mask].copy()
+    frame = frame[
+        (frame["market"] == "moneyline")
+        & frame["side"].isin(["home", "away"])
+        & frame["odds"].notna()
+        & (frame["odds"] > 1.0)
+    ].copy()
 
     if frame.empty:
         return {}
 
-    if "captured_at" in frame.columns:
-        frame["captured_at_dt"] = pd.to_datetime(
-            frame["captured_at"],
-            errors="coerce",
-            utc=True,
-        )
-        frame = frame.sort_values("captured_at_dt")
+    if "is_closing_snapshot" not in frame.columns:
+        return {}
+
+    closing_mask = frame["is_closing_snapshot"].astype(str).str.lower().isin(
+        {"true", "1", "yes"}
+    )
+    frame = frame[closing_mask].copy()
+
+    if frame.empty:
+        return {}
+
+    aggregated = (
+        frame.groupby(["game_id", "side"], as_index=False)["odds"]
+        .mean()
+        .copy()
+    )
 
     lookup: Dict[Tuple[str, str], float] = {}
-    for _, row in frame.iterrows():
-        key = (_safe_str(row.get("game_id")), _safe_str(row.get("side")).lower())
+    for _, row in aggregated.iterrows():
+        game_id = _safe_str(row.get("game_id"))
+        side = _safe_str(row.get("side")).lower()
         odds = _safe_float(row.get("odds"))
-        if key[0] and key[1] in {"home", "away"} and odds is not None:
-            lookup[key] = odds
+        if game_id and side in {"home", "away"} and odds is not None:
+            lookup[(game_id, side)] = odds
 
     return lookup
 
@@ -685,7 +715,7 @@ def build_evaluation_clv_diagnostic(
             if closing_odds is not None:
                 historical.at[idx, "closing_odds"] = closing_odds
                 if entry_odds is not None:
-                    historical.at[idx, "clv"] = closing_odds - entry_odds
+                    historical.at[idx, "clv"] = _selected_clv(entry_odds, closing_odds)
 
     current = pd.DataFrame(current_rows)
 
@@ -750,16 +780,16 @@ def build_evaluation_clv_diagnostic(
                 current_risk_counts[key] = current_risk_counts.get(key, 0) + 1
 
     clv_values = []
-    if not paper_settled.empty:
+    if not paper_bets.empty and "clv" in paper_bets.columns:
         clv_values = [
             value
-            for value in paper_settled["clv"].apply(_safe_float).tolist()
+            for value in paper_bets["clv"].apply(_safe_float).tolist()
             if value is not None
         ]
 
     clv_by_side = {}
-    if not paper_settled.empty and "clv" in paper_settled.columns:
-        for side, group in paper_settled.groupby("moneyline_selected_side"):
+    if not paper_bets.empty and "clv" in paper_bets.columns:
+        for side, group in paper_bets.groupby("moneyline_selected_side"):
             values = [
                 value
                 for value in group["clv"].apply(_safe_float).tolist()
@@ -819,16 +849,22 @@ def build_evaluation_clv_diagnostic(
             "window_30d": _window_summary(paper_settled, 30),
         },
         "clv_summary": {
+            "source": "per_pick_log_decimal_clv",
             "evaluated_picks": int(len(clv_values)),
             "positive_clv_count": int(sum(1 for value in clv_values if value > 0)),
             "negative_clv_count": int(sum(1 for value in clv_values if value < 0)),
             "neutral_clv_count": int(sum(1 for value in clv_values if value == 0)),
             "avg_clv": _mean_or_none(clv_values),
+            "positive_clv_rate": (
+                float(sum(1 for value in clv_values if value > 0) / len(clv_values))
+                if clv_values
+                else None
+            ),
             "avg_clv_by_side": clv_by_side,
         },
-        "edge_bucket_summary": _bucket_summary(paper_settled, "edge_bucket"),
-        "risk_flag_summary": _risk_flag_summary(paper_settled),
-        "side_summary": _bucket_summary(paper_settled, "moneyline_selected_side"),
+        "edge_bucket_summary": _bucket_summary(paper_bets, "edge_bucket"),
+        "risk_flag_summary": _risk_flag_summary(paper_bets),
+        "side_summary": _bucket_summary(paper_bets, "moneyline_selected_side"),
         "recommendations": [],
     }
 
