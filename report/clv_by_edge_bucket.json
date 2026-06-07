@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-07T02:19:22.630171+00:00",
-  "status": "partial",
+  "generated_at": "2026-06-07T03:55:50.826470+00:00",
+  "status": "ok",
   "input_files": {
     "prediction": {
       "path": "report/prediction.json",
@@ -17,7 +17,7 @@
     "market_odds_history": {
       "path": "data/market_odds_history.csv",
       "exists": true,
-      "rows": 27956,
+      "rows": 28172,
       "error": ""
     },
     "finalized_games": {
@@ -37,53 +37,65 @@
   "slices": [
     {
       "slice": "3_to_5pct",
-      "count": 19,
-      "avg_clv": 0.018667,
-      "positive_clv_rate": null,
-      "positive_clv_count": null,
-      "negative_clv_count": null,
-      "paper_bet_count": 19,
-      "live_bet_candidate_count": 0,
-      "block_live_bet": true,
-      "block_reasons": [
-        "per_pick_positive_clv_unavailable"
-      ],
-      "source": "evaluation_clv_diagnostic.edge_bucket_summary"
-    },
-    {
-      "slice": "5_to_8pct",
-      "count": 23,
-      "avg_clv": 0.0035,
-      "positive_clv_rate": null,
-      "positive_clv_count": null,
-      "negative_clv_count": null,
-      "paper_bet_count": 23,
-      "live_bet_candidate_count": 0,
-      "block_live_bet": true,
-      "block_reasons": [
-        "per_pick_positive_clv_unavailable"
-      ],
-      "source": "evaluation_clv_diagnostic.edge_bucket_summary"
-    },
-    {
-      "slice": "8pct_plus",
-      "count": 58,
-      "avg_clv": -0.857909,
-      "positive_clv_rate": null,
-      "positive_clv_count": null,
-      "negative_clv_count": null,
-      "paper_bet_count": 58,
+      "count": 16,
+      "avg_clv": -0.013101,
+      "positive_clv_rate": 0.3125,
+      "positive_clv_count": 5,
+      "negative_clv_count": 10,
+      "paper_bet_count": 16,
       "live_bet_candidate_count": 0,
       "block_live_bet": true,
       "block_reasons": [
         "negative_avg_clv",
-        "per_pick_positive_clv_unavailable"
+        "positive_clv_rate_below_threshold"
       ],
-      "source": "evaluation_clv_diagnostic.edge_bucket_summary"
+      "source": "per_pick_clv"
+    },
+    {
+      "slice": "5_to_8pct",
+      "count": 20,
+      "avg_clv": -0.007367,
+      "positive_clv_rate": 0.3,
+      "positive_clv_count": 6,
+      "negative_clv_count": 14,
+      "paper_bet_count": 20,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": true,
+      "block_reasons": [
+        "negative_avg_clv",
+        "positive_clv_rate_below_threshold"
+      ],
+      "source": "per_pick_clv"
+    },
+    {
+      "slice": "8pct_plus",
+      "count": 69,
+      "avg_clv": 0.498258,
+      "positive_clv_rate": 0.7681,
+      "positive_clv_count": 53,
+      "negative_clv_count": 16,
+      "paper_bet_count": 58,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": false,
+      "block_reasons": [],
+      "source": "per_pick_clv"
+    },
+    {
+      "slice": "below_3pct",
+      "count": 21,
+      "avg_clv": -0.013199,
+      "positive_clv_rate": 0.4762,
+      "positive_clv_count": 10,
+      "negative_clv_count": 11,
+      "paper_bet_count": 1,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": true,
+      "block_reasons": [
+        "negative_avg_clv",
+        "positive_clv_rate_below_threshold"
+      ],
+      "source": "per_pick_clv"
     }
   ],
-  "recommendations": [
-    "Using aggregate CLV diagnostic fallback because per-pick CLV rows are not available.",
-    "Live betting remains blocked because positive CLV rate cannot be validated from aggregate fallback."
-  ]
+  "recommendations": []
 }

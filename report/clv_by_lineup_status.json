@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-07T02:19:22.630171+00:00",
-  "status": "insufficient_samples",
+  "generated_at": "2026-06-07T03:55:50.826470+00:00",
+  "status": "ok",
   "input_files": {
     "prediction": {
       "path": "report/prediction.json",
@@ -17,7 +17,7 @@
     "market_odds_history": {
       "path": "data/market_odds_history.csv",
       "exists": true,
-      "rows": 27956,
+      "rows": 28172,
       "error": ""
     },
     "finalized_games": {
@@ -34,8 +34,36 @@
     }
   },
   "slice_type": "lineup_status",
-  "slices": [],
-  "recommendations": [
-    "No per-pick or aggregate CLV data available for slice type 'lineup_status'."
-  ]
+  "slices": [
+    {
+      "slice": "pending",
+      "count": 15,
+      "avg_clv": -0.005024,
+      "positive_clv_rate": 0.2667,
+      "positive_clv_count": 4,
+      "negative_clv_count": 10,
+      "paper_bet_count": 12,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": true,
+      "block_reasons": [
+        "negative_avg_clv",
+        "positive_clv_rate_below_threshold"
+      ],
+      "source": "per_pick_clv"
+    },
+    {
+      "slice": "unknown",
+      "count": 111,
+      "avg_clv": 0.304694,
+      "positive_clv_rate": 0.6306,
+      "positive_clv_count": 70,
+      "negative_clv_count": 41,
+      "paper_bet_count": 83,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": false,
+      "block_reasons": [],
+      "source": "per_pick_clv"
+    }
+  ],
+  "recommendations": []
 }

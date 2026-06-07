@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-07T02:19:22.630171+00:00",
-  "status": "insufficient_samples",
+  "generated_at": "2026-06-07T03:55:50.826470+00:00",
+  "status": "ok",
   "input_files": {
     "prediction": {
       "path": "report/prediction.json",
@@ -17,7 +17,7 @@
     "market_odds_history": {
       "path": "data/market_odds_history.csv",
       "exists": true,
-      "rows": 27956,
+      "rows": 28172,
       "error": ""
     },
     "finalized_games": {
@@ -34,8 +34,65 @@
     }
   },
   "slice_type": "odds_range",
-  "slices": [],
-  "recommendations": [
-    "No per-pick or aggregate CLV data available for slice type 'odds_range'."
-  ]
+  "slices": [
+    {
+      "slice": "odds_1_70_to_2_10",
+      "count": 45,
+      "avg_clv": -0.000576,
+      "positive_clv_rate": 0.4444,
+      "positive_clv_count": 20,
+      "negative_clv_count": 24,
+      "paper_bet_count": 33,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": true,
+      "block_reasons": [
+        "negative_avg_clv",
+        "positive_clv_rate_below_threshold"
+      ],
+      "source": "per_pick_clv"
+    },
+    {
+      "slice": "odds_2_10_to_2_80",
+      "count": 31,
+      "avg_clv": 0.068776,
+      "positive_clv_rate": 0.6774,
+      "positive_clv_count": 21,
+      "negative_clv_count": 10,
+      "paper_bet_count": 25,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": false,
+      "block_reasons": [],
+      "source": "per_pick_clv"
+    },
+    {
+      "slice": "odds_above_2_80",
+      "count": 27,
+      "avg_clv": 1.201804,
+      "positive_clv_rate": 1.0,
+      "positive_clv_count": 27,
+      "negative_clv_count": 0,
+      "paper_bet_count": 17,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": false,
+      "block_reasons": [],
+      "source": "per_pick_clv"
+    },
+    {
+      "slice": "odds_below_1_70",
+      "count": 23,
+      "avg_clv": -0.035182,
+      "positive_clv_rate": 0.2609,
+      "positive_clv_count": 6,
+      "negative_clv_count": 17,
+      "paper_bet_count": 20,
+      "live_bet_candidate_count": 0,
+      "block_live_bet": true,
+      "block_reasons": [
+        "negative_avg_clv",
+        "positive_clv_rate_below_threshold"
+      ],
+      "source": "per_pick_clv"
+    }
+  ],
+  "recommendations": []
 }
