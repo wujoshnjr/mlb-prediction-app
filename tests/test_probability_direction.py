@@ -147,8 +147,6 @@ def test_home_edge_matches_model_minus_market_probability() -> None:
     predictions = _load_predictions()
 
     checked = 0
-    scale_mismatch_but_direction_ok = 0
-
     for prediction in predictions:
         model_prob = _get_home_probability(prediction)
         market_prob = _get_market_home_probability(prediction)
@@ -159,29 +157,11 @@ def test_home_edge_matches_model_minus_market_probability() -> None:
 
         checked += 1
         expected_edge = model_prob - market_prob
-
-        # Primary contract: raw probability edge.
-        if abs(edge - expected_edge) <= 0.05:
-            continue
-
-        # Some reports may store edge on a doubled home-vs-away scale.
-        # Example:
-        # model_home - market_home = -0.1069
-        #:
-        # model_home - market_home = -0.1069
-        # reported model_edge_home = -0.2139
-        # This is directionally correct but not the same scale.
-        if abs((edge / 2.0) - expected_edge) <= 0.05:
-            scale_mismatch_but_direction_ok += 1
-            continue
-
-        # If magnitude does not match either known scale, the sign still must not contradict.
-        if abs(expected_edge) >= 0.02 and abs(edge) >= 0.02:
-            assert (edge > 0) == (expected_edge > 0), (
-                "home edge direction contradicts model_home_prob - market_home_prob; "
-                f"got edge={edge}, model={model_prob}, market={market_prob}, "
-                f"expected_edge={expected_edge}"
-            )
+        assert abs(edge - expected_edge) <= 0.02, (
+            "home edge must be displayed model_home_prob - market_home_prob; "
+            f"got edge={edge}, model={model_prob}, market={market_prob}, "
+            f"expected_edge={expected_edge}"
+        )
 
     if checked == 0:
         pytest.skip("insufficient fields to verify home edge direction")
