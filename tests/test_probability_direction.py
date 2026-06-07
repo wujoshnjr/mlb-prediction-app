@@ -187,29 +187,6 @@ def test_home_edge_matches_model_minus_market_probability() -> None:
         pytest.skip("insufficient fields to verify home edge direction")
 
 
-def test_home_edge_matches_model_minus_market_probability() -> None:
-    predictions = _load_predictions()
-
-    checked = 0
-    for prediction in predictions:
-        model_prob = _get_home_probability(prediction)
-        market_prob = _get_market_home_probability(prediction)
-        edge = _get_home_edge(prediction)
-
-        if model_prob is None or market_prob is None or edge is None:
-            continue
-
-        checked += 1
-        expected_edge = model_prob - market_prob
-        assert abs(edge - expected_edge) <= 0.05, (
-            "home edge should be model_home_prob - market_home_prob; "
-            f"got edge={edge}, model={model_prob}, market={market_prob}"
-        )
-
-    if checked == 0:
-        pytest.skip("insufficient fields to verify home edge direction")
-
-
 def test_recommendation_direction_does_not_obviously_contradict_edge() -> None:
     predictions = _load_predictions()
 
