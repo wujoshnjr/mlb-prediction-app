@@ -82,10 +82,17 @@ def _large_edge_negative_clv(clv_report: Optional[Dict[str, Any]]) -> bool:
         if not isinstance(item, dict):
             continue
 
-        name = str(item.get("slice", "")).lower()
+        raw_name = str(item.get("slice", "")).strip().lower()
+        name = raw_name.replace("-", "_").replace(" ", "_")
         avg_clv = _to_float(item.get("avg_clv"))
 
-        if ("8pct" in name or "large" in name) and avg_clv is not None and avg_clv < 0:
+        is_large_edge_bucket = (
+            name == "8pct_plus"
+            or name.startswith("8pct_plus")
+            or name in {"large", "large_edge", "large_edge_bucket"}
+        )
+
+        if is_large_edge_bucket and avg_clv is not None and avg_clv < 0:
             return True
 
     return False
