@@ -244,6 +244,7 @@ def _evaluate_data_trust(
     snapshot_sanitization = reports.get("snapshot_sanitization")
     decision_audit = reports.get("decision_audit")
     market_close = reports.get("market_close")
+    settled_link = reports.get("settled_prediction_link")
 
     predictions = _predictions(prediction)
     prediction_count = len(predictions)
@@ -283,13 +284,21 @@ def _evaluate_data_trust(
         and _to_int(market_close.get("clv_available_count")) > 0
     )
 
+    settled_link_report_ok = (
+        settled_link is not None
+        and _status_ok(settled_link)
+        and not settled_link.get("errors")
+    )
+    linked_game_count = _to_int((settled_link or {}).get("linked_game_count"))
+
     signals = [
-        _signal("data_contract_ok", contract_ok, 20, data_contract.get("status") if data_contract else None),
+        _signal("data_contract_ok", contract_ok, 15, data_contract.get("status") if data_contract else None),
         _signal("pipeline_manifest_readable", manifest_readable, 15, pipeline_manifest.get("status") if pipeline_manifest else None),
         _signal("prediction_sanitizer_clean", sanitizer_clean, 15, prediction_sanitization.get("change_count") if prediction_sanitization else None),
         _signal("snapshot_sanitizer_clean", snapshot_clean, 15, snapshot_sanitization.get("status") if snapshot_sanitization else None),
-        _signal("decision_audit_matches_prediction_count", audit_matches_prediction, 15, {"prediction_count": prediction_count, "audit_count": audit_count}),
-        _signal("per_pick_clv_joined", clv_joined, 20, market_close.get("clv_available_count") if market_close else None),
+        _signal("decision_audit_matches_prediction_count", audit_matches_prediction, 10, {"prediction_count": prediction_count, "audit_count": audit_count}),
+        _signal("per_pick_clv_joined", clv_joined, 15, market_close.get("clv_available_count") if market_close else None),
+        _signal("settled_prediction_link_report_ok", settled_link_report_ok, 15, {"linked_game_count": linked_game_count}),
     ]
 
     score = sum(item["weight"] for item in signals if item["passed"])
@@ -308,6 +317,9 @@ def _evaluate_data_trust(
     if not clv_joined:
         warnings.append("per-pick CLV is not yet joined to market close data")
 
+    if settled_link_report_ok and linked_game_count == 0:
+        warnings.append("settled prediction link report is valid, but linked_game_count is still zero")
+
     return _layer_result(
         "data_trust",
         score,
@@ -317,9 +329,10 @@ def _evaluate_data_trust(
         [
             "Keep event-time, snapshot-time, entry odds, closing odds, decision audit, and settle result linked by game_id.",
             "Prediction sanitizer change_count should remain zero after prediction.py source cleanup.",
+            "finalized_games.csv must be the only trusted outcome source for research evidence.",
         ],
     )
-
+    
 
 def _evaluate_research_quality(
     reports: Dict[str, Optional[Dict[str, Any]]],
