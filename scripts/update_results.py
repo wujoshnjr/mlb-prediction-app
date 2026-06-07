@@ -34,6 +34,18 @@ except Exception as exc:
 HISTORY_FILE = "data/historical_predictions.csv"
 LAST_GAME_FILE = "data/team_last_game.json"
 NEW_FINAL_RESULTS_FILE = "data/new_final_results.json"
+FINALIZED_GAMES_FILE = "data/finalized_games.csv"
+
+FINALIZED_FIELDNAMES = [
+    "game_id",
+    "game_date",
+    "home_team",
+    "away_team",
+    "home_score",
+    "away_score",
+    "home_win",
+    "status",
+]
 
 TEAM_NAME_MAP = {
     "Arizona Diamondbacks": "D-backs", "Diamondbacks": "D-backs",
@@ -53,6 +65,124 @@ TEAM_NAME_MAP = {
     "Tampa Bay Rays": "Rays", "Texas Rangers": "Rangers",
     "Toronto Blue Jays": "Blue Jays", "Washington Nationals": "Nationals"
 }
+
+def _normalize_game_id(value):
+    if value is None:
+        return ""
+
+    text = str(value).strip()
+    if not text:
+        return ""
+
+    try:
+        parsed = float(text)
+        if parsed.is_integer():
+            return str(int(parsed))
+    except Exception:
+        pass
+
+    return text
+
+
+def _safe_int(value):
+    try:
+        if value is None:
+            return None
+        return int(float(str(value).strip()))
+    except Exception:
+        return None
+
+
+def _read_finalized_game_ids():
+    if not os.path.exists(FINALIZED_GAMES_FILE):
+        return set()
+
+    ids = set()
+    try:
+        with open(FINALIZED_GAMES_FILE, "r", newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                game_id = _normalize_game_id(row.get("game_id"))
+                if game_id:
+                    ids.add(game_id)
+    except Exception as exc:
+        print(f"Read finalized_games.csv failed: {exc}")
+
+    return ids
+
+
+def _normalize_finalized_game(game):
+    game_id = _normalize_game_id(game.get("game_id"))
+    if not game_id:
+        return None
+
+    home_score = _safe_int(game.get("home_score"))
+    away_score = _safe_int(game.get("away_score"))
+
+    if home_score is None or away_score is None:
+        return None
+
+    home_win = _safe_int(game.get("home_win"))
+    if home_win not in (0, 1):
+        home_win = 1 if home_score > away_score else 0
+
+    game_date = str(game.get("game_date", "") or "").strip()
+    home_team = str(game.get("home_team", "") or "").strip()
+    away_team = str(game.get("away_team", "") or "").strip()
+
+    return {
+        "game_id": game_id,
+        "game_date": game_date,
+        "home_team": home_team,
+        "away_team": away_team,
+        "home_score": home_score,
+        "away_score": away_score,
+        "home_win": home_win,
+        "status": "Final",
+    }
+
+
+def append_finalized_games(final_games):
+    os.makedirs(os.path.dirname(FINALIZED_GAMES_FILE), exist_ok=True)
+
+    existing_ids = _read_finalized_game_ids()
+    normalized_rows = []
+    invalid_rows = 0
+
+    for game in final_games:
+        normalized = _normalize_finalized_game(game)
+        if normalized is None:
+            invalid_rows += 1
+            continue
+
+        if normalized["game_id"] in existing_ids:
+            continue
+
+        normalized_rows.append(normalized)
+        existing_ids.add(normalized["game_id"])
+
+    file_exists = os.path.exists(FINALIZED_GAMES_FILE)
+    write_header = not file_exists or os.path.getsize(FINALIZED_GAMES_FILE) == 0
+
+    if normalized_rows:
+        with open(FINALIZED_GAMES_FILE, "a", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=FINALIZED_FIELDNAMES,
+                extrasaction="ignore",
+            )
+            if write_header:
+                writer.writeheader()
+            writer.writerows(normalized_rows)
+
+    return {
+        "path": FINALIZED_GAMES_FILE,
+        "received": len(final_games),
+        "inserted": len(normalized_rows),
+        "duplicates_skipped": max(0, len(final_games) - len(normalized_rows) - invalid_rows),
+        "invalid_rows": invalid_rows,
+    }
+
 
 def fetch_game_result(game_id):
     url = f"https://statsapi.mlb.com/api/v1.1/game/{game_id}/feed/live"
@@ -92,6 +222,7 @@ def update_results():
 
     updated_count = 0
     new_final_games = []
+    existing_finalized_game_ids = _read_finalized_game_ids()
 
     # 数据库更新
     if DB_AVAILABLE:
@@ -188,10 +319,12 @@ def update_results():
                     )
                 ]
 
-            processed_ids = {
-                str(game.get("game_id", "")).strip()
+            processed_ids = set(existing_finalized_game_ids)
+            processed_ids.update(
+                _normalize_game_id(game.get("game_id"))
                 for game in new_final_games
-            }
+                if _normalize_game_id(game.get("game_id"))
+            )
 
             for _, snapshot in pending_snapshots.iterrows():
                 game_id = str(snapshot.get("game_id", "")).strip()
@@ -229,14 +362,18 @@ def update_results():
         except Exception as exc:
             print(f"Snapshot pending result collection failed: {exc}")
             
-    # Deduplicate finalized games before writing outputs and settling snapshots.
+    # Normalize and deduplicate finalized games before writing outputs and settling snapshots.
     seen = set()
     unique_final = []
     for game in new_final_games:
-        game_id = str(game.get("game_id", "")).strip()
+        normalized = _normalize_finalized_game(game)
+        if normalized is None:
+            continue
+
+        game_id = normalized["game_id"]
         if game_id and game_id not in seen:
             seen.add(game_id)
-            unique_final.append(game)
+            unique_final.append(normalized)
 
     market_odds_settlement_summary = {
         "games_received": len(unique_final),
@@ -274,17 +411,14 @@ def update_results():
         "unmatched": 0,
         "stored_rows": 0,
     }
-    if SNAPSHOT_AVAILABLE and os.path.exists(SNAPSHOT_STORE_FILE):
-        try:
-            snapshot_settlement_summary = settle_snapshots(unique_final)
-            print(
-                "Snapshot settlement: "
-                f"updated={snapshot_settlement_summary.get('updated', 0)}, "
-                f"unmatched={snapshot_settlement_summary.get('unmatched', 0)}"
-            )
-        except Exception as exc:
-            print(f"Snapshot settlement failed: {exc}")
-
+    finalized_append_summary = append_finalized_games(unique_final)
+    print(
+        "Finalized games append: "
+        f"inserted={finalized_append_summary.get('inserted', 0)}, "
+        f"duplicates_skipped={finalized_append_summary.get('duplicates_skipped', 0)}, "
+        f"invalid_rows={finalized_append_summary.get('invalid_rows', 0)}"
+    )
+    
     with open(NEW_FINAL_RESULTS_FILE, 'w', encoding='utf-8') as f:
         json.dump(unique_final, f, indent=2)
     print(f"Saved {len(unique_final)} newly finalized games.")
