@@ -22,20 +22,12 @@ Future APIs should provide read-only sports intelligence:
 
 The API must not provide sportsbook execution, automated wagering, or user-fund movement.
 
-## Planned API Endpoints
+## Current Internal Dashboard Endpoints
 
-Planned future endpoints:
+The current FastAPI service may expose internal dashboard endpoints such as:
 
 ```text
-GET /v1/games
-GET /v1/predictions
-GET /v1/predictions/{game_id}
-GET /v1/markets/odds
-GET /v1/markets/movement
-GET /v1/clv/report
-GET /v1/models/status
-GET /v1/models/{model_version}/card
-GET /v1/data-quality/games/{game_id}
-GET /v1/backtests/summary
-GET /v1/oos/report
-GET /v1/health
+GET /api/predictions
+GET /api/performance
+GET /api/health
+POST /run
