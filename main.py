@@ -60,7 +60,7 @@ HTML = r"""
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>MLB Prediction Hub | Emerald Quant Terminal</title>
+<title>MLB Intelligence Cloud | Emerald Quant Terminal</title>
 <style>
 :root {
   color-scheme: dark;
@@ -1036,7 +1036,7 @@ a { color:inherit; }
       <div class="brand-mark">MLB</div>
       <div>
         <div class="brand-name">Prediction Hub</div>
-        <div class="brand-sub">Emerald Quant Terminal</div>
+        <div class="brand-sub">Sports Intelligence Research Terminal</div>
       </div>
     </div>
     <div class="live-pill"><span class="live-dot"></span> Live locked</div>
@@ -1046,8 +1046,8 @@ a { color:inherit; }
     <div class="hero-grid"></div>
     <div class="hero-content">
       <div>
-        <div class="hero-kicker">Paper trading research terminal</div>
-        <h1><span class="hero-gradient">MLB market evidence command center</span></h1>
+        <div class="hero-kicker">SaaS / B2B foundation · paper-only research</div>
+        <h1><span class="hero-gradient">Sports intelligence infrastructure for MLB market evidence</span></h1>
         <p class="hero-copy">
           Full-game market comparison, paper-entry tracking, CLV evidence, data quality,
           and model-governance visibility. Built for research discipline, not live bet execution.
