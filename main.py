@@ -1049,8 +1049,9 @@ a { color:inherit; }
         <div class="hero-kicker">SaaS / B2B foundation · paper-only research</div>
         <h1><span class="hero-gradient">Sports intelligence infrastructure for MLB market evidence</span></h1>
         <p class="hero-copy">
-          Full-game market comparison, paper-entry tracking, CLV evidence, data quality,
-          and model-governance visibility. Built for research discipline, not live bet execution.
+          A paper-trading research dashboard for model governance, market comparison,
+          CLV evidence, data quality, sample-state control, and future SaaS/B2B readiness.
+          No automated wagering. No user funds. No guaranteed profit.
         </p>
         <div id="update-time" class="updated">Loading market update...</div>
       </div>
@@ -1070,12 +1071,12 @@ a { color:inherit; }
             <span>Disabled</span>
           </div>
           <div class="terminal-line">
-            <span>Markets</span>
-            <span>Full Game ML / Spread / Total</span>
+            <span>Execution</span>
+            <span>No Automated Wagering</span>
           </div>
           <div class="terminal-line">
             <span>Evidence</span>
-            <span>CLV + Market Baseline</span>
+            <span>CLV + OOS + Market Baseline</span>
           </div>
         </div>
       </aside>
@@ -1268,8 +1269,8 @@ a { color:inherit; }
   </section>
 
   <div class="footer">
-    MLB paper-trading research dashboard - Live betting disabled - Full-game markets only<br>
-    This platform tracks market evidence and model quality. It is not a real-money betting execution system.
+    MLB Sports Intelligence Research Terminal - Live betting disabled - No automated wagering<br>
+    This platform tracks market evidence, model quality, data governance, and SaaS readiness. It is not a real-money betting execution system.
   </div>
 </div>
 
