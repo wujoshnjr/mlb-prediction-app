@@ -18,6 +18,8 @@ POSTGAME_FIELDS = [
     "final_score",
     "home_final_score",
     "away_final_score",
+    "home_score",
+    "away_score",
     "settled_at",
     "actual_winner",
     "actual_result",
