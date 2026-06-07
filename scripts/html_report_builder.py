@@ -25,6 +25,7 @@ SOURCES = {
     "market_close": REPORT_DIR / "market_close_report.json",
     "research_quality": REPORT_DIR / "research_quality_report.json",
     "settle_reliability": REPORT_DIR / "settle_reliability_report.json",
+    "settled_prediction_link": REPORT_DIR / "settled_prediction_link_report.json",
     "model_registry": REPORT_DIR / "model_registry_report.json",
     "promotion_gate": REPORT_DIR / "promotion_gate_report.json",
     "decision_audit": REPORT_DIR / "decision_audit_report.json",
@@ -311,6 +312,7 @@ def build_html() -> str:
 
     engineering_sources = {
         "Settle Reliability": data.get("settle_reliability"),
+        "Settled Prediction Link": data.get("settled_prediction_link"),
         "Rolling Walk-forward": data.get("rolling_walkforward"),
         "Lineup / Starter Slice": data.get("lineup_starter_slice"),
         "Market Close": data.get("market_close"),
@@ -338,6 +340,11 @@ def build_html() -> str:
         key_metric = "-"
         if title == "Settle Reliability":
             key_metric = f"settle_rate={_escape(report_data.get('settle_rate'))}"
+        elif title == "Settled Prediction Link":
+            key_metric = (
+                f"linked_games={_escape(report_data.get('linked_game_count'))}; "
+                f"link_rate={_escape(report_data.get('link_rate'))}"
+            )
         elif title == "Rolling Walk-forward":
             key_metric = f"oos={_escape(report_data.get('total_oos_predictions'))}"
         elif title == "Research Quality":
