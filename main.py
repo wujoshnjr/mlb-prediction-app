@@ -60,31 +60,46 @@ HTML = r"""
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>MLB Prediction Hub</title>
+<title>MLB Prediction Hub | Emerald Quant Terminal</title>
 <style>
 :root {
-  --bg:#070816;
-  --bg-2:#0b1022;
-  --panel:#10162e;
-  --panel-2:#141b38;
-  --panel-3:#181f42;
-  --border:rgba(129,140,248,.16);
-  --border-strong:rgba(192,132,252,.34);
-  --text:#f5f7ff;
-  --muted:#8f9abd;
-  --muted-2:#667197;
-  --green:#35ef9d;
-  --green-bg:rgba(53,239,157,.13);
-  --pink:#ff62ba;
-  --purple:#8e48ff;
-  --blue:#53c8ff;
-  --amber:#ffc55e;
-  --amber-bg:rgba(255,197,94,.13);
-  --red:#ff6577;
-  --red-bg:rgba(255,101,119,.13);
-  --shadow:0 22px 48px rgba(0,0,0,.28);
-  --gradient:linear-gradient(92deg,#7d3eff 0%,#cf47dc 47%,#ff62ae 100%);
-  --gradient-soft:linear-gradient(140deg,rgba(125,62,255,.26),rgba(255,98,174,.08));
+  color-scheme: dark;
+
+  --bg:#020807;
+  --bg-2:#03110e;
+  --bg-3:#061914;
+  --panel:rgba(7,24,20,.86);
+  --panel-2:rgba(9,32,26,.88);
+  --panel-3:rgba(11,42,34,.76);
+  --panel-strong:rgba(8,35,28,.96);
+
+  --border:rgba(52,211,153,.18);
+  --border-soft:rgba(134,239,172,.10);
+  --border-strong:rgba(52,211,153,.46);
+
+  --text:#ecfff8;
+  --text-soft:#c8f7e4;
+  --muted:#8eb7a7;
+  --muted-2:#5d7f72;
+
+  --green:#34f5a4;
+  --green-2:#10b981;
+  --green-3:#064e3b;
+  --green-bg:rgba(52,245,164,.12);
+
+  --cyan:#22d3ee;
+  --cyan-bg:rgba(34,211,238,.11);
+
+  --amber:#fbbf24;
+  --amber-bg:rgba(251,191,36,.12);
+
+  --red:#fb7185;
+  --red-bg:rgba(251,113,133,.12);
+
+  --shadow:0 24px 70px rgba(0,0,0,.42);
+  --shadow-green:0 0 34px rgba(52,245,164,.16);
+  --gradient:linear-gradient(92deg,#00ff88 0%,#22d3ee 52%,#a7f3d0 100%);
+  --gradient-panel:linear-gradient(145deg,rgba(52,245,164,.12),rgba(34,211,238,.05),rgba(2,8,7,.86));
 }
 
 * { box-sizing:border-box; }
@@ -95,21 +110,51 @@ html, body {
   background:var(--bg);
   color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
 }
 
 body {
+  position:relative;
+  overflow-x:hidden;
   background:
-    radial-gradient(circle at 10% -4%, rgba(126,63,255,.24), transparent 33%),
-    radial-gradient(circle at 92% 0%, rgba(255,98,174,.13), transparent 30%),
-    linear-gradient(180deg, #070816 0%, #090c1b 48%, #070816 100%);
+    radial-gradient(circle at 12% -8%, rgba(52,245,164,.22), transparent 34%),
+    radial-gradient(circle at 88% 0%, rgba(34,211,238,.13), transparent 31%),
+    radial-gradient(circle at 50% 100%, rgba(16,185,129,.12), transparent 36%),
+    linear-gradient(180deg,#020807 0%,#04130f 46%,#020807 100%);
+}
+
+body::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-2;
+  background-image:
+    linear-gradient(rgba(52,211,153,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(52,211,153,.045) 1px, transparent 1px);
+  background-size:44px 44px;
+  mask-image:linear-gradient(to bottom, rgba(0,0,0,.88), rgba(0,0,0,.32));
+}
+
+body::after {
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-1;
+  background:
+    linear-gradient(to bottom, transparent 0%, rgba(52,245,164,.035) 50%, transparent 100%);
+  background-size:100% 9px;
+  opacity:.38;
+  mix-blend-mode:screen;
 }
 
 a { color:inherit; }
 
 .container {
-  max-width:1320px;
+  max-width:1380px;
   margin:0 auto;
-  padding:20px 18px 36px;
+  padding:22px 18px 38px;
 }
 
 .topbar {
@@ -117,7 +162,13 @@ a { color:inherit; }
   justify-content:space-between;
   align-items:center;
   gap:14px;
-  margin-bottom:20px;
+  margin-bottom:18px;
+  padding:11px 12px;
+  border:1px solid var(--border-soft);
+  border-radius:20px;
+  background:rgba(2,8,7,.52);
+  backdrop-filter:blur(16px);
+  box-shadow:0 18px 40px rgba(0,0,0,.22);
 }
 
 .brand {
@@ -127,29 +178,42 @@ a { color:inherit; }
 }
 
 .brand-mark {
+  position:relative;
   display:grid;
   place-items:center;
-  width:43px;
-  height:43px;
-  border-radius:14px;
-  background:var(--gradient);
-  box-shadow:0 9px 22px rgba(160,64,255,.34);
-  color:white;
-  font-weight:900;
-  letter-spacing:-.05em;
+  width:46px;
+  height:46px;
+  border-radius:15px;
+  background:
+    radial-gradient(circle at 28% 18%, rgba(255,255,255,.22), transparent 28%),
+    linear-gradient(140deg,rgba(52,245,164,.96),rgba(34,211,238,.72));
+  box-shadow:
+    0 0 0 1px rgba(167,243,208,.22) inset,
+    0 0 26px rgba(52,245,164,.35);
+  color:#03110e;
+  font-weight:950;
+  letter-spacing:-.08em;
   font-size:1.02rem;
 }
 
+.brand-mark::after {
+  content:"";
+  position:absolute;
+  inset:-5px;
+  border-radius:18px;
+  border:1px solid rgba(52,245,164,.16);
+}
+
 .brand-name {
-  font-size:1.02rem;
-  font-weight:700;
+  font-size:1.03rem;
+  font-weight:780;
   letter-spacing:.01em;
 }
 
 .brand-sub {
   color:var(--muted);
-  font-size:.69rem;
-  letter-spacing:.16em;
+  font-size:.68rem;
+  letter-spacing:.18em;
   margin-top:3px;
   text-transform:uppercase;
 }
@@ -157,103 +221,199 @@ a { color:inherit; }
 .live-pill {
   display:flex;
   align-items:center;
-  gap:7px;
-  border:1px solid rgba(53,239,157,.24);
-  background:rgba(53,239,157,.08);
+  gap:8px;
+  border:1px solid rgba(52,245,164,.34);
+  background:rgba(52,245,164,.10);
   color:var(--green);
   border-radius:999px;
-  padding:8px 11px;
+  padding:9px 12px;
   font-size:.72rem;
-  font-weight:700;
+  font-weight:780;
+  letter-spacing:.04em;
+  text-transform:uppercase;
   white-space:nowrap;
+  box-shadow:0 0 26px rgba(52,245,164,.10);
 }
 
 .live-dot {
-  width:7px;
-  height:7px;
+  width:8px;
+  height:8px;
   border-radius:50%;
   background:var(--green);
-  box-shadow:0 0 12px var(--green);
+  box-shadow:0 0 14px var(--green), 0 0 26px rgba(52,245,164,.5);
 }
 
 .hero {
   position:relative;
   overflow:hidden;
-  padding:23px 22px;
+  padding:26px 24px;
   margin-bottom:16px;
-  border-radius:24px;
+  border-radius:26px;
   background:
-    linear-gradient(125deg, rgba(23,28,61,.98), rgba(13,17,38,.98)),
+    linear-gradient(120deg,rgba(8,35,28,.96),rgba(3,17,14,.94)),
     var(--panel);
   border:1px solid var(--border);
-  box-shadow:var(--shadow);
+  box-shadow:var(--shadow), var(--shadow-green);
+}
+
+.hero::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(120deg, rgba(52,245,164,.10), transparent 38%),
+    radial-gradient(circle at 82% 20%, rgba(34,211,238,.18), transparent 34%),
+    radial-gradient(circle at 15% 95%, rgba(16,185,129,.16), transparent 38%);
 }
 
 .hero::after {
   content:"";
   position:absolute;
-  right:-75px;
-  top:-95px;
-  width:230px;
-  height:230px;
+  right:-90px;
+  top:-110px;
+  width:280px;
+  height:280px;
   border-radius:50%;
-  background:radial-gradient(circle, rgba(207,71,220,.27), transparent 68%);
+  border:1px solid rgba(52,245,164,.14);
+  background:
+    radial-gradient(circle, rgba(52,245,164,.24), transparent 60%);
+  filter:blur(.2px);
+}
+
+.hero-grid {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:.26;
+  background-image:
+    linear-gradient(rgba(52,245,164,.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(52,245,164,.13) 1px, transparent 1px);
+  background-size:28px 28px;
+  mask-image:linear-gradient(90deg, rgba(0,0,0,.78), transparent 78%);
+}
+
+.hero-content {
+  position:relative;
+  z-index:1;
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(270px,.75fr);
+  gap:22px;
+  align-items:end;
 }
 
 .hero-kicker {
-  position:relative;
-  z-index:1;
   display:inline-flex;
-  gap:7px;
+  gap:8px;
   align-items:center;
-  margin-bottom:12px;
-  color:#d1b4ff;
+  margin-bottom:13px;
+  color:#b9ffe1;
   font-size:.69rem;
-  font-weight:700;
-  letter-spacing:.18em;
+  font-weight:800;
+  letter-spacing:.19em;
   text-transform:uppercase;
 }
 
+.hero-kicker::before {
+  content:"";
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 14px var(--green);
+}
+
 .hero h1 {
-  position:relative;
-  z-index:1;
   margin:0;
-  font-size:clamp(1.7rem,4vw,2.65rem);
-  font-weight:760;
-  letter-spacing:-.055em;
-  line-height:1.06;
+  font-size:clamp(1.9rem,4.2vw,3.25rem);
+  font-weight:860;
+  letter-spacing:-.06em;
+  line-height:1.02;
 }
 
 .hero-gradient {
-  background:linear-gradient(92deg,#f7f3ff 5%,#e2caff 38%,#ff7cbc 96%);
+  background:var(--gradient);
   background-clip:text;
   -webkit-background-clip:text;
   color:transparent;
+  text-shadow:0 0 34px rgba(52,245,164,.12);
 }
 
 .hero-copy {
-  position:relative;
-  z-index:1;
   color:var(--muted);
-  max-width:670px;
-  margin:13px 0 0;
-  line-height:1.52;
-  font-size:.9rem;
+  max-width:720px;
+  margin:14px 0 0;
+  line-height:1.58;
+  font-size:.92rem;
 }
 
 .updated {
-  position:relative;
-  z-index:1;
   display:inline-flex;
   align-items:center;
-  gap:7px;
-  margin-top:17px;
-  padding:8px 11px;
+  gap:8px;
+  margin-top:18px;
+  padding:8px 12px;
   border-radius:999px;
-  border:1px solid rgba(129,140,248,.16);
+  border:1px solid rgba(52,211,153,.17);
   background:rgba(255,255,255,.035);
-  color:#aab4d5;
-  font-size:.73rem;
+  color:#b4d7ca;
+  font-size:.72rem;
+}
+
+.terminal-card {
+  position:relative;
+  padding:16px;
+  border-radius:20px;
+  border:1px solid rgba(52,245,164,.18);
+  background:linear-gradient(150deg,rgba(2,8,7,.52),rgba(6,25,21,.62));
+  box-shadow:0 18px 40px rgba(0,0,0,.20);
+}
+
+.terminal-title {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  color:var(--muted);
+  font-size:.66rem;
+  font-weight:800;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  margin-bottom:12px;
+}
+
+.terminal-status {
+  color:var(--green);
+}
+
+.terminal-lines {
+  display:grid;
+  gap:8px;
+  color:#d9fff1;
+  font-size:.77rem;
+  line-height:1.35;
+}
+
+.terminal-line {
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  padding-bottom:7px;
+  border-bottom:1px solid rgba(52,211,153,.08);
+}
+
+.terminal-line:last-child {
+  border-bottom:0;
+  padding-bottom:0;
+}
+
+.terminal-line span:first-child {
+  color:var(--muted);
+}
+
+.terminal-line span:last-child {
+  color:var(--text);
+  font-weight:760;
 }
 
 .messages {
@@ -261,22 +421,24 @@ a { color:inherit; }
 }
 
 .message {
-  border-radius:14px;
+  border-radius:16px;
   padding:12px 14px;
   margin-bottom:9px;
   font-size:.82rem;
   line-height:1.45;
+  background:rgba(7,24,20,.7);
+  border:1px solid var(--border);
 }
 
 .message.warn {
-  color:#ffd98e;
-  border:1px solid rgba(255,197,94,.24);
+  color:#ffe2a3;
+  border-color:rgba(251,191,36,.28);
   background:var(--amber-bg);
 }
 
 .message.bad {
-  color:#ff9eaa;
-  border:1px solid rgba(255,101,119,.26);
+  color:#ffc4cd;
+  border-color:rgba(251,113,133,.28);
   background:var(--red-bg);
 }
 
@@ -285,7 +447,7 @@ a { color:inherit; }
   align-items:end;
   justify-content:space-between;
   gap:12px;
-  margin:22px 2px 12px;
+  margin:24px 2px 12px;
 }
 
 .section-heading h2 {
@@ -302,46 +464,62 @@ a { color:inherit; }
 .stats {
   display:grid;
   grid-template-columns:repeat(6, minmax(0, 1fr));
-  gap:10px;
+  gap:11px;
 }
 
 .stat {
-  min-height:104px;
-  padding:14px 14px 12px;
-  border-radius:17px;
-  background:linear-gradient(150deg, rgba(20,27,56,.96), rgba(13,17,38,.98));
+  position:relative;
+  overflow:hidden;
+  min-height:108px;
+  padding:15px 15px 13px;
+  border-radius:19px;
+  background:linear-gradient(150deg,rgba(7,24,20,.88),rgba(3,17,14,.96));
   border:1px solid var(--border);
+  box-shadow:0 12px 26px rgba(0,0,0,.18);
+}
+
+.stat::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(135deg,rgba(52,245,164,.09),transparent 45%);
+  opacity:.75;
 }
 
 .stat.featured {
-  background:
-    linear-gradient(145deg, rgba(53,239,157,.12), rgba(13,17,38,.96));
-  border-color:rgba(53,239,157,.23);
+  background:var(--gradient-panel);
+  border-color:rgba(52,245,164,.32);
+  box-shadow:0 14px 32px rgba(0,0,0,.22), 0 0 30px rgba(52,245,164,.09);
 }
 
 .stat-label {
+  position:relative;
   color:var(--muted);
-  font-size:.66rem;
-  font-weight:700;
-  letter-spacing:.12em;
+  font-size:.64rem;
+  font-weight:820;
+  letter-spacing:.13em;
   text-transform:uppercase;
 }
 
 .stat-value {
-  margin-top:9px;
-  font-size:1.55rem;
+  position:relative;
+  margin-top:10px;
+  font-size:1.58rem;
   line-height:1;
-  font-weight:750;
-  letter-spacing:-.04em;
+  font-weight:860;
+  letter-spacing:-.045em;
 }
 
 .stat-caption {
-  margin-top:8px;
+  position:relative;
+  margin-top:9px;
   font-size:.69rem;
   color:var(--muted-2);
+  line-height:1.35;
 }
 
-.positive { color:var(--green); }
+.positive { color:var(--green); text-shadow:0 0 18px rgba(52,245,164,.18); }
 .negative { color:var(--red); }
 .neutral { color:var(--text); }
 .waiting { color:var(--amber); font-size:1rem; letter-spacing:0; }
@@ -349,50 +527,80 @@ a { color:inherit; }
 .health-grid {
   display:grid;
   grid-template-columns:repeat(6, minmax(0, 1fr));
-  gap:10px;
+  gap:11px;
 }
 
 .health-card {
-  min-height:96px;
+  position:relative;
+  overflow:hidden;
+  min-height:100px;
   padding:14px;
-  border-radius:17px;
-  background:linear-gradient(150deg, rgba(20,27,56,.96), rgba(13,17,38,.98));
+  border-radius:19px;
+  background:linear-gradient(150deg,rgba(7,24,20,.88),rgba(3,17,14,.96));
   border:1px solid var(--border);
+  box-shadow:0 12px 26px rgba(0,0,0,.16);
+}
+
+.health-card::after {
+  content:"";
+  position:absolute;
+  right:12px;
+  top:12px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:rgba(142,183,167,.45);
+  box-shadow:0 0 12px rgba(142,183,167,.22);
 }
 
 .health-card.ok {
-  border-color:rgba(53,239,157,.23);
-  background:linear-gradient(145deg, rgba(53,239,157,.11), rgba(13,17,38,.96));
+  border-color:rgba(52,245,164,.34);
+  background:linear-gradient(145deg,rgba(52,245,164,.10),rgba(3,17,14,.96));
+}
+
+.health-card.ok::after {
+  background:var(--green);
+  box-shadow:0 0 14px var(--green);
 }
 
 .health-card.warn {
-  border-color:rgba(255,197,94,.28);
-  background:linear-gradient(145deg, rgba(255,197,94,.11), rgba(13,17,38,.96));
+  border-color:rgba(251,191,36,.32);
+  background:linear-gradient(145deg,rgba(251,191,36,.10),rgba(3,17,14,.96));
+}
+
+.health-card.warn::after {
+  background:var(--amber);
+  box-shadow:0 0 14px var(--amber);
 }
 
 .health-card.bad {
-  border-color:rgba(255,101,119,.30);
-  background:linear-gradient(145deg, rgba(255,101,119,.11), rgba(13,17,38,.96));
+  border-color:rgba(251,113,133,.34);
+  background:linear-gradient(145deg,rgba(251,113,133,.11),rgba(3,17,14,.96));
+}
+
+.health-card.bad::after {
+  background:var(--red);
+  box-shadow:0 0 14px var(--red);
 }
 
 .health-label {
   color:var(--muted);
-  font-size:.63rem;
-  font-weight:700;
-  letter-spacing:.12em;
+  font-size:.62rem;
+  font-weight:820;
+  letter-spacing:.13em;
   text-transform:uppercase;
 }
 
 .health-value {
-  margin-top:9px;
-  font-size:1.34rem;
+  margin-top:10px;
+  font-size:1.35rem;
   line-height:1;
-  font-weight:760;
+  font-weight:860;
   letter-spacing:-.035em;
 }
 
 .health-caption {
-  margin-top:8px;
+  margin-top:9px;
   color:var(--muted-2);
   font-size:.66rem;
   line-height:1.35;
@@ -401,119 +609,148 @@ a { color:inherit; }
 .policy {
   display:grid;
   grid-template-columns:1.35fr .95fr;
-  gap:10px;
-  margin-top:14px;
+  gap:11px;
+  margin-top:15px;
 }
 
 .policy-card {
-  border-radius:17px;
+  position:relative;
+  overflow:hidden;
+  border-radius:19px;
   border:1px solid var(--border);
-  background:var(--panel);
-  padding:14px;
+  background:linear-gradient(150deg,rgba(7,24,20,.88),rgba(3,17,14,.96));
+  padding:15px;
+}
+
+.policy-card::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(110deg,rgba(52,245,164,.08),transparent 44%);
 }
 
 .policy-title {
+  position:relative;
   display:flex;
-  gap:8px;
+  gap:9px;
   align-items:center;
-  color:#dde3ff;
-  font-size:.82rem;
-  font-weight:680;
-  margin-bottom:8px;
+  color:#e4fff5;
+  font-size:.84rem;
+  font-weight:760;
+  margin-bottom:9px;
 }
 
 .policy-icon {
   display:grid;
   place-items:center;
-  width:22px;
-  height:22px;
-  border-radius:7px;
+  width:24px;
+  height:24px;
+  border-radius:8px;
   font-size:.72rem;
-  color:var(--green);
-  background:var(--green-bg);
+  color:#03110e;
+  background:var(--green);
+  box-shadow:0 0 18px rgba(52,245,164,.25);
 }
 
 .policy-copy {
+  position:relative;
   margin:0;
   color:var(--muted);
-  line-height:1.5;
-  font-size:.75rem;
+  line-height:1.55;
+  font-size:.76rem;
 }
 
 .policy-tags {
+  position:relative;
   display:flex;
   flex-wrap:wrap;
   gap:7px;
-  margin-top:11px;
+  margin-top:12px;
 }
 
 .small-pill {
-  padding:5px 8px;
+  padding:6px 9px;
   border-radius:999px;
-  color:#aab6df;
-  background:rgba(129,140,248,.08);
-  border:1px solid rgba(129,140,248,.14);
-  font-size:.66rem;
-  font-weight:650;
+  color:#b9ffe1;
+  background:rgba(52,245,164,.08);
+  border:1px solid rgba(52,245,164,.16);
+  font-size:.65rem;
+  font-weight:760;
+  letter-spacing:.02em;
 }
 
 .games {
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:13px;
+  gap:14px;
 }
 
 .game-card {
   position:relative;
   overflow:hidden;
-  border-radius:20px;
-  background:linear-gradient(150deg,var(--panel-2),var(--panel));
+  border-radius:22px;
+  background:linear-gradient(152deg,rgba(9,32,26,.94),rgba(3,17,14,.98));
   border:1px solid var(--border);
-  box-shadow:0 14px 32px rgba(0,0,0,.17);
+  box-shadow:0 16px 34px rgba(0,0,0,.24);
+}
+
+.game-card::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(135deg,rgba(52,245,164,.08),transparent 42%),
+    radial-gradient(circle at 85% 0%,rgba(34,211,238,.12),transparent 30%);
 }
 
 .game-card.suspicious {
-  border-color:rgba(255,101,119,.33);
+  border-color:rgba(251,113,133,.38);
 }
 
 .signal {
-  min-height:42px;
+  position:relative;
+  min-height:46px;
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:9px;
-  padding:10px 13px;
-  background:rgba(129,140,248,.08);
-  color:#c4cce8;
-  font-size:.72rem;
-  font-weight:740;
+  padding:11px 14px;
+  background:rgba(52,245,164,.07);
+  color:#c7ffe7;
+  font-size:.71rem;
+  font-weight:840;
   text-transform:uppercase;
-  letter-spacing:.08em;
+  letter-spacing:.09em;
+  border-bottom:1px solid rgba(52,211,153,.10);
 }
 
 .signal.bet {
-  background:var(--gradient);
-  color:#fff;
+  background:linear-gradient(92deg,rgba(52,245,164,.92),rgba(34,211,238,.70));
+  color:#02110d;
+  text-shadow:none;
 }
 
 .signal.track {
-  background:linear-gradient(92deg, rgba(101,110,166,.28), rgba(32,38,72,.28));
+  background:linear-gradient(92deg,rgba(52,245,164,.12),rgba(34,211,238,.06));
 }
 
 .signal.bad {
-  background:linear-gradient(92deg, rgba(255,101,119,.32), rgba(32,38,72,.28));
-  color:#ffc5cd;
+  background:linear-gradient(92deg,rgba(251,113,133,.28),rgba(3,17,14,.30));
+  color:#ffd1d8;
 }
 
 .signal-edge {
-  font-size:.7rem;
+  font-size:.69rem;
   letter-spacing:.02em;
   opacity:.96;
   white-space:nowrap;
 }
 
 .game-body {
-  padding:14px;
+  position:relative;
+  padding:15px;
 }
 
 .matchup-row {
@@ -521,35 +758,35 @@ a { color:inherit; }
   justify-content:space-between;
   align-items:flex-start;
   gap:12px;
-  margin-bottom:13px;
+  margin-bottom:14px;
 }
 
 .matchup {
-  font-size:1.03rem;
-  font-weight:720;
-  letter-spacing:-.02em;
+  font-size:1.04rem;
+  font-weight:820;
+  letter-spacing:-.025em;
 }
 
 .game-time {
   color:var(--muted);
-  font-size:.72rem;
-  margin-top:5px;
+  font-size:.71rem;
+  margin-top:6px;
 }
 
 .probability {
   text-align:right;
-  font-weight:760;
-  font-size:1.4rem;
+  font-weight:900;
+  font-size:1.43rem;
   line-height:1;
-  color:#fff;
+  color:var(--text);
 }
 
 .probability small {
   display:block;
-  font-size:.59rem;
-  letter-spacing:.09em;
+  font-size:.58rem;
+  letter-spacing:.10em;
   color:var(--muted);
-  margin-top:5px;
+  margin-top:6px;
   text-transform:uppercase;
 }
 
@@ -563,39 +800,43 @@ a { color:inherit; }
 .tag {
   display:inline-flex;
   align-items:center;
-  padding:5px 8px;
+  padding:6px 8px;
   border-radius:999px;
-  font-size:.63rem;
+  font-size:.61rem;
   line-height:1;
-  font-weight:720;
-  letter-spacing:.06em;
+  font-weight:820;
+  letter-spacing:.07em;
   text-transform:uppercase;
 }
 
 .tag.green {
   background:var(--green-bg);
   color:var(--green);
+  border:1px solid rgba(52,245,164,.14);
 }
 
 .tag.amber {
   background:var(--amber-bg);
   color:var(--amber);
+  border:1px solid rgba(251,191,36,.13);
 }
 
 .tag.red {
   background:var(--red-bg);
   color:var(--red);
+  border:1px solid rgba(251,113,133,.15);
 }
 
 .tag.muted {
-  background:rgba(129,140,248,.09);
-  color:#a7b4df;
+  background:rgba(142,183,167,.08);
+  color:#b1d4c7;
+  border:1px solid rgba(142,183,167,.12);
 }
 
 .source {
   color:var(--muted);
   font-size:.68rem;
-  line-height:1.42;
+  line-height:1.45;
   margin:0 0 12px;
 }
 
@@ -606,62 +847,65 @@ a { color:inherit; }
 }
 
 .market {
-  min-height:70px;
-  padding:9px;
-  border-radius:11px;
-  background:rgba(6,9,22,.38);
-  border:1px solid rgba(129,140,248,.08);
+  min-height:72px;
+  padding:10px;
+  border-radius:13px;
+  background:rgba(2,8,7,.42);
+  border:1px solid rgba(52,211,153,.10);
 }
 
 .market-label {
   display:block;
   color:var(--muted-2);
-  font-size:.6rem;
-  font-weight:700;
-  letter-spacing:.11em;
+  font-size:.59rem;
+  font-weight:800;
+  letter-spacing:.12em;
   text-transform:uppercase;
   margin-bottom:7px;
 }
 
 .market-value {
   font-size:.78rem;
-  color:#e7ebff;
-  font-weight:620;
+  color:#e7fff6;
+  font-weight:660;
   line-height:1.42;
 }
 
 .rec {
   display:inline-block;
-  border-radius:7px;
-  padding:5px 8px;
-  font-size:.69rem;
-  font-weight:720;
+  border-radius:8px;
+  padding:6px 9px;
+  font-size:.68rem;
+  font-weight:840;
 }
 
 .rec.bet {
-  color:#042116;
+  color:#02110d;
   background:var(--green);
+  box-shadow:0 0 18px rgba(52,245,164,.20);
 }
 
 .rec.pass {
-  color:#aab5d8;
-  background:rgba(129,140,248,.12);
+  color:#afd5c7;
+  background:rgba(142,183,167,.10);
+  border:1px solid rgba(142,183,167,.12);
 }
 
 .rec.no-data {
   color:var(--amber);
   background:var(--amber-bg);
+  border:1px solid rgba(251,191,36,.14);
 }
 
 .subtext {
   display:block;
   color:var(--muted);
-  font-size:.63rem;
-  margin-top:5px;
+  font-size:.62rem;
+  margin-top:6px;
 }
 
 .factors {
-  border-top:1px solid rgba(129,140,248,.1);
+  border-top:1px solid rgba(52,211,153,.10);
   margin-top:12px;
   padding-top:11px;
   color:var(--muted);
@@ -671,23 +915,24 @@ a { color:inherit; }
 
 .empty {
   grid-column:1/-1;
-  border:1px dashed rgba(129,140,248,.2);
-  border-radius:18px;
-  padding:34px 16px;
+  border:1px dashed rgba(52,245,164,.22);
+  border-radius:20px;
+  padding:36px 16px;
   text-align:center;
   color:var(--muted);
-  background:rgba(16,22,46,.55);
+  background:rgba(7,24,20,.55);
 }
 
 .footer {
   text-align:center;
-  margin-top:28px;
+  margin-top:30px;
   color:var(--muted-2);
   font-size:.7rem;
-  line-height:1.55;
+  line-height:1.6;
 }
 
 @media (max-width: 1080px) {
+  .hero-content { grid-template-columns:1fr; }
   .stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .health-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .games { grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -700,21 +945,40 @@ a { color:inherit; }
 
   .topbar {
     margin-bottom:13px;
+    border-radius:17px;
   }
 
   .brand-mark {
-    width:39px;
-    height:39px;
-    border-radius:12px;
+    width:40px;
+    height:40px;
+    border-radius:13px;
+  }
+
+  .brand-name {
+    font-size:.95rem;
+  }
+
+  .brand-sub {
+    font-size:.61rem;
+  }
+
+  .live-pill {
+    padding:8px 10px;
+    font-size:.64rem;
   }
 
   .hero {
-    padding:19px 16px;
-    border-radius:19px;
+    padding:20px 16px;
+    border-radius:21px;
   }
 
   .hero-copy {
-    font-size:.78rem;
+    font-size:.8rem;
+  }
+
+  .terminal-card {
+    padding:13px;
+    border-radius:17px;
   }
 
   .stats,
@@ -724,15 +988,15 @@ a { color:inherit; }
   }
 
   .stat {
-    min-height:91px;
+    min-height:94px;
     padding:12px 11px 10px;
-    border-radius:14px;
+    border-radius:16px;
   }
 
   .health-card {
-    min-height:88px;
+    min-height:90px;
     padding:12px 11px 10px;
-    border-radius:14px;
+    border-radius:16px;
   }
 
   .stat-value,
@@ -752,15 +1016,15 @@ a { color:inherit; }
 
   .games {
     grid-template-columns:1fr;
-    gap:11px;
+    gap:12px;
   }
 
   .game-card {
-    border-radius:17px;
+    border-radius:18px;
   }
 
   .game-body {
-    padding:12px;
+    padding:13px;
   }
 }
 </style>
@@ -772,27 +1036,57 @@ a { color:inherit; }
       <div class="brand-mark">MLB</div>
       <div>
         <div class="brand-name">Prediction Hub</div>
-        <div class="brand-sub">Full Game Analytics</div>
+        <div class="brand-sub">Emerald Quant Terminal</div>
       </div>
     </div>
-    <div class="live-pill"><span class="live-dot"></span> Paper mode</div>
+    <div class="live-pill"><span class="live-dot"></span> Live locked</div>
   </div>
 
   <section class="hero">
-    <div class="hero-kicker">Premium market intelligence</div>
-    <h1 class="hero-gradient">Full-game MLB value tracker</h1>
-    <p class="hero-copy">
-      Clean forward testing, verified market quotes and closing-line tracking
-      for Moneyline, Spread and Total markets.
-    </p>
-    <div id="update-time" class="updated">Loading market update...</div>
+    <div class="hero-grid"></div>
+    <div class="hero-content">
+      <div>
+        <div class="hero-kicker">Paper trading research terminal</div>
+        <h1><span class="hero-gradient">MLB market evidence command center</span></h1>
+        <p class="hero-copy">
+          Full-game market comparison, paper-entry tracking, CLV evidence, data quality,
+          and model-governance visibility. Built for research discipline, not live bet execution.
+        </p>
+        <div id="update-time" class="updated">Loading market update...</div>
+      </div>
+
+      <aside class="terminal-card">
+        <div class="terminal-title">
+          <span>Governance Status</span>
+          <span class="terminal-status">LOCKED</span>
+        </div>
+        <div class="terminal-lines">
+          <div class="terminal-line">
+            <span>Mode</span>
+            <span>Paper Trading Only</span>
+          </div>
+          <div class="terminal-line">
+            <span>Execution</span>
+            <span>Disabled</span>
+          </div>
+          <div class="terminal-line">
+            <span>Markets</span>
+            <span>Full Game ML / Spread / Total</span>
+          </div>
+          <div class="terminal-line">
+            <span>Evidence</span>
+            <span>CLV + Market Baseline</span>
+          </div>
+        </div>
+      </aside>
+    </div>
   </section>
 
   <div id="messages" class="messages"></div>
 
   <div class="section-heading">
-    <h2>Performance pulse</h2>
-    <span>Clean settled snapshots only</span>
+    <h2>Mission control pulse</h2>
+    <span>Clean settled snapshots and market evidence</span>
   </div>
 
   <section class="stats">
@@ -819,12 +1113,12 @@ a { color:inherit; }
     <div class="stat featured">
       <div class="stat-label">Avg CLV</div>
       <div id="avg-clv" class="stat-value waiting">Waiting</div>
-      <div id="clv-caption" class="stat-caption">closing line pending</div>
+      <div id="clv-caption" class="stat-caption">entry vs closing line</div>
     </div>
     <div class="stat">
       <div class="stat-label">Positive CLV</div>
       <div id="positive-clv" class="stat-value waiting">--</div>
-      <div id="positive-clv-caption" class="stat-caption">entry vs close</div>
+      <div id="positive-clv-caption" class="stat-caption">price capture rate</div>
     </div>
   </section>
 
@@ -865,9 +1159,9 @@ a { color:inherit; }
       <div id="acc-underdogs-caption" class="stat-caption">market underdog picks</div>
     </div>
   </section>
-  
+
   <div class="section-heading">
-    <h2>Data health</h2>
+    <h2>System health matrix</h2>
     <span>Pipeline reliability and source coverage</span>
   </div>
 
@@ -932,33 +1226,34 @@ a { color:inherit; }
   <section class="policy">
     <div class="policy-card">
       <div class="policy-title">
-        <span class="policy-icon">+</span>
-        Transparent market tracking
+        <span class="policy-icon">CLV</span>
+        Evidence-first market tracking
       </div>
       <p class="policy-copy">
-        Paper Bet records the price visible when the recommendation was created.
+        Paper entries record the price visible when the recommendation was created.
         CLV compares that entry price against the final pregame market price.
-        Positive CLV is evidence of good price capture, not a guarantee of profit.
+        Positive CLV is evidence of price capture, not proof of future profitability.
       </p>
       <div class="policy-tags">
         <span class="small-pill">Moneyline</span>
         <span class="small-pill">Spread</span>
         <span class="small-pill">Total</span>
-        <span class="small-pill">No first five markets</span>
+        <span class="small-pill">No live execution</span>
       </div>
     </div>
     <div class="policy-card">
       <div class="policy-title">
-        <span class="policy-icon">i</span>
-        Current model policy
+        <span class="policy-icon">GOV</span>
+        Paper-only governance
       </div>
       <p class="policy-copy">
-        Odds must pass integrity checks before recommendations are labelled as
-        paper bets. The next v3 step adds a minimum model edge gate.
+        This dashboard is a research interface. Live betting stays locked until
+        sample size, rolling OOS validation, calibration, CLV, and risk gates all pass.
       </p>
       <div class="policy-tags">
         <span class="small-pill">baseline_v2_clean</span>
-        <span class="small-pill">Forward tested</span>
+        <span class="small-pill">Forward tracked</span>
+        <span class="small-pill">Live locked</span>
       </div>
     </div>
   </section>
@@ -973,8 +1268,8 @@ a { color:inherit; }
   </section>
 
   <div class="footer">
-    Data updated hourly - Paper trading only - Full-game markets only<br>
-    Past performance and positive CLV do not guarantee future returns.
+    MLB paper-trading research dashboard - Live betting disabled - Full-game markets only<br>
+    This platform tracks market evidence and model quality. It is not a real-money betting execution system.
   </div>
 </div>
 
