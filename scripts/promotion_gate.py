@@ -18,6 +18,8 @@ INPUTS = {
     "walkforward": REPORT_DIR / "walkforward_evaluation.json",
     "rolling_walkforward": REPORT_DIR / "rolling_walkforward_evaluation.json",
     "clv_by_edge_bucket": REPORT_DIR / "clv_by_edge_bucket.json",
+    "market_close": REPORT_DIR / "market_close_report.json",
+    "evaluation_clv": REPORT_DIR / "evaluation_clv_diagnostic.json",
     "research_quality": REPORT_DIR / "research_quality_report.json",
     "data_contract": REPORT_DIR / "data_contract_report.json",
     "pipeline_manifest": REPORT_DIR / "pipeline_manifest.json",
@@ -89,6 +91,34 @@ def _large_edge_negative_clv(clv_report: Optional[Dict[str, Any]]) -> bool:
     return False
 
 
+def _find_clv_metrics(
+    market_close: Optional[Dict[str, Any]],
+    evaluation_clv: Optional[Dict[str, Any]],
+    walkforward: Optional[Dict[str, Any]],
+) -> Tuple[Optional[float], Optional[float], str]:
+    for source_name, report in (
+        ("market_close", market_close),
+        ("evaluation_clv", evaluation_clv),
+        ("walkforward", walkforward),
+    ):
+        if not report:
+            continue
+
+        avg_clv = _to_float(report.get("avg_clv"))
+        positive_rate = _to_float(report.get("positive_clv_rate"))
+        if avg_clv is not None or positive_rate is not None:
+            return avg_clv, positive_rate, source_name
+
+        clv_summary = report.get("clv_summary")
+        if isinstance(clv_summary, dict):
+            avg_clv = _to_float(clv_summary.get("avg_clv"))
+            positive_rate = _to_float(clv_summary.get("positive_clv_rate"))
+            if avg_clv is not None or positive_rate is not None:
+                return avg_clv, positive_rate, f"{source_name}.clv_summary"
+
+    return None, None, "missing"
+
+
 def build_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -111,6 +141,8 @@ def build_report() -> Dict[str, Any]:
     calibration = reports.get("calibration") or {}
     walkforward = reports.get("rolling_walkforward") or reports.get("walkforward") or {}
     clv_edge = reports.get("clv_by_edge_bucket")
+    market_close = reports.get("market_close")
+    evaluation_clv = reports.get("evaluation_clv")
     research = reports.get("research_quality") or {}
     data_contract = reports.get("data_contract") or {}
 
@@ -153,10 +185,14 @@ def build_report() -> Dict[str, Any]:
     elif model_logloss >= market_logloss:
         blockers.append("model_logloss is not better than market_logloss")
 
-    avg_clv = _to_float(walkforward.get("avg_clv"))
-    positive_clv_rate = _to_float(walkforward.get("positive_clv_rate"))
+    avg_clv, positive_clv_rate, clv_signal_source = _find_clv_metrics(
+        market_close,
+        evaluation_clv,
+        walkforward,
+    )
     evaluated["avg_clv"] = avg_clv
     evaluated["positive_clv_rate"] = positive_clv_rate
+    evaluated["clv_signal_source"] = clv_signal_source
 
     if avg_clv is None:
         blockers.append("avg_clv missing")
