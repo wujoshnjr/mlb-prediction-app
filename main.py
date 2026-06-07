@@ -51,6 +51,8 @@ MARKET_ODDS_PATH = Path("data/market_odds_history.csv")
 DAILY_CONTEXT_PATH = Path("data/daily_game_context.csv")
 SAVANT_TOP3_CONTEXT_PATH = Path("data/savant_top3_context.csv")
 TRAINING_STATUS_PATH = Path("data/training_status.json")
+SAMPLE_STATE_PATH = Path("data/sample_state.json")
+FINALIZED_GAMES_PATH = Path("data/finalized_games.csv")
 CLEAN_PIPELINE_VERSION = "baseline_v2_clean"
 
 
@@ -2159,6 +2161,143 @@ def _read_json_safe(path: Path) -> tuple[dict[str, Any], str | None]:
     return payload, None
 
 
+def _normalize_game_id(value: Any) -> str:
+    """Normalize MLB game_id values so CSV joins do not fail on 123.0 vs 123."""
+    if value is None:
+        return ""
+
+    try:
+        if pd.isna(value):
+            return ""
+    except Exception:
+        pass
+
+    text = str(value).strip()
+    if not text:
+        return ""
+
+    try:
+        parsed = float(text)
+        if parsed.is_integer():
+            return str(int(parsed))
+    except Exception:
+        pass
+
+    return text
+
+
+def _prepare_clean_dashboard_snapshots(frame: pd.DataFrame) -> pd.DataFrame:
+    """Return clean pregame snapshots without trusting any embedded outcome fields."""
+    if frame.empty or "game_id" not in frame.columns:
+        return pd.DataFrame()
+
+    result = frame.copy()
+    result["game_id"] = result["game_id"].apply(_normalize_game_id)
+    result = result[result["game_id"] != ""].copy()
+
+    if "pipeline_version" in result.columns:
+        result = result[
+            result["pipeline_version"].astype(str) == CLEAN_PIPELINE_VERSION
+        ].copy()
+
+    if "snapshot_valid" in result.columns:
+        result = result[_bool_series(result["snapshot_valid"])].copy()
+
+    leakage_columns = [
+        "home_win",
+        "home_score",
+        "away_score",
+        "final_score",
+        "home_final_score",
+        "away_final_score",
+        "settled_at",
+        "actual_winner",
+        "actual_result",
+        "final_home_score",
+        "final_away_score",
+        "postgame_win_probability",
+    ]
+    existing_leakage_columns = [
+        column for column in leakage_columns if column in result.columns
+    ]
+    if existing_leakage_columns:
+        result = result.drop(columns=existing_leakage_columns)
+
+    if "snapshot_created_at" in result.columns:
+        result["snapshot_created_at"] = pd.to_datetime(
+            result["snapshot_created_at"],
+            errors="coerce",
+            utc=True,
+        )
+        result = result.sort_values("snapshot_created_at")
+        result = result.groupby("game_id", as_index=False).tail(1)
+
+    return result.reset_index(drop=True)
+
+
+def _prepare_finalized_dashboard_outcomes(frame: pd.DataFrame) -> pd.DataFrame:
+    """Return trusted outcomes from finalized_games.csv only."""
+    if frame.empty or "game_id" not in frame.columns:
+        return pd.DataFrame()
+
+    result = frame.copy()
+    result["game_id"] = result["game_id"].apply(_normalize_game_id)
+    result = result[result["game_id"] != ""].copy()
+
+    if "home_win" not in result.columns:
+        if {"home_score", "away_score"}.issubset(result.columns):
+            home_score = pd.to_numeric(result["home_score"], errors="coerce")
+            away_score = pd.to_numeric(result["away_score"], errors="coerce")
+            result["home_win"] = (home_score > away_score).astype("Int64")
+        else:
+            return pd.DataFrame()
+
+    result["home_win"] = pd.to_numeric(result["home_win"], errors="coerce")
+    result = result[result["home_win"].isin([0, 1])].copy()
+    result["home_win"] = result["home_win"].astype(int)
+
+    return result[["game_id", "home_win"]].drop_duplicates(
+        "game_id",
+        keep="last",
+    )
+
+
+def _load_dashboard_sample_state() -> dict[str, Any]:
+    sample_state, _ = _read_json_safe(SAMPLE_STATE_PATH)
+    return sample_state if isinstance(sample_state, dict) else {}
+
+
+def _load_finalized_joined_clean_snapshots() -> tuple[pd.DataFrame, str | None]:
+    """Join clean pregame snapshots to finalized outcomes for dashboard metrics."""
+    snapshots, snapshot_error = _read_csv_safe(SNAPSHOT_PATH)
+    if snapshot_error is not None:
+        return pd.DataFrame(), f"prediction_snapshots unavailable: {snapshot_error}"
+
+    finalized, finalized_error = _read_csv_safe(FINALIZED_GAMES_PATH)
+    if finalized_error is not None:
+        return pd.DataFrame(), f"finalized_games unavailable: {finalized_error}"
+
+    clean_snapshots = _prepare_clean_dashboard_snapshots(snapshots)
+    finalized_outcomes = _prepare_finalized_dashboard_outcomes(finalized)
+
+    if clean_snapshots.empty:
+        return pd.DataFrame(), "No clean pregame snapshots available"
+
+    if finalized_outcomes.empty:
+        return pd.DataFrame(), "No trusted finalized outcomes available"
+
+    joined = clean_snapshots.merge(
+        finalized_outcomes,
+        on="game_id",
+        how="inner",
+    )
+
+    if joined.empty:
+        return pd.DataFrame(), "No clean snapshots join to finalized_games by game_id"
+
+    return joined.reset_index(drop=True), None
+
+
 def _status_priority(value: str) -> int:
     """Return severity rank for OK/WARNING/ERROR."""
     return {"OK": 0, "WARNING": 1, "ERROR": 2}.get(value, 0)
@@ -2620,37 +2759,35 @@ def get_health() -> dict[str, Any]:
         else:
             messages.append(f"Savant top-3 context file unavailable: {savant_top3_error}")
             
+        sample_state = _load_dashboard_sample_state()
+
         snapshots, snapshot_error = _read_csv_safe(SNAPSHOT_PATH)
         if snapshot_error is None:
             result["snapshots"]["file_exists"] = True
             result["snapshots"]["stored_rows"] = int(len(snapshots))
 
-            if not snapshots.empty:
-                clean_mask = pd.Series([True] * len(snapshots), index=snapshots.index)
-
-                if "pipeline_version" in snapshots.columns:
-                    clean_mask = clean_mask & (
-                        snapshots["pipeline_version"].astype(str) == CLEAN_PIPELINE_VERSION
-                    )
-
-                if "snapshot_valid" in snapshots.columns:
-                    clean_mask = clean_mask & _bool_series(snapshots["snapshot_valid"])
-
-                clean_snapshots = snapshots[clean_mask].copy()
+            if sample_state:
+                result["snapshots"]["clean_rows"] = int(
+                    sample_state.get("valid_snapshots")
+                    or sample_state.get("raw_snapshots")
+                    or 0
+                )
+                result["snapshots"]["settled_rows"] = int(
+                    sample_state.get("clean_settled_snapshots")
+                    or sample_state.get("settled_snapshots")
+                    or 0
+                )
+            elif not snapshots.empty:
+                clean_snapshots = _prepare_clean_dashboard_snapshots(snapshots)
                 result["snapshots"]["clean_rows"] = int(len(clean_snapshots))
 
-                if "home_win" in clean_snapshots.columns:
-                    home_win = pd.to_numeric(clean_snapshots["home_win"], errors="coerce")
-                    result["snapshots"]["settled_rows"] = int(home_win.isin([0, 1]).sum())
-                elif "settled_at" in clean_snapshots.columns:
-                    result["snapshots"]["settled_rows"] = int(
-                        clean_snapshots["settled_at"].notna()
-                        & (clean_snapshots["settled_at"].astype(str).str.strip() != "")
-                    )
+                joined, joined_error = _load_finalized_joined_clean_snapshots()
+                if joined_error is None:
+                    result["snapshots"]["settled_rows"] = int(len(joined))
         else:
             result["status"] = _raise_health_status(result["status"], "WARNING")
             messages.append(f"Prediction snapshots file unavailable: {snapshot_error}")
-
+            
         market, market_error = _read_csv_safe(MARKET_ODDS_PATH)
         if market_error is None:
             result["market_odds_history"]["file_exists"] = True
@@ -2677,32 +2814,44 @@ def get_health() -> dict[str, Any]:
             result["status"] = _raise_health_status(result["status"], "WARNING")
             messages.append(f"Market odds history file unavailable: {market_error}")
 
+        sample_state = _load_dashboard_sample_state()
         training_status, training_error = _read_json_safe(TRAINING_STATUS_PATH)
-        if training_error is None:
-            result["training"]["file_exists"] = True
-            result["training"]["trained"] = bool(training_status.get("trained", False))
+        if training_error is None or sample_state:
+            result["training"]["file_exists"] = training_error is None or bool(sample_state)
+
+            training_status = training_status if isinstance(training_status, dict) else {}
+
+            result["training"]["trained"] = bool(
+                sample_state.get("trained", training_status.get("trained", False))
+            )
             result["training"]["skipped"] = bool(training_status.get("skipped", False))
             result["training"]["model_type"] = str(training_status.get("model_type", ""))
             result["training"]["training_source"] = str(
                 training_status.get("training_source", "")
+                or "sample_state_finalized_joined_snapshots"
             )
             result["training"]["reason"] = str(training_status.get("reason", ""))
-            result["training"]["timestamp"] = str(training_status.get("timestamp", ""))
+            result["training"]["timestamp"] = str(
+                sample_state.get("last_updated")
+                or training_status.get("timestamp", "")
+            )
 
-            try:
-                sample_count = int(training_status.get("sample_count", 0) or 0)
-            except (TypeError, ValueError):
-                sample_count = 0
+            sample_count = int(
+                sample_state.get("train_eligible_samples")
+                or sample_state.get("clean_settled_snapshots")
+                or training_status.get("sample_count", 0)
+                or 0
+            )
 
-            try:
-                minimum_required = int(
-                    training_status.get("minimum_clean_train_samples", 0) or 0
-                )
-            except (TypeError, ValueError):
-                minimum_required = 0
+            minimum_required = int(
+                sample_state.get("minimum_clean_train_samples")
+                or training_status.get("minimum_clean_train_samples", 0)
+                or 0
+            )
 
             result["training"]["sample_count"] = sample_count
             result["training"]["minimum_required"] = minimum_required
+            
 
             if minimum_required > 0:
                 result["training"]["remaining_samples"] = max(
@@ -3034,7 +3183,7 @@ def _moneyline_clv_metrics(clean_snapshot_rows: pd.DataFrame) -> dict[str, Any]:
 
 @app.get("/api/performance")
 def get_performance() -> dict[str, Any]:
-    """Return clean forward-tested performance and Moneyline CLV metrics."""
+    """Return finalized-joined dashboard performance and Moneyline CLV metrics."""
     result: dict[str, Any] = {
         "pipeline_version": CLEAN_PIPELINE_VERSION,
         "clean_sample_count": 0,
@@ -3048,80 +3197,48 @@ def get_performance() -> dict[str, Any]:
         "clv_samples": 0,
         "clv_message": "Waiting for closing lines",
         "accuracy_breakdown": {},
-        "message": "No settled baseline_v2_clean samples yet",
+        "message": "No finalized-joined clean samples yet",
     }
-    
+
     if not SNAPSHOT_PATH.exists():
+        result["message"] = "prediction_snapshots.csv is missing"
         return result
 
+    joined, joined_error = _load_finalized_joined_clean_snapshots()
+
     try:
-        frame = pd.read_csv(SNAPSHOT_PATH)
+        snapshots, snapshot_error = _read_csv_safe(SNAPSHOT_PATH)
+        if snapshot_error is None:
+            clean_snapshots = _prepare_clean_dashboard_snapshots(snapshots)
+            result.update(_moneyline_clv_metrics(clean_snapshots))
+    except Exception as exc:
+        result["clv_message"] = f"CLV calculation unavailable: {exc}"
 
-        required_columns = {
-            "pipeline_version",
-            "snapshot_valid",
-            "game_id",
-            "home_win",
-            "displayed_home_win_pct",
-            "recommendation_status",
-            "odds_quality_status",
-            "moneyline_recommendation",
-            "home_team",
-            "away_team",
-            "home_moneyline_odds",
-            "away_moneyline_odds",
-        }
+    if joined_error is not None:
+        result["message"] = joined_error
+        return result
 
-        missing_columns = sorted(required_columns - set(frame.columns))
-        if missing_columns:
-            result["message"] = (
-                "Clean snapshot file is missing columns: "
-                + ", ".join(missing_columns)
-            )
-            return result
+    settled = joined.copy()
+    settled["home_win"] = pd.to_numeric(settled["home_win"], errors="coerce")
+    settled = settled[settled["home_win"].isin([0, 1])].copy()
 
-        clean = frame[
-            (frame["pipeline_version"].astype(str) == CLEAN_PIPELINE_VERSION)
-            & (
-                frame["snapshot_valid"]
-                .astype(str)
-                .str.lower()
-                == "true"
-            )
-        ].copy()
+    if settled.empty:
+        result["message"] = "No finalized-joined clean samples after outcome validation"
+        return result
 
-        clv_result = _moneyline_clv_metrics(clean)
-        result.update(clv_result)
+    settled["home_win"] = settled["home_win"].astype(int)
 
-        clean["home_win"] = pd.to_numeric(
-            clean["home_win"],
-            errors="coerce",
-        )
+    result["clean_sample_count"] = int(len(settled))
+    result["total"] = int(len(settled))
+    result["accuracy_breakdown"] = _build_accuracy_breakdown(settled)
 
-        settled = clean[
-            clean["home_win"].isin([0, 1])
-        ].copy()
-
-        if settled.empty:
-            result["message"] = (
-                "No settled baseline_v2_clean samples yet; CLV may appear after market close"
-            )
-            return result
-
-        settled["home_win"] = settled["home_win"].astype(int)
-        result["clean_sample_count"] = int(len(settled))
-        result["total"] = int(len(settled))
-        result["accuracy_breakdown"] = _build_accuracy_breakdown(settled)
-
+    if "displayed_home_win_pct" in settled.columns:
         settled["displayed_home_win_pct"] = pd.to_numeric(
             settled["displayed_home_win_pct"],
             errors="coerce",
         )
 
-        scored = settled[
-            ["home_win", "displayed_home_win_pct"]
-        ].dropna()
-
+        scored = settled[["home_win", "displayed_home_win_pct"]].dropna()
         if not scored.empty:
             result["brier"] = float(
                 brier_score_loss(
@@ -3130,63 +3247,56 @@ def get_performance() -> dict[str, Any]:
                 )
             )
 
-        paper_bets = settled[
-            (
-                settled["recommendation_status"]
-                .astype(str)
-                .str.upper()
-                == "PAPER_BET"
-            )
-            & (
-                settled["odds_quality_status"]
-                .astype(str)
-                .str.upper()
-                == "OK"
-            )
-        ].copy()
-
-        wins: list[int] = []
-        profits: list[float] = []
-
-        for _, row in paper_bets.iterrows():
-            side = _recommendation_side(
-                row.get("moneyline_recommendation", ""),
-                row.get("home_team", ""),
-                row.get("away_team", ""),
-            )
-            if side is None:
-                continue
-
-            odds_value = (
-                row.get("home_moneyline_odds")
-                if side == "home"
-                else row.get("away_moneyline_odds")
-            )
-            odds = pd.to_numeric(odds_value, errors="coerce")
-            if pd.isna(odds) or float(odds) <= 1.0:
-                continue
-
-            won = (
-                int(row["home_win"] == 1)
-                if side == "home"
-                else int(row["home_win"] == 0)
-            )
-            wins.append(won)
-            profits.append((float(odds) - 1.0) if won else -1.0)
-
-        if profits:
-            result["moneyline_bets"] = int(len(profits))
-            result["win_rate"] = float(sum(wins) / len(wins))
-            result["roi"] = float(sum(profits) / len(profits))
-
-        result["message"] = (
-            "Statistics for settled baseline_v2_clean snapshots"
+    paper_bets = settled[
+        (
+            settled.get("recommendation_status", pd.Series(dtype=str))
+            .astype(str)
+            .str.upper()
+            == "PAPER_BET"
         )
+        & (
+            settled.get("odds_quality_status", pd.Series(dtype=str))
+            .astype(str)
+            .str.upper()
+            == "OK"
+        )
+    ].copy()
 
-    except Exception as exc:
-        result["message"] = f"Performance calculation error: {exc}"
-        print(result["message"])
+    wins: list[int] = []
+    profits: list[float] = []
 
+    for _, row in paper_bets.iterrows():
+        side = _recommendation_side(
+            row.get("moneyline_recommendation", ""),
+            row.get("home_team", ""),
+            row.get("away_team", ""),
+        )
+        if side is None:
+            continue
+
+        odds_value = (
+            row.get("home_moneyline_odds")
+            if side == "home"
+            else row.get("away_moneyline_odds")
+        )
+        odds = pd.to_numeric(odds_value, errors="coerce")
+        if pd.isna(odds) or float(odds) <= 1.0:
+            continue
+
+        won = (
+            int(row["home_win"] == 1)
+            if side == "home"
+            else int(row["home_win"] == 0)
+        )
+        wins.append(won)
+        profits.append((float(odds) - 1.0) if won else -1.0)
+
+    if profits:
+        result["moneyline_bets"] = int(len(profits))
+        result["win_rate"] = float(sum(wins) / len(wins))
+        result["roi"] = float(sum(profits) / len(profits))
+
+    result["message"] = "Statistics from finalized_games joined to clean pregame snapshots"
     return result
 
 
