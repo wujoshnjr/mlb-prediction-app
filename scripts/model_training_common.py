@@ -229,16 +229,26 @@ def prepare_snapshots(
             break
 
     if time_column:
-        frame["_training_sort_time"] = pd.to_datetime(frame[time_column], errors="coerce", utc=True)
-        frame["_training_sort_missing"] = frame["_training_sort_time"].isna().astype(int)
+        frame["_training_sort_time"] = pd.to_datetime(
+            frame[time_column],
+            errors="coerce",
+            utc=True,
+        )
+
+        # Pick the latest valid timestamp per game_id.
+        # Missing timestamps are sorted first so they do not override valid pregame snapshots.
         frame = frame.sort_values(
-            ["game_id", "_training_sort_missing", "_training_sort_time"],
+            ["game_id", "_training_sort_time"],
             kind="mergesort",
+            na_position="first",
         )
         frame = frame.groupby("game_id", as_index=False).tail(1)
+
+        frame["_training_sort_missing"] = frame["_training_sort_time"].isna().astype(int)
         frame = frame.sort_values(
             ["_training_sort_missing", "_training_sort_time", "game_id"],
             kind="mergesort",
+            na_position="last",
         )
     else:
         warnings.append("no timestamp column found; using stable row order fallback")
