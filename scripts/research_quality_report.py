@@ -20,6 +20,7 @@ INPUT_REPORTS = {
     "rolling_walkforward": REPORT_DIR / "rolling_walkforward_evaluation.json",
     "lineup_starter_slice": REPORT_DIR / "lineup_starter_slice_report.json",
     "market_close": REPORT_DIR / "market_close_report.json",
+    "evaluation_clv": REPORT_DIR / "evaluation_clv_diagnostic.json",
 }
 
 
@@ -46,30 +47,35 @@ def _read_json(path: Path) -> Tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
     return data, status
 
 
-def _bool(value: Any) -> bool:
-    return bool(value) is True
+def _to_float(value: Any) -> Optional[float]:
+    try:
+        if value is None:
+            return None
+        return float(value)
+    except Exception:
+        return None
 
 
-def _find_avg_clv_and_positive_rate(*reports: Optional[Dict[str, Any]]) -> tuple[Optional[float], Optional[float]]:
+def _find_avg_clv_and_positive_rate(
+    *reports: Optional[Dict[str, Any]]
+) -> tuple[Optional[float], Optional[float], str]:
     for report in reports:
         if not report:
             continue
 
-        avg_clv = report.get("avg_clv")
-        positive_rate = report.get("positive_clv_rate")
+        avg = _to_float(report.get("avg_clv"))
+        rate = _to_float(report.get("positive_clv_rate"))
+        if avg is not None or rate is not None:
+            return avg, rate, str(report.get("source") or "top_level_report")
 
-        if avg_clv is not None or positive_rate is not None:
-            try:
-                avg = float(avg_clv) if avg_clv is not None else None
-            except Exception:
-                avg = None
-            try:
-                rate = float(positive_rate) if positive_rate is not None else None
-            except Exception:
-                rate = None
-            return avg, rate
+        clv_summary = report.get("clv_summary")
+        if isinstance(clv_summary, dict):
+            avg = _to_float(clv_summary.get("avg_clv"))
+            rate = _to_float(clv_summary.get("positive_clv_rate"))
+            if avg is not None or rate is not None:
+                return avg, rate, str(clv_summary.get("source") or "clv_summary")
 
-    return None, None
+    return None, None, "missing"
 
 
 def _clv_report_has_slices(report: Optional[Dict[str, Any]]) -> bool:
@@ -98,10 +104,14 @@ def build_report() -> Dict[str, Any]:
     walkforward = reports.get("walkforward")
     rolling = reports.get("rolling_walkforward")
     market_close = reports.get("market_close")
+    evaluation_clv = reports.get("evaluation_clv")
     lineup_starter = reports.get("lineup_starter_slice")
 
     baseline_ready = baseline is not None and baseline.get("status") in {"ok", "partial"}
-    clv_ready = any(
+    clv_ready = bool(
+        market_close
+        and (market_close.get("clv_available_count") or 0) > 0
+    ) or any(
         _clv_report_has_slices(reports.get(key))
         for key in ("clv_edge", "clv_side", "clv_odds", "clv_lineup")
     )
@@ -134,7 +144,12 @@ def build_report() -> Dict[str, Any]:
             and comparison.get("model_beats_market_logloss")
         )
 
-    avg_clv, positive_rate = _find_avg_clv_and_positive_rate(rolling, walkforward)
+    avg_clv, positive_rate, clv_signal_source = _find_avg_clv_and_positive_rate(
+        market_close,
+        evaluation_clv,
+        rolling,
+        walkforward,
+    )
     avg_clv_positive = avg_clv is not None and avg_clv > 0
     positive_clv_rate_ok = positive_rate is not None and positive_rate > 0.55
 
@@ -198,6 +213,9 @@ def build_report() -> Dict[str, Any]:
         "market_close_ready": market_close_ready,
         "lineup_starter_slice_ready": lineup_starter_slice_ready,
         "model_beats_market": model_beats_market,
+        "avg_clv": avg_clv,
+        "positive_clv_rate": positive_rate,
+        "clv_signal_source": clv_signal_source,
         "avg_clv_positive": avg_clv_positive,
         "positive_clv_rate_ok": positive_clv_rate_ok,
         "research_grade": research_grade,
