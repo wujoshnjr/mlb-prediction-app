@@ -106,6 +106,7 @@ jobs:
             scripts/sanitize_prediction_report.py \
             scripts/sanitize_prediction_snapshots.py \
             scripts/settle_reliability_report.py \
+            scripts/settled_prediction_link_report.py \
             scripts/rolling_walkforward_evaluation.py \
             scripts/lineup_starter_slice_report.py \
             scripts/market_close_report.py \
@@ -330,6 +331,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build settled prediction link report
+        run: python scripts/settled_prediction_link_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Build research quality report
         run: python scripts/research_quality_report.py
         env:
@@ -487,6 +493,7 @@ jobs:
             report/market_close_report.json \
             report/research_quality_report.json \
             report/settle_reliability_report.json \
+            report/settled_prediction_link_report.json \
             report/snapshot_sanitization_report.json \
             report/prediction_sanitization_report.json \
             report/model_registry_report.json \
