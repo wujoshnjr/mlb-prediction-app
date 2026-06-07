@@ -59,6 +59,8 @@ jobs:
             prediction.py \
             train_ensemble.py \
             scripts/feature_schema.py \
+            scripts/model_training_common.py \
+            scripts/train_model_lab.py \
             scripts/snapshot_store.py \
             scripts/market_odds_store.py \
             scripts/daily_game_context.py \
@@ -162,6 +164,12 @@ jobs:
 
       - name: Train model if enough finalized samples are available
         run: python train_ensemble.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Train model lab shadow challengers
+        continue-on-error: true
+        run: python scripts/train_model_lab.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
