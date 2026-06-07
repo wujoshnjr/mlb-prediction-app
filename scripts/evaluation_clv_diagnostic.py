@@ -418,15 +418,38 @@ def _snapshot_rows(
     if "game_id" in frame.columns:
         frame["game_id"] = frame["game_id"].astype(str)
 
-    if "home_win" not in frame.columns and finalized is not None and not finalized.empty:
-        if "game_id" in finalized.columns and "home_win" in finalized.columns:
+    leaked_snapshot_columns = [
+        column
+        for column in ["home_win", "home_score", "away_score"]
+        if column in frame.columns
+    ]
+    if leaked_snapshot_columns:
+        frame = frame.drop(columns=leaked_snapshot_columns)
+
+    if finalized is not None and not finalized.empty:
+        if "game_id" in finalized.columns:
             final_frame = finalized.copy()
             final_frame["game_id"] = final_frame["game_id"].astype(str)
-            frame = frame.merge(
-                final_frame[["game_id", "home_win"]],
-                on="game_id",
-                how="left",
-            )
+
+            if "home_win" not in final_frame.columns:
+                if {"home_score", "away_score"}.issubset(final_frame.columns):
+                    final_frame["home_win"] = (
+                        pd.to_numeric(final_frame["home_score"], errors="coerce")
+                        > pd.to_numeric(final_frame["away_score"], errors="coerce")
+                    ).astype("Int64")
+
+            if "home_win" in final_frame.columns:
+                final_frame["home_win"] = pd.to_numeric(
+                    final_frame["home_win"],
+                    errors="coerce",
+                )
+                final_frame = final_frame[final_frame["home_win"].isin([0, 1])].copy()
+
+                frame = frame.merge(
+                    final_frame[["game_id", "home_win"]].drop_duplicates("game_id"),
+                    on="game_id",
+                    how="left",
+                )
 
     rows = []
 
