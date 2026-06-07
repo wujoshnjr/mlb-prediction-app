@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-07T05:09:58.719813+00:00",
+  "generated_at": "2026-06-07T06:23:04.445955+00:00",
   "status": "insufficient_samples",
   "input_files": {
     "training_status": {
@@ -32,6 +32,16 @@
       "exists": true,
       "error": ""
     },
+    "market_close": {
+      "path": "report/market_close_report.json",
+      "exists": true,
+      "error": ""
+    },
+    "evaluation_clv": {
+      "path": "report/evaluation_clv_diagnostic.json",
+      "exists": true,
+      "error": ""
+    },
     "research_quality": {
       "path": "report/research_quality_report.json",
       "exists": true,
@@ -56,8 +66,6 @@
     "walk-forward predictions < 300",
     "missing model/market brier comparison",
     "missing model/market logloss comparison",
-    "avg_clv missing",
-    "positive_clv_rate missing",
     "calibration_ready is false",
     "large-edge bucket has negative CLV",
     "live betting disabled by governance"
@@ -73,8 +81,9 @@
     "market_brier": null,
     "model_logloss": null,
     "market_logloss": null,
-    "avg_clv": null,
-    "positive_clv_rate": null,
+    "avg_clv": 0.267823,
+    "positive_clv_rate": 0.5873,
+    "clv_signal_source": "market_close",
     "calibration_ready": false,
     "data_contract_ok": true,
     "research_grade": "C"

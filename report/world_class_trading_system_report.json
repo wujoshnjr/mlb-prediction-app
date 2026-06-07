@@ -1,0 +1,433 @@
+{
+  "generated_at": "2026-06-07T06:23:07.913047+00:00",
+  "status": "paper_trading_only_blocked_for_live",
+  "world_class_stage": "advanced_shadow_trading_candidate",
+  "overall_score": 82.84,
+  "overall_grade": "B",
+  "live_betting_allowed": false,
+  "shadow_live_allowed": false,
+  "production_allowed": false,
+  "governance_note": "This report is audit-only. It must not enable live betting or automated bet execution.",
+  "layers": {
+    "data_trust": {
+      "name": "Layer 1 - Data Trust",
+      "status": "ready_for_next_review",
+      "score": 100.0,
+      "grade": "A",
+      "signals": [
+        {
+          "name": "data_contract_ok",
+          "passed": true,
+          "weight": 20,
+          "details": "ok"
+        },
+        {
+          "name": "pipeline_manifest_readable",
+          "passed": true,
+          "weight": 15,
+          "details": "ok"
+        },
+        {
+          "name": "prediction_sanitizer_clean",
+          "passed": true,
+          "weight": 15,
+          "details": 0
+        },
+        {
+          "name": "snapshot_sanitizer_clean",
+          "passed": true,
+          "weight": 15,
+          "details": "ok"
+        },
+        {
+          "name": "decision_audit_matches_prediction_count",
+          "passed": true,
+          "weight": 15,
+          "details": {
+            "prediction_count": 15,
+            "audit_count": 15
+          }
+        },
+        {
+          "name": "per_pick_clv_joined",
+          "passed": true,
+          "weight": 20,
+          "details": 126
+        }
+      ],
+      "blockers": [],
+      "warnings": [],
+      "recommendations": [
+        "Keep event-time, snapshot-time, entry odds, closing odds, decision audit, and settle result linked by game_id.",
+        "Prediction sanitizer change_count should remain zero after prediction.py source cleanup."
+      ]
+    },
+    "research_quality": {
+      "name": "Layer 2 - Research Quality",
+      "status": "blocked",
+      "score": 65,
+      "grade": "C",
+      "signals": [
+        {
+          "name": "model_beats_market_brier",
+          "passed": true,
+          "weight": 15,
+          "details": 0.249893
+        },
+        {
+          "name": "model_beats_market_logloss",
+          "passed": true,
+          "weight": 15,
+          "details": 0.69292
+        },
+        {
+          "name": "avg_clv_positive",
+          "passed": true,
+          "weight": 20,
+          "details": 0.267823
+        },
+        {
+          "name": "positive_clv_rate_at_least_55pct",
+          "passed": true,
+          "weight": 15,
+          "details": 0.5873
+        },
+        {
+          "name": "calibration_ready",
+          "passed": false,
+          "weight": 10,
+          "details": 138
+        },
+        {
+          "name": "walkforward_ready",
+          "passed": false,
+          "weight": 10,
+          "details": 138
+        },
+        {
+          "name": "rolling_oos_at_least_300",
+          "passed": false,
+          "weight": 10,
+          "details": 0
+        },
+        {
+          "name": "settled_samples_at_least_500",
+          "passed": false,
+          "weight": 5,
+          "details": 138
+        }
+      ],
+      "blockers": [
+        "settled prediction samples < 500 (138)",
+        "rolling OOS predictions < 300 (0)",
+        "calibration is not ready"
+      ],
+      "warnings": [],
+      "recommendations": [
+        "Do not promote any model until CLV, calibration, baseline comparison, and rolling OOS evidence are all positive.",
+        "Use CLV and market baseline comparison as primary research gates, not raw win rate."
+      ]
+    },
+    "risk_controls": {
+      "name": "Layer 3 - Risk Controls",
+      "status": "ready_for_next_review",
+      "score": 100.0,
+      "grade": "A",
+      "signals": [
+        {
+          "name": "prediction_live_flags_locked",
+          "passed": true,
+          "weight": 25,
+          "details": 15
+        },
+        {
+          "name": "live_stake_units_zero",
+          "passed": true,
+          "weight": 20,
+          "details": 0.0
+        },
+        {
+          "name": "live_exposure_units_zero",
+          "passed": true,
+          "weight": 20,
+          "details": 0.0
+        },
+        {
+          "name": "production_not_allowed",
+          "passed": true,
+          "weight": 15,
+          "details": false
+        },
+        {
+          "name": "promotion_not_live_enabled",
+          "passed": true,
+          "weight": 10,
+          "details": false
+        },
+        {
+          "name": "risk_status_normal",
+          "passed": true,
+          "weight": 10,
+          "details": "normal"
+        }
+      ],
+      "blockers": [],
+      "warnings": [],
+      "recommendations": [
+        "Keep live betting locked until governance, sample size, CLV, calibration, and risk gates explicitly allow a later shadow phase.",
+        "Paper exposure should remain small while research grade is below production readiness."
+      ]
+    },
+    "model_upgrade_path": {
+      "name": "Layer 4 - Model Upgrade Path",
+      "status": "blocked",
+      "score": 49.2,
+      "grade": "D",
+      "signals": [
+        {
+          "name": "training_sample_progress",
+          "passed": false,
+          "weight": 20,
+          "details": {
+            "sample_count": 138,
+            "minimum": 300
+          }
+        },
+        {
+          "name": "model_trained",
+          "passed": false,
+          "weight": 20,
+          "details": "calibrated_logistic_regression_with_imputer"
+        },
+        {
+          "name": "model_registry_has_records",
+          "passed": true,
+          "weight": 20,
+          "details": 4
+        },
+        {
+          "name": "feature_ab_ratio_at_least_50pct",
+          "passed": true,
+          "weight": 20,
+          "details": 0.6935483870967742
+        },
+        {
+          "name": "rolling_oos_started",
+          "passed": false,
+          "weight": 20,
+          "details": 0
+        }
+      ],
+      "blockers": [
+        "clean training samples below threshold: 138 < 300",
+        "model is not trained yet"
+      ],
+      "warnings": [
+        "rolling OOS evaluation has not started producing predictions"
+      ],
+      "recommendations": [
+        "Upgrade models only through registry-backed challenger evaluation.",
+        "Recommended sequence: market baseline, Elo/Glicko, calibrated logistic, market residual, gradient boosting challenger, ensemble, calibration layer, risk optimizer."
+      ]
+    },
+    "product_readiness": {
+      "name": "Layer 5 - Product Readiness",
+      "status": "ready_for_next_review",
+      "score": 100.0,
+      "grade": "A",
+      "signals": [
+        {
+          "name": "html_dashboard_exists",
+          "passed": true,
+          "weight": 20,
+          "details": "report/index.html"
+        },
+        {
+          "name": "data_contract_ok",
+          "passed": true,
+          "weight": 20,
+          "details": "ok"
+        },
+        {
+          "name": "pipeline_manifest_readable",
+          "passed": true,
+          "weight": 15,
+          "details": "ok"
+        },
+        {
+          "name": "artifact_retention_ok",
+          "passed": true,
+          "weight": 15,
+          "details": 64
+        },
+        {
+          "name": "decision_audit_ok",
+          "passed": true,
+          "weight": 10,
+          "details": 15
+        },
+        {
+          "name": "paper_ledger_ok",
+          "passed": true,
+          "weight": 10,
+          "details": 15
+        },
+        {
+          "name": "risk_exposure_ok",
+          "passed": true,
+          "weight": 10,
+          "details": "normal"
+        }
+      ],
+      "blockers": [],
+      "warnings": [],
+      "recommendations": [
+        "Dashboard should show prediction, decision audit, CLV, promotion gate, research grade, paper PnL, and risk exposure.",
+        "All product-facing output should be generated from validated reports, not ad-hoc script state."
+      ]
+    }
+  },
+  "critical_blockers": [],
+  "blockers": [
+    "research_quality: settled prediction samples < 500 (138)",
+    "research_quality: rolling OOS predictions < 300 (0)",
+    "research_quality: calibration is not ready",
+    "model_upgrade_path: clean training samples below threshold: 138 < 300",
+    "model_upgrade_path: model is not trained yet"
+  ],
+  "warnings": [
+    "model_upgrade_path: rolling OOS evaluation has not started producing predictions"
+  ],
+  "input_files": {
+    "prediction": {
+      "path": "report/prediction.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "prediction_sanitization": {
+      "path": "report/prediction_sanitization_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "snapshot_sanitization": {
+      "path": "report/snapshot_sanitization_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "data_contract": {
+      "path": "report/data_contract_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "pipeline_manifest": {
+      "path": "report/pipeline_manifest.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "market_close": {
+      "path": "report/market_close_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "evaluation_clv": {
+      "path": "report/evaluation_clv_diagnostic.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "baseline_comparison": {
+      "path": "report/baseline_comparison_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "calibration": {
+      "path": "report/calibration_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "walkforward": {
+      "path": "report/walkforward_evaluation.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "rolling_walkforward": {
+      "path": "report/rolling_walkforward_evaluation.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "research_quality": {
+      "path": "report/research_quality_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "promotion_gate": {
+      "path": "report/promotion_gate_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "decision_audit": {
+      "path": "report/decision_audit_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "paper_trading_ledger": {
+      "path": "report/paper_trading_ledger_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "risk_exposure": {
+      "path": "report/risk_exposure_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "model_registry": {
+      "path": "report/model_registry_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "feature_grade": {
+      "path": "report/feature_grade_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "artifact_retention": {
+      "path": "report/artifact_retention_manifest.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "html_report": {
+      "path": "report/index.html",
+      "exists": true,
+      "error": ""
+    },
+    "training_status": {
+      "path": "data/training_status.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    }
+  },
+  "recommendations": [
+    "Keep live betting locked while building institutional-grade evidence.",
+    "Use this report as the top-level control tower for data trust, research quality, risk controls, model upgrade path, and product readiness.",
+    "Promotion must require positive CLV, market baseline outperformance, calibration readiness, rolling OOS validation, and zero live exposure governance compliance."
+  ]
+}
