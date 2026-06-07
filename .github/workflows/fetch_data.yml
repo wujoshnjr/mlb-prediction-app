@@ -506,6 +506,7 @@ jobs:
             report/feature_availability_diagnostic.json \
             report/market_edge_research.json \
             report/market_residual_training_report.json \
+            report/model_lab_report.json \
             report/feature_zero_root_cause_diagnostic.json \
             report/feature_grade_report.json \
             report/baseline_comparison_report.json \
@@ -585,6 +586,10 @@ jobs:
             git add -f data/odds_snapshots/
           fi
 
+          if [ -d data/model_lab ]; then
+            git add -f data/model_lab/
+          fi
+          
           git commit -m "Update prediction, training and ratings [skip ci]" || echo "No changes"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
