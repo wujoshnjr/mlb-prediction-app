@@ -119,6 +119,7 @@ jobs:
             scripts/risk_exposure_report.py \
             scripts/artifact_retention_manifest.py \
             scripts/world_class_trading_system_report.py \
+            scripts/saas_readiness_report.py \
             scripts/projected_lineup_client.py
             
       - name: Update finalized game results
@@ -402,6 +403,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build SaaS readiness report
+        run: python scripts/saas_readiness_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Build final HTML report
         run: python scripts/html_report_builder.py
         env:
@@ -447,6 +453,8 @@ jobs:
           path: |
             report/*.json
             report/*.csv
+            docs/*.md
+            report/saas_readiness_report.json
             report/data_contract_report.json
             report/pipeline_manifest.json
             report/index.html
@@ -517,6 +525,7 @@ jobs:
             report/risk_exposure_report.json \
             report/artifact_retention_manifest.json \
             report/world_class_trading_system_report.json \
+            report/saas_readiness_report.json \
             report/data_contract_report.json \
             report/pipeline_manifest.json \
             report/index.html \
@@ -545,6 +554,15 @@ jobs:
             data/training_status.json \
             data/training_log.csv \
             data/feature_importance.csv \
+            docs/SAAS_ROADMAP.md \
+            docs/API_DESIGN.md \
+            docs/RISK_POLICY.md \
+            docs/DATA_SOURCES.md \
+            docs/EVALUATION_METHOD.md \
+            docs/DEPLOYMENT_RENDER.md \
+            docs/GITHUB_ACTIONS_WORKFLOW.md \
+            docs/NO_AUTOMATED_WAGERING_POLICY.md \
+            docs/B2B_PRODUCT_SPEC.md \
             data/team_last_game.json; do
             if [ -f "$path" ]; then
               git add -f "$path"
