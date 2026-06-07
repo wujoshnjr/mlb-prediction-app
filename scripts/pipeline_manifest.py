@@ -41,6 +41,7 @@ TRACKED_FILES = [
     "report/paper_trading_ledger_report.json",
     "report/risk_exposure_report.json",
     "report/artifact_retention_manifest.json",
+    "report/world_class_trading_system_report.json",
     "report/data_contract_report.json",
     "report/pipeline_manifest.json",
     "report/index.html",
