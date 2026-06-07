@@ -146,8 +146,9 @@ def _prepare_rows(
             _first_existing(
                 row,
                 [
-                    "model_prob",
+                    "displayed_home_win_pct",
                     "predicted_home_win_pct",
+                    "model_prob",
                     "premarket_model_home_prob",
                     "home_win_probability",
                 ],
