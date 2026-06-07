@@ -33,6 +33,8 @@ SOURCES = {
     "risk_exposure": REPORT_DIR / "risk_exposure_report.json",
     "artifact_retention": REPORT_DIR / "artifact_retention_manifest.json",
     "world_class_trading_system": REPORT_DIR / "world_class_trading_system_report.json",
+    "sample_state": Path("data/sample_state.json"),
+    "sample_state_report": REPORT_DIR / "sample_state_report.json",
     "data_contract": REPORT_DIR / "data_contract_report.json",
     "pipeline_manifest": REPORT_DIR / "pipeline_manifest.json",
     "feature_availability": REPORT_DIR / "feature_availability_diagnostic.json",
@@ -182,6 +184,7 @@ def build_html() -> str:
         data_quality = {}
 
     training = data["training_status"] or {}
+    sample_state = data["sample_state"] or data["sample_state_report"] or {}
     baseline = data["baseline_comparison"]
     calibration = data["calibration"]
     walkforward = data["walkforward"]
@@ -216,12 +219,20 @@ def build_html() -> str:
     html_parts.append(
         _section(
             "Model Readiness",
-            "<p>Training sample count: "
-            + _escape(training.get("sample_count"))
+            "<p>Train-eligible samples: "
+            + _escape(sample_state.get("train_eligible_samples", training.get("sample_count")))
+            + "</p><p>Clean settled snapshots: "
+            + _escape(sample_state.get("clean_settled_snapshots"))
             + "</p><p>Minimum clean train samples: "
-            + _escape(training.get("minimum_clean_train_samples"))
+            + _escape(sample_state.get("minimum_clean_train_samples", training.get("minimum_clean_train_samples")))
+            + "</p><p>Training allowed: "
+            + _escape(sample_state.get("training_allowed"))
+            + "</p><p>Promotion sample ready: "
+            + _escape(sample_state.get("promotion_sample_ready"))
+            + "</p><p>Walk-forward predictions: "
+            + _escape(sample_state.get("walkforward_predictions"))
             + "</p><p>Model trained: "
-            + _escape(training.get("trained"))
+            + _escape(sample_state.get("trained", training.get("trained")))
             + "</p><p>Model type: "
             + _escape(training.get("model_type"))
             + "</p>",
@@ -324,6 +335,7 @@ def build_html() -> str:
         "Risk Exposure": data.get("risk_exposure"),
         "Artifact Retention": data.get("artifact_retention"),
         "World-Class Trading System": data.get("world_class_trading_system"),
+        "Sample State": data.get("sample_state") or data.get("sample_state_report"),
         "Data Contract": data.get("data_contract"),
         "Pipeline Manifest": data.get("pipeline_manifest"),
     }
@@ -362,6 +374,12 @@ def build_html() -> str:
                 f"score={_escape(report_data.get('overall_score'))}; "
                 f"stage={_escape(report_data.get('world_class_stage'))}; "
                 f"grade={_escape(report_data.get('overall_grade'))}"
+            )
+        elif title == "Sample State":
+            key_metric = (
+                f"train_eligible={_escape(report_data.get('train_eligible_samples'))}; "
+                f"clean_settled={_escape(report_data.get('clean_settled_snapshots'))}; "
+                f"walkforward={_escape(report_data.get('walkforward_predictions'))}"
             )
         elif title == "Pipeline Manifest":
             key_metric = f"tracked={_escape(report_data.get('tracked_file_count'))}"
