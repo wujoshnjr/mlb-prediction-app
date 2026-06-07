@@ -274,21 +274,58 @@ def normalize_team(team: Any) -> str:
     return TEAM_NAME_MAP.get(text, text)
 
 
+NAN_LIKE_TEXTS = {
+    "",
+    "nan",
+    "+nan",
+    "-nan",
+    "inf",
+    "+inf",
+    "-inf",
+    "infinity",
+    "+infinity",
+    "-infinity",
+    "none",
+    "null",
+}
+
+
+def _is_nan_like_text(value: str) -> bool:
+    return value.strip().lower() in NAN_LIKE_TEXTS
+
+
 def as_float(value: Any, default: float = 0.0) -> float:
     try:
-        if value is None or pd.isna(value):
+        if value is None:
             return default
-        return float(value)
+
+        if isinstance(value, str) and _is_nan_like_text(value):
+            return default
+
+        try:
+            missing = pd.isna(value)
+            if isinstance(missing, (bool, np.bool_)) and missing:
+                return default
+        except (TypeError, ValueError):
+            pass
+
+        parsed = float(value)
+        if not np.isfinite(parsed):
+            return default
+
+        return parsed
     except (TypeError, ValueError):
         return default
 
 
 def as_int(value: Any, default: int = 0) -> int:
+    parsed = as_float(value, None)
+    if parsed is None:
+        return default
+
     try:
-        if value is None or pd.isna(value):
-            return default
-        return int(value)
-    except (TypeError, ValueError):
+        return int(parsed)
+    except (TypeError, ValueError, OverflowError):
         return default
 
 
@@ -298,12 +335,12 @@ def is_missing_value(value: Any) -> bool:
         return True
 
     if isinstance(value, str):
-        return value.strip() == ""
+        return _is_nan_like_text(value)
 
     try:
         missing = pd.isna(value)
-        if isinstance(missing, bool):
-            return missing
+        if isinstance(missing, (bool, np.bool_)):
+            return bool(missing)
     except (TypeError, ValueError):
         pass
 
@@ -311,12 +348,15 @@ def is_missing_value(value: Any) -> bool:
 
 
 def as_optional_float(value: Any) -> float | None:
-    """Return a float or None without converting missing values to zero."""
+    """Return a finite float or None without converting missing values to zero."""
     if is_missing_value(value):
         return None
 
     try:
-        return float(value)
+        parsed = float(value)
+        if not np.isfinite(parsed):
+            return None
+        return parsed
     except (TypeError, ValueError):
         return None
 
@@ -380,10 +420,13 @@ def parse_csv_int_list(value: Any) -> list[int]:
     for item in raw_items:
         try:
             text = str(item).strip()
-            if not text or text.lower() in {"nan", "none", "null"}:
+            if _is_nan_like_text(text):
                 continue
-            result.append(int(float(text)))
-        except (TypeError, ValueError):
+            parsed = float(text)
+            if not np.isfinite(parsed):
+                continue
+            result.append(int(parsed))
+        except (TypeError, ValueError, OverflowError):
             continue
 
     return result
@@ -391,12 +434,13 @@ def parse_csv_int_list(value: Any) -> list[int]:
 
 def as_optional_int(value: Any) -> int | None:
     """Return int or None without converting missing values to zero."""
-    if is_missing_value(value):
+    parsed = as_optional_float(value)
+    if parsed is None:
         return None
 
     try:
-        return int(float(value))
-    except (TypeError, ValueError):
+        return int(parsed)
+    except (TypeError, ValueError, OverflowError):
         return None
 
 
@@ -406,7 +450,7 @@ def as_optional_str(value: Any) -> str:
         return ""
 
     text = str(value).strip()
-    if text.lower() in {"nan", "none", "null"}:
+    if _is_nan_like_text(text):
         return ""
 
     return text
@@ -1302,11 +1346,15 @@ def build_daily_context_summary(
             if context_ready
             else "tracking_only_context_incomplete"
         ),
-        "home_probable_pitcher_id": row.get("home_probable_pitcher_id"),
+        "home_probable_pitcher_id": as_optional_int(
+            row.get("home_probable_pitcher_id")
+        ),
         "home_probable_pitcher_name": as_optional_str(
             row.get("home_probable_pitcher_name")
         ),
-        "away_probable_pitcher_id": row.get("away_probable_pitcher_id"),
+        "away_probable_pitcher_id": as_optional_int(
+            row.get("away_probable_pitcher_id")
+        ),
         "away_probable_pitcher_name": as_optional_str(
             row.get("away_probable_pitcher_name")
         ),
@@ -2720,14 +2768,30 @@ def apply_feature_availability_flags(
         daily_context_summary.get("lineup_status", "")
     ).strip().lower()
     starter_status = str(
-        daily_context_summary.get("starter_status", "")
+        daily_context_summary.get("pitcher_status")
+        or daily_context_summary.get("starter_status")
+        or ""
+    ).strip().lower()
+
+    starter_confidence_status = str(
+        daily_context_summary.get("starter_confidence_status") or ""
     ).strip().lower()
 
     features["lineup_context_available"] = (
         1.0 if lineup_status in {"confirmed", "projected_available"} else 0.0
     )
     features["starter_context_available"] = (
-        1.0 if starter_status in {"confirmed", "probable"} else 0.0
+        1.0
+        if starter_status
+        in {
+            "confirmed",
+            "high_confidence_probable",
+            "mixed_probable",
+            "low_confidence_probable",
+            "probable",
+        }
+        or starter_confidence_status in {"known", "partial"}
+        else 0.0
     )
 
     features["weather_available"] = (
@@ -3495,7 +3559,7 @@ def generate_predictions() -> dict[str, Any]:
         predicted_home_win = float(np.clip(predicted_home_win, 0.05, 0.95))
         premarket_model_home_prob = predicted_home_win
 
-        model_edge_home = (
+        premarket_model_edge_home = (
             premarket_model_home_prob - market_probability
             if market_probability is not None
             else None
@@ -3508,8 +3572,8 @@ def generate_predictions() -> dict[str, Any]:
 
         if market_probability is not None:
             selected_edge_abs_for_blend = (
-                abs(model_edge_home)
-                if model_edge_home is not None
+                abs(premarket_model_edge_home)
+                if premarket_model_edge_home is not None
                 else None
             )
 
@@ -3527,9 +3591,15 @@ def generate_predictions() -> dict[str, Any]:
                 + market_probability * accuracy_safe_market_weight
             )
             market_adjustment_applied = True
-            
+
         predicted_home_win = float(np.clip(predicted_home_win, 0.05, 0.95))
         displayed_home_win_pct = predicted_home_win
+
+        model_edge_home = (
+            displayed_home_win_pct - market_probability
+            if market_probability is not None
+            else None
+        )
 
         over_probability = None
         home_cover_probability = None
@@ -3655,7 +3725,7 @@ def generate_predictions() -> dict[str, Any]:
                 recommendation_status = "PAPER_BET"
                 home_kelly = min(
                     kelly_criterion(
-                        premarket_model_home_prob,
+                        displayed_home_win_pct,
                         home_odds,
                     ),
                     max_kelly_fraction,
@@ -3672,7 +3742,7 @@ def generate_predictions() -> dict[str, Any]:
                 recommendation_status = "PAPER_BET"
                 away_kelly = min(
                     kelly_criterion(
-                        1 - premarket_model_home_prob,
+                        1 - displayed_home_win_pct,
                         away_odds,
                     ),
                     max_kelly_fraction,
@@ -3823,11 +3893,11 @@ def generate_predictions() -> dict[str, Any]:
             feature_health_flags.append("statcast_core_zero")
 
         selected_model_probability_for_guard = (
-            premarket_model_home_prob
+            displayed_home_win_pct
             if moneyline_selected_side == "home"
-            else 1.0 - premarket_model_home_prob
+            else 1.0 - displayed_home_win_pct
             if moneyline_selected_side == "away"
-            else premarket_model_home_prob
+            else displayed_home_win_pct
         )
 
         selected_market_probability_for_guard = (
@@ -3893,6 +3963,11 @@ def generate_predictions() -> dict[str, Any]:
             ),
             "rating_source": rating_source,
             "premarket_model_home_prob": round(premarket_model_home_prob, 4),
+            "premarket_model_edge_home": (
+                round(premarket_model_edge_home, 4)
+                if premarket_model_edge_home is not None
+                else None
+            ),
             "displayed_home_win_pct": round(displayed_home_win_pct, 4),
             "predicted_home_win_pct": round(displayed_home_win_pct, 4),
             "manual_no_odds_pred": round(no_odds_prediction, 4),
@@ -3906,6 +3981,7 @@ def generate_predictions() -> dict[str, Any]:
                 if model_edge_home is not None
                 else None
             ),
+            "model_edge_home_basis": "displayed_home_win_pct_minus_market_no_vig_home_prob",
             "model_disagreement_with_market": (
                 round(abs(model_edge_home), 4)
                 if model_edge_home is not None
@@ -4092,10 +4168,37 @@ def generate_predictions() -> dict[str, Any]:
     return output
 
 
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _json_safe(child) for key, child in value.items()}
+
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(child) for child in value]
+
+    if isinstance(value, str):
+        return None if _is_nan_like_text(value) else value
+
+    if isinstance(value, bool) or value is None:
+        return value
+
+    if isinstance(value, (np.integer,)):
+        return int(value)
+
+    if isinstance(value, (np.floating, float)):
+        parsed = float(value)
+        return parsed if np.isfinite(parsed) else None
+
+    if isinstance(value, int):
+        return value
+
+    return str(value)
+
+
 def write_report(output: dict[str, Any]) -> None:
     REPORT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    safe_output = _json_safe(output)
     REPORT_FILE.write_text(
-        json.dumps(output, indent=2),
+        json.dumps(safe_output, indent=2, allow_nan=False),
         encoding="utf-8",
     )
 
