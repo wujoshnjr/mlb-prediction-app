@@ -151,32 +151,46 @@ def _prepare_settled_rows(
     if snapshots is None or snapshots.empty or "game_id" not in snapshots.columns:
         return pd.DataFrame()
 
-    frame = _normalise_game_id_series(snapshots)
-
-    if finalized is not None and not finalized.empty and "game_id" in finalized.columns:
-        final = _normalise_game_id_series(finalized)
-        needed = [
-            col
-            for col in ["game_id", "home_win", "home_score", "away_score"]
-            if col in final.columns
-        ]
-
-        if "home_win" in needed:
-            frame = frame.merge(
-                final[needed].drop_duplicates("game_id"),
-                on="game_id",
-                how="left",
-                suffixes=("", "_final"),
-            )
-
-            if "home_win_final" in frame.columns and "home_win" in frame.columns:
-                frame["home_win"] = frame["home_win"].combine_first(frame["home_win_final"])
-
-    if "home_win" not in frame.columns:
+    if finalized is None or finalized.empty or "game_id" not in finalized.columns:
         return pd.DataFrame()
 
-    frame["home_win"] = pd.to_numeric(frame["home_win"], errors="coerce")
-    frame = frame[frame["home_win"].isin([0, 1])].copy()
+    frame = _normalise_game_id_series(snapshots)
+    final = _normalise_game_id_series(finalized)
+
+    if "home_win" not in final.columns:
+        if {"home_score", "away_score"}.issubset(final.columns):
+            final["home_win"] = (
+                pd.to_numeric(final["home_score"], errors="coerce")
+                > pd.to_numeric(final["away_score"], errors="coerce")
+            ).astype("Int64")
+        else:
+            return pd.DataFrame()
+
+    final["home_win"] = pd.to_numeric(final["home_win"], errors="coerce")
+    final = final[final["home_win"].isin([0, 1])].copy()
+    if final.empty:
+        return pd.DataFrame()
+
+    leaked_snapshot_columns = [
+        column
+        for column in ["home_win", "home_score", "away_score"]
+        if column in frame.columns
+    ]
+    if leaked_snapshot_columns:
+        frame = frame.drop(columns=leaked_snapshot_columns)
+
+    needed = [
+        column
+        for column in ["game_id", "home_win", "home_score", "away_score"]
+        if column in final.columns
+    ]
+
+    frame = frame.merge(
+        final[needed].drop_duplicates("game_id"),
+        on="game_id",
+        how="inner",
+    )
+
     if frame.empty:
         return frame
 
@@ -189,7 +203,7 @@ def _prepare_settled_rows(
         frame = frame.sort_values("_snapshot_dt").groupby("game_id", as_index=False).tail(1)
 
     return frame.reset_index(drop=True)
-
+    
 
 def _prob_from_row(row: pd.Series, candidates: List[str]) -> Optional[float]:
     for column in candidates:
