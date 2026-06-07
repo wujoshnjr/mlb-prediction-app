@@ -116,6 +116,7 @@ jobs:
             scripts/paper_trading_ledger.py \
             scripts/risk_exposure_report.py \
             scripts/artifact_retention_manifest.py \
+            scripts/world_class_trading_system_report.py \
             scripts/projected_lineup_client.py
             
       - name: Update finalized game results
@@ -379,6 +380,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build world-class trading system report
+        run: python scripts/world_class_trading_system_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Build final HTML report
         run: python scripts/html_report_builder.py
         env:
@@ -490,6 +496,7 @@ jobs:
             report/paper_trading_ledger_report.json \
             report/risk_exposure_report.json \
             report/artifact_retention_manifest.json \
+            report/world_class_trading_system_report.json \
             report/data_contract_report.json \
             report/pipeline_manifest.json \
             report/index.html \
