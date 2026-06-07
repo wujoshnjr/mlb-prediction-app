@@ -40,6 +40,7 @@ OPTIONAL_JSON_REPORTS = {
     "paper_trading_ledger_report": REPORT_DIR / "paper_trading_ledger_report.json",
     "risk_exposure": REPORT_DIR / "risk_exposure_report.json",
     "artifact_retention": REPORT_DIR / "artifact_retention_manifest.json",
+    "world_class_trading_system": REPORT_DIR / "world_class_trading_system_report.json",
 }
 
 REQUIRED_NON_JSON_FILES = {
@@ -346,6 +347,7 @@ def build_contract_report() -> Dict[str, Any]:
         "paper_trading_ledger_report",
         "risk_exposure",
         "artifact_retention",
+        "world_class_trading_system",
     ):
         if standard_name in reports:
             _validate_standard_report(standard_name, reports[standard_name], errors)
