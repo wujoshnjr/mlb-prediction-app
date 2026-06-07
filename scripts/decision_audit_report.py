@@ -19,8 +19,13 @@ CSV_COLUMNS = [
     "home_team",
     "away_team",
     "model_prob",
+    "displayed_model_prob",
+    "premarket_model_prob",
     "market_prob",
     "edge",
+    "edge_basis",
+    "selected_side",
+    "selected_edge",
     "recommendation",
     "recommendation_status",
     "data_quality_grade",
@@ -117,20 +122,35 @@ def _audit_row(item: Dict[str, Any]) -> Dict[str, Any]:
         or ""
     )
 
+    displayed_model_prob = _first_existing(
+        item,
+        ["displayed_home_win_pct", "predicted_home_win_pct", "model_prob", "home_win_probability"],
+    )
+    premarket_model_prob = _first_existing(
+        item,
+        ["premarket_model_home_prob", "manual_no_odds_pred"],
+    )
+    market_prob = _first_existing(
+        item,
+        ["market_no_vig_home_prob", "market_prob", "market_home_prob"],
+    )
+    edge = _first_existing(item, ["model_edge_home", "edge"])
+    selected_edge = _first_existing(item, ["moneyline_selected_edge"])
+    selected_side = item.get("moneyline_selected_side") or item.get("selected_side") or ""
+
     return {
         "game_id": item.get("game_id"),
         "game_date": item.get("game_date"),
         "home_team": item.get("home_team"),
         "away_team": item.get("away_team"),
-        "model_prob": _first_existing(
-            item,
-            ["model_prob", "predicted_home_win_pct", "premarket_model_home_prob", "home_win_probability"],
-        ),
-        "market_prob": _first_existing(
-            item,
-            ["market_no_vig_home_prob", "market_prob", "market_home_prob"],
-        ),
-        "edge": _first_existing(item, ["model_edge_home", "edge", "moneyline_selected_edge"]),
+        "model_prob": displayed_model_prob,
+        "displayed_model_prob": displayed_model_prob,
+        "premarket_model_prob": premarket_model_prob,
+        "market_prob": market_prob,
+        "edge": edge,
+        "edge_basis": item.get("model_edge_home_basis") or "displayed_home_win_pct_minus_market_no_vig_home_prob",
+        "selected_side": selected_side,
+        "selected_edge": selected_edge,
         "recommendation": item.get("recommendation") or item.get("moneyline_recommendation"),
         "recommendation_status": item.get("recommendation_status"),
         "data_quality_grade": data_quality_grade,
@@ -146,7 +166,7 @@ def _audit_row(item: Dict[str, Any]) -> Dict[str, Any]:
         "top_negative_factors": _list_to_text(item.get("top_negative_factors")),
         "audit_status": "ok",
     }
-
+    
 
 def build_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
