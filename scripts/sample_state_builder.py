@@ -216,8 +216,30 @@ def _prepare_snapshots(frame: pd.DataFrame) -> pd.DataFrame:
     else:
         result["_sample_state_valid"] = True
 
-    return result.reset_index(drop=True)
+    # Pregame snapshots must never provide trusted outcomes.
+    # Outcomes for sample_state must come only from finalized_games.csv.
+    leakage_columns = [
+        "home_win",
+        "home_score",
+        "away_score",
+        "final_score",
+        "home_final_score",
+        "away_final_score",
+        "settled_at",
+        "actual_winner",
+        "actual_result",
+        "final_home_score",
+        "final_away_score",
+        "postgame_win_probability",
+    ]
+    existing_leakage_columns = [
+        column for column in leakage_columns if column in result.columns
+    ]
+    if existing_leakage_columns:
+        result = result.drop(columns=existing_leakage_columns)
 
+    return result.reset_index(drop=True)
+    
 
 def _prepare_finalized(frame: pd.DataFrame) -> pd.DataFrame:
     if frame.empty:
@@ -330,6 +352,9 @@ def build_sample_state() -> Dict[str, Any]:
 
     if not snapshots.empty and not finalized.empty:
         finalized_outcomes = finalized[["game_id", "home_win"]].copy()
+        finalized_outcomes = finalized_outcomes.rename(
+            columns={"home_win": "_final_home_win"}
+        )
 
         joined = snapshots.merge(
             finalized_outcomes,
@@ -341,11 +366,16 @@ def build_sample_state() -> Dict[str, Any]:
 
         clean = joined[
             (joined["_sample_state_valid"] == True)
-            & (pd.to_numeric(joined["home_win"], errors="coerce").isin([0, 1]))
+            & (
+                pd.to_numeric(
+                    joined["_final_home_win"],
+                    errors="coerce",
+                ).isin([0, 1])
+            )
         ].copy()
 
         clean_settled_snapshots = int(len(clean))
-
+        
     train_eligible_samples = clean_settled_snapshots
 
     linked_games = None
