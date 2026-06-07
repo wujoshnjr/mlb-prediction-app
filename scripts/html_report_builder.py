@@ -33,6 +33,7 @@ SOURCES = {
     "risk_exposure": REPORT_DIR / "risk_exposure_report.json",
     "artifact_retention": REPORT_DIR / "artifact_retention_manifest.json",
     "world_class_trading_system": REPORT_DIR / "world_class_trading_system_report.json",
+    "saas_readiness": REPORT_DIR / "saas_readiness_report.json",
     "sample_state": Path("data/sample_state.json"),
     "sample_state_report": REPORT_DIR / "sample_state_report.json",
     "data_contract": REPORT_DIR / "data_contract_report.json",
@@ -335,6 +336,7 @@ def build_html() -> str:
         "Risk Exposure": data.get("risk_exposure"),
         "Artifact Retention": data.get("artifact_retention"),
         "World-Class Trading System": data.get("world_class_trading_system"),
+        "SaaS Readiness": data.get("saas_readiness"),
         "Sample State": data.get("sample_state") or data.get("sample_state_report"),
         "Data Contract": data.get("data_contract"),
         "Pipeline Manifest": data.get("pipeline_manifest"),
@@ -374,6 +376,13 @@ def build_html() -> str:
                 f"score={_escape(report_data.get('overall_score'))}; "
                 f"stage={_escape(report_data.get('world_class_stage'))}; "
                 f"grade={_escape(report_data.get('overall_grade'))}"
+            )
+        elif title == "SaaS Readiness":
+            key_metric = (
+                f"stage={_escape(report_data.get('current_product_stage'))}; "
+                f"docs={_escape(report_data.get('documentation_score'))}; "
+                f"governance={_escape(report_data.get('governance_score'))}; "
+                f"b2b_api_ready={_escape(report_data.get('b2b_api_ready'))}"
             )
         elif title == "Sample State":
             key_metric = (
