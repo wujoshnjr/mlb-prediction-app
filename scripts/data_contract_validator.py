@@ -31,6 +31,8 @@ REQUIRED_JSON_REPORTS = {
     "feature_zero_root_cause": REPORT_DIR / "feature_zero_root_cause_diagnostic.json",
     "feature_grade": REPORT_DIR / "feature_grade_report.json",
     "training_status": DATA_DIR / "training_status.json",
+    "sample_state": DATA_DIR / "sample_state.json",
+    "sample_state_report": REPORT_DIR / "sample_state_report.json",
 }
 
 OPTIONAL_JSON_REPORTS = {
@@ -350,6 +352,8 @@ def build_contract_report() -> Dict[str, Any]:
         "risk_exposure",
         "artifact_retention",
         "world_class_trading_system",
+        "sample_state",
+        "sample_state_report",
     ):
         if standard_name in reports:
             _validate_standard_report(standard_name, reports[standard_name], errors)
