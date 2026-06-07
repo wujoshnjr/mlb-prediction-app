@@ -1,9 +1,19 @@
 {
-  "generated_at": "2026-06-07T08:14:28.228102+00:00",
+  "generated_at": "2026-06-07T10:15:51.576023+00:00",
   "status": "insufficient_samples",
   "input_files": {
     "training_status": {
       "path": "data/training_status.json",
+      "exists": true,
+      "error": ""
+    },
+    "sample_state": {
+      "path": "data/sample_state.json",
+      "exists": true,
+      "error": ""
+    },
+    "sample_state_report": {
+      "path": "report/sample_state_report.json",
       "exists": true,
       "error": ""
     },
@@ -72,8 +82,9 @@
   "warnings": [],
   "errors": [],
   "evaluated_conditions": {
-    "clean_settled_samples": 138,
-    "min_clean_settled_samples": 500,
+    "sample_state_source": "data/sample_state.json",
+    "sample_state_training_allowed": false,
+    "sample_state_promotion_sample_ready": false,
     "walkforward_predictions": 0,
     "min_walkforward_predictions": 300,
     "model_brier": null,
