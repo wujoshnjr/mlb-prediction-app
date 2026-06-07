@@ -43,6 +43,7 @@ TRACKED_FILES = [
     "report/risk_exposure_report.json",
     "report/artifact_retention_manifest.json",
     "report/world_class_trading_system_report.json",
+    "report/saas_readiness_report.json",
     "report/sample_state_report.json",
     "report/data_contract_report.json",
     "report/pipeline_manifest.json",
@@ -63,6 +64,16 @@ TRACKED_FILES = [
     "data/team_form_context.csv",
     "data/context_feature_bridge.csv",
     "data/projected_lineup_context.csv",
+    "README.md",
+    "docs/SAAS_ROADMAP.md",
+    "docs/API_DESIGN.md",
+    "docs/RISK_POLICY.md",
+    "docs/DATA_SOURCES.md",
+    "docs/EVALUATION_METHOD.md",
+    "docs/DEPLOYMENT_RENDER.md",
+    "docs/GITHUB_ACTIONS_WORKFLOW.md",
+    "docs/NO_AUTOMATED_WAGERING_POLICY.md",
+    "docs/B2B_PRODUCT_SPEC.md",
 ]
 
 
