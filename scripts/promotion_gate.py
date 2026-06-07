@@ -13,6 +13,8 @@ OUTPUT_PATH = REPORT_DIR / "promotion_gate_report.json"
 
 INPUTS = {
     "training_status": DATA_DIR / "training_status.json",
+    "sample_state": DATA_DIR / "sample_state.json",
+    "sample_state_report": REPORT_DIR / "sample_state_report.json",
     "baseline_comparison": REPORT_DIR / "baseline_comparison_report.json",
     "calibration": REPORT_DIR / "calibration_report.json",
     "walkforward": REPORT_DIR / "walkforward_evaluation.json",
@@ -144,6 +146,7 @@ def build_report() -> Dict[str, Any]:
             warnings.append(f"Missing or invalid input report: {path}")
 
     training = reports.get("training_status") or {}
+    sample_state = reports.get("sample_state") or reports.get("sample_state_report") or {}
     baseline = reports.get("baseline_comparison") or {}
     calibration = reports.get("calibration") or {}
     walkforward = reports.get("rolling_walkforward") or reports.get("walkforward") or {}
@@ -154,18 +157,22 @@ def build_report() -> Dict[str, Any]:
     data_contract = reports.get("data_contract") or {}
 
     clean_samples = _to_int(
-        training.get("sample_count")
+        sample_state.get("clean_settled_snapshots")
+        or sample_state.get("train_eligible_samples")
+        or training.get("sample_count")
         or training.get("clean_model_sample_count")
         or baseline.get("settled_prediction_count"),
         0,
     )
-    evaluated["clean_settled_samples"] = clean_samples
-    evaluated["min_clean_settled_samples"] = MIN_CLEAN_SAMPLES
+    evaluated["sample_state_source"] = "data/sample_state.json"
+    evaluated["sample_state_training_allowed"] = sample_state.get("training_allowed")
+    evaluated["sample_state_promotion_sample_ready"] = sample_state.get("promotion_sample_ready")
     if clean_samples < MIN_CLEAN_SAMPLES:
         blockers.append("clean settled samples < 500")
 
     wf_predictions = _to_int(
-        walkforward.get("total_oos_predictions")
+        sample_state.get("walkforward_predictions")
+        or walkforward.get("total_oos_predictions")
         or walkforward.get("walkforward_predictions"),
         0,
     )
