@@ -35,6 +35,8 @@ INPUTS = {
     "artifact_retention": REPORT_DIR / "artifact_retention_manifest.json",
     "html_report": REPORT_DIR / "index.html",
     "training_status": DATA_DIR / "training_status.json",
+    "sample_state": DATA_DIR / "sample_state.json",
+    "sample_state_report": REPORT_DIR / "sample_state_report.json",
 }
 
 
@@ -344,6 +346,7 @@ def _evaluate_research_quality(
     walkforward = reports.get("walkforward") or {}
     rolling = reports.get("rolling_walkforward") or {}
     research = reports.get("research_quality") or {}
+    sample_state = reports.get("sample_state") or reports.get("sample_state_report") or {}
 
     comparison = baseline.get("comparison") if isinstance(baseline.get("comparison"), dict) else {}
     model_beats_market_brier = bool(comparison.get("model_beats_market_brier"))
@@ -353,8 +356,14 @@ def _evaluate_research_quality(
     positive_clv_rate = _to_float(market_close.get("positive_clv_rate"))
     calibration_ready = bool(calibration.get("calibration_ready"))
     walkforward_ready = bool(walkforward.get("walkforward_ready"))
-    rolling_oos = _to_int(rolling.get("total_oos_predictions"))
-    settled_count = _to_int(baseline.get("settled_prediction_count"))
+    rolling_oos = _to_int(
+        sample_state.get("walkforward_predictions")
+        or rolling.get("total_oos_predictions")
+    )
+    settled_count = _to_int(
+        sample_state.get("clean_settled_snapshots")
+        or baseline.get("settled_prediction_count")
+    )
 
     clv_positive = avg_clv is not None and avg_clv > 0
     positive_clv_rate_ok = positive_clv_rate is not None and positive_clv_rate >= 0.55
@@ -480,15 +489,27 @@ def _evaluate_model_upgrade_path(
     reports: Dict[str, Optional[Dict[str, Any]]],
 ) -> Dict[str, Any]:
     training = reports.get("training_status") or {}
+    sample_state = reports.get("sample_state") or reports.get("sample_state_report") or {}
     model_registry = reports.get("model_registry") or {}
     feature_grade = reports.get("feature_grade") or {}
     rolling = reports.get("rolling_walkforward") or {}
 
-    sample_count = _to_int(training.get("sample_count"))
-    min_samples = _to_int(training.get("minimum_clean_train_samples"))
-    trained = bool(training.get("trained"))
+    sample_count = _to_int(
+        sample_state.get("train_eligible_samples")
+        or sample_state.get("clean_settled_snapshots")
+        or training.get("sample_count")
+    )
+    min_samples = _to_int(
+        sample_state.get("minimum_clean_train_samples")
+        or training.get("minimum_clean_train_samples")
+        or 300
+    )
+    trained = bool(sample_state.get("trained", training.get("trained", False)))
     registry_count = _to_int(model_registry.get("registry_count"))
-    rolling_oos = _to_int(rolling.get("total_oos_predictions"))
+    rolling_oos = _to_int(
+        sample_state.get("walkforward_predictions")
+        or rolling.get("total_oos_predictions")
+    )
 
     grade_counts = feature_grade.get("grade_counts") if isinstance(feature_grade.get("grade_counts"), dict) else {}
     a_count = _to_int(grade_counts.get("A"))
@@ -537,6 +558,7 @@ def _evaluate_model_upgrade_path(
         [
             "Upgrade models only through registry-backed challenger evaluation.",
             "Recommended sequence: market baseline, Elo/Glicko, calibrated logistic, market residual, gradient boosting challenger, ensemble, calibration layer, risk optimizer.",
+            "Model readiness uses data/sample_state.json as the canonical sample-count source.",
         ],
     )
 
