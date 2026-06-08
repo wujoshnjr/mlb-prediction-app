@@ -279,6 +279,77 @@ def _build_model_vs_market(model_metrics: Dict[str, Any], market_metrics: Dict[s
     return result
 
 
+def _non_market_predictions(predictions: pd.DataFrame) -> pd.DataFrame:
+    if predictions.empty or "model_name" not in predictions.columns:
+        return pd.DataFrame()
+    return predictions[predictions["model_name"] != "market_no_vig_baseline"].copy()
+
+
+def _model_oos_counts(predictions: pd.DataFrame) -> Dict[str, int]:
+    if predictions.empty or "model_name" not in predictions.columns:
+        return {}
+
+    non_market = _non_market_predictions(predictions)
+    if non_market.empty:
+        return {}
+
+    if "game_id" in non_market.columns:
+        return {
+            str(model_name): int(group["game_id"].astype(str).nunique())
+            for model_name, group in non_market.groupby("model_name")
+        }
+
+    return {
+        str(model_name): int(len(group))
+        for model_name, group in non_market.groupby("model_name")
+    }
+
+
+def _unique_oos_game_count(predictions: pd.DataFrame) -> int:
+    non_market = _non_market_predictions(predictions)
+    if non_market.empty:
+        return 0
+
+    if "game_id" in non_market.columns:
+        return int(non_market["game_id"].astype(str).nunique())
+
+    return int(len(non_market))
+
+
+def _per_model_segment_metrics(predictions: pd.DataFrame, segment_column: str) -> Dict[str, Any]:
+    if predictions.empty or segment_column not in predictions.columns:
+        return {}
+
+    output: Dict[str, Any] = {}
+    non_market = _non_market_predictions(predictions)
+
+    for model_name, model_group in non_market.groupby("model_name"):
+        model_output: Dict[str, Any] = {}
+
+        for segment_value, segment_group in model_group.groupby(segment_column):
+            if segment_group.empty:
+                continue
+
+            model_output[str(segment_value)] = classification_metrics(
+                segment_group["actual_home_win"],
+                segment_group["predicted_prob"],
+            )
+
+        output[str(model_name)] = model_output
+
+    return output
+
+
+def _brier_skill_score(model_brier: Any, market_brier: Any) -> Optional[float]:
+    model_value = safe_float(model_brier)
+    market_value = safe_float(market_brier)
+
+    if model_value is None or market_value is None or market_value <= 0:
+        return None
+
+    return float(1.0 - (model_value / market_value))
+
+
 def build_report(
     *,
     snapshot_path: Path = Path("data/prediction_snapshots.csv"),
@@ -437,11 +508,37 @@ def build_report(
     market_metrics = model_metrics.get("market_no_vig_baseline", {})
     model_vs_market = _build_model_vs_market(model_metrics, market_metrics) if market_metrics else {}
 
-    total_oos = int(len(predictions[predictions["model_name"] != "market_no_vig_baseline"])) if not predictions.empty else 0
-    walkforward_ready = total_oos >= MIN_REQUIRED_OOS
+    if model_vs_market and market_metrics:
+        market_brier = market_metrics.get("brier")
+        for model_name, comparison in model_vs_market.items():
+            model_brier = (model_metrics.get(model_name) or {}).get("brier")
+            comparison["brier_skill_score_vs_market"] = _brier_skill_score(
+                model_brier,
+                market_brier,
+            )
+            
+    model_oos_counts = _model_oos_counts(predictions)
+    unique_oos_games = _unique_oos_game_count(predictions)
 
-    if total_oos < MIN_REQUIRED_OOS:
-        blockers.append(f"rolling OOS predictions below threshold: {total_oos} < {MIN_REQUIRED_OOS}")
+    max_model_oos = max(model_oos_counts.values()) if model_oos_counts else 0
+    min_model_oos = min(model_oos_counts.values()) if model_oos_counts else 0
+
+    per_model_ready = {
+        model_name: count >= MIN_REQUIRED_OOS
+        for model_name, count in model_oos_counts.items()
+    }
+
+    # Promotion-grade walk-forward readiness must be per-model, not a sum of
+    # multiple models' rows for the same game.
+    walkforward_ready = bool(per_model_ready) and any(per_model_ready.values())
+
+    total_oos = unique_oos_games
+
+    if max_model_oos < MIN_REQUIRED_OOS:
+        blockers.append(
+            "per-model OOS predictions below threshold: "
+            f"max_model_oos={max_model_oos} < {MIN_REQUIRED_OOS}"
+        )
 
     if market_metrics:
         any_beats_market = any(
@@ -460,6 +557,11 @@ def build_report(
         "skipped": False,
         "skip_reason": "",
         "total_oos_predictions": total_oos,
+        "unique_oos_games": unique_oos_games,
+        "model_oos_counts": model_oos_counts,
+        "max_model_oos_predictions": max_model_oos,
+        "min_model_oos_predictions": min_model_oos,
+        "per_model_ready": per_model_ready,
         "minimum_train_samples": minimum_train_samples,
         "minimum_required_oos_predictions": MIN_REQUIRED_OOS,
         "rolling_window_size": None,
@@ -473,9 +575,13 @@ def build_report(
             "prediction_side",
         ) if not predictions.empty else {},
         "home_away_split": {},
-        "confidence_bucket_split": _segment_metrics(
-            predictions[predictions["model_name"] != "market_no_vig_baseline"],
+        "confidence_bucket_split_by_model": _per_model_segment_metrics(
+            predictions,
             "confidence_bucket",
+        ) if not predictions.empty else {},
+        "prediction_side_split_by_model": _per_model_segment_metrics(
+            predictions,
+            "prediction_side",
         ) if not predictions.empty else {},
         "data_quality_split": _segment_metrics(
             predictions[predictions["model_name"] != "market_no_vig_baseline"],
