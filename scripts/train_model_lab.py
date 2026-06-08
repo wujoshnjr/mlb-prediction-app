@@ -451,16 +451,70 @@ def _fit_lightgbm_market_residual(
         frame_train = split["frame_train"].copy()
         frame_validation = split["frame_validation"].copy()
 
-        train_market = pd.to_numeric(frame_train[market_column], errors="coerce").to_numpy(dtype=float)
-        validation_market = pd.to_numeric(frame_validation[market_column], errors="coerce").to_numpy(dtype=float)
+        train_market = pd.to_numeric(
+            frame_train[market_column],
+            errors="coerce",
+        ).to_numpy(dtype=float)
+        validation_market = pd.to_numeric(
+            frame_validation[market_column],
+            errors="coerce",
+        ).to_numpy(dtype=float)
 
-        train_market = np.clip(train_market, 0.01, 0.99)
-        validation_market = np.clip(validation_market, 0.01, 0.99)
+        y_train = np.asarray(split["y_train"], dtype=float)
+        y_validation = np.asarray(split["y_validation"], dtype=int)
 
-        residual_target = split["y_train"].astype(float) - train_market
+        train_valid = np.isfinite(train_market) & np.isfinite(y_train)
+        validation_valid = np.isfinite(validation_market) & np.isfinite(y_validation)
 
-        X_train = np.column_stack([split["X_train"], train_market])
-        X_validation = np.column_stack([split["X_validation"], validation_market])
+        dropped_train = int((~train_valid).sum())
+        dropped_validation = int((~validation_valid).sum())
+
+        if dropped_train or dropped_validation:
+            result["warnings"].append(
+                "dropped_invalid_market_prob_rows: "
+                f"train={dropped_train}, validation={dropped_validation}"
+            )
+
+        if int(train_valid.sum()) < 20:
+            result["trained"] = False
+            result["skipped"] = True
+            result["skip_reason"] = (
+                "not enough residual train rows after market probability filtering: "
+                f"{int(train_valid.sum())} < 20"
+            )
+            result["promotion_blockers"] = [result["skip_reason"]]
+            return result, None
+
+        if int(validation_valid.sum()) < 5:
+            result["trained"] = False
+            result["skipped"] = True
+            result["skip_reason"] = (
+                "not enough residual validation rows after market probability filtering: "
+                f"{int(validation_valid.sum())} < 5"
+            )
+            result["promotion_blockers"] = [result["skip_reason"]]
+            return result, None
+
+        train_market = np.clip(train_market[train_valid], 0.01, 0.99)
+        validation_market = np.clip(validation_market[validation_valid], 0.01, 0.99)
+
+        y_train = y_train[train_valid]
+        y_validation = y_validation[validation_valid]
+
+        X_train = np.asarray(split["X_train"])[train_valid]
+        X_validation = np.asarray(split["X_validation"])[validation_valid]
+
+        residual_target = y_train - train_market
+
+        X_train = np.column_stack([X_train, train_market])
+        X_validation = np.column_stack([X_validation, validation_market])
+
+        result["residual_train_count"] = int(len(y_train))
+        result["residual_validation_count"] = int(len(y_validation))
+        result["dropped_invalid_market_prob_rows"] = {
+            "train": dropped_train,
+            "validation": dropped_validation,
+        }
 
         model = Pipeline(
             [
@@ -488,7 +542,7 @@ def _fit_lightgbm_market_residual(
         predicted_delta = model.predict(X_validation)
         final_prob = np.clip(validation_market + predicted_delta, 0.01, 0.99)
 
-        metrics = classification_metrics(split["y_validation"], final_prob)
+        metrics = classification_metrics(y_validation, final_prob)
         _copy_metrics(result, metrics)
         result["trained"] = True
         result["skipped"] = False
