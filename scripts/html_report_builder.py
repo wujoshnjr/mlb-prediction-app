@@ -26,6 +26,7 @@ SOURCES = {
     "research_quality": REPORT_DIR / "research_quality_report.json",
     "settle_reliability": REPORT_DIR / "settle_reliability_report.json",
     "settled_prediction_link": REPORT_DIR / "settled_prediction_link_report.json",
+    "finalized_linkage_diagnostic": REPORT_DIR / "finalized_linkage_diagnostic_report.json",
     "model_registry": REPORT_DIR / "model_registry_report.json",
     "promotion_gate": REPORT_DIR / "promotion_gate_report.json",
     "decision_audit": REPORT_DIR / "decision_audit_report.json",
@@ -357,6 +358,7 @@ def build_html() -> str:
         "Prediction Trust": data.get("prediction_trust"),
         "Model Comparison": data.get("model_comparison"),
         "Shadow Ensemble Stack": data.get("shadow_ensemble_stack"),
+        "Finalized Linkage": data.get("finalized_linkage_diagnostic"),
     }
 
     for title, report_data in engineering_sources.items():
@@ -441,6 +443,13 @@ def build_html() -> str:
                 f"sample={_escape(report_data.get('sample_count'))}; "
                 f"recommended={_escape(report_data.get('recommended_shadow_ensemble'))}; "
                 f"promotion={_escape(report_data.get('promotion_eligible'))}"
+            )
+        elif title == "Finalized Linkage":
+            key_metric = (
+                f"overlap={_escape(report_data.get('overlap_count_after'))}; "
+                f"written={_escape(report_data.get('api_final_written_count'))}; "
+                f"pending={_escape(report_data.get('pending_not_final_count'))}; "
+                f"failed={_escape(report_data.get('api_not_found_or_failed_count'))}"
             )
 
         recommendations = report_data.get("recommendations", [])
