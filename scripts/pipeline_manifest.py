@@ -55,6 +55,7 @@ TRACKED_FILES = [
     "report/calibration_diagnostics_report.json",
     "report/prediction_trust_report.json",
     "report/model_comparison_report.json",
+    "report/model_decision_guardrail_report.json",
     "report/shadow_ensemble_stack_report.json",
     "report/research_promotion_readiness_report.json",
     "data/walk_forward_predictions.csv",
