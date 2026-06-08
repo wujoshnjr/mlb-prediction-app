@@ -84,6 +84,7 @@ jobs:
             scripts/daily_context_collector.py \
             scripts/savant_top3_context_client.py \
             scripts/update_results.py \
+            scripts/repair_finalized_linkage.py \
             scripts/sample_state_builder.py \
             scripts/backfill_final_scores.py \
             scripts/rebuild_ratings.py \
@@ -132,6 +133,12 @@ jobs:
             
       - name: Update finalized game results
         run: python scripts/update_results.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Repair finalized linkage from snapshots
+        continue-on-error: true
+        run: python scripts/repair_finalized_linkage.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -567,6 +574,7 @@ jobs:
             report/research_quality_report.json \
             report/settle_reliability_report.json \
             report/settled_prediction_link_report.json \
+            report/finalized_linkage_diagnostic_report.json \
             report/sample_state_report.json \
             report/snapshot_sanitization_report.json \
             report/prediction_sanitization_report.json \
