@@ -67,6 +67,7 @@ jobs:
             scripts/generate_prediction_trust_report.py \
             scripts/generate_model_comparison_report.py \
             scripts/train_shadow_ensemble_stack.py \
+            scripts/model_decision_guardrail_report.py \
             scripts/research_promotion_readiness_report.py \
             scripts/snapshot_store.py \
             scripts/market_odds_store.py \
@@ -374,6 +375,12 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build model decision guardrail report
+        continue-on-error: true
+        run: python scripts/model_decision_guardrail_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Train shadow ensemble stack
         continue-on-error: true
         run: python scripts/train_shadow_ensemble_stack.py
@@ -603,6 +610,7 @@ jobs:
             report/model_comparison_report.json \
             report/shadow_ensemble_stack_report.json \
             report/research_promotion_readiness_report.json \
+            report/model_decision_guardrail_report.json \
             data/walk_forward_predictions.csv \
             data/model_registry.json \
             data/sample_state.json \
