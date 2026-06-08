@@ -16,7 +16,7 @@ TRACKED_FILES = [
     "report/prediction.json",
     "report/evaluation_clv_diagnostic.json",
     "report/market_edge_research.json",
-    "report/model_lab_report.json",
+    "report/feature_promotion_report.json",
     "report/feature_availability_diagnostic.json",
     "report/feature_zero_root_cause_diagnostic.json",
     "report/feature_grade_report.json",
