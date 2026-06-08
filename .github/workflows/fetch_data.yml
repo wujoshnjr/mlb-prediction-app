@@ -62,6 +62,11 @@ jobs:
             scripts/model_training_common.py \
             scripts/train_model_lab.py \
             scripts/feature_promotion_report.py \
+            scripts/run_walk_forward_validation.py \
+            scripts/generate_calibration_diagnostics.py \
+            scripts/generate_prediction_trust_report.py \
+            scripts/generate_model_comparison_report.py \
+            scripts/train_shadow_ensemble_stack.py \
             scripts/snapshot_store.py \
             scripts/market_odds_store.py \
             scripts/daily_game_context.py \
@@ -337,6 +342,36 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Run walk-forward validation
+        continue-on-error: true
+        run: python scripts/run_walk_forward_validation.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Generate calibration diagnostics
+        continue-on-error: true
+        run: python scripts/generate_calibration_diagnostics.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Generate prediction trust report
+        continue-on-error: true
+        run: python scripts/generate_prediction_trust_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Generate model comparison report
+        continue-on-error: true
+        run: python scripts/generate_model_comparison_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Train shadow ensemble stack
+        continue-on-error: true
+        run: python scripts/train_shadow_ensemble_stack.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Diagnose feature zero root cause
         continue-on-error: false
         run: python scripts/feature_zero_root_cause_diagnostic.py
@@ -548,6 +583,12 @@ jobs:
             report/pipeline_manifest.json \
             report/index.html \
             report/walkforward_predictions.csv \
+            report/walk_forward_validation_report.json \
+            report/calibration_diagnostics_report.json \
+            report/prediction_trust_report.json \
+            report/model_comparison_report.json \
+            report/shadow_ensemble_stack_report.json \
+            data/walk_forward_predictions.csv \
             data/model_registry.json \
             data/sample_state.json \
             data/paper_trading_ledger.csv \
