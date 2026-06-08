@@ -67,6 +67,7 @@ jobs:
             scripts/generate_prediction_trust_report.py \
             scripts/generate_model_comparison_report.py \
             scripts/train_shadow_ensemble_stack.py \
+            scripts/research_promotion_readiness_report.py \
             scripts/snapshot_store.py \
             scripts/market_odds_store.py \
             scripts/daily_game_context.py \
@@ -415,6 +416,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build research promotion readiness report
+        run: python scripts/research_promotion_readiness_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          
       - name: Build HTML report
         run: python scripts/html_report_builder.py
         env:
@@ -596,6 +602,7 @@ jobs:
             report/prediction_trust_report.json \
             report/model_comparison_report.json \
             report/shadow_ensemble_stack_report.json \
+            report/research_promotion_readiness_report.json \
             data/walk_forward_predictions.csv \
             data/model_registry.json \
             data/sample_state.json \
