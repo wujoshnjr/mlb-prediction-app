@@ -61,6 +61,7 @@ jobs:
             scripts/feature_schema.py \
             scripts/model_training_common.py \
             scripts/train_model_lab.py \
+            scripts/feature_promotion_report.py \
             scripts/snapshot_store.py \
             scripts/market_odds_store.py \
             scripts/daily_game_context.py \
@@ -330,6 +331,12 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build feature promotion report
+        continue-on-error: true
+        run: python scripts/feature_promotion_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Diagnose feature zero root cause
         continue-on-error: false
         run: python scripts/feature_zero_root_cause_diagnostic.py
@@ -508,6 +515,7 @@ jobs:
             report/market_edge_research.json \
             report/market_residual_training_report.json \
             report/model_lab_report.json \
+            report/feature_promotion_report.json \
             report/feature_zero_root_cause_diagnostic.json \
             report/feature_grade_report.json \
             report/baseline_comparison_report.json \
