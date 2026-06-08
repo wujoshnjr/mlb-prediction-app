@@ -47,7 +47,7 @@ OPTIONAL_JSON_REPORTS = {
     "artifact_retention": REPORT_DIR / "artifact_retention_manifest.json",
     "world_class_trading_system": REPORT_DIR / "world_class_trading_system_report.json",
     "saas_readiness": REPORT_DIR / "saas_readiness_report.json",
-        "walk_forward_validation": REPORT_DIR / "walk_forward_validation_report.json",
+    "walk_forward_validation": REPORT_DIR / "walk_forward_validation_report.json",
     "calibration_diagnostics": REPORT_DIR / "calibration_diagnostics_report.json",
     "prediction_trust": REPORT_DIR / "prediction_trust_report.json",
     "model_comparison": REPORT_DIR / "model_comparison_report.json",
