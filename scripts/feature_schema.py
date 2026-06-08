@@ -1,22 +1,22 @@
 # scripts/feature_schema.py
 """Single source of truth for feature order and feature governance.
 
-EXPECTED_FEATURES:
-    All runtime / snapshot columns that prediction.py may emit.
-
 MODEL_FEATURES:
-    Features allowed into the current main production training pipeline.
+    Current main baseline model feature set.
 
 TRACKING_ONLY_FEATURES:
-    Features kept in prediction reports and snapshots, but excluded from the
-    main model until availability, stability, walk-forward contribution and CLV
-    contribution are proven.
+    Features stored in snapshots and reports but excluded from the main model.
 
-AVAILABILITY_FLAG_FEATURES:
-    Explicit indicators that separate "source unavailable" from "true zero".
+CANDIDATE_SHADOW_FEATURES:
+    Features allowed only in shadow model lab experiments. These must not enter
+    train_ensemble.py directly. Promotion must go through feature promotion reports,
+    walk-forward evidence, calibration checks, and governance review.
+
+Do not bypass this file to promote features.
 """
 
 from __future__ import annotations
+
 
 CORE_MODEL_FEATURES = [
     "elo_diff",
@@ -91,9 +91,146 @@ TRACKING_ONLY_FEATURES = [
     "platoon_ops_diff",
 ]
 
+CANDIDATE_SHADOW_FEATURES = [
+    "statcast_woba_diff",
+    "top3_woba_diff",
+    "barrel_pa_diff",
+    "hardhit_pa_diff",
+    "avg_bat_speed_diff",
+    "swing_miss_diff",
+    "pitch_movement_diff",
+    "pitch_type_matchup_score",
+    "platoon_ops_diff",
+    "lag30_winrate_diff",
+    "lag30_runs_diff",
+    "rest_diff",
+    "wind_effect",
+    "temp_effect",
+    "precip_effect",
+    "odds_change",
+    "injury_diff",
+    "lineup_context_available",
+]
+
 EXPECTED_FEATURES = MODEL_FEATURES + [
     feature for feature in TRACKING_ONLY_FEATURES if feature not in MODEL_FEATURES
 ]
+
+FEATURE_GROUPS = {
+    "core_strength": [
+        "elo_diff",
+        "bt_strength_diff",
+        "winrate_diff",
+        "dynamic_pythag_diff",
+        "log5_prob",
+        "elo_momentum_7d",
+        "elo_momentum_30d",
+    ],
+    "starting_pitcher": [
+        "sp_era_diff",
+        "sp_fip_diff",
+        "sp_csw_diff",
+        "sp_stuff_plus_diff",
+        "k_pct_diff",
+        "bb_pct_diff",
+        "pitcher_rating_diff",
+        "pitch_movement_diff",
+        "pitch_type_matchup_score",
+    ],
+    "bullpen": [
+        "bullpen_ip_diff",
+        "bullpen_availability_diff",
+    ],
+    "park_weather": [
+        "dynamic_park_factor",
+        "wind_effect",
+        "temp_effect",
+        "precip_effect",
+        "is_day_game",
+    ],
+    "lineup": [
+        "lineup_context_available",
+        "catcher_era_diff",
+        "cs_diff",
+        "top3_woba_diff",
+        "platoon_ops_diff",
+    ],
+    "statcast_batting": [
+        "statcast_woba_diff",
+        "barrel_pa_diff",
+        "hardhit_pa_diff",
+        "avg_bat_speed_diff",
+        "swing_miss_diff",
+        "barrel_bb_pct_diff",
+        "sprint_speed_diff",
+        "statcast_launch_speed_diff",
+        "statcast_barrel_diff",
+        "statcast_hard_hit_diff",
+    ],
+    "market": [
+        "odds_change",
+    ],
+    "rest_travel": [
+        "timezone_diff",
+        "lag30_winrate_diff",
+        "lag30_runs_diff",
+        "rest_diff",
+        "back2back_diff",
+        "games_last_3d_diff",
+        "games_last_7d_diff",
+        "rest_pressure_diff",
+    ],
+    "injuries": [
+        "injury_diff",
+    ],
+    "availability": AVAILABILITY_FLAG_FEATURES,
+}
+
+
+def _group_for_feature(feature: str) -> str:
+    for group, features in FEATURE_GROUPS.items():
+        if feature in features:
+            return group
+    return "ungrouped"
+
+
+def _availability_required(feature: str) -> bool:
+    return feature in AVAILABILITY_FLAG_FEATURES or feature.endswith("_available")
+
+
+def _leakage_risk(feature: str) -> str:
+    if feature in {
+        "home_win",
+        "home_score",
+        "away_score",
+        "final_score",
+        "settled_result",
+        "actual_winner",
+        "actual_result",
+    }:
+        return "high"
+
+    if feature in {"odds_change"}:
+        return "medium"
+
+    return "low"
+
+
+FEATURE_METADATA = {}
+
+for feature in EXPECTED_FEATURES:
+    FEATURE_METADATA[feature] = {
+        "group": _group_for_feature(feature),
+        "leakage_risk": _leakage_risk(feature),
+        "availability_required": _availability_required(feature),
+        "allow_in_main_model": feature in MODEL_FEATURES,
+        "allow_in_shadow_model": feature in MODEL_FEATURES or feature in CANDIDATE_SHADOW_FEATURES,
+        "description": (
+            "Current main baseline feature."
+            if feature in MODEL_FEATURES
+            else "Tracked feature; requires promotion evidence before model use."
+        ),
+    }
 
 FEATURE_GRADE_RULES = {
     "A": {
@@ -121,5 +258,8 @@ FEATURE_GRADE_RULES = {
 FEATURE_GOVERNANCE_NOTES = {
     "CORE_MODEL_FEATURES": "Current main model feature set.",
     "AVAILABILITY_FLAG_FEATURES": "Availability indicators for important sources.",
+    "MODEL_FEATURES": "Only features allowed into the current main training pipeline.",
     "TRACKING_ONLY_FEATURES": "Tracked but excluded from the main model.",
+    "CANDIDATE_SHADOW_FEATURES": "May be used only by shadow model lab and feature promotion research.",
+    "FEATURE_METADATA": "Governance metadata for feature review, leakage risk and promotion controls.",
 }
