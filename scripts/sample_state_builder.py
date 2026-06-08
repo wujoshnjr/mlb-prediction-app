@@ -381,8 +381,7 @@ def build_sample_state() -> Dict[str, Any]:
 
     raw_snapshots = int(len(snapshots_raw))
     valid_snapshots = int(snapshots["_sample_state_valid"].sum()) if not snapshots.empty else 0
-            "finalized_games": finalized_status,
-            "finalized_snapshot_outcomes": finalized_snapshot_outcomes_status,
+    finalized_games = _count_unique_games(finalized)
 
     settled_snapshots = 0
     clean_settled_snapshots = 0
@@ -512,6 +511,7 @@ def build_sample_state() -> Dict[str, Any]:
         "input_files": {
             "prediction_snapshots": snapshot_status,
             "finalized_games": finalized_status,
+            "finalized_snapshot_outcomes": finalized_snapshot_outcomes_status,
             "settled_prediction_link_report": link_status,
             "finalized_linkage_diagnostic": finalized_linkage_status,
             "rolling_walkforward_evaluation": rolling_status,
