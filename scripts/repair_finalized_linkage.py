@@ -872,7 +872,7 @@ def build_report(
         "direct_matched_count": direct_matched_count,
         "schedule_matched_count": schedule_matched_count,
         "append_summary": append_summary,
-        "trusted_outcome_cache_summary": outcome_cache_summary,,
+        "trusted_outcome_cache_summary": outcome_cache_summary,
         "input_files": {
             "prediction_snapshots": snapshot_status,
             "finalized_games_before": finalized_status,
