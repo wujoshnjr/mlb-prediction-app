@@ -1,31 +1,235 @@
 {
-  "generated_at": "2026-06-08T06:34:31.344766+00:00",
+  "generated_at": "2026-06-08T07:50:09.778344+00:00",
   "pipeline_version": "baseline_v2_clean",
   "walkforward_ready": false,
-  "skipped": true,
-  "skip_reason": "no prediction snapshots join to finalized_games by game_id",
-  "total_oos_predictions": 0,
+  "skipped": false,
+  "skip_reason": "",
+  "total_oos_predictions": 292,
   "minimum_train_samples": 80,
   "minimum_required_oos_predictions": 300,
   "rolling_window_size": null,
   "validation_window_size": 10,
-  "model_metrics": {},
-  "market_metrics": {},
-  "model_vs_market": {},
+  "model_metrics": {
+    "lightgbm_classifier": {
+      "ok": true,
+      "sample_count": 73,
+      "positive_count": 37,
+      "negative_count": 36,
+      "brier": 0.264311230394192,
+      "logloss": 0.7232121816846805,
+      "accuracy": 0.5068493150684932,
+      "auc": 0.44819819819819817,
+      "ece": 0.07128851030550801,
+      "warnings": [],
+      "errors": []
+    },
+    "logistic_baseline": {
+      "ok": true,
+      "sample_count": 73,
+      "positive_count": 37,
+      "negative_count": 36,
+      "brier": 0.33676755571128547,
+      "logloss": 1.0606741140184546,
+      "accuracy": 0.4520547945205479,
+      "auc": 0.42042042042042044,
+      "ece": 0.22645912252830255,
+      "warnings": [],
+      "errors": []
+    },
+    "market_no_vig_baseline": {
+      "ok": true,
+      "sample_count": 72,
+      "positive_count": 36,
+      "negative_count": 36,
+      "brier": 0.2743343871010116,
+      "logloss": 0.7936164022747864,
+      "accuracy": 0.5,
+      "auc": 0.5324074074074076,
+      "ece": 0.14530339000703774,
+      "warnings": [],
+      "errors": []
+    },
+    "market_residual_model": {
+      "ok": true,
+      "sample_count": 72,
+      "positive_count": 36,
+      "negative_count": 36,
+      "brier": 0.2777327453808329,
+      "logloss": 0.7914863508691025,
+      "accuracy": 0.4583333333333333,
+      "auc": 0.4945987654320987,
+      "ece": 0.17107079434092332,
+      "warnings": [
+        "dropped 1 rows with invalid probability",
+        "dropped_invalid_market_prob_rows: train=2, validation=0",
+        "dropped_invalid_market_prob_rows: train=2, validation=1",
+        "dropped_invalid_market_prob_rows: train=3, validation=0"
+      ],
+      "errors": []
+    },
+    "xgboost_classifier": {
+      "ok": true,
+      "sample_count": 73,
+      "positive_count": 37,
+      "negative_count": 36,
+      "brier": 0.25958647291366616,
+      "logloss": 0.7129421359662909,
+      "accuracy": 0.4657534246575342,
+      "auc": 0.4722222222222222,
+      "ece": 0.09766170341674599,
+      "warnings": [],
+      "errors": []
+    }
+  },
+  "market_metrics": {
+    "ok": true,
+    "sample_count": 72,
+    "positive_count": 36,
+    "negative_count": 36,
+    "brier": 0.2743343871010116,
+    "logloss": 0.7936164022747864,
+    "accuracy": 0.5,
+    "auc": 0.5324074074074076,
+    "ece": 0.14530339000703774,
+    "warnings": [],
+    "errors": []
+  },
+  "model_vs_market": {
+    "lightgbm_classifier": {
+      "beats_market_brier": true,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": true,
+      "delta_brier": -0.01002315670681958,
+      "delta_logloss": -0.07040422059010587,
+      "delta_accuracy": 0.006849315068493178
+    },
+    "logistic_baseline": {
+      "beats_market_brier": false,
+      "beats_market_logloss": false,
+      "beats_market_accuracy": false,
+      "delta_brier": 0.06243316861027387,
+      "delta_logloss": 0.2670577117436682,
+      "delta_accuracy": -0.04794520547945208
+    },
+    "market_residual_model": {
+      "beats_market_brier": false,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": false,
+      "delta_brier": 0.003398358279821323,
+      "delta_logloss": -0.002130051405683897,
+      "delta_accuracy": -0.041666666666666685
+    },
+    "xgboost_classifier": {
+      "beats_market_brier": true,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": false,
+      "delta_brier": -0.014747914187345446,
+      "delta_logloss": -0.0806742663084955,
+      "delta_accuracy": -0.03424657534246578
+    }
+  },
   "month_by_month": {},
-  "favorite_underdog_split": {},
+  "favorite_underdog_split": {
+    "away": {
+      "ok": true,
+      "sample_count": 90,
+      "positive_count": 50,
+      "negative_count": 40,
+      "brier": 0.30085900379419134,
+      "logloss": 0.9198469624460521,
+      "accuracy": 0.4444444444444444,
+      "auc": 0.5055000000000001,
+      "ece": 0.17385697587341148,
+      "warnings": [
+        "dropped 1 rows with invalid probability"
+      ],
+      "errors": []
+    },
+    "home": {
+      "ok": true,
+      "sample_count": 201,
+      "positive_count": 97,
+      "negative_count": 104,
+      "brier": 0.27735328972308576,
+      "logloss": 0.7784540604691482,
+      "accuracy": 0.48258706467661694,
+      "auc": 0.4729381443298969,
+      "ece": 0.11985408501546449,
+      "warnings": [],
+      "errors": []
+    }
+  },
   "home_away_split": {},
-  "confidence_bucket_split": {},
-  "data_quality_split": {},
+  "confidence_bucket_split": {
+    "high_65_plus": {
+      "ok": true,
+      "sample_count": 65,
+      "positive_count": 31,
+      "negative_count": 34,
+      "brier": 0.38368339158462866,
+      "logloss": 1.2276086462465101,
+      "accuracy": 0.4307692307692308,
+      "auc": 0.4150853889943074,
+      "ece": 0.3366441313244619,
+      "warnings": [
+        "dropped 1 rows with invalid probability"
+      ],
+      "errors": []
+    },
+    "low_45_55": {
+      "ok": true,
+      "sample_count": 112,
+      "positive_count": 62,
+      "negative_count": 50,
+      "brier": 0.25369086819874664,
+      "logloss": 0.7005481038469529,
+      "accuracy": 0.4732142857142857,
+      "auc": 0.43451612903225806,
+      "ece": 0.05353714929135189,
+      "warnings": [],
+      "errors": []
+    },
+    "medium_55_65": {
+      "ok": true,
+      "sample_count": 114,
+      "positive_count": 54,
+      "negative_count": 60,
+      "brier": 0.2585309112680436,
+      "logloss": 0.7105223082242245,
+      "accuracy": 0.49122807017543857,
+      "auc": 0.5424382716049383,
+      "ece": 0.10403306719292957,
+      "warnings": [],
+      "errors": []
+    }
+  },
+  "data_quality_split": {
+    "": {
+      "ok": true,
+      "sample_count": 291,
+      "positive_count": 147,
+      "negative_count": 144,
+      "brier": 0.2846230981986854,
+      "logloss": 0.8221838239671597,
+      "accuracy": 0.47079037800687284,
+      "auc": 0.45644368858654566,
+      "ece": 0.13655601002307696,
+      "warnings": [
+        "dropped 1 rows with invalid probability"
+      ],
+      "errors": []
+    }
+  },
   "blockers": [
-    "no prediction snapshots join to finalized_games by game_id"
+    "rolling OOS predictions below threshold: 292 < 300"
   ],
   "warnings": [
     "removed leakage columns from snapshots: away_score, home_score, home_win, settled_at"
   ],
   "next_actions": [
-    "Accumulate more finalized-joined samples.",
-    "Keep all walk-forward outputs in shadow research mode."
+    "Continue accumulating forward OOS samples.",
+    "Do not promote any model until at least 300 OOS predictions exist.",
+    "Use brier/logloss and calibration over accuracy-only conclusions."
   ],
   "shadow_only": true,
   "live_betting_allowed": false,
