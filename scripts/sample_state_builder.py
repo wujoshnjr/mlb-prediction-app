@@ -17,6 +17,7 @@ REPORT_DIR = Path("report")
 SNAPSHOT_PATH = DATA_DIR / "prediction_snapshots.csv"
 FINALIZED_PATH = DATA_DIR / "finalized_games.csv"
 LINK_REPORT_PATH = REPORT_DIR / "settled_prediction_link_report.json"
+FINALIZED_LINKAGE_DIAGNOSTIC_PATH = REPORT_DIR / "finalized_linkage_diagnostic_report.json"
 ROLLING_WALKFORWARD_PATH = REPORT_DIR / "rolling_walkforward_evaluation.json"
 TRAINING_STATUS_PATH = DATA_DIR / "training_status.json"
 CALIBRATOR_PATH = DATA_DIR / "calibrator.pkl"
@@ -321,6 +322,9 @@ def build_sample_state() -> Dict[str, Any]:
     snapshots_raw, snapshot_status = _read_csv(SNAPSHOT_PATH)
     finalized_raw, finalized_status = _read_csv(FINALIZED_PATH)
     link_report, link_status = _read_json(LINK_REPORT_PATH)
+    finalized_linkage_report, finalized_linkage_status = _read_json(
+        FINALIZED_LINKAGE_DIAGNOSTIC_PATH
+    )
     rolling_report, rolling_status = _read_json(ROLLING_WALKFORWARD_PATH)
     training_status, training_status_file = _read_json(TRAINING_STATUS_PATH)
     calibrator, calibrator_status = _load_pickle(CALIBRATOR_PATH)
@@ -437,6 +441,15 @@ def build_sample_state() -> Dict[str, Any]:
             "Training, calibration, and settled evidence will remain unavailable."
         )
 
+    if isinstance(finalized_linkage_report, dict):
+        warnings.append(
+            "Finalized linkage diagnostic: "
+            f"overlap_after={finalized_linkage_report.get('overlap_count_after')}, "
+            f"api_final_written={finalized_linkage_report.get('api_final_written_count')}, "
+            f"pending_not_final={finalized_linkage_report.get('pending_not_final_count')}, "
+            f"api_not_found_or_failed={finalized_linkage_report.get('api_not_found_or_failed_count')}."
+        )
+        
     if model_artifact_exists and not trained:
         warnings.append(
             "calibrator.pkl exists, but training_status.trained is false. "
@@ -453,6 +466,7 @@ def build_sample_state() -> Dict[str, Any]:
             "prediction_snapshots": snapshot_status,
             "finalized_games": finalized_status,
             "settled_prediction_link_report": link_status,
+            "finalized_linkage_diagnostic": finalized_linkage_status,
             "rolling_walkforward_evaluation": rolling_status,
             "training_status": training_status_file,
             "calibrator": calibrator_status,
