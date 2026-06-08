@@ -61,12 +61,13 @@ code{background:#eee;padding:.1rem .25rem;border-radius:4px;}
 <tr><td>0.65-0.70</td><td>7</td><td>0.665486</td><td>0.428571</td><td>0.236914</td></tr>
 </table></section>
 <section class='section'><h2>Walk-forward Status</h2><p>Status: insufficient_samples</p><p>Ready: False</p><p>Total OOS predictions: 0</p></section>
-<section class='section'><h2>Feature Health</h2><p>Availability high risk features: []</p><p>Zero root cause still-zero features: [&#x27;precip_effect&#x27;, &#x27;temp_effect&#x27;]</p><p>Feature grade counts: {&#x27;A&#x27;: 41, &#x27;B&#x27;: 1, &#x27;C&#x27;: 3, &#x27;D&#x27;: 17}</p></section>
+<section class='section'><h2>Feature Health</h2><p>Availability high risk features: []</p><p>Zero root cause still-zero features: [&#x27;precip_effect&#x27;, &#x27;temp_effect&#x27;]</p><p>Feature grade counts: {&#x27;A&#x27;: 41, &#x27;B&#x27;: 1, &#x27;C&#x27;: 3, &#x27;D&#x27;: 17}</p><p>Feature promotion candidates: 19</p><p>Ready for review: 0</p></section>
 <section class='section'><h2>Risk Disclosure</h2><p>This project is for research and educational use only. It does not provide financial advice, gambling advice, guaranteed profit, or betting instructions. Sports betting is risky and markets can be highly efficient. Paper trading is the default and live betting is disabled by governance.</p></section>
 <section class='section'><h2>Engineering Grade Summary</h2><table><tr><th>Report</th><th>Status</th><th>Key Metric</th><th>Notes</th></tr>
 <tr><td>Settle Reliability</td><td>ok</td><td>settle_rate=0.0</td><td></td></tr>
 <tr><td>Settled Prediction Link</td><td>ok</td><td>linked_games=152; link_rate=0.938272</td><td>Use finalized_games.csv as the only trusted outcome source for baseline, calibration, ROI, and rolling OOS evaluation.</td></tr>
 <tr><td>Rolling Walk-forward</td><td>insufficient_samples</td><td>oos=0</td><td>Need at least 300 settled rows for rolling walk-forward evaluation.</td></tr>
+<tr><td>Feature Promotion</td><td>ok</td><td>candidates=19; ready=0; sample=152</td><td>Do not move tracking-only features into MODEL_FEATURES directly.</td></tr>
 <tr><td>Lineup / Starter Slice</td><td>insufficient_samples</td><td>-</td><td>Use these slices for research only; live betting remains blocked.</td></tr>
 <tr><td>Market Close</td><td>ok</td><td>-</td><td>Per-pick CLV is now derived from prediction snapshots joined to closing moneyline odds.</td></tr>
 <tr><td>Research Quality</td><td>ok</td><td>grade=C</td><td>Use this report for research readiness only; it must not enable live betting.</td></tr>
@@ -80,8 +81,8 @@ code{background:#eee;padding:.1rem .25rem;border-radius:4px;}
 <tr><td>SaaS Readiness</td><td>partial</td><td>stage=research_platform; docs=100.0; governance=88.0; b2b_api_ready=False</td><td>Keep the current product positioned as a paper-trading research dashboard until OOS and sample evidence are stronger.</td></tr>
 <tr><td>Sample State</td><td>ok</td><td>train_eligible=152; clean_settled=152; walkforward=0</td><td>Train-eligible samples are below threshold: 152 &lt; 300.</td></tr>
 <tr><td>Data Contract</td><td>ok</td><td>-</td><td></td></tr>
-<tr><td>Pipeline Manifest</td><td>partial</td><td>tracked=66</td><td>Some tracked files are missing; check whether they are optional, not generated yet, or failed upstream.</td></tr>
+<tr><td>Pipeline Manifest</td><td>ok</td><td>tracked=66</td><td>All tracked pipeline artifacts are present and readable.</td></tr>
 </table></section>
-<footer><p class='muted'>Generated at 2026-06-08T00:35:44.113706+00:00</p></footer>
+<footer><p class='muted'>Generated at 2026-06-08T01:20:01.684280+00:00</p></footer>
 </body>
 </html>

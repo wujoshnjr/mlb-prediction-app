@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-08T00:23:54.116075+00:00",
+  "generated_at": "2026-06-08T01:08:42.646531+00:00",
   "pipeline_version": "baseline_v2_clean",
   "sample_count": 152,
   "train_count": 106,
@@ -72,11 +72,11 @@
         "odds_available"
       ],
       "experimental_features_used": [],
-      "brier": 0.29354697516400974,
-      "logloss": 0.8011710849537133,
+      "brier": 0.2935469751640097,
+      "logloss": 0.8011710849537134,
       "accuracy": 0.5652173913043478,
       "auc": 0.4841269841269841,
-      "ece": 0.21290063615796098,
+      "ece": 0.21290063615796104,
       "beats_market_brier": false,
       "beats_market_logloss": false,
       "beats_market_accuracy": false,
@@ -199,9 +199,9 @@
     },
     {
       "model_name": "lightgbm_market_residual",
-      "trained": false,
-      "skipped": true,
-      "skip_reason": "Input y contains NaN.",
+      "trained": true,
+      "skipped": false,
+      "skip_reason": "",
       "train_count": 106,
       "calibration_count": 23,
       "validation_count": 23,
@@ -236,22 +236,29 @@
         "market_no_vig_home_prob"
       ],
       "experimental_features_used": [],
-      "brier": null,
-      "logloss": null,
-      "accuracy": null,
-      "auc": null,
-      "ece": null,
-      "beats_market_brier": null,
-      "beats_market_logloss": null,
-      "beats_market_accuracy": null,
+      "brier": 0.2533812995925965,
+      "logloss": 0.725805467837947,
+      "accuracy": 0.5652173913043478,
+      "auc": 0.5952380952380952,
+      "ece": 0.21170970621762158,
+      "beats_market_brier": true,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": false,
       "promotion_eligible": false,
       "promotion_blockers": [
-        "Input y contains NaN."
+        "insufficient_samples_for_promotion: 152 < 300",
+        "ece above candidate threshold: 0.2117 > 0.05"
       ],
-      "warnings": [],
-      "errors": [
-        "Input y contains NaN."
-      ]
+      "warnings": [
+        "dropped_invalid_market_prob_rows: train=2, validation=0"
+      ],
+      "errors": [],
+      "residual_train_count": 104,
+      "residual_validation_count": 23,
+      "dropped_invalid_market_prob_rows": {
+        "train": 2,
+        "validation": 0
+      }
     }
   ],
   "market_baseline_available": true,
