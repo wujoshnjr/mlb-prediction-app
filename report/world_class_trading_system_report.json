@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-06-08T20:25:39.743739+00:00",
+  "generated_at": "2026-06-08T22:08:21.383512+00:00",
   "status": "paper_trading_only_blocked_for_live",
   "world_class_stage": "advanced_shadow_trading_candidate",
-  "overall_score": 83.04,
+  "overall_score": 75.0,
   "overall_grade": "B",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
@@ -59,12 +59,14 @@
           "passed": true,
           "weight": 15,
           "details": {
-            "linked_game_count": 153
+            "linked_game_count": 0
           }
         }
       ],
       "blockers": [],
-      "warnings": [],
+      "warnings": [
+        "settled prediction link report is valid, but linked_game_count is still zero"
+      ],
       "recommendations": [
         "Keep event-time, snapshot-time, entry odds, closing odds, decision audit, and settle result linked by game_id.",
         "Prediction sanitizer change_count should remain zero after prediction.py source cleanup.",
@@ -74,20 +76,20 @@
     "research_quality": {
       "name": "Layer 2 - Research Quality",
       "status": "blocked",
-      "score": 65,
-      "grade": "C",
+      "score": 35,
+      "grade": "F",
       "signals": [
         {
           "name": "model_beats_market_brier",
-          "passed": true,
+          "passed": false,
           "weight": 15,
-          "details": 0.249208
+          "details": null
         },
         {
           "name": "model_beats_market_logloss",
-          "passed": true,
+          "passed": false,
           "weight": 15,
-          "details": 0.691743
+          "details": null
         },
         {
           "name": "avg_clv_positive",
@@ -105,7 +107,7 @@
           "name": "calibration_ready",
           "passed": false,
           "weight": 10,
-          "details": 153
+          "details": 0
         },
         {
           "name": "walkforward_ready",
@@ -123,11 +125,11 @@
           "name": "settled_samples_at_least_500",
           "passed": false,
           "weight": 5,
-          "details": 153
+          "details": 0
         }
       ],
       "blockers": [
-        "settled prediction samples < 500 (153)",
+        "settled prediction samples < 500 (0)",
         "rolling OOS predictions < 300 (0)",
         "calibration is not ready"
       ],
@@ -190,7 +192,7 @@
     "model_upgrade_path": {
       "name": "Layer 4 - Model Upgrade Path",
       "status": "blocked",
-      "score": 50.2,
+      "score": 40.0,
       "grade": "D",
       "signals": [
         {
@@ -198,7 +200,7 @@
           "passed": false,
           "weight": 20,
           "details": {
-            "sample_count": 153,
+            "sample_count": 0,
             "minimum": 300
           }
         },
@@ -212,7 +214,7 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 20
+          "details": 21
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
@@ -228,7 +230,7 @@
         }
       ],
       "blockers": [
-        "clean training samples below threshold: 153 < 300",
+        "clean training samples below threshold: 0 < 300",
         "model is not trained yet"
       ],
       "warnings": [
@@ -316,13 +318,14 @@
   },
   "critical_blockers": [],
   "blockers": [
-    "research_quality: settled prediction samples < 500 (153)",
+    "research_quality: settled prediction samples < 500 (0)",
     "research_quality: rolling OOS predictions < 300 (0)",
     "research_quality: calibration is not ready",
-    "model_upgrade_path: clean training samples below threshold: 153 < 300",
+    "model_upgrade_path: clean training samples below threshold: 0 < 300",
     "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
+    "data_trust: settled prediction link report is valid, but linked_game_count is still zero",
     "model_upgrade_path: rolling OOS evaluation has not started producing predictions"
   ],
   "input_files": {
