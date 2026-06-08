@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import json
-import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-import joblib
 import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
@@ -46,6 +44,11 @@ def _empty_report(reason: str, warnings: Optional[List[str]] = None) -> Dict[str
         "skipped": True,
         "skip_reason": reason,
         "total_oos_predictions": 0,
+        "unique_oos_games": 0,
+        "model_oos_counts": {},
+        "max_model_oos_predictions": 0,
+        "min_model_oos_predictions": 0,
+        "per_model_ready": {},
         "minimum_train_samples": MIN_TRAIN_SAMPLES,
         "minimum_required_oos_predictions": MIN_REQUIRED_OOS,
         "rolling_window_size": None,
@@ -57,6 +60,9 @@ def _empty_report(reason: str, warnings: Optional[List[str]] = None) -> Dict[str
         "favorite_underdog_split": {},
         "home_away_split": {},
         "confidence_bucket_split": {},
+        "confidence_bucket_split_by_model": {},
+        "prediction_side_split_by_model": {},
+        "market_role_split_by_model": {},
         "data_quality_split": {},
         "blockers": [reason],
         "warnings": warnings or [],
@@ -82,7 +88,12 @@ def _model_names() -> List[str]:
     ]
 
 
-def _fit_predict(model_name: str, X_train: np.ndarray, y_train: np.ndarray, X_valid: np.ndarray) -> Tuple[Optional[np.ndarray], List[str]]:
+def _fit_predict(
+    model_name: str,
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_valid: np.ndarray,
+) -> Tuple[Optional[np.ndarray], List[str]]:
     warnings: List[str] = []
 
     if len(np.unique(y_train)) < 2:
@@ -94,7 +105,14 @@ def _fit_predict(model_name: str, X_train: np.ndarray, y_train: np.ndarray, X_va
                 [
                     ("imputer", SimpleImputer(strategy="median", add_indicator=True)),
                     ("scaler", StandardScaler()),
-                    ("model", LogisticRegression(max_iter=2000, solver="lbfgs", random_state=42)),
+                    (
+                        "model",
+                        LogisticRegression(
+                            max_iter=2000,
+                            solver="lbfgs",
+                            random_state=42,
+                        ),
+                    ),
                 ]
             )
 
@@ -161,6 +179,7 @@ def _fit_predict(model_name: str, X_train: np.ndarray, y_train: np.ndarray, X_va
         model.fit(X_train, y_train)
         prob = model.predict_proba(X_valid)[:, 1]
         return np.clip(np.asarray(prob, dtype=float), 0.01, 0.99), warnings
+
     except Exception as exc:
         return None, [str(exc)]
 
@@ -183,7 +202,9 @@ def _market_residual_predict(
     valid_valid = np.isfinite(market_valid)
 
     if int(train_valid.sum()) < 20:
-        return None, [f"not enough residual train rows after market filtering: {int(train_valid.sum())} < 20"]
+        return None, [
+            f"not enough residual train rows after market filtering: {int(train_valid.sum())} < 20"
+        ]
 
     if int(valid_valid.sum()) < 1:
         return None, ["no residual validation rows after market filtering"]
@@ -192,7 +213,9 @@ def _market_residual_predict(
     dropped_valid = int((~valid_valid).sum())
 
     if dropped_train or dropped_valid:
-        warnings.append(f"dropped_invalid_market_prob_rows: train={dropped_train}, validation={dropped_valid}")
+        warnings.append(
+            f"dropped_invalid_market_prob_rows: train={dropped_train}, validation={dropped_valid}"
+        )
 
     try:
         train_market = np.clip(market_train[train_valid], 0.01, 0.99)
@@ -228,6 +251,7 @@ def _market_residual_predict(
         delta = model.predict(X_valid_res)
         prob = np.clip(valid_market + delta, 0.01, 0.99)
         return prob, warnings
+
     except Exception as exc:
         return None, [*warnings, str(exc)]
 
@@ -240,7 +264,10 @@ def _segment_metrics(predictions: pd.DataFrame, column: str) -> Dict[str, Any]:
     for key, group in predictions.groupby(column):
         if group.empty:
             continue
-        result[str(key)] = classification_metrics(group["actual_home_win"], group["predicted_prob"])
+        result[str(key)] = classification_metrics(
+            group["actual_home_win"],
+            group["predicted_prob"],
+        )
     return result
 
 
@@ -253,7 +280,31 @@ def _confidence_bucket(prob: float) -> str:
     return "high_65_plus"
 
 
-def _build_model_vs_market(model_metrics: Dict[str, Any], market_metrics: Dict[str, Any]) -> Dict[str, Any]:
+def _market_role_from_probs(predicted_prob: float, market_home_prob: Any) -> str:
+    """Classify model side as market favorite or underdog.
+
+    predicted_prob is the model's home win probability.
+    market_home_prob is the no-vig or market-implied home win probability.
+
+    If the model chooses the same side as the market favorite, role=favorite.
+    If the model chooses the opposite side, role=underdog.
+    """
+    market_prob = safe_float(market_home_prob)
+    model_prob = safe_float(predicted_prob)
+
+    if market_prob is None or model_prob is None:
+        return "unknown"
+
+    predicted_home = model_prob >= 0.5
+    home_favorite = market_prob >= 0.5
+
+    return "favorite" if predicted_home == home_favorite else "underdog"
+
+
+def _build_model_vs_market(
+    model_metrics: Dict[str, Any],
+    market_metrics: Dict[str, Any],
+) -> Dict[str, Any]:
     result: Dict[str, Any] = {}
     market_brier = safe_float(market_metrics.get("brier"))
     market_logloss = safe_float(market_metrics.get("logloss"))
@@ -316,7 +367,10 @@ def _unique_oos_game_count(predictions: pd.DataFrame) -> int:
     return int(len(non_market))
 
 
-def _per_model_segment_metrics(predictions: pd.DataFrame, segment_column: str) -> Dict[str, Any]:
+def _per_model_segment_metrics(
+    predictions: pd.DataFrame,
+    segment_column: str,
+) -> Dict[str, Any]:
     if predictions.empty or segment_column not in predictions.columns:
         return {}
 
@@ -371,7 +425,10 @@ def build_report(
     warnings.extend(training.get("warnings") or [])
 
     if not training.get("ok"):
-        report = _empty_report(training.get("skip_reason") or "training frame unavailable", warnings)
+        report = _empty_report(
+            training.get("skip_reason") or "training frame unavailable",
+            warnings,
+        )
         write_json(report_path, report)
         predictions_path.parent.mkdir(parents=True, exist_ok=True)
         pd.DataFrame().to_csv(predictions_path, index=False)
@@ -381,7 +438,10 @@ def build_report(
     feature_result = build_feature_matrix(frame, base_features=MODEL_FEATURES)
 
     if not feature_result.get("ok"):
-        report = _empty_report(feature_result.get("skip_reason") or "feature matrix unavailable", warnings)
+        report = _empty_report(
+            feature_result.get("skip_reason") or "feature matrix unavailable",
+            warnings,
+        )
         write_json(report_path, report)
         predictions_path.parent.mkdir(parents=True, exist_ok=True)
         pd.DataFrame().to_csv(predictions_path, index=False)
@@ -425,28 +485,41 @@ def build_report(
                 continue
 
             for row_index, (_, row) in enumerate(frame_valid.iterrows()):
+                predicted_prob = float(prob[row_index])
+                market_home_prob = row.get(market_column) if market_column else None
+
                 prediction_rows.append(
                     {
                         "game_id": row.get("game_id"),
                         "snapshot_time": str(row.get("_training_sort_time", "")),
                         "model_name": model_name,
-                        "predicted_prob": float(prob[row_index]),
+                        "predicted_prob": predicted_prob,
                         "actual_home_win": int(y_valid[row_index]),
                         "market_prob": None,
                         "home_team": row.get("home_team", ""),
                         "away_team": row.get("away_team", ""),
                         "data_quality_grade": row.get("data_quality_grade", ""),
-                        "confidence_bucket": _confidence_bucket(float(prob[row_index])),
-                        "prediction_side": "home" if float(prob[row_index]) >= 0.5 else "away",
+                        "confidence_bucket": _confidence_bucket(predicted_prob),
+                        "prediction_side": "home" if predicted_prob >= 0.5 else "away",
+                        "market_role": _market_role_from_probs(
+                            predicted_prob,
+                            market_home_prob,
+                        ),
                     }
                 )
 
         if market_column is not None:
-            market_prob = pd.to_numeric(frame_valid[market_column], errors="coerce").to_numpy(dtype=float)
+            market_prob = pd.to_numeric(
+                frame_valid[market_column],
+                errors="coerce",
+            ).to_numpy(dtype=float)
+
             for row_index, (_, row) in enumerate(frame_valid.iterrows()):
                 if not np.isfinite(market_prob[row_index]):
                     continue
+
                 clipped_market = float(np.clip(market_prob[row_index], 0.01, 0.99))
+
                 prediction_rows.append(
                     {
                         "game_id": row.get("game_id"),
@@ -460,6 +533,7 @@ def build_report(
                         "data_quality_grade": row.get("data_quality_grade", ""),
                         "confidence_bucket": _confidence_bucket(clipped_market),
                         "prediction_side": "home" if clipped_market >= 0.5 else "away",
+                        "market_role": "favorite",
                     }
                 )
 
@@ -474,19 +548,26 @@ def build_report(
 
             if residual_prob is not None:
                 for row_index, (_, row) in enumerate(frame_valid.iterrows()):
+                    predicted_prob = float(residual_prob[row_index])
+                    market_home_prob = row.get(market_column) if market_column else None
+
                     prediction_rows.append(
                         {
                             "game_id": row.get("game_id"),
                             "snapshot_time": str(row.get("_training_sort_time", "")),
                             "model_name": "market_residual_model",
-                            "predicted_prob": float(residual_prob[row_index]),
+                            "predicted_prob": predicted_prob,
                             "actual_home_win": int(y_valid[row_index]),
                             "market_prob": None,
                             "home_team": row.get("home_team", ""),
                             "away_team": row.get("away_team", ""),
                             "data_quality_grade": row.get("data_quality_grade", ""),
-                            "confidence_bucket": _confidence_bucket(float(residual_prob[row_index])),
-                            "prediction_side": "home" if float(residual_prob[row_index]) >= 0.5 else "away",
+                            "confidence_bucket": _confidence_bucket(predicted_prob),
+                            "prediction_side": "home" if predicted_prob >= 0.5 else "away",
+                            "market_role": _market_role_from_probs(
+                                predicted_prob,
+                                market_home_prob,
+                            ),
                         }
                     )
 
@@ -502,7 +583,10 @@ def build_report(
                 group["predicted_prob"],
             )
             model_metrics[str(model_name)]["warnings"] = sorted(
-                set((model_metrics[str(model_name)].get("warnings") or []) + model_warning_map.get(str(model_name), []))
+                set(
+                    (model_metrics[str(model_name)].get("warnings") or [])
+                    + model_warning_map.get(str(model_name), [])
+                )
             )
 
     market_metrics = model_metrics.get("market_no_vig_baseline", {})
@@ -516,7 +600,7 @@ def build_report(
                 model_brier,
                 market_brier,
             )
-            
+
     model_oos_counts = _model_oos_counts(predictions)
     unique_oos_games = _unique_oos_game_count(predictions)
 
@@ -550,6 +634,8 @@ def build_report(
     else:
         warnings.append("market baseline unavailable for walk-forward comparison")
 
+    non_market_predictions = _non_market_predictions(predictions)
+
     report = {
         "generated_at": _utc_now(),
         "pipeline_version": PIPELINE_VERSION,
@@ -571,10 +657,17 @@ def build_report(
         "model_vs_market": model_vs_market,
         "month_by_month": {},
         "favorite_underdog_split": _segment_metrics(
-            predictions[predictions["model_name"] != "market_no_vig_baseline"],
+            non_market_predictions,
+            "market_role",
+        ) if not predictions.empty else {},
+        "home_away_split": _segment_metrics(
+            non_market_predictions,
             "prediction_side",
         ) if not predictions.empty else {},
-        "home_away_split": {},
+        "confidence_bucket_split": _segment_metrics(
+            non_market_predictions,
+            "confidence_bucket",
+        ) if not predictions.empty else {},
         "confidence_bucket_split_by_model": _per_model_segment_metrics(
             predictions,
             "confidence_bucket",
@@ -583,16 +676,21 @@ def build_report(
             predictions,
             "prediction_side",
         ) if not predictions.empty else {},
+        "market_role_split_by_model": _per_model_segment_metrics(
+            predictions,
+            "market_role",
+        ) if not predictions.empty else {},
         "data_quality_split": _segment_metrics(
-            predictions[predictions["model_name"] != "market_no_vig_baseline"],
+            non_market_predictions,
             "data_quality_grade",
         ) if not predictions.empty else {},
         "blockers": blockers,
         "warnings": sorted(set(warnings)),
         "next_actions": [
             "Continue accumulating forward OOS samples.",
-            "Do not promote any model until at least 300 OOS predictions exist.",
+            "Do not promote any model until at least 300 per-model OOS predictions exist.",
             "Use brier/logloss and calibration over accuracy-only conclusions.",
+            "Use market_role_split_by_model to monitor favorite versus underdog behavior.",
         ],
         "shadow_only": True,
         "live_betting_allowed": False,
