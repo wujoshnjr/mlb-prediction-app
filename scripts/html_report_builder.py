@@ -41,6 +41,7 @@ SOURCES = {
     "feature_availability": REPORT_DIR / "feature_availability_diagnostic.json",
     "feature_zero": REPORT_DIR / "feature_zero_root_cause_diagnostic.json",
     "feature_grade": REPORT_DIR / "feature_grade_report.json",
+    "feature_promotion": REPORT_DIR / "feature_promotion_report.json",
     "training_status": Path("data/training_status.json"),
 }
 
@@ -192,6 +193,7 @@ def build_html() -> str:
     feature_availability = data["feature_availability"] or {}
     feature_zero = data["feature_zero"] or {}
     feature_grade = data["feature_grade"] or {}
+    feature_promotion = data["feature_promotion"] or {}
 
     html_parts = [
         "<!doctype html>",
@@ -306,6 +308,10 @@ def build_html() -> str:
             + _escape(feature_zero.get("still_zero_features"))
             + "</p><p>Feature grade counts: "
             + _escape(feature_grade.get("grade_counts"))
+            + "</p><p>Feature promotion candidates: "
+            + _escape(feature_promotion.get("candidate_shadow_count"))
+            + "</p><p>Ready for review: "
+            + _escape(feature_promotion.get("ready_for_review_count"))
             + "</p>",
         )
     )
@@ -326,6 +332,7 @@ def build_html() -> str:
         "Settle Reliability": data.get("settle_reliability"),
         "Settled Prediction Link": data.get("settled_prediction_link"),
         "Rolling Walk-forward": data.get("rolling_walkforward"),
+        "Feature Promotion": data.get("feature_promotion"),
         "Lineup / Starter Slice": data.get("lineup_starter_slice"),
         "Market Close": data.get("market_close"),
         "Research Quality": data.get("research_quality"),
@@ -361,6 +368,12 @@ def build_html() -> str:
             )
         elif title == "Rolling Walk-forward":
             key_metric = f"oos={_escape(report_data.get('total_oos_predictions'))}"
+        elif title == "Feature Promotion":
+            key_metric = (
+                f"candidates={_escape(report_data.get('candidate_shadow_count'))}; "
+                f"ready={_escape(report_data.get('ready_for_review_count'))}; "
+                f"sample={_escape(report_data.get('sample_count'))}"
+            )
         elif title == "Research Quality":
             key_metric = f"grade={_escape(report_data.get('research_grade'))}"
         elif title == "Promotion Gate":
