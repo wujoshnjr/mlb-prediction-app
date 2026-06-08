@@ -18,6 +18,7 @@ REPORT_DIR = Path("report")
 
 SNAPSHOT_PATH = DATA_DIR / "prediction_snapshots.csv"
 FINALIZED_PATH = DATA_DIR / "finalized_games.csv"
+FINALIZED_SNAPSHOT_OUTCOMES_PATH = DATA_DIR / "finalized_snapshot_outcomes.csv"
 REPORT_PATH = REPORT_DIR / "finalized_linkage_diagnostic_report.json"
 
 MLB_LIVE_FEED_URL = "https://statsapi.mlb.com/api/v1.1/game/{game_id}/feed/live"
@@ -598,6 +599,90 @@ def _append_finalized_rows(path: Path, rows: List[Dict[str, Any]]) -> Dict[str, 
     }
     
 
+def _upsert_trusted_outcome_cache(path: Path, rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Persist trusted finalized outcomes for snapshot game_ids.
+
+    This cache protects dashboard / sample_state metrics from stale or overwritten
+    finalized_games.csv files. Rows must still come from trusted final-result
+    sources, never from prediction_snapshots embedded outcome columns.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    existing = pd.DataFrame(columns=FINALIZED_FIELDNAMES)
+
+    if path.exists() and path.stat().st_size > 0:
+        try:
+            existing = pd.read_csv(path, dtype=str)
+        except Exception:
+            existing = pd.DataFrame(columns=FINALIZED_FIELDNAMES)
+
+    for column in FINALIZED_FIELDNAMES:
+        if column not in existing.columns:
+            existing[column] = ""
+
+    existing = existing[FINALIZED_FIELDNAMES].copy()
+
+    if not existing.empty:
+        existing["game_id"] = existing["game_id"].apply(_normalize_game_id)
+        existing = existing[existing["game_id"] != ""].copy()
+        existing = existing.drop_duplicates("game_id", keep="last")
+
+    normalized_rows: List[Dict[str, Any]] = []
+
+    for row in rows:
+        game_id = _normalize_game_id(row.get("game_id"))
+        if not game_id:
+            continue
+
+        home_score = _safe_int(row.get("home_score"))
+        away_score = _safe_int(row.get("away_score"))
+        if home_score is None or away_score is None:
+            continue
+
+        home_win = _safe_int(row.get("home_win"))
+        if home_win not in {0, 1}:
+            home_win = 1 if home_score > away_score else 0
+
+        normalized_rows.append(
+            {
+                "game_id": game_id,
+                "game_date": str(row.get("game_date") or "").strip(),
+                "home_team": str(row.get("home_team") or "").strip(),
+                "away_team": str(row.get("away_team") or "").strip(),
+                "home_score": str(home_score),
+                "away_score": str(away_score),
+                "home_win": str(home_win),
+                "status": "Final",
+            }
+        )
+
+    if normalized_rows:
+        combined = pd.concat(
+            [existing, pd.DataFrame(normalized_rows)],
+            ignore_index=True,
+        )
+    else:
+        combined = existing.copy()
+
+    for column in FINALIZED_FIELDNAMES:
+        if column not in combined.columns:
+            combined[column] = ""
+
+    combined = combined[FINALIZED_FIELDNAMES].copy()
+    combined["game_id"] = combined["game_id"].apply(_normalize_game_id)
+    combined = combined[combined["game_id"] != ""].copy()
+    combined = combined.drop_duplicates("game_id", keep="last")
+
+    combined.to_csv(path, index=False)
+
+    return {
+        "path": str(path),
+        "received": len(rows),
+        "upserted": len(normalized_rows),
+        "total_rows_after": int(len(combined)),
+    }
+
+
 def build_report(
     *,
     snapshot_path: Path = SNAPSHOT_PATH,
@@ -739,6 +824,10 @@ def build_report(
             time.sleep(sleep_seconds)
 
     append_summary = _append_finalized_rows(finalized_path, rows_to_append)
+    outcome_cache_summary = _upsert_trusted_outcome_cache(
+        FINALIZED_SNAPSHOT_OUTCOMES_PATH,
+        rows_to_append,
+    )
 
     api_final_written_count = int(append_summary.get("inserted", 0) or 0)
     api_final_but_not_written_count += max(
@@ -783,6 +872,7 @@ def build_report(
         "direct_matched_count": direct_matched_count,
         "schedule_matched_count": schedule_matched_count,
         "append_summary": append_summary,
+        "trusted_outcome_cache_summary": outcome_cache_summary,,
         "input_files": {
             "prediction_snapshots": snapshot_status,
             "finalized_games_before": finalized_status,
