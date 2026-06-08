@@ -246,12 +246,16 @@ def _fit_lightgbm_classifier(
     try:
         from lightgbm import LGBMClassifier
     except Exception as exc:
+        result["trained"] = False
+        result["skipped"] = True
         result["skip_reason"] = f"lightgbm import failed: {exc}"
         result["warnings"].append(result["skip_reason"])
         result["promotion_blockers"] = [result["skip_reason"]]
         return result, None
 
     if len(np.unique(split["y_train"])) < 2:
+        result["trained"] = False
+        result["skipped"] = True
         result["skip_reason"] = "train set contains only one target class"
         result["promotion_blockers"] = [result["skip_reason"]]
         return result, None
@@ -293,6 +297,8 @@ def _fit_lightgbm_classifier(
         )
         return result, model
     except Exception as exc:
+        result["trained"] = False
+        result["skipped"] = True
         result["skip_reason"] = str(exc)
         result["errors"].append(str(exc))
         result["promotion_blockers"] = [result["skip_reason"]]
@@ -322,12 +328,16 @@ def _fit_xgboost_classifier(
     try:
         from xgboost import XGBClassifier
     except Exception as exc:
+        result["trained"] = False
+        result["skipped"] = True
         result["skip_reason"] = f"xgboost import failed: {exc}"
         result["warnings"].append(result["skip_reason"])
         result["promotion_blockers"] = [result["skip_reason"]]
         return result, None
-
+        
     if len(np.unique(split["y_train"])) < 2:
+        result["trained"] = False
+        result["skipped"] = True
         result["skip_reason"] = "train set contains only one target class"
         result["promotion_blockers"] = [result["skip_reason"]]
         return result, None
@@ -370,6 +380,8 @@ def _fit_xgboost_classifier(
         )
         return result, model
     except Exception as exc:
+        result["trained"] = False
+        result["skipped"] = True
         result["skip_reason"] = str(exc)
         result["errors"].append(str(exc))
         result["promotion_blockers"] = [result["skip_reason"]]
