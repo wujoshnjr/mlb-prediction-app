@@ -1,39 +1,758 @@
 {
-  "generated_at": "2026-06-08T14:21:12.834415+00:00",
+  "generated_at": "2026-06-08T14:52:07.675222+00:00",
   "pipeline_version": "baseline_v2_clean",
   "walkforward_ready": false,
-  "skipped": true,
-  "skip_reason": "no prediction snapshots join to finalized_games by game_id",
-  "total_oos_predictions": 0,
-  "unique_oos_games": 0,
-  "model_oos_counts": {},
-  "max_model_oos_predictions": 0,
-  "min_model_oos_predictions": 0,
-  "per_model_ready": {},
+  "skipped": false,
+  "skip_reason": "",
+  "total_oos_predictions": 73,
+  "unique_oos_games": 73,
+  "model_oos_counts": {
+    "lightgbm_classifier": 73,
+    "logistic_baseline": 73,
+    "market_residual_model": 73,
+    "xgboost_classifier": 73
+  },
+  "max_model_oos_predictions": 73,
+  "min_model_oos_predictions": 73,
+  "per_model_ready": {
+    "lightgbm_classifier": false,
+    "logistic_baseline": false,
+    "market_residual_model": false,
+    "xgboost_classifier": false
+  },
   "minimum_train_samples": 80,
   "minimum_required_oos_predictions": 300,
   "rolling_window_size": null,
   "validation_window_size": 10,
-  "model_metrics": {},
-  "market_metrics": {},
-  "model_vs_market": {},
+  "model_metrics": {
+    "lightgbm_classifier": {
+      "ok": true,
+      "sample_count": 73,
+      "positive_count": 37,
+      "negative_count": 36,
+      "brier": 0.264311230394192,
+      "logloss": 0.7232121816846805,
+      "accuracy": 0.5068493150684932,
+      "auc": 0.44819819819819817,
+      "ece": 0.07128851030550801,
+      "warnings": [],
+      "errors": []
+    },
+    "logistic_baseline": {
+      "ok": true,
+      "sample_count": 73,
+      "positive_count": 37,
+      "negative_count": 36,
+      "brier": 0.33676755571128547,
+      "logloss": 1.0606741140184546,
+      "accuracy": 0.4520547945205479,
+      "auc": 0.42042042042042044,
+      "ece": 0.22645912252830255,
+      "warnings": [],
+      "errors": []
+    },
+    "market_no_vig_baseline": {
+      "ok": true,
+      "sample_count": 72,
+      "positive_count": 36,
+      "negative_count": 36,
+      "brier": 0.2743343871010116,
+      "logloss": 0.7936164022747864,
+      "accuracy": 0.5,
+      "auc": 0.5324074074074076,
+      "ece": 0.14530339000703774,
+      "warnings": [],
+      "errors": []
+    },
+    "market_residual_model": {
+      "ok": true,
+      "sample_count": 72,
+      "positive_count": 36,
+      "negative_count": 36,
+      "brier": 0.2777327453808329,
+      "logloss": 0.7914863508691025,
+      "accuracy": 0.4583333333333333,
+      "auc": 0.4945987654320987,
+      "ece": 0.17107079434092332,
+      "warnings": [
+        "dropped 1 rows with invalid probability",
+        "dropped_invalid_market_prob_rows: train=2, validation=0",
+        "dropped_invalid_market_prob_rows: train=2, validation=1",
+        "dropped_invalid_market_prob_rows: train=3, validation=0"
+      ],
+      "errors": []
+    },
+    "xgboost_classifier": {
+      "ok": true,
+      "sample_count": 73,
+      "positive_count": 37,
+      "negative_count": 36,
+      "brier": 0.25958647291366616,
+      "logloss": 0.7129421359662909,
+      "accuracy": 0.4657534246575342,
+      "auc": 0.4722222222222222,
+      "ece": 0.09766170341674599,
+      "warnings": [],
+      "errors": []
+    }
+  },
+  "market_metrics": {
+    "ok": true,
+    "sample_count": 72,
+    "positive_count": 36,
+    "negative_count": 36,
+    "brier": 0.2743343871010116,
+    "logloss": 0.7936164022747864,
+    "accuracy": 0.5,
+    "auc": 0.5324074074074076,
+    "ece": 0.14530339000703774,
+    "warnings": [],
+    "errors": []
+  },
+  "model_vs_market": {
+    "lightgbm_classifier": {
+      "beats_market_brier": true,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": true,
+      "delta_brier": -0.01002315670681958,
+      "delta_logloss": -0.07040422059010587,
+      "delta_accuracy": 0.006849315068493178,
+      "brier_skill_score_vs_market": 0.036536275356282566
+    },
+    "logistic_baseline": {
+      "beats_market_brier": false,
+      "beats_market_logloss": false,
+      "beats_market_accuracy": false,
+      "delta_brier": 0.06243316861027387,
+      "delta_logloss": 0.2670577117436682,
+      "delta_accuracy": -0.04794520547945208,
+      "brier_skill_score_vs_market": -0.22758054238124226
+    },
+    "market_residual_model": {
+      "beats_market_brier": false,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": false,
+      "delta_brier": 0.003398358279821323,
+      "delta_logloss": -0.002130051405683897,
+      "delta_accuracy": -0.041666666666666685,
+      "brier_skill_score_vs_market": -0.012387649669926448
+    },
+    "xgboost_classifier": {
+      "beats_market_brier": true,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": false,
+      "delta_brier": -0.014747914187345446,
+      "delta_logloss": -0.0806742663084955,
+      "delta_accuracy": -0.03424657534246578,
+      "brier_skill_score_vs_market": 0.05375889746521345
+    }
+  },
   "month_by_month": {},
-  "favorite_underdog_split": {},
-  "home_away_split": {},
-  "confidence_bucket_split": {},
-  "confidence_bucket_split_by_model": {},
-  "prediction_side_split_by_model": {},
-  "market_role_split_by_model": {},
-  "data_quality_split": {},
+  "favorite_underdog_split": {
+    "favorite": {
+      "ok": true,
+      "sample_count": 188,
+      "positive_count": 92,
+      "negative_count": 96,
+      "brier": 0.2877284750227146,
+      "logloss": 0.8245912757653934,
+      "accuracy": 0.4734042553191489,
+      "auc": 0.4437839673913043,
+      "ece": 0.14067391691823003,
+      "warnings": [],
+      "errors": []
+    },
+    "underdog": {
+      "ok": true,
+      "sample_count": 100,
+      "positive_count": 52,
+      "negative_count": 48,
+      "brier": 0.28463571630424567,
+      "logloss": 0.8320621916651569,
+      "accuracy": 0.45,
+      "auc": 0.4575320512820513,
+      "ece": 0.15361453539422065,
+      "warnings": [],
+      "errors": []
+    },
+    "unknown": {
+      "ok": true,
+      "sample_count": 3,
+      "positive_count": 3,
+      "negative_count": 0,
+      "brier": 0.08959888037418312,
+      "logloss": 0.3420379213446106,
+      "accuracy": 1.0,
+      "auc": null,
+      "ece": 0.2834232355559733,
+      "warnings": [
+        "dropped 1 rows with invalid probability",
+        "auc unavailable: validation target has one class"
+      ],
+      "errors": []
+    }
+  },
+  "home_away_split": {
+    "away": {
+      "ok": true,
+      "sample_count": 90,
+      "positive_count": 50,
+      "negative_count": 40,
+      "brier": 0.30085900379419134,
+      "logloss": 0.9198469624460521,
+      "accuracy": 0.4444444444444444,
+      "auc": 0.5055000000000001,
+      "ece": 0.17385697587341148,
+      "warnings": [
+        "dropped 1 rows with invalid probability"
+      ],
+      "errors": []
+    },
+    "home": {
+      "ok": true,
+      "sample_count": 201,
+      "positive_count": 97,
+      "negative_count": 104,
+      "brier": 0.27735328972308576,
+      "logloss": 0.7784540604691482,
+      "accuracy": 0.48258706467661694,
+      "auc": 0.4729381443298969,
+      "ece": 0.11985408501546449,
+      "warnings": [],
+      "errors": []
+    }
+  },
+  "confidence_bucket_split": {
+    "high_65_plus": {
+      "ok": true,
+      "sample_count": 65,
+      "positive_count": 31,
+      "negative_count": 34,
+      "brier": 0.38368339158462866,
+      "logloss": 1.2276086462465101,
+      "accuracy": 0.4307692307692308,
+      "auc": 0.4150853889943074,
+      "ece": 0.3366441313244619,
+      "warnings": [
+        "dropped 1 rows with invalid probability"
+      ],
+      "errors": []
+    },
+    "low_45_55": {
+      "ok": true,
+      "sample_count": 112,
+      "positive_count": 62,
+      "negative_count": 50,
+      "brier": 0.25369086819874664,
+      "logloss": 0.7005481038469529,
+      "accuracy": 0.4732142857142857,
+      "auc": 0.43451612903225806,
+      "ece": 0.05353714929135189,
+      "warnings": [],
+      "errors": []
+    },
+    "medium_55_65": {
+      "ok": true,
+      "sample_count": 114,
+      "positive_count": 54,
+      "negative_count": 60,
+      "brier": 0.2585309112680436,
+      "logloss": 0.7105223082242245,
+      "accuracy": 0.49122807017543857,
+      "auc": 0.5424382716049383,
+      "ece": 0.10403306719292957,
+      "warnings": [],
+      "errors": []
+    }
+  },
+  "confidence_bucket_split_by_model": {
+    "lightgbm_classifier": {
+      "high_65_plus": {
+        "ok": true,
+        "sample_count": 12,
+        "positive_count": 4,
+        "negative_count": 8,
+        "brier": 0.33674628858043754,
+        "logloss": 0.8756823782728157,
+        "accuracy": 0.3333333333333333,
+        "auc": 0.421875,
+        "ece": 0.3389631333783226,
+        "warnings": [],
+        "errors": []
+      },
+      "low_45_55": {
+        "ok": true,
+        "sample_count": 36,
+        "positive_count": 19,
+        "negative_count": 17,
+        "brier": 0.2529765579251878,
+        "logloss": 0.6991335104160058,
+        "accuracy": 0.5277777777777778,
+        "auc": 0.4226006191950464,
+        "ece": 0.015430854440495054,
+        "warnings": [],
+        "errors": []
+      },
+      "medium_55_65": {
+        "ok": true,
+        "sample_count": 25,
+        "positive_count": 14,
+        "negative_count": 11,
+        "brier": 0.24586433082016027,
+        "logloss": 0.6846997739492673,
+        "accuracy": 0.56,
+        "auc": 0.577922077922078,
+        "ece": 0.11447024881500234,
+        "warnings": [],
+        "errors": []
+      }
+    },
+    "logistic_baseline": {
+      "high_65_plus": {
+        "ok": true,
+        "sample_count": 32,
+        "positive_count": 18,
+        "negative_count": 14,
+        "brier": 0.4267548834772146,
+        "logloss": 1.4884157307885095,
+        "accuracy": 0.4375,
+        "auc": 0.37301587301587297,
+        "ece": 0.36863957435905625,
+        "warnings": [],
+        "errors": []
+      },
+      "low_45_55": {
+        "ok": true,
+        "sample_count": 17,
+        "positive_count": 11,
+        "negative_count": 6,
+        "brier": 0.25524842702124656,
+        "logloss": 0.7036745866435753,
+        "accuracy": 0.5294117647058824,
+        "auc": 0.39393939393939403,
+        "ece": 0.13795339782216143,
+        "warnings": [],
+        "errors": []
+      },
+      "medium_55_65": {
+        "ok": true,
+        "sample_count": 24,
+        "positive_count": 8,
+        "negative_count": 16,
+        "brier": 0.27452716817882433,
+        "logloss": 0.7432266235489206,
+        "accuracy": 0.4166666666666667,
+        "auc": 0.4453125,
+        "ece": 0.19026297329865446,
+        "warnings": [],
+        "errors": []
+      }
+    },
+    "market_residual_model": {
+      "high_65_plus": {
+        "ok": true,
+        "sample_count": 19,
+        "positive_count": 8,
+        "negative_count": 11,
+        "brier": 0.3493980848826582,
+        "logloss": 1.0548087852168393,
+        "accuracy": 0.47368421052631576,
+        "auc": 0.46590909090909094,
+        "ece": 0.29734607737769797,
+        "warnings": [
+          "dropped 1 rows with invalid probability"
+        ],
+        "errors": []
+      },
+      "low_45_55": {
+        "ok": true,
+        "sample_count": 23,
+        "positive_count": 12,
+        "negative_count": 11,
+        "brier": 0.25429370290002273,
+        "logloss": 0.7017323206079638,
+        "accuracy": 0.391304347826087,
+        "auc": 0.4393939393939394,
+        "ece": 0.13456910518255463,
+        "warnings": [],
+        "errors": []
+      },
+      "medium_55_65": {
+        "ok": true,
+        "sample_count": 30,
+        "positive_count": 16,
+        "negative_count": 14,
+        "brier": 0.2503146295982981,
+        "logloss": 0.6935268989824088,
+        "accuracy": 0.5,
+        "auc": 0.5982142857142857,
+        "ece": 0.1219198975031288,
+        "warnings": [],
+        "errors": []
+      }
+    },
+    "xgboost_classifier": {
+      "high_65_plus": {
+        "ok": true,
+        "sample_count": 2,
+        "positive_count": 1,
+        "negative_count": 1,
+        "brier": 0.3018725529971178,
+        "logloss": 0.8078515811985533,
+        "accuracy": 0.5,
+        "auc": 0.0,
+        "ece": 0.5176553130149841,
+        "warnings": [],
+        "errors": []
+      },
+      "low_45_55": {
+        "ok": true,
+        "sample_count": 36,
+        "positive_count": 20,
+        "negative_count": 16,
+        "brier": 0.25328452019142084,
+        "logloss": 0.6997297196932933,
+        "accuracy": 0.4444444444444444,
+        "auc": 0.47343749999999996,
+        "ece": 0.08115959333048925,
+        "warnings": [],
+        "errors": []
+      },
+      "medium_55_65": {
+        "ok": true,
+        "sample_count": 35,
+        "positive_count": 16,
+        "negative_count": 19,
+        "brier": 0.2636521339946355,
+        "logloss": 0.7211086529766733,
+        "accuracy": 0.4857142857142857,
+        "auc": 0.5345394736842105,
+        "ece": 0.12546245370592393,
+        "warnings": [],
+        "errors": []
+      }
+    }
+  },
+  "prediction_side_split_by_model": {
+    "lightgbm_classifier": {
+      "away": {
+        "ok": true,
+        "sample_count": 22,
+        "positive_count": 11,
+        "negative_count": 11,
+        "brier": 0.2565193422570953,
+        "logloss": 0.7065463258665615,
+        "accuracy": 0.5,
+        "auc": 0.4958677685950413,
+        "ece": 0.06122565490633616,
+        "warnings": [],
+        "errors": []
+      },
+      "home": {
+        "ok": true,
+        "sample_count": 51,
+        "positive_count": 26,
+        "negative_count": 25,
+        "brier": 0.2676724370415671,
+        "logloss": 0.7304013743905358,
+        "accuracy": 0.5098039215686274,
+        "auc": 0.3861538461538462,
+        "ece": 0.07562934988946449,
+        "warnings": [],
+        "errors": []
+      }
+    },
+    "logistic_baseline": {
+      "away": {
+        "ok": true,
+        "sample_count": 30,
+        "positive_count": 17,
+        "negative_count": 13,
+        "brier": 0.3755326997648038,
+        "logloss": 1.3081928576672666,
+        "accuracy": 0.43333333333333335,
+        "auc": 0.42533936651583715,
+        "ece": 0.2621882181114596,
+        "warnings": [],
+        "errors": []
+      },
+      "home": {
+        "ok": true,
+        "sample_count": 43,
+        "positive_count": 20,
+        "negative_count": 23,
+        "brier": 0.3097221063716216,
+        "logloss": 0.8879866184495158,
+        "accuracy": 0.46511627906976744,
+        "auc": 0.44782608695652176,
+        "ece": 0.20153184654005346,
+        "warnings": [],
+        "errors": []
+      }
+    },
+    "market_residual_model": {
+      "away": {
+        "ok": true,
+        "sample_count": 25,
+        "positive_count": 14,
+        "negative_count": 11,
+        "brier": 0.26977409890698717,
+        "logloss": 0.7454596582783382,
+        "accuracy": 0.44,
+        "auc": 0.6363636363636364,
+        "ece": 0.19043303747715556,
+        "warnings": [
+          "dropped 1 rows with invalid probability"
+        ],
+        "errors": []
+      },
+      "home": {
+        "ok": true,
+        "sample_count": 47,
+        "positive_count": 22,
+        "negative_count": 25,
+        "brier": 0.281966067973304,
+        "logloss": 0.8159686341620622,
+        "accuracy": 0.46808510638297873,
+        "auc": 0.5472727272727272,
+        "ece": 0.16077172884292745,
+        "warnings": [],
+        "errors": []
+      }
+    },
+    "xgboost_classifier": {
+      "away": {
+        "ok": true,
+        "sample_count": 13,
+        "positive_count": 8,
+        "negative_count": 5,
+        "brier": 0.2633501035540257,
+        "logloss": 0.7199946357002982,
+        "accuracy": 0.38461538461538464,
+        "auc": 0.45,
+        "ece": 0.15032410163145804,
+        "warnings": [],
+        "errors": []
+      },
+      "home": {
+        "ok": true,
+        "sample_count": 60,
+        "positive_count": 29,
+        "negative_count": 31,
+        "brier": 0.25877101960825494,
+        "logloss": 0.7114140943572561,
+        "accuracy": 0.48333333333333334,
+        "auc": 0.5183537263626251,
+        "ece": 0.08625151713689173,
+        "warnings": [],
+        "errors": []
+      }
+    }
+  },
+  "market_role_split_by_model": {
+    "lightgbm_classifier": {
+      "favorite": {
+        "ok": true,
+        "sample_count": 44,
+        "positive_count": 23,
+        "negative_count": 21,
+        "brier": 0.2733478414868627,
+        "logloss": 0.7423897987616113,
+        "accuracy": 0.5,
+        "auc": 0.3674948240165632,
+        "ece": 0.12733121347498744,
+        "warnings": [],
+        "errors": []
+      },
+      "underdog": {
+        "ok": true,
+        "sample_count": 28,
+        "positive_count": 13,
+        "negative_count": 15,
+        "brier": 0.25599812409353634,
+        "logloss": 0.705372869776261,
+        "accuracy": 0.5,
+        "auc": 0.49230769230769234,
+        "ece": 0.06797746191676182,
+        "warnings": [],
+        "errors": []
+      },
+      "unknown": {
+        "ok": true,
+        "sample_count": 1,
+        "positive_count": 1,
+        "negative_count": 0,
+        "brier": 0.09946731873504067,
+        "logloss": 0.3788977637354675,
+        "accuracy": 1.0,
+        "auc": null,
+        "ece": 0.31538439836973653,
+        "warnings": [
+          "auc unavailable: validation target has one class"
+        ],
+        "errors": []
+      }
+    },
+    "logistic_baseline": {
+      "favorite": {
+        "ok": true,
+        "sample_count": 40,
+        "positive_count": 19,
+        "negative_count": 21,
+        "brier": 0.340082177258339,
+        "logloss": 1.0554017799027837,
+        "accuracy": 0.45,
+        "auc": 0.40100250626566414,
+        "ece": 0.25741845491889326,
+        "warnings": [],
+        "errors": []
+      },
+      "underdog": {
+        "ok": true,
+        "sample_count": 32,
+        "positive_count": 17,
+        "negative_count": 15,
+        "brier": 0.34241848450695384,
+        "logloss": 1.0952281506255872,
+        "accuracy": 0.4375,
+        "auc": 0.4274509803921569,
+        "ece": 0.28048268962719297,
+        "warnings": [],
+        "errors": []
+      },
+      "unknown": {
+        "ok": true,
+        "sample_count": 1,
+        "positive_count": 1,
+        "negative_count": 0,
+        "brier": 0.02335297236775763,
+        "logloss": 0.16583830721703058,
+        "accuracy": 1.0,
+        "auc": null,
+        "ece": 0.1528167934742698,
+        "warnings": [
+          "auc unavailable: validation target has one class"
+        ],
+        "errors": []
+      }
+    },
+    "market_residual_model": {
+      "favorite": {
+        "ok": true,
+        "sample_count": 57,
+        "positive_count": 26,
+        "negative_count": 31,
+        "brier": 0.28533092904113155,
+        "logloss": 0.818039807783012,
+        "accuracy": 0.47368421052631576,
+        "auc": 0.5124069478908189,
+        "ece": 0.16435028683164915,
+        "warnings": [],
+        "errors": []
+      },
+      "underdog": {
+        "ok": true,
+        "sample_count": 15,
+        "positive_count": 10,
+        "negative_count": 5,
+        "brier": 0.24885964747169803,
+        "logloss": 0.690583214596246,
+        "accuracy": 0.4,
+        "auc": 0.48,
+        "ece": 0.2010891870338137,
+        "warnings": [],
+        "errors": []
+      },
+      "unknown": {
+        "ok": false,
+        "sample_count": 0,
+        "positive_count": 0,
+        "negative_count": 0,
+        "brier": null,
+        "logloss": null,
+        "accuracy": null,
+        "auc": null,
+        "ece": null,
+        "warnings": [
+          "dropped 1 rows with invalid probability"
+        ],
+        "errors": [
+          "no valid probabilities"
+        ]
+      }
+    },
+    "xgboost_classifier": {
+      "favorite": {
+        "ok": true,
+        "sample_count": 47,
+        "positive_count": 24,
+        "negative_count": 23,
+        "brier": 0.25954251559936864,
+        "logloss": 0.7130567757157444,
+        "accuracy": 0.46808510638297873,
+        "auc": 0.47644927536231885,
+        "ece": 0.0937658269354638,
+        "warnings": [],
+        "errors": []
+      },
+      "underdog": {
+        "ok": true,
+        "sample_count": 25,
+        "positive_count": 12,
+        "negative_count": 13,
+        "brier": 0.26421351758030215,
+        "logloss": 0.7219891909527163,
+        "accuracy": 0.44,
+        "auc": 0.43589743589743585,
+        "ece": 0.12417515993118286,
+        "warnings": [],
+        "errors": []
+      },
+      "unknown": {
+        "ok": true,
+        "sample_count": 1,
+        "positive_count": 1,
+        "negative_count": 0,
+        "brier": 0.14597635001975107,
+        "logloss": 0.4813776930813336,
+        "accuracy": 1.0,
+        "auc": null,
+        "ece": 0.3820685148239136,
+        "warnings": [
+          "auc unavailable: validation target has one class"
+        ],
+        "errors": []
+      }
+    }
+  },
+  "data_quality_split": {
+    "": {
+      "ok": true,
+      "sample_count": 291,
+      "positive_count": 147,
+      "negative_count": 144,
+      "brier": 0.2846230981986854,
+      "logloss": 0.8221838239671597,
+      "accuracy": 0.47079037800687284,
+      "auc": 0.45644368858654566,
+      "ece": 0.13655601002307696,
+      "warnings": [
+        "dropped 1 rows with invalid probability"
+      ],
+      "errors": []
+    }
+  },
   "blockers": [
-    "no prediction snapshots join to finalized_games by game_id"
+    "per-model OOS predictions below threshold: max_model_oos=73 < 300"
   ],
   "warnings": [
     "removed leakage columns from snapshots: away_score, home_score, home_win, settled_at"
   ],
   "next_actions": [
-    "Accumulate more finalized-joined samples.",
-    "Keep all walk-forward outputs in shadow research mode."
+    "Continue accumulating forward OOS samples.",
+    "Do not promote any model until at least 300 per-model OOS predictions exist.",
+    "Use brier/logloss and calibration over accuracy-only conclusions.",
+    "Use market_role_split_by_model to monitor favorite versus underdog behavior."
   ],
   "shadow_only": true,
   "live_betting_allowed": false,

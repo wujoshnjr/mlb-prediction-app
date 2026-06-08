@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-06-08T14:21:11.065583+00:00",
+  "generated_at": "2026-06-08T14:52:04.159311+00:00",
   "source": "report/feature_availability_diagnostic.json",
   "model_feature_count": 26,
   "tracking_only_feature_count": 36,
   "grade_counts": {
-    "A": 40,
-    "B": 2,
+    "A": 33,
+    "B": 1,
     "C": 1,
-    "D": 19
+    "D": 27
   },
   "model_features": [
     "elo_diff",
@@ -76,32 +76,6 @@
     "platoon_ops_diff"
   ],
   "features": [
-    {
-      "feature": "avg_bat_speed_diff",
-      "group": "statcast",
-      "grade": "A",
-      "availability_rate": 1.0,
-      "non_zero_rate": 1.0,
-      "missing_rate": 0.0,
-      "zero_rate": 0.0,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
-    },
-    {
-      "feature": "barrel_pa_diff",
-      "group": "statcast",
-      "grade": "A",
-      "availability_rate": 1.0,
-      "non_zero_rate": 1.0,
-      "missing_rate": 0.0,
-      "zero_rate": 0.0,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
-    },
     {
       "feature": "bb_pct_diff",
       "group": "pitching",
@@ -211,16 +185,16 @@
       "group": "team_strength",
       "grade": "A",
       "availability_rate": 1.0,
-      "non_zero_rate": 0.75,
+      "non_zero_rate": 1.0,
       "missing_rate": 0.0,
-      "zero_rate": 0.25,
+      "zero_rate": 0.0,
       "latest_importance": 0.0,
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
       "recommendation": "tracking_only_by_schema"
     },
     {
-      "feature": "games_last_7d_diff",
+      "feature": "games_last_3d_diff",
       "group": "other",
       "grade": "A",
       "availability_rate": 1.0,
@@ -233,13 +207,13 @@
       "recommendation": "tracking_only_by_schema"
     },
     {
-      "feature": "hardhit_pa_diff",
-      "group": "statcast",
+      "feature": "games_last_7d_diff",
+      "group": "other",
       "grade": "A",
       "availability_rate": 1.0,
-      "non_zero_rate": 1.0,
+      "non_zero_rate": 0.75,
       "missing_rate": 0.0,
-      "zero_rate": 0.0,
+      "zero_rate": 0.25,
       "latest_importance": 0.0,
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
@@ -341,9 +315,9 @@
       "group": "schedule",
       "grade": "A",
       "availability_rate": 1.0,
-      "non_zero_rate": 0.5,
+      "non_zero_rate": 0.875,
       "missing_rate": 0.0,
-      "zero_rate": 0.5,
+      "zero_rate": 0.125,
       "latest_importance": 0.0,
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
@@ -454,45 +428,6 @@
       "recommendation": "allowed_in_main_model"
     },
     {
-      "feature": "statcast_barrel_diff",
-      "group": "statcast",
-      "grade": "A",
-      "availability_rate": 1.0,
-      "non_zero_rate": 1.0,
-      "missing_rate": 0.0,
-      "zero_rate": 0.0,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
-    },
-    {
-      "feature": "statcast_hard_hit_diff",
-      "group": "statcast",
-      "grade": "A",
-      "availability_rate": 1.0,
-      "non_zero_rate": 1.0,
-      "missing_rate": 0.0,
-      "zero_rate": 0.0,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
-    },
-    {
-      "feature": "statcast_launch_speed_diff",
-      "group": "statcast",
-      "grade": "A",
-      "availability_rate": 1.0,
-      "non_zero_rate": 1.0,
-      "missing_rate": 0.0,
-      "zero_rate": 0.0,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
-    },
-    {
       "feature": "statcast_woba_available",
       "group": "statcast",
       "grade": "A",
@@ -504,19 +439,6 @@
       "training_allowed_by_schema": true,
       "tracking_only_by_schema": false,
       "recommendation": "allowed_in_main_model"
-    },
-    {
-      "feature": "statcast_woba_diff",
-      "group": "statcast",
-      "grade": "A",
-      "availability_rate": 1.0,
-      "non_zero_rate": 1.0,
-      "missing_rate": 0.0,
-      "zero_rate": 0.0,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
     },
     {
       "feature": "team_form_available",
@@ -558,19 +480,6 @@
       "recommendation": "allowed_in_main_model"
     },
     {
-      "feature": "top3_woba_diff",
-      "group": "statcast",
-      "grade": "A",
-      "availability_rate": 1.0,
-      "non_zero_rate": 1.0,
-      "missing_rate": 0.0,
-      "zero_rate": 0.0,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
-    },
-    {
       "feature": "weather_available",
       "group": "weather",
       "grade": "A",
@@ -595,19 +504,6 @@
       "training_allowed_by_schema": true,
       "tracking_only_by_schema": false,
       "recommendation": "allowed_in_main_model"
-    },
-    {
-      "feature": "games_last_3d_diff",
-      "group": "other",
-      "grade": "B",
-      "availability_rate": 1.0,
-      "non_zero_rate": 0.25,
-      "missing_rate": 0.0,
-      "zero_rate": 0.75,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
     },
     {
       "feature": "wind_effect",
@@ -636,6 +532,19 @@
       "recommendation": "tracking_only_by_schema"
     },
     {
+      "feature": "avg_bat_speed_diff",
+      "group": "statcast",
+      "grade": "D",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
       "feature": "back2back_diff",
       "group": "schedule",
       "grade": "D",
@@ -650,6 +559,19 @@
     },
     {
       "feature": "barrel_bb_pct_diff",
+      "group": "statcast",
+      "grade": "D",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "barrel_pa_diff",
       "group": "statcast",
       "grade": "D",
       "availability_rate": 1.0,
@@ -690,6 +612,19 @@
     {
       "feature": "csw_diff",
       "group": "pitching",
+      "grade": "D",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "hardhit_pa_diff",
+      "group": "statcast",
       "grade": "D",
       "availability_rate": 1.0,
       "non_zero_rate": 0.0,
@@ -844,6 +779,58 @@
       "recommendation": "tracking_only_by_schema"
     },
     {
+      "feature": "statcast_barrel_diff",
+      "group": "statcast",
+      "grade": "D",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "statcast_hard_hit_diff",
+      "group": "statcast",
+      "grade": "D",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "statcast_launch_speed_diff",
+      "group": "statcast",
+      "grade": "D",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "statcast_woba_diff",
+      "group": "statcast",
+      "grade": "D",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
       "feature": "swing_miss_diff",
       "group": "statcast",
       "grade": "D",
@@ -859,6 +846,19 @@
     {
       "feature": "temp_effect",
       "group": "weather",
+      "grade": "D",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "top3_woba_diff",
+      "group": "statcast",
       "grade": "D",
       "availability_rate": 1.0,
       "non_zero_rate": 0.0,
