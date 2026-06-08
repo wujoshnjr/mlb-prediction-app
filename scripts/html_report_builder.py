@@ -415,7 +415,7 @@ def build_html() -> str:
             )
         elif title == "Pipeline Manifest":
             key_metric = f"tracked={_escape(report_data.get('tracked_file_count'))}"
-                    elif title == "Walk-forward Validation":
+        elif title == "Walk-forward Validation":
             key_metric = (
                 f"oos={_escape(report_data.get('total_oos_predictions'))}; "
                 f"ready={_escape(report_data.get('walkforward_ready'))}"
