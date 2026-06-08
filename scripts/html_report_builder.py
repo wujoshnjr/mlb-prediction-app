@@ -43,6 +43,11 @@ SOURCES = {
     "feature_grade": REPORT_DIR / "feature_grade_report.json",
     "feature_promotion": REPORT_DIR / "feature_promotion_report.json",
     "training_status": Path("data/training_status.json"),
+    "walk_forward_validation": REPORT_DIR / "walk_forward_validation_report.json",
+    "calibration_diagnostics": REPORT_DIR / "calibration_diagnostics_report.json",
+    "prediction_trust": REPORT_DIR / "prediction_trust_report.json",
+    "model_comparison": REPORT_DIR / "model_comparison_report.json",
+    "shadow_ensemble_stack": REPORT_DIR / "shadow_ensemble_stack_report.json",
 }
 
 
@@ -347,6 +352,11 @@ def build_html() -> str:
         "Sample State": data.get("sample_state") or data.get("sample_state_report"),
         "Data Contract": data.get("data_contract"),
         "Pipeline Manifest": data.get("pipeline_manifest"),
+        "Walk-forward Validation": data.get("walk_forward_validation"),
+        "Calibration Diagnostics": data.get("calibration_diagnostics"),
+        "Prediction Trust": data.get("prediction_trust"),
+        "Model Comparison": data.get("model_comparison"),
+        "Shadow Ensemble Stack": data.get("shadow_ensemble_stack"),
     }
 
     for title, report_data in engineering_sources.items():
@@ -405,6 +415,33 @@ def build_html() -> str:
             )
         elif title == "Pipeline Manifest":
             key_metric = f"tracked={_escape(report_data.get('tracked_file_count'))}"
+                    elif title == "Walk-forward Validation":
+            key_metric = (
+                f"oos={_escape(report_data.get('total_oos_predictions'))}; "
+                f"ready={_escape(report_data.get('walkforward_ready'))}"
+            )
+        elif title == "Calibration Diagnostics":
+            key_metric = (
+                f"sample={_escape(report_data.get('sample_count'))}; "
+                f"ready={_escape(report_data.get('calibration_ready'))}; "
+                f"shrinkage={_escape(report_data.get('recommended_probability_shrinkage'))}"
+            )
+        elif title == "Prediction Trust":
+            key_metric = (
+                f"predictions={_escape(report_data.get('prediction_count'))}; "
+                f"trust={_escape(report_data.get('trust_counts'))}"
+            )
+        elif title == "Model Comparison":
+            key_metric = (
+                f"champion={_escape(report_data.get('recommended_champion'))}; "
+                f"challenger={_escape(report_data.get('recommended_challenger'))}"
+            )
+        elif title == "Shadow Ensemble Stack":
+            key_metric = (
+                f"sample={_escape(report_data.get('sample_count'))}; "
+                f"recommended={_escape(report_data.get('recommended_shadow_ensemble'))}; "
+                f"promotion={_escape(report_data.get('promotion_eligible'))}"
+            )
 
         recommendations = report_data.get("recommendations", [])
         if isinstance(recommendations, list) and recommendations:
