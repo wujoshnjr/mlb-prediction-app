@@ -278,11 +278,22 @@ def _model_oos_count(model_frame: pd.DataFrame) -> int:
 
 
 def _market_metrics(predictions: pd.DataFrame) -> dict[str, Any]:
+    if predictions.empty or "model_name" not in predictions.columns:
+        return {}
+
+    required_columns = {"actual_home_win", "predicted_prob"}
+    if not required_columns.issubset(set(predictions.columns)):
+        return {}
+
     market = predictions[predictions["model_name"] == "market_no_vig_baseline"].copy()
     if market.empty:
         return {}
-    return classification_metrics(market["actual_home_win"], market["predicted_prob"])
 
+    return classification_metrics(
+        market["actual_home_win"],
+        market["predicted_prob"],
+    )
+    
 
 def build_report(
     *,
