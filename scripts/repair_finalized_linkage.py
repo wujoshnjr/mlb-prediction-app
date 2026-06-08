@@ -510,18 +510,34 @@ def _find_schedule_match(
 
 
 def _append_finalized_rows(path: Path, rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Safely upsert finalized rows using the canonical finalized_games schema.
+
+    This intentionally rewrites the CSV instead of raw-appending because older
+    files may only contain a subset of columns such as game_id/home_win. Rewriting
+    prevents malformed mixed-width CSV rows.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    existing = pd.DataFrame()
-    existing_ids: set[str] = set()
+    existing = pd.DataFrame(columns=FINALIZED_FIELDNAMES)
 
-    if path.exists():
+    if path.exists() and path.stat().st_size > 0:
         try:
             existing = pd.read_csv(path, dtype=str)
-            existing_ids = _finalized_ids(existing)
         except Exception:
-            existing = pd.DataFrame()
-            existing_ids = set()
+            existing = pd.DataFrame(columns=FINALIZED_FIELDNAMES)
+
+    for column in FINALIZED_FIELDNAMES:
+        if column not in existing.columns:
+            existing[column] = ""
+
+    existing = existing[FINALIZED_FIELDNAMES].copy()
+
+    if not existing.empty:
+        existing["game_id"] = existing["game_id"].apply(_normalize_game_id)
+        existing = existing[existing["game_id"] != ""].copy()
+        existing = existing.drop_duplicates("game_id", keep="last")
+
+    existing_ids = _finalized_ids(existing)
 
     normalized_rows: List[Dict[str, Any]] = []
     seen = set(existing_ids)
@@ -546,34 +562,41 @@ def _append_finalized_rows(path: Path, rows: List[Dict[str, Any]]) -> Dict[str, 
                 "game_date": str(row.get("game_date") or "").strip(),
                 "home_team": str(row.get("home_team") or "").strip(),
                 "away_team": str(row.get("away_team") or "").strip(),
-                "home_score": home_score,
-                "away_score": away_score,
-                "home_win": home_win,
+                "home_score": str(home_score),
+                "away_score": str(away_score),
+                "home_win": str(home_win),
                 "status": "Final",
             }
         )
         seen.add(game_id)
 
-    write_header = not path.exists() or path.stat().st_size == 0
-
     if normalized_rows:
-        with path.open("a", newline="", encoding="utf-8") as handle:
-            writer = csv.DictWriter(
-                handle,
-                fieldnames=FINALIZED_FIELDNAMES,
-                extrasaction="ignore",
-            )
-            if write_header:
-                writer.writeheader()
-            writer.writerows(normalized_rows)
+        combined = pd.concat(
+            [existing, pd.DataFrame(normalized_rows)],
+            ignore_index=True,
+        )
+    else:
+        combined = existing.copy()
+
+    for column in FINALIZED_FIELDNAMES:
+        if column not in combined.columns:
+            combined[column] = ""
+
+    combined = combined[FINALIZED_FIELDNAMES].copy()
+    combined["game_id"] = combined["game_id"].apply(_normalize_game_id)
+    combined = combined[combined["game_id"] != ""].copy()
+    combined = combined.drop_duplicates("game_id", keep="last")
+
+    combined.to_csv(path, index=False)
 
     return {
         "path": str(path),
         "received": len(rows),
         "inserted": len(normalized_rows),
         "duplicates_or_invalid_skipped": max(0, len(rows) - len(normalized_rows)),
+        "total_rows_after": int(len(combined)),
     }
-
+    
 
 def build_report(
     *,
@@ -622,9 +645,12 @@ def build_report(
         if not dates.empty:
             finalized_date_range = {"min": str(dates.min()), "max": str(dates.max())}
 
-    repair_candidates = snapshots[
-        snapshots["game_id"].isin(missing_ids)
-    ].copy()
+    if snapshots.empty or "game_id" not in snapshots.columns:
+        repair_candidates = pd.DataFrame()
+    else:
+        repair_candidates = snapshots[
+            snapshots["game_id"].isin(missing_ids)
+        ].copy()
 
     rows_to_append: List[Dict[str, Any]] = []
     api_check_sample: List[Dict[str, Any]] = []
@@ -671,7 +697,6 @@ def build_report(
             game = selected.get("game") or {}
             if game:
                 rows_to_append.append(game)
-                api_final_written_count += 1
 
                 if selected.get("method") == "direct_live_feed":
                     direct_matched_count += 1
