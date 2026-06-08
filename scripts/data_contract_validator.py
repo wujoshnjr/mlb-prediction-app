@@ -52,6 +52,7 @@ OPTIONAL_JSON_REPORTS = {
     "calibration_diagnostics": REPORT_DIR / "calibration_diagnostics_report.json",
     "prediction_trust": REPORT_DIR / "prediction_trust_report.json",
     "model_comparison": REPORT_DIR / "model_comparison_report.json",
+    "model_decision_guardrail": REPORT_DIR / "model_decision_guardrail_report.json",
     "shadow_ensemble_stack": REPORT_DIR / "shadow_ensemble_stack_report.json",
     "research_promotion_readiness": REPORT_DIR / "research_promotion_readiness_report.json",
 }
