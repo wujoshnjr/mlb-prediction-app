@@ -23,6 +23,7 @@ def _input_paths(tmp_path: Path) -> dict[str, Path]:
         "calibration_diagnostics": tmp_path / "report" / "calibration_diagnostics_report.json",
         "prediction_trust": tmp_path / "report" / "prediction_trust_report.json",
         "model_comparison": tmp_path / "report" / "model_comparison_report.json",
+        "model_decision_guardrail": tmp_path / "report" / "model_decision_guardrail_report.json",
         "shadow_ensemble_stack": tmp_path / "report" / "shadow_ensemble_stack_report.json",
         "data_contract": tmp_path / "report" / "data_contract_report.json",
         "pipeline_manifest": tmp_path / "report" / "pipeline_manifest.json",
@@ -103,6 +104,23 @@ def _write_minimal_valid_inputs(tmp_path: Path) -> dict[str, Path]:
         {
             "recommended_challenger": "xgboost_classifier",
             "recommended_champion": None,
+        },
+    )
+    _write_json(
+        paths["model_decision_guardrail"],
+        {
+            "status": "blocked",
+            "decision": "NO_PROMOTION_SHADOW_ONLY",
+            "recommended_challenger": "xgboost_classifier",
+            "production_model_replacement_allowed": False,
+            "probability_policy": {
+                "official_probability_change_allowed": False,
+                "shadow_probability_shrinkage_allowed": True,
+                "recommended_default_alpha": 0.85,
+                "recommended_max_display_confidence": 0.75,
+                "block_high_confidence_language": False,
+                "blocked_or_downgraded_slices": [],
+            },
         },
     )
     _write_json(
