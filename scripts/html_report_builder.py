@@ -49,6 +49,7 @@ SOURCES = {
     "prediction_trust": REPORT_DIR / "prediction_trust_report.json",
     "model_comparison": REPORT_DIR / "model_comparison_report.json",
     "shadow_ensemble_stack": REPORT_DIR / "shadow_ensemble_stack_report.json",
+    "research_promotion_readiness": REPORT_DIR / "research_promotion_readiness_report.json",
 }
 
 
@@ -359,6 +360,7 @@ def build_html() -> str:
         "Model Comparison": data.get("model_comparison"),
         "Shadow Ensemble Stack": data.get("shadow_ensemble_stack"),
         "Finalized Linkage": data.get("finalized_linkage_diagnostic"),
+        "Research Promotion Readiness": data.get("research_promotion_readiness"),
     }
 
     for title, report_data in engineering_sources.items():
@@ -450,6 +452,13 @@ def build_html() -> str:
                 f"written={_escape(report_data.get('api_final_written_count'))}; "
                 f"pending={_escape(report_data.get('pending_not_final_count'))}; "
                 f"failed={_escape(report_data.get('api_not_found_or_failed_count'))}"
+            )
+        elif title == "Research Promotion Readiness":
+            key_metric = (
+                f"status={_escape(report_data.get('status'))}; "
+                f"score={_escape(report_data.get('readiness_score'))}; "
+                f"allowed={_escape(report_data.get('research_promotion_allowed'))}; "
+                f"challenger={_escape(report_data.get('recommended_challenger'))}"
             )
 
         recommendations = report_data.get("recommendations", [])
