@@ -22,6 +22,7 @@ DEFAULT_INPUTS = {
     "calibration_diagnostics": REPORT_DIR / "calibration_diagnostics_report.json",
     "prediction_trust": REPORT_DIR / "prediction_trust_report.json",
     "model_comparison": REPORT_DIR / "model_comparison_report.json",
+    "model_decision_guardrail": REPORT_DIR / "model_decision_guardrail_report.json",
     "shadow_ensemble_stack": REPORT_DIR / "shadow_ensemble_stack_report.json",
     "data_contract": REPORT_DIR / "data_contract_report.json",
     "pipeline_manifest": REPORT_DIR / "pipeline_manifest.json",
@@ -319,6 +320,7 @@ def build_report(
     calibration = reports.get("calibration_diagnostics", {})
     prediction_trust = reports.get("prediction_trust", {})
     model_comparison = reports.get("model_comparison", {})
+    model_decision_guardrail = reports.get("model_decision_guardrail", {})
     shadow_ensemble = reports.get("shadow_ensemble_stack", {})
     data_contract = reports.get("data_contract", {})
     pipeline_manifest = reports.get("pipeline_manifest", {})
@@ -360,7 +362,10 @@ def build_report(
         or _best_shadow_model_from_model_lab(model_lab)
     )
 
-    walkforward_oos = _to_int(walk_forward.get("total_oos_predictions"))
+    walkforward_oos = _to_int(
+        walk_forward.get("max_model_oos_predictions")
+        or walk_forward.get("total_oos_predictions")
+    )
     walkforward_ready = bool(walk_forward.get("walkforward_ready"))
     market_edge = _walk_forward_market_edge(walk_forward)
     beats_market = bool(
@@ -443,6 +448,20 @@ def build_report(
             current=market_edge,
             required="at least one shadow model beats market brier or logloss",
             blocker="no shadow model has proven brier/logloss edge over market in walk-forward report",
+        ),
+        _gate(
+            "model_decision_guardrail_gate",
+            model_decision_guardrail.get("decision") == "NO_PROMOTION_SHADOW_ONLY"
+            and not model_decision_guardrail.get("production_model_replacement_allowed", True),
+            current={
+                "decision": model_decision_guardrail.get("decision"),
+                "status": model_decision_guardrail.get("status"),
+                "recommended_challenger": model_decision_guardrail.get("recommended_challenger"),
+                "probability_policy": model_decision_guardrail.get("probability_policy"),
+            },
+            required="guardrail must keep shadow models non-production",
+            blocker="model decision guardrail missing or unsafe",
+            warning="guardrail currently blocks promotion, which is expected until evidence improves",
         ),
         _gate(
             "calibration_gate",
@@ -604,6 +623,9 @@ def build_report(
             "feature_ready_for_review_count": feature_ready_count,
             "prediction_trust": trust,
             "market_edge": market_edge,
+            "model_decision_guardrail_status": model_decision_guardrail.get("status"),
+            "model_decision_guardrail_decision": model_decision_guardrail.get("decision"),
+            "probability_policy": model_decision_guardrail.get("probability_policy"),
         },
         "gates": gates,
         "blockers": sorted(set(blockers)),
