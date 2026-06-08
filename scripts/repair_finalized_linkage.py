@@ -740,6 +740,12 @@ def build_report(
 
     append_summary = _append_finalized_rows(finalized_path, rows_to_append)
 
+    api_final_written_count = int(append_summary.get("inserted", 0) or 0)
+    api_final_but_not_written_count += max(
+        0,
+        len(rows_to_append) - api_final_written_count,
+    )
+
     finalized_after_raw, finalized_after_status = _read_csv(finalized_path)
     finalized_after = _prepare_finalized(finalized_after_raw)
     finalized_ids_after = _finalized_ids(finalized_after)
