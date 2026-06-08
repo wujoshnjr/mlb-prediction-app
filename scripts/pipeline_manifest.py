@@ -34,6 +34,7 @@ TRACKED_FILES = [
     "report/research_quality_report.json",
     "report/settle_reliability_report.json",
     "report/settled_prediction_link_report.json",
+    "report/finalized_linkage_diagnostic_report.json",
     "report/snapshot_sanitization_report.json",
     "report/prediction_sanitization_report.json",
     "report/model_registry_report.json",
