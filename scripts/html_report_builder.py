@@ -50,6 +50,7 @@ SOURCES = {
     "model_comparison": REPORT_DIR / "model_comparison_report.json",
     "shadow_ensemble_stack": REPORT_DIR / "shadow_ensemble_stack_report.json",
     "research_promotion_readiness": REPORT_DIR / "research_promotion_readiness_report.json",
+    "model_decision_guardrail": REPORT_DIR / "model_decision_guardrail_report.json",
 }
 
 
@@ -361,6 +362,7 @@ def build_html() -> str:
         "Shadow Ensemble Stack": data.get("shadow_ensemble_stack"),
         "Finalized Linkage": data.get("finalized_linkage_diagnostic"),
         "Research Promotion Readiness": data.get("research_promotion_readiness"),
+        "Model Decision Guardrail": data.get("model_decision_guardrail"),
     }
 
     for title, report_data in engineering_sources.items():
@@ -458,6 +460,12 @@ def build_html() -> str:
                 f"status={_escape(report_data.get('status'))}; "
                 f"score={_escape(report_data.get('readiness_score'))}; "
                 f"allowed={_escape(report_data.get('research_promotion_allowed'))}; "
+                f"challenger={_escape(report_data.get('recommended_challenger'))}"
+            )
+        elif title == "Model Decision Guardrail":
+            key_metric = (
+                f"decision={_escape(report_data.get('decision'))}; "
+                f"status={_escape(report_data.get('status'))}; "
                 f"challenger={_escape(report_data.get('recommended_challenger'))}"
             )
 
