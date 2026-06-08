@@ -16,6 +16,7 @@ REPORT_DIR = Path("report")
 
 SNAPSHOT_PATH = DATA_DIR / "prediction_snapshots.csv"
 FINALIZED_PATH = DATA_DIR / "finalized_games.csv"
+FINALIZED_SNAPSHOT_OUTCOMES_PATH = DATA_DIR / "finalized_snapshot_outcomes.csv"
 LINK_REPORT_PATH = REPORT_DIR / "settled_prediction_link_report.json"
 FINALIZED_LINKAGE_DIAGNOSTIC_PATH = REPORT_DIR / "finalized_linkage_diagnostic_report.json"
 ROLLING_WALKFORWARD_PATH = REPORT_DIR / "rolling_walkforward_evaluation.json"
@@ -267,6 +268,31 @@ def _prepare_finalized(frame: pd.DataFrame) -> pd.DataFrame:
     return result.drop_duplicates("game_id", keep="last").reset_index(drop=True)
 
 
+def _combine_finalized_sources(
+    finalized: pd.DataFrame,
+    snapshot_outcomes: pd.DataFrame,
+) -> pd.DataFrame:
+    """Combine canonical finalized_games and trusted snapshot-outcome cache."""
+    frames = []
+
+    prepared_finalized = _prepare_finalized(finalized)
+    if not prepared_finalized.empty:
+        frames.append(prepared_finalized)
+
+    prepared_cache = _prepare_finalized(snapshot_outcomes)
+    if not prepared_cache.empty:
+        frames.append(prepared_cache)
+
+    if not frames:
+        return pd.DataFrame()
+
+    combined = pd.concat(frames, ignore_index=True)
+    combined["game_id"] = combined["game_id"].apply(_normalize_game_id)
+    combined = combined[combined["game_id"] != ""].copy()
+
+    return combined.drop_duplicates("game_id", keep="last").reset_index(drop=True)
+
+
 def _extract_training_sample_count_from_artifact(artifact: Any) -> Optional[int]:
     if artifact is None:
         return None
@@ -321,6 +347,9 @@ def build_sample_state() -> Dict[str, Any]:
 
     snapshots_raw, snapshot_status = _read_csv(SNAPSHOT_PATH)
     finalized_raw, finalized_status = _read_csv(FINALIZED_PATH)
+    finalized_snapshot_outcomes_raw, finalized_snapshot_outcomes_status = _read_csv(
+        FINALIZED_SNAPSHOT_OUTCOMES_PATH
+    )
     link_report, link_status = _read_json(LINK_REPORT_PATH)
     finalized_linkage_report, finalized_linkage_status = _read_json(
         FINALIZED_LINKAGE_DIAGNOSTIC_PATH
@@ -345,11 +374,15 @@ def build_sample_state() -> Dict[str, Any]:
         warnings.append(f"training_status unavailable: {training_status_file['error']}")
 
     snapshots = _prepare_snapshots(snapshots_raw)
-    finalized = _prepare_finalized(finalized_raw)
+    finalized = _combine_finalized_sources(
+        finalized_raw,
+        finalized_snapshot_outcomes_raw,
+    )
 
     raw_snapshots = int(len(snapshots_raw))
     valid_snapshots = int(snapshots["_sample_state_valid"].sum()) if not snapshots.empty else 0
-    finalized_games = _count_unique_games(finalized)
+            "finalized_games": finalized_status,
+            "finalized_snapshot_outcomes": finalized_snapshot_outcomes_status,
 
     settled_snapshots = 0
     clean_settled_snapshots = 0
@@ -382,24 +415,31 @@ def build_sample_state() -> Dict[str, Any]:
         
     train_eligible_samples = clean_settled_snapshots
 
-    linked_games = None
-    link_rate = None
+    linked_games = clean_settled_snapshots
+    link_rate = (
+        float(clean_settled_snapshots / valid_snapshots)
+        if valid_snapshots > 0
+        else 0.0
+    )
+
     if isinstance(link_report, dict):
-        linked_games = _to_int(
+        legacy_linked_games = _to_int(
             link_report.get("linked_game_count", link_report.get("linked_games"))
         )
-        link_rate = _to_float(link_report.get("link_rate"))
+        legacy_link_rate = _to_float(link_report.get("link_rate"))
 
-    if linked_games is None:
-        linked_games = 0
-        if not link_status["error"]:
-            warnings.append("linked_game_count missing from settled_prediction_link_report.json")
+        if legacy_linked_games is not None and legacy_linked_games != linked_games:
+            warnings.append(
+                "Legacy settled_prediction_link_report linked count differs from "
+                f"actual finalized join: legacy={legacy_linked_games}, actual={linked_games}."
+            )
 
-    if link_rate is None:
-        link_rate = 0.0
-        if not link_status["error"]:
-            warnings.append("link_rate missing from settled_prediction_link_report.json")
-
+        if legacy_link_rate is not None and abs(float(legacy_link_rate) - float(link_rate)) > 0.001:
+            warnings.append(
+                "Legacy settled_prediction_link_report link_rate differs from "
+                f"actual finalized join: legacy={legacy_link_rate}, actual={link_rate:.6f}."
+            )
+            
     walkforward_predictions = 0
     if isinstance(rolling_report, dict):
         walkforward_predictions = _to_int(rolling_report.get("total_oos_predictions")) or 0
@@ -449,6 +489,13 @@ def build_sample_state() -> Dict[str, Any]:
             f"pending_not_final={finalized_linkage_report.get('pending_not_final_count')}, "
             f"api_not_found_or_failed={finalized_linkage_report.get('api_not_found_or_failed_count')}."
         )
+        diagnostic_overlap = _to_int(finalized_linkage_report.get("overlap_count_after"))
+        if diagnostic_overlap and diagnostic_overlap > 0 and clean_settled_snapshots == 0:
+            errors.append(
+                "Finalized linkage diagnostic reports positive overlap, but actual "
+                "combined finalized outcome join is zero. This indicates stale report "
+                "or finalized outcome persistence failure."
+            )
         
     if model_artifact_exists and not trained:
         warnings.append(
