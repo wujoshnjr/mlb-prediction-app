@@ -53,6 +53,7 @@ SAVANT_TOP3_CONTEXT_PATH = Path("data/savant_top3_context.csv")
 TRAINING_STATUS_PATH = Path("data/training_status.json")
 SAMPLE_STATE_PATH = Path("data/sample_state.json")
 FINALIZED_GAMES_PATH = Path("data/finalized_games.csv")
+FINALIZED_SNAPSHOT_OUTCOMES_PATH = Path("data/finalized_snapshot_outcomes.csv")
 CLEAN_PIPELINE_VERSION = "baseline_v2_clean"
 
 
@@ -2262,6 +2263,30 @@ def _prepare_finalized_dashboard_outcomes(frame: pd.DataFrame) -> pd.DataFrame:
     )
 
 
+def _combine_dashboard_finalized_outcomes(
+    finalized_games: pd.DataFrame,
+    snapshot_outcomes: pd.DataFrame,
+) -> pd.DataFrame:
+    frames = []
+
+    prepared_finalized = _prepare_finalized_dashboard_outcomes(finalized_games)
+    if not prepared_finalized.empty:
+        frames.append(prepared_finalized)
+
+    prepared_cache = _prepare_finalized_dashboard_outcomes(snapshot_outcomes)
+    if not prepared_cache.empty:
+        frames.append(prepared_cache)
+
+    if not frames:
+        return pd.DataFrame()
+
+    combined = pd.concat(frames, ignore_index=True)
+    combined["game_id"] = combined["game_id"].apply(_normalize_game_id)
+    combined = combined[combined["game_id"] != ""].copy()
+
+    return combined.drop_duplicates("game_id", keep="last").reset_index(drop=True)
+
+
 def _load_dashboard_sample_state() -> dict[str, Any]:
     sample_state, _ = _read_json_safe(SAMPLE_STATE_PATH)
     return sample_state if isinstance(sample_state, dict) else {}
@@ -2275,10 +2300,25 @@ def _load_finalized_joined_clean_snapshots() -> tuple[pd.DataFrame, str | None]:
 
     finalized, finalized_error = _read_csv_safe(FINALIZED_GAMES_PATH)
     if finalized_error is not None:
-        return pd.DataFrame(), f"finalized_games unavailable: {finalized_error}"
+        finalized = pd.DataFrame()
+
+    snapshot_outcomes, snapshot_outcomes_error = _read_csv_safe(
+        FINALIZED_SNAPSHOT_OUTCOMES_PATH
+    )
+    if snapshot_outcomes_error is not None:
+        snapshot_outcomes = pd.DataFrame()
+
+    if finalized.empty and snapshot_outcomes.empty:
+        return (
+            pd.DataFrame(),
+            "finalized_games and finalized_snapshot_outcomes unavailable",
+        )
 
     clean_snapshots = _prepare_clean_dashboard_snapshots(snapshots)
-    finalized_outcomes = _prepare_finalized_dashboard_outcomes(finalized)
+    finalized_outcomes = _combine_dashboard_finalized_outcomes(
+        finalized,
+        snapshot_outcomes,
+    )
 
     if clean_snapshots.empty:
         return pd.DataFrame(), "No clean pregame snapshots available"
