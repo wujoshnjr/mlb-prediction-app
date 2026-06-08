@@ -37,6 +37,7 @@ REQUIRED_JSON_REPORTS = {
 
 OPTIONAL_JSON_REPORTS = {
     "model_lab": REPORT_DIR / "model_lab_report.json",
+    "feature_promotion": REPORT_DIR / "feature_promotion_report.json",
     "prediction_sanitization": REPORT_DIR / "prediction_sanitization_report.json",
     "model_registry_report": REPORT_DIR / "model_registry_report.json",
     "promotion_gate": REPORT_DIR / "promotion_gate_report.json",
