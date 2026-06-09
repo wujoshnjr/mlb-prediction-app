@@ -1,18 +1,71 @@
 {
-  "generated_at": "2026-06-09T03:07:53.843682+00:00",
-  "status": "partial",
-  "trained": false,
-  "skipped": true,
-  "skip_reason": "stack sample_count below threshold: 77 < 80",
-  "sample_count": 77,
-  "train_count": 0,
-  "calibration_count": 0,
-  "validation_count": 0,
-  "ensemble_methods": {},
-  "recommended_shadow_ensemble": null,
+  "generated_at": "2026-06-09T05:25:43.474232+00:00",
+  "status": "ok",
+  "trained": true,
+  "skipped": false,
+  "skip_reason": "",
+  "sample_count": 80,
+  "train_count": 56,
+  "calibration_count": 12,
+  "validation_count": 12,
+  "model_columns": [
+    "lightgbm_classifier",
+    "logistic_baseline",
+    "market_residual_model",
+    "xgboost_classifier"
+  ],
+  "ensemble_methods": {
+    "simple_average": {
+      "ok": true,
+      "sample_count": 12,
+      "positive_count": 7,
+      "negative_count": 5,
+      "brier": 0.27438241674222663,
+      "logloss": 0.7440410247953063,
+      "accuracy": 0.5833333333333334,
+      "auc": 0.48571428571428577,
+      "ece": 0.33921935394390806,
+      "warnings": [],
+      "errors": []
+    },
+    "weighted_average": {
+      "ok": true,
+      "sample_count": 12,
+      "positive_count": 7,
+      "negative_count": 5,
+      "brier": 0.27669244729465675,
+      "logloss": 0.7490677606043858,
+      "accuracy": 0.5833333333333334,
+      "auc": 0.48571428571428577,
+      "ece": 0.34020738555863617,
+      "warnings": [],
+      "errors": [],
+      "weights": {
+        "lightgbm_classifier": 0.2597672169068059,
+        "logistic_baseline": 0.27865830124060476,
+        "market_residual_model": 0.2017964450444507,
+        "xgboost_classifier": 0.25977803680813866
+      }
+    },
+    "logistic_stacking": {
+      "ok": true,
+      "sample_count": 12,
+      "positive_count": 7,
+      "negative_count": 5,
+      "brier": 0.25144646349479866,
+      "logloss": 0.6962878345672943,
+      "accuracy": 0.5,
+      "auc": 0.5142857142857142,
+      "ece": 0.16168826626169264,
+      "warnings": [],
+      "errors": []
+    }
+  },
+  "recommended_shadow_ensemble": "logistic_stacking",
   "promotion_eligible": false,
   "promotion_blockers": [
-    "stack sample_count below threshold: 77 < 80"
+    "sample_count below promotion threshold: 80 < 300",
+    "best ensemble ECE above threshold: 0.1617 > 0.05"
   ],
   "warnings": [],
   "shadow_only": true,
