@@ -55,6 +55,12 @@ OPTIONAL_JSON_REPORTS = {
     "model_decision_guardrail": REPORT_DIR / "model_decision_guardrail_report.json",
     "shadow_ensemble_stack": REPORT_DIR / "shadow_ensemble_stack_report.json",
     "research_promotion_readiness": REPORT_DIR / "research_promotion_readiness_report.json",
+    "underdog_diagnostic": REPORT_DIR / "underdog_diagnostic_report.json",
+    "confidence_bucket_guardrail": REPORT_DIR / "confidence_bucket_guardrail_report.json",
+    "slice_promotion_gate": REPORT_DIR / "slice_promotion_gate_report.json",
+    "feature_freshness": REPORT_DIR / "feature_freshness_report.json",
+    "lineup_quality": REPORT_DIR / "lineup_quality_report.json",
+    "model_correctness": REPORT_DIR / "model_correctness_report.json",
 }
 
 REQUIRED_NON_JSON_FILES = {
@@ -66,6 +72,8 @@ REQUIRED_NON_JSON_FILES = {
 OPTIONAL_NON_JSON_FILES = {
     "decision_audit_csv": REPORT_DIR / "decision_audit.csv",
     "paper_trading_ledger_csv": DATA_DIR / "paper_trading_ledger.csv",
+    "lineup_quality_context": DATA_DIR / "lineup_quality_context.csv",
+    "finalized_snapshot_outcomes": DATA_DIR / "finalized_snapshot_outcomes.csv",
 }
 
 
