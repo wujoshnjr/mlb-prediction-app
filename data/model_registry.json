@@ -882,5 +882,43 @@
       "model not trained",
       "live betting disabled by governance"
     ]
+  },
+  {
+    "model_id": "mlb-20260609-8de2afb6dd59",
+    "created_at": "2026-06-09T03:07:56.663735+00:00",
+    "model_type": "calibrated_logistic_regression_with_imputer",
+    "sample_count": 157,
+    "trained": false,
+    "artifact_paths": [
+      "data/calibrator.pkl",
+      "data/market_residual_model.pkl",
+      "data/training_status.json"
+    ],
+    "metrics": {
+      "baseline": {
+        "model_brier": 0.248882,
+        "market_brier": 0.271499,
+        "model_logloss": 0.691114,
+        "market_logloss": 0.776377,
+        "model_beats_market_brier": true,
+        "model_beats_market_logloss": true
+      },
+      "walkforward": {
+        "model_brier": null,
+        "market_brier": null,
+        "model_logloss": null,
+        "market_logloss": null,
+        "avg_clv": null,
+        "positive_clv_rate": null
+      }
+    },
+    "calibration_ready": false,
+    "walkforward_ready": false,
+    "promotion_status": "blocked",
+    "promotion_blockers": [
+      "sample_count < 500",
+      "model not trained",
+      "live betting disabled by governance"
+    ]
   }
 ]
