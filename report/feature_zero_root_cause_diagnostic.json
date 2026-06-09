@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-08T22:40:05.524716+00:00",
+  "generated_at": "2026-06-09T00:00:26.351201+00:00",
   "prediction_count": 8,
   "feature_zero_summary": [
     {
@@ -317,13 +317,13 @@
     {
       "feature": "temp_effect",
       "missing_count": 0,
-      "zero_count": 7,
-      "non_zero_count": 1,
-      "zero_rate": 0.875,
-      "non_zero_rate": 0.125,
+      "zero_count": 8,
+      "non_zero_count": 0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
       "source": "weather",
       "source_status": "present",
-      "likely_root_cause": "repaired_or_active",
+      "likely_root_cause": "source_present_but_not_integrated_or_no_signal",
       "expected_neutral_zero": false
     },
     {
@@ -432,7 +432,8 @@
     ]
   },
   "still_zero_features": [
-    "precip_effect"
+    "precip_effect",
+    "temp_effect"
   ],
   "repaired_features": [
     "avg_bat_speed_diff",
@@ -459,11 +460,10 @@
     "statcast_hard_hit_diff",
     "statcast_launch_speed_diff",
     "statcast_woba_diff",
-    "temp_effect",
     "top3_woba_diff",
     "wind_effect"
   ],
   "recommendations": [
-    "weather source exists but these features remain all-zero: ['precip_effect']"
+    "weather source exists but these features remain all-zero: ['temp_effect', 'precip_effect']"
   ]
 }
