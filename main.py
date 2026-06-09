@@ -3340,6 +3340,89 @@ def get_performance() -> dict[str, Any]:
     return result
 
 
+@app.get("/api/research-guardrails")
+def get_research_guardrails() -> dict[str, Any]:
+    """Return shadow research guardrail reports for dashboard display.
+
+    This endpoint is read-only. It does not change predictions, betting status,
+    model promotion, or production model behavior.
+    """
+    report_map = {
+        "sample_state": SAMPLE_STATE_PATH,
+        "underdog_diagnostic": Path("report/underdog_diagnostic_report.json"),
+        "confidence_bucket_guardrail": Path("report/confidence_bucket_guardrail_report.json"),
+        "slice_promotion_gate": Path("report/slice_promotion_gate_report.json"),
+        "feature_freshness": Path("report/feature_freshness_report.json"),
+        "lineup_quality": Path("report/lineup_quality_report.json"),
+        "model_correctness": Path("report/model_correctness_report.json"),
+        "model_decision_guardrail": Path("report/model_decision_guardrail_report.json"),
+        "research_promotion_readiness": Path("report/research_promotion_readiness_report.json"),
+    }
+
+    reports: dict[str, Any] = {}
+    missing: list[str] = []
+    errors: dict[str, str] = {}
+
+    for name, path in report_map.items():
+        payload, error = _read_json_safe(path)
+        if error is not None:
+            reports[name] = {}
+            missing.append(name)
+            errors[name] = str(error)
+        else:
+            reports[name] = payload if isinstance(payload, dict) else {}
+
+    sample_state = reports.get("sample_state", {})
+    confidence = reports.get("confidence_bucket_guardrail", {})
+    slice_gate = reports.get("slice_promotion_gate", {})
+    lineup_quality = reports.get("lineup_quality", {})
+    freshness = reports.get("feature_freshness", {})
+    correctness = reports.get("model_correctness", {})
+
+    confidence_policy = (
+        confidence.get("global_policy")
+        if isinstance(confidence.get("global_policy"), dict)
+        else {}
+    )
+
+    summary = {
+        "clean_settled_samples": int(sample_state.get("clean_settled_snapshots") or 0),
+        "train_eligible_samples": int(sample_state.get("train_eligible_samples") or 0),
+        "minimum_clean_train_samples": int(sample_state.get("minimum_clean_train_samples") or 300),
+        "minimum_promotion_samples": int(sample_state.get("minimum_promotion_samples") or 500),
+        "linked_games": int(sample_state.get("linked_games") or 0),
+        "link_rate": sample_state.get("link_rate"),
+        "shadow_only": True,
+        "global_decision": str(slice_gate.get("global_decision") or "NO_PROMOTION_SHADOW_ONLY"),
+        "recommended_max_display_confidence": confidence_policy.get("recommended_max_display_confidence"),
+        "block_high_confidence_language": bool(confidence_policy.get("block_high_confidence_language", True)),
+        "slice_policy": slice_gate.get("paper_entry_policy", {}),
+        "lineup_grade_counts": lineup_quality.get("grade_counts", {}),
+        "lineup_context_available_count": lineup_quality.get("context_available_count"),
+        "freshness_global_grade": freshness.get("global_grade"),
+        "stale_sources": freshness.get("stale_sources", []),
+        "overall_model_correctness": correctness.get("overall_accuracy"),
+        "blocked_filters": correctness.get("blocked_filters", []),
+        "recommended_filters": correctness.get("recommended_filters", []),
+    }
+
+    status = "ok"
+    if errors:
+        status = "partial"
+
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "status": status,
+        "summary": summary,
+        "reports": reports,
+        "missing": missing,
+        "errors": errors,
+        "live_betting_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_model_replacement_allowed": False,
+    }
+
+
 @app.post("/run")
 def run_background(authorization: str = Header(None)) -> dict[str, str]:
     if not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
