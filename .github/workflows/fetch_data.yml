@@ -413,6 +413,42 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build lineup quality context
+        continue-on-error: true
+        run: python scripts/lineup_quality_builder.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build feature freshness report
+        continue-on-error: true
+        run: python scripts/feature_freshness_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build underdog diagnostic report
+        continue-on-error: true
+        run: python scripts/underdog_diagnostic_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build confidence bucket guardrail
+        continue-on-error: true
+        run: python scripts/confidence_bucket_guardrail.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build slice promotion gate
+        continue-on-error: true
+        run: python scripts/slice_promotion_gate.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build model correctness report
+        continue-on-error: true
+        run: python scripts/model_correctness_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          
       - name: Build research quality report
         run: python scripts/research_quality_report.py
         env:
@@ -611,6 +647,13 @@ jobs:
             report/shadow_ensemble_stack_report.json \
             report/research_promotion_readiness_report.json \
             report/model_decision_guardrail_report.json \
+            report/underdog_diagnostic_report.json \
+            report/confidence_bucket_guardrail_report.json \
+            report/slice_promotion_gate_report.json \
+            report/feature_freshness_report.json \
+            report/lineup_quality_report.json \
+            report/model_correctness_report.json \
+            data/lineup_quality_context.csv \
             data/walk_forward_predictions.csv \
             data/model_registry.json \
             data/sample_state.json \
