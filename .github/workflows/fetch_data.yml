@@ -139,7 +139,8 @@ jobs:
             scripts/feature_freshness_report.py \
             scripts/model_correctness_report.py \
             scripts/edge_sanity_guardrail.py \
-            scripts/signal_quality_report.py 
+            scripts/signal_quality_report.py \
+            scripts/product_experience_report.py 
             
       - name: Update finalized game results
         run: python scripts/update_results.py
@@ -469,7 +470,12 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-
+      - name: Build product experience report
+        continue-on-error: true
+        run: python scripts/product_experience_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          
       - name: Build research quality report
         run: python scripts/research_quality_report.py
         env:
@@ -676,6 +682,7 @@ jobs:
             report/model_correctness_report.json \
             report/edge_sanity_guardrail_report.json \
             report/signal_quality_report.json \
+            report/product_experience_report.json \
             data/lineup_quality_context.csv \
             data/walk_forward_predictions.csv \
             data/model_registry.json \
