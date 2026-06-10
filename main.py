@@ -1,15 +1,17 @@
 # main.py
-"""MLB Intelligence Cloud FastAPI dashboard.
+"""FastAPI dashboard for MLB Intelligence Cloud.
 
-Product UI Upgrade v1:
+Product UI Upgrade v1 + Signal Quality Upgrade v2:
 - Mission Control
 - Research Guardrails
 - Signal Center
 - Product-style Game Board
-- Game Detail payloads
+- Single-game detail payloads
+- Signal quality cases: Strong Favorite, Clean Paper, Suspicious Large Edge, Weak Underdog
+- Paper-only / shadow-research-only safety locks
 
-Safety: paper/shadow research only. No live betting, no automated wagering,
-no user funds, and no production model replacement.
+This file is intentionally self-contained so it can replace the existing main.py.
+It does not place bets, does not enable live betting, and does not promote models.
 """
 
 from __future__ import annotations
@@ -29,24 +31,29 @@ from sklearn.metrics import brier_score_loss
 
 try:
     from prediction import generate_predictions
-except Exception as exc:  # pragma: no cover
+except Exception as exc:  # pragma: no cover - dashboard should still boot
     print(f"Warning: prediction module failed to import: {exc}")
     generate_predictions = None
 
 
 app = FastAPI(title="MLB Intelligence Cloud")
+
 ADMIN_TOKEN = os.getenv("ADMIN_API_TOKEN", "")
 
 REPORT_PATH = Path("report/prediction.json")
+HISTORY_PATH = Path("data/historical_predictions.csv")
 SNAPSHOT_PATH = Path("data/prediction_snapshots.csv")
 MARKET_ODDS_PATH = Path("data/market_odds_history.csv")
 DAILY_CONTEXT_PATH = Path("data/daily_game_context.csv")
+SAVANT_TOP3_CONTEXT_PATH = Path("data/savant_top3_context.csv")
 TRAINING_STATUS_PATH = Path("data/training_status.json")
 SAMPLE_STATE_PATH = Path("data/sample_state.json")
 FINALIZED_GAMES_PATH = Path("data/finalized_games.csv")
 FINALIZED_SNAPSHOT_OUTCOMES_PATH = Path("data/finalized_snapshot_outcomes.csv")
 LINEUP_QUALITY_CONTEXT_PATH = Path("data/lineup_quality_context.csv")
+
 CLEAN_PIPELINE_VERSION = "baseline_v2_clean"
+
 
 HTML = r"""
 <!DOCTYPE html>
@@ -54,54 +61,1438 @@ HTML = r"""
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>MLB Intelligence Cloud</title>
+<title>MLB Intelligence Cloud | Emerald Quant Terminal</title>
 <style>
-:root{color-scheme:dark;--bg:#020807;--panel:rgba(7,24,20,.86);--border:rgba(52,211,153,.18);--text:#ecfff8;--muted:#8eb7a7;--muted2:#5d7f72;--green:#34f5a4;--cyan:#22d3ee;--amber:#fbbf24;--red:#fb7185;--greenbg:rgba(52,245,164,.12);--amberbg:rgba(251,191,36,.12);--redbg:rgba(251,113,133,.12);--grad:linear-gradient(92deg,#00ff88,#22d3ee 52%,#a7f3d0)}
-*{box-sizing:border-box}body{margin:0;min-height:100%;background:radial-gradient(circle at 12% -8%,rgba(52,245,164,.22),transparent 34%),radial-gradient(circle at 88% 0%,rgba(34,211,238,.13),transparent 31%),linear-gradient(180deg,#020807,#04130f 46%,#020807);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,sans-serif;font-variant-numeric:tabular-nums;overflow-x:hidden}body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:linear-gradient(rgba(52,211,153,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(52,211,153,.045) 1px,transparent 1px);background-size:44px 44px}.container{max-width:1380px;margin:0 auto;padding:22px 18px 38px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:18px;padding:11px 12px;border:1px solid rgba(134,239,172,.10);border-radius:20px;background:rgba(2,8,7,.52);backdrop-filter:blur(16px)}.brand{display:flex;align-items:center;gap:12px}.brand-mark{display:grid;place-items:center;width:46px;height:46px;border-radius:15px;background:linear-gradient(140deg,rgba(52,245,164,.96),rgba(34,211,238,.72));color:#03110e;font-weight:950}.brand-name{font-size:1.03rem;font-weight:780}.brand-sub{color:var(--muted);font-size:.68rem;letter-spacing:.18em;margin-top:3px;text-transform:uppercase}.live-pill{display:flex;align-items:center;gap:8px;border:1px solid rgba(52,245,164,.34);background:rgba(52,245,164,.10);color:var(--green);border-radius:999px;padding:9px 12px;font-size:.72rem;font-weight:780;text-transform:uppercase}.live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 14px var(--green)}.hero{overflow:hidden;padding:26px 24px;margin-bottom:16px;border-radius:26px;background:linear-gradient(120deg,rgba(8,35,28,.96),rgba(3,17,14,.94));border:1px solid var(--border);box-shadow:0 24px 70px rgba(0,0,0,.42)}.hero-content{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(270px,.75fr);gap:22px;align-items:end}.hero-kicker{color:#b9ffe1;font-size:.69rem;font-weight:800;letter-spacing:.19em;text-transform:uppercase;margin-bottom:13px}.hero h1{margin:0;font-size:clamp(1.9rem,4.2vw,3.25rem);font-weight:860;letter-spacing:-.06em;line-height:1.02}.hero-gradient{background:var(--grad);background-clip:text;-webkit-background-clip:text;color:transparent}.hero-copy{color:var(--muted);max-width:760px;margin:14px 0 0;line-height:1.58;font-size:.92rem}.updated{display:inline-flex;margin-top:18px;padding:8px 12px;border-radius:999px;border:1px solid rgba(52,211,153,.17);background:rgba(255,255,255,.035);color:#b4d7ca;font-size:.72rem}.terminal-card{padding:16px;border-radius:20px;border:1px solid rgba(52,245,164,.18);background:linear-gradient(150deg,rgba(2,8,7,.52),rgba(6,25,21,.62))}.terminal-title{display:flex;justify-content:space-between;gap:12px;font-size:.72rem;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}.terminal-status{color:var(--green);font-weight:900}.terminal-line{display:flex;justify-content:space-between;gap:14px;border-top:1px solid rgba(52,211,153,.09);padding:10px 0;color:#d9fff1;font-size:.78rem}.terminal-line span:first-child{color:var(--muted)}.section-heading{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:20px 0 10px}.section-heading h2{margin:0;font-size:1.02rem}.section-heading span{color:var(--muted);font-size:.72rem}.messages{display:grid;gap:8px;margin:12px 0}.message{padding:11px 13px;border-radius:14px;border:1px solid rgba(52,211,153,.12);background:rgba(7,24,20,.70);color:#c8f7e4;font-size:.72rem}.message.warn{color:var(--amber);background:var(--amberbg)}.message.bad{color:var(--red);background:var(--redbg)}.stats,.health-grid,.guardrail-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}.health-grid,.guardrail-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.stat,.health-card,.guardrail-card{min-height:104px;padding:14px;border-radius:18px;border:1px solid rgba(52,211,153,.12);background:rgba(7,24,20,.72);box-shadow:0 16px 42px rgba(0,0,0,.22)}.stat.featured{background:linear-gradient(145deg,rgba(52,245,164,.13),rgba(34,211,238,.06),rgba(7,24,20,.72))}.stat-label,.health-label,.guardrail-label{color:var(--muted);font-size:.62rem;font-weight:820;letter-spacing:.13em;text-transform:uppercase;margin-bottom:8px}.stat-value,.health-value,.guardrail-value{font-size:1.48rem;font-weight:900;letter-spacing:-.04em}.positive{color:var(--green)}.negative{color:var(--red)}.waiting{color:var(--amber)}.neutral{color:var(--text)}.stat-caption,.health-caption,.guardrail-caption{color:var(--muted2);font-size:.64rem;line-height:1.35;margin-top:7px}.signal-center{padding:14px;border:1px solid rgba(52,211,153,.14);background:rgba(7,24,20,.72);border-radius:18px;box-shadow:0 16px 42px rgba(0,0,0,.22)}.case-tabs{display:flex;flex-wrap:wrap;gap:8px}.case-tab{cursor:pointer;border:1px solid rgba(52,211,153,.15);color:#c8f7e4;background:rgba(2,8,7,.45);border-radius:999px;padding:8px 10px;font-size:.66rem;font-weight:840;letter-spacing:.06em;text-transform:uppercase}.case-tab.active{background:linear-gradient(92deg,rgba(52,245,164,.92),rgba(34,211,238,.70));color:#02110d}.games{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.game-card{overflow:hidden;border-radius:20px;border:1px solid rgba(52,211,153,.13);background:rgba(7,24,20,.82);box-shadow:0 18px 48px rgba(0,0,0,.28)}.game-card.product{cursor:pointer;transition:transform .18s ease,border-color .18s ease}.game-card.product:hover{transform:translateY(-2px);border-color:rgba(52,245,164,.42)}.signal{min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:9px;padding:11px 14px;color:#c7ffe7;font-size:.71rem;font-weight:840;text-transform:uppercase;letter-spacing:.09em;border-bottom:1px solid rgba(52,211,153,.10);background:linear-gradient(92deg,rgba(52,245,164,.12),rgba(34,211,238,.06))}.signal.paper{background:linear-gradient(92deg,rgba(52,245,164,.95),rgba(34,211,238,.76));color:#02110d}.signal.blocked{background:linear-gradient(92deg,rgba(251,113,133,.30),rgba(3,17,14,.36));color:#ffd1d8}.signal.no-signal{background:rgba(142,183,167,.08);color:#b1d4c7}.signal-edge{font-size:.69rem;white-space:nowrap}.game-body{padding:15px}.matchup-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}.matchup{font-size:1.04rem;font-weight:820}.game-time{color:var(--muted);font-size:.71rem;margin-top:6px}.probability{text-align:right;font-weight:900;font-size:1.43rem;line-height:1}.probability small{display:block;font-size:.58rem;letter-spacing:.10em;color:var(--muted);margin-top:6px;text-transform:uppercase}.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}.tag{display:inline-flex;align-items:center;padding:6px 8px;border-radius:999px;font-size:.61rem;line-height:1;font-weight:820;letter-spacing:.07em;text-transform:uppercase}.tag.green{background:var(--greenbg);color:var(--green);border:1px solid rgba(52,245,164,.14)}.tag.amber{background:var(--amberbg);color:var(--amber);border:1px solid rgba(251,191,36,.13)}.tag.red{background:var(--redbg);color:var(--red);border:1px solid rgba(251,113,133,.15)}.tag.muted{background:rgba(142,183,167,.08);color:#b1d4c7;border:1px solid rgba(142,183,167,.12)}.source,.factors{color:var(--muted);font-size:.68rem;line-height:1.5}.source{margin:0 0 12px}.market-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.market{min-height:72px;padding:10px;border-radius:13px;background:rgba(2,8,7,.42);border:1px solid rgba(52,211,153,.10)}.market-label{display:block;color:var(--muted2);font-size:.59rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:7px}.market-value{font-size:.78rem;color:#e7fff6;font-weight:660;line-height:1.42}.factors{border-top:1px solid rgba(52,211,153,.10);margin-top:12px;padding-top:11px}.empty{grid-column:1/-1;border:1px dashed rgba(52,245,164,.22);border-radius:20px;padding:36px 16px;text-align:center;color:var(--muted);background:rgba(7,24,20,.55)}.detail-overlay{position:fixed;inset:0;display:none;z-index:99;background:rgba(0,0,0,.62);backdrop-filter:blur(8px);padding:18px;overflow:auto}.detail-overlay.open{display:block}.detail-panel{max-width:960px;margin:28px auto;padding:18px;border:1px solid rgba(52,211,153,.14);background:rgba(3,17,14,.96);border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.50)}.detail-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}.detail-title{font-size:1.4rem;font-weight:920}.detail-close{cursor:pointer;border:1px solid rgba(52,211,153,.18);background:rgba(2,8,7,.62);color:var(--text);border-radius:12px;padding:8px 10px;font-weight:800}.detail-sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.detail-section{border:1px solid rgba(52,211,153,.12);background:rgba(2,8,7,.42);border-radius:15px;padding:12px}.detail-section h3{margin:0 0 10px;font-size:.78rem;letter-spacing:.10em;text-transform:uppercase;color:var(--green)}.detail-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(52,211,153,.07);color:#c8f7e4;font-size:.72rem}.detail-row:last-child{border-bottom:0}.detail-row span:first-child{color:var(--muted)}.policy{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.policy-card{padding:16px;border-radius:18px;border:1px solid rgba(52,211,153,.12);background:rgba(7,24,20,.62)}.policy-title{font-weight:850;margin-bottom:8px}.policy-copy{color:var(--muted);font-size:.74rem;line-height:1.55;margin:0}.footer{text-align:center;margin-top:30px;color:var(--muted2);font-size:.7rem;line-height:1.6}@media(max-width:1080px){.hero-content{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.health-grid,.guardrail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.games{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:680px){.container{padding:12px 11px 24px}.stats,.health-grid,.guardrail-grid,.games,.policy,.detail-sections{grid-template-columns:1fr}.hero{padding:20px 16px;border-radius:21px}.stat-value,.health-value,.guardrail-value{font-size:1.24rem}}
+:root {
+  color-scheme: dark;
+  --bg:#020807;
+  --bg-2:#03110e;
+  --panel:rgba(7,24,20,.86);
+  --panel-2:rgba(9,32,26,.88);
+  --border:rgba(52,211,153,.18);
+  --border-soft:rgba(134,239,172,.10);
+  --text:#ecfff8;
+  --text-soft:#c8f7e4;
+  --muted:#8eb7a7;
+  --muted-2:#5d7f72;
+  --green:#34f5a4;
+  --cyan:#22d3ee;
+  --amber:#fbbf24;
+  --red:#fb7185;
+  --green-bg:rgba(52,245,164,.12);
+  --cyan-bg:rgba(34,211,238,.11);
+  --amber-bg:rgba(251,191,36,.12);
+  --red-bg:rgba(251,113,133,.12);
+  --shadow:0 24px 70px rgba(0,0,0,.42);
+  --gradient:linear-gradient(92deg,#00ff88 0%,#22d3ee 52%,#a7f3d0 100%);
+}
+
+* { box-sizing:border-box; }
+
+html, body {
+  margin:0;
+  min-height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,Arial,sans-serif;
+  font-variant-numeric:tabular-nums;
+}
+
+body {
+  overflow-x:hidden;
+  background:
+    radial-gradient(circle at 12% -8%, rgba(52,245,164,.22), transparent 34%),
+    radial-gradient(circle at 88% 0%, rgba(34,211,238,.13), transparent 31%),
+    radial-gradient(circle at 50% 100%, rgba(16,185,129,.12), transparent 36%),
+    linear-gradient(180deg,#020807 0%,#04130f 46%,#020807 100%);
+}
+
+body::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:-2;
+  background-image:
+    linear-gradient(rgba(52,211,153,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(52,211,153,.045) 1px, transparent 1px);
+  background-size:44px 44px;
+  mask-image:linear-gradient(to bottom, rgba(0,0,0,.88), rgba(0,0,0,.32));
+}
+
+.container {
+  max-width:1380px;
+  margin:0 auto;
+  padding:22px 18px 38px;
+}
+
+.topbar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  margin-bottom:18px;
+  padding:11px 12px;
+  border:1px solid var(--border-soft);
+  border-radius:20px;
+  background:rgba(2,8,7,.52);
+  backdrop-filter:blur(16px);
+  box-shadow:0 18px 40px rgba(0,0,0,.22);
+}
+
+.brand {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.brand-mark {
+  display:grid;
+  place-items:center;
+  width:46px;
+  height:46px;
+  border-radius:15px;
+  background:linear-gradient(140deg,rgba(52,245,164,.96),rgba(34,211,238,.72));
+  color:#03110e;
+  font-weight:950;
+  font-size:1.02rem;
+}
+
+.brand-name {
+  font-size:1.03rem;
+  font-weight:780;
+}
+
+.brand-sub {
+  color:var(--muted);
+  font-size:.68rem;
+  letter-spacing:.18em;
+  margin-top:3px;
+  text-transform:uppercase;
+}
+
+.live-pill {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid rgba(52,245,164,.34);
+  background:rgba(52,245,164,.10);
+  color:var(--green);
+  border-radius:999px;
+  padding:9px 12px;
+  font-size:.72rem;
+  font-weight:780;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.live-dot {
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 14px var(--green), 0 0 26px rgba(52,245,164,.5);
+}
+
+.hero {
+  position:relative;
+  overflow:hidden;
+  padding:26px 24px;
+  margin-bottom:16px;
+  border-radius:26px;
+  background:linear-gradient(120deg,rgba(8,35,28,.96),rgba(3,17,14,.94));
+  border:1px solid var(--border);
+  box-shadow:var(--shadow);
+}
+
+.hero-content {
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(270px,.75fr);
+  gap:22px;
+  align-items:end;
+}
+
+.hero-kicker {
+  color:#b9ffe1;
+  font-size:.69rem;
+  font-weight:800;
+  letter-spacing:.19em;
+  text-transform:uppercase;
+  margin-bottom:13px;
+}
+
+.hero h1 {
+  margin:0;
+  font-size:clamp(1.9rem,4.2vw,3.25rem);
+  font-weight:860;
+  letter-spacing:-.06em;
+  line-height:1.02;
+}
+
+.hero-gradient {
+  background:var(--gradient);
+  background-clip:text;
+  -webkit-background-clip:text;
+  color:transparent;
+}
+
+.hero-copy {
+  color:var(--muted);
+  max-width:760px;
+  margin:14px 0 0;
+  line-height:1.58;
+  font-size:.92rem;
+}
+
+.updated {
+  display:inline-flex;
+  margin-top:18px;
+  padding:8px 12px;
+  border-radius:999px;
+  border:1px solid rgba(52,211,153,.17);
+  background:rgba(255,255,255,.035);
+  color:#b4d7ca;
+  font-size:.72rem;
+}
+
+.terminal-card {
+  padding:16px;
+  border-radius:20px;
+  border:1px solid rgba(52,245,164,.18);
+  background:linear-gradient(150deg,rgba(2,8,7,.52),rgba(6,25,21,.62));
+}
+
+.terminal-title {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  font-size:.72rem;
+  color:var(--muted);
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  margin-bottom:10px;
+}
+
+.terminal-status {
+  color:var(--green);
+  font-weight:900;
+}
+
+.terminal-line {
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  border-top:1px solid rgba(52,211,153,.09);
+  padding:10px 0;
+  color:#d9fff1;
+  font-size:.78rem;
+}
+
+.terminal-line span:first-child {
+  color:var(--muted);
+}
+
+.section-heading {
+  display:flex;
+  justify-content:space-between;
+  align-items:end;
+  gap:12px;
+  margin:20px 0 10px;
+}
+
+.section-heading h2 {
+  margin:0;
+  font-size:1.02rem;
+  letter-spacing:-.02em;
+}
+
+.section-heading span {
+  color:var(--muted);
+  font-size:.72rem;
+}
+
+.messages {
+  display:grid;
+  gap:8px;
+  margin:12px 0;
+}
+
+.message {
+  padding:11px 13px;
+  border-radius:14px;
+  border:1px solid rgba(52,211,153,.12);
+  background:rgba(7,24,20,.70);
+  color:var(--text-soft);
+  font-size:.72rem;
+}
+
+.message.warn {
+  color:var(--amber);
+  background:var(--amber-bg);
+  border-color:rgba(251,191,36,.17);
+}
+
+.message.bad {
+  color:var(--red);
+  background:var(--red-bg);
+  border-color:rgba(251,113,133,.20);
+}
+
+.stats,
+.health-grid,
+.guardrail-grid {
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:10px;
+}
+
+.health-grid {
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
+.guardrail-grid {
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+
+.stat,
+.health-card,
+.guardrail-card {
+  min-height:104px;
+  padding:14px;
+  border-radius:18px;
+  border:1px solid rgba(52,211,153,.12);
+  background:rgba(7,24,20,.72);
+  box-shadow:0 16px 42px rgba(0,0,0,.22);
+}
+
+.stat.featured {
+  background:linear-gradient(145deg,rgba(52,245,164,.13),rgba(34,211,238,.06),rgba(7,24,20,.72));
+}
+
+.stat-label,
+.health-label,
+.guardrail-label {
+  color:var(--muted);
+  font-size:.62rem;
+  font-weight:820;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+
+.stat-value,
+.health-value,
+.guardrail-value {
+  font-size:1.48rem;
+  font-weight:900;
+  letter-spacing:-.04em;
+}
+
+.stat-value.positive,
+.health-value.positive,
+.guardrail-value.positive {
+  color:var(--green);
+}
+
+.stat-value.negative,
+.health-value.negative,
+.guardrail-value.negative {
+  color:var(--red);
+}
+
+.stat-value.waiting,
+.health-value.waiting,
+.guardrail-value.waiting {
+  color:var(--amber);
+}
+
+.stat-value.neutral,
+.health-value.neutral,
+.guardrail-value.neutral {
+  color:var(--text);
+}
+
+.stat-caption,
+.health-caption,
+.guardrail-caption {
+  color:var(--muted-2);
+  font-size:.64rem;
+  line-height:1.35;
+  margin-top:7px;
+}
+
+.signal-center {
+  padding:14px;
+  border:1px solid rgba(52,211,153,.14);
+  background:rgba(7,24,20,.72);
+  border-radius:18px;
+  box-shadow:0 16px 42px rgba(0,0,0,.22);
+}
+
+.case-tabs {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.case-tab {
+  cursor:pointer;
+  border:1px solid rgba(52,211,153,.15);
+  color:var(--text-soft);
+  background:rgba(2,8,7,.45);
+  border-radius:999px;
+  padding:8px 10px;
+  font-size:.66rem;
+  font-weight:840;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.case-tab.active {
+  background:linear-gradient(92deg,rgba(52,245,164,.92),rgba(34,211,238,.70));
+  color:#02110d;
+  border-color:rgba(167,243,208,.50);
+}
+
+.games {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+
+.game-card {
+  position:relative;
+  overflow:hidden;
+  border-radius:20px;
+  border:1px solid rgba(52,211,153,.13);
+  background:rgba(7,24,20,.82);
+  box-shadow:0 18px 48px rgba(0,0,0,.28);
+}
+
+.game-card.product {
+  cursor:pointer;
+  transition:transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+
+.game-card.product:hover {
+  transform:translateY(-2px);
+  border-color:rgba(52,245,164,.42);
+  box-shadow:0 22px 60px rgba(0,0,0,.34),0 0 26px rgba(52,245,164,.10);
+}
+
+.signal {
+  min-height:46px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:9px;
+  padding:11px 14px;
+  color:#c7ffe7;
+  font-size:.71rem;
+  font-weight:840;
+  text-transform:uppercase;
+  letter-spacing:.09em;
+  border-bottom:1px solid rgba(52,211,153,.10);
+  background:linear-gradient(92deg,rgba(52,245,164,.12),rgba(34,211,238,.06));
+}
+
+.signal.paper {
+  background:linear-gradient(92deg,rgba(52,245,164,.95),rgba(34,211,238,.76));
+  color:#02110d;
+}
+
+.signal.blocked {
+  background:linear-gradient(92deg,rgba(251,113,133,.30),rgba(3,17,14,.36));
+  color:#ffd1d8;
+}
+
+.signal.no-signal {
+  background:rgba(142,183,167,.08);
+  color:#b1d4c7;
+}
+
+.signal-edge {
+  font-size:.69rem;
+  letter-spacing:.02em;
+  white-space:nowrap;
+}
+
+.game-body {
+  padding:15px;
+}
+
+.matchup-row {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.matchup {
+  font-size:1.04rem;
+  font-weight:820;
+  letter-spacing:-.025em;
+}
+
+.game-time {
+  color:var(--muted);
+  font-size:.71rem;
+  margin-top:6px;
+}
+
+.probability {
+  text-align:right;
+  font-weight:900;
+  font-size:1.43rem;
+  line-height:1;
+}
+
+.probability small {
+  display:block;
+  font-size:.58rem;
+  letter-spacing:.10em;
+  color:var(--muted);
+  margin-top:6px;
+  text-transform:uppercase;
+}
+
+.tags {
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:12px;
+}
+
+.tag {
+  display:inline-flex;
+  align-items:center;
+  padding:6px 8px;
+  border-radius:999px;
+  font-size:.61rem;
+  line-height:1;
+  font-weight:820;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+
+.tag.green {
+  background:var(--green-bg);
+  color:var(--green);
+  border:1px solid rgba(52,245,164,.14);
+}
+
+.tag.amber {
+  background:var(--amber-bg);
+  color:var(--amber);
+  border:1px solid rgba(251,191,36,.13);
+}
+
+.tag.red {
+  background:var(--red-bg);
+  color:var(--red);
+  border:1px solid rgba(251,113,133,.15);
+}
+
+.tag.muted {
+  background:rgba(142,183,167,.08);
+  color:#b1d4c7;
+  border:1px solid rgba(142,183,167,.12);
+}
+
+.source,
+.factors {
+  color:var(--muted);
+  font-size:.68rem;
+  line-height:1.5;
+}
+
+.source {
+  margin:0 0 12px;
+}
+
+.market-grid {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+
+.market {
+  min-height:72px;
+  padding:10px;
+  border-radius:13px;
+  background:rgba(2,8,7,.42);
+  border:1px solid rgba(52,211,153,.10);
+}
+
+.market-label {
+  display:block;
+  color:var(--muted-2);
+  font-size:.59rem;
+  font-weight:800;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin-bottom:7px;
+}
+
+.market-value {
+  font-size:.78rem;
+  color:#e7fff6;
+  font-weight:660;
+  line-height:1.42;
+}
+
+.factors {
+  border-top:1px solid rgba(52,211,153,.10);
+  margin-top:12px;
+  padding-top:11px;
+}
+
+.empty {
+  grid-column:1/-1;
+  border:1px dashed rgba(52,245,164,.22);
+  border-radius:20px;
+  padding:36px 16px;
+  text-align:center;
+  color:var(--muted);
+  background:rgba(7,24,20,.55);
+}
+
+.detail-overlay {
+  position:fixed;
+  inset:0;
+  display:none;
+  z-index:99;
+  background:rgba(0,0,0,.62);
+  backdrop-filter:blur(8px);
+  padding:18px;
+  overflow:auto;
+}
+
+.detail-overlay.open {
+  display:block;
+}
+
+.detail-panel {
+  max-width:960px;
+  margin:28px auto;
+  padding:18px;
+  border:1px solid rgba(52,211,153,.14);
+  background:rgba(3,17,14,.96);
+  border-radius:18px;
+  box-shadow:0 24px 80px rgba(0,0,0,.50);
+}
+
+.detail-top {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.detail-title {
+  font-size:1.4rem;
+  font-weight:920;
+  letter-spacing:-.04em;
+}
+
+.detail-close {
+  cursor:pointer;
+  border:1px solid rgba(52,211,153,.18);
+  background:rgba(2,8,7,.62);
+  color:var(--text);
+  border-radius:12px;
+  padding:8px 10px;
+  font-weight:800;
+}
+
+.detail-sections {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+
+.detail-section {
+  border:1px solid rgba(52,211,153,.12);
+  background:rgba(2,8,7,.42);
+  border-radius:15px;
+  padding:12px;
+}
+
+.detail-section h3 {
+  margin:0 0 10px;
+  font-size:.78rem;
+  letter-spacing:.10em;
+  text-transform:uppercase;
+  color:var(--green);
+}
+
+.detail-row {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:7px 0;
+  border-bottom:1px solid rgba(52,211,153,.07);
+  color:var(--text-soft);
+  font-size:.72rem;
+}
+
+.detail-row:last-child {
+  border-bottom:0;
+}
+
+.detail-row span:first-child {
+  color:var(--muted);
+}
+
+.policy {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+
+.policy-card {
+  padding:16px;
+  border-radius:18px;
+  border:1px solid rgba(52,211,153,.12);
+  background:rgba(7,24,20,.62);
+}
+
+.policy-title {
+  font-weight:850;
+  margin-bottom:8px;
+}
+
+.policy-copy {
+  color:var(--muted);
+  font-size:.74rem;
+  line-height:1.55;
+  margin:0;
+}
+
+.footer {
+  text-align:center;
+  margin-top:30px;
+  color:var(--muted-2);
+  font-size:.7rem;
+  line-height:1.6;
+}
+
+@media (max-width: 1080px) {
+  .hero-content { grid-template-columns:1fr; }
+  .stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .health-grid,
+  .guardrail-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .games { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width: 680px) {
+  .container { padding:12px 11px calc(24px + env(safe-area-inset-bottom)); }
+  .stats,
+  .health-grid,
+  .guardrail-grid,
+  .games,
+  .policy,
+  .detail-sections {
+    grid-template-columns:1fr;
+  }
+  .hero { padding:20px 16px; border-radius:21px; }
+  .stat-value,
+  .health-value,
+  .guardrail-value { font-size:1.24rem; }
+}
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="topbar"><div class="brand"><div class="brand-mark">MLB</div><div><div class="brand-name">MLB Intelligence Cloud</div><div class="brand-sub">Emerald Quant Terminal</div></div></div><div class="live-pill"><span class="live-dot"></span> Live locked</div></div>
-  <section class="hero"><div class="hero-content"><div><div class="hero-kicker">AI Sports Research Â· MLB only Â· Paper tracking</div><h1><span class="hero-gradient">Multi-game AI analysis with model guardrails</span></h1><p class="hero-copy">Product-style MLB game board with market comparison, signal cases, lineup quality, confidence caps, paper-only tracking, and transparent model governance. No automated wagering. No user funds. No live betting.</p><div id="update-time" class="updated">Loading market update...</div></div><aside class="terminal-card"><div class="terminal-title"><span>Governance Status</span><span class="terminal-status">LOCKED</span></div><div class="terminal-lines"><div class="terminal-line"><span>Mode</span><span>Shadow Research</span></div><div class="terminal-line"><span>Execution</span><span>No Automated Wagering</span></div><div class="terminal-line"><span>Evidence</span><span>CLV Â· OOS Â· Calibration</span></div></div></aside></div></section>
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">MLB</div>
+      <div>
+        <div class="brand-name">MLB Intelligence Cloud</div>
+        <div class="brand-sub">Emerald Quant Terminal</div>
+      </div>
+    </div>
+    <div class="live-pill"><span class="live-dot"></span> Live locked</div>
+  </div>
+
+  <section class="hero">
+    <div class="hero-content">
+      <div>
+        <div class="hero-kicker">AI Sports Research Â· MLB only Â· Paper tracking</div>
+        <h1><span class="hero-gradient">Multi-game AI analysis with model guardrails</span></h1>
+        <p class="hero-copy">
+          Product-style MLB game board with market comparison, signal cases, lineup quality,
+          confidence caps, paper-only tracking, and transparent model governance.
+          No automated wagering. No user funds. No live betting.
+        </p>
+        <div id="update-time" class="updated">Loading market update...</div>
+      </div>
+
+      <aside class="terminal-card">
+        <div class="terminal-title">
+          <span>Governance Status</span>
+          <span class="terminal-status">LOCKED</span>
+        </div>
+        <div class="terminal-lines">
+          <div class="terminal-line"><span>Mode</span><span>Shadow Research</span></div>
+          <div class="terminal-line"><span>Execution</span><span>No Automated Wagering</span></div>
+          <div class="terminal-line"><span>Evidence</span><span>CLV Â· OOS Â· Calibration</span></div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
   <div id="messages" class="messages"></div>
-  <div class="section-heading"><h2>Mission Control Pulse</h2><span>Clean settled snapshots and market evidence</span></div>
-  <section class="stats"><div class="stat"><div class="stat-label">Settled</div><div id="total" class="stat-value neutral">--</div><div class="stat-caption">clean predictions</div></div><div class="stat featured"><div class="stat-label">ML ROI</div><div id="roi" class="stat-value neutral">--</div><div id="roi-caption" class="stat-caption">paper bets</div></div><div class="stat"><div class="stat-label">Win Rate</div><div id="win-rate" class="stat-value neutral">--</div><div class="stat-caption">moneyline bets</div></div><div class="stat"><div class="stat-label">Brier</div><div id="brier" class="stat-value neutral">--</div><div class="stat-caption">probability score</div></div><div class="stat featured"><div class="stat-label">Avg CLV</div><div id="avg-clv" class="stat-value waiting">Waiting</div><div id="clv-caption" class="stat-caption">entry vs closing line</div></div><div class="stat"><div class="stat-label">Positive CLV</div><div id="positive-clv" class="stat-value waiting">--</div><div id="positive-clv-caption" class="stat-caption">price capture rate</div></div></section>
-  <div class="section-heading"><h2>Accuracy Diagnostics</h2><span>Breakdown of settled clean predictions</span></div>
-  <section class="stats"><div class="stat"><div class="stat-label">All Settled</div><div id="acc-all" class="stat-value neutral">--</div><div id="acc-all-caption" class="stat-caption">all clean predictions</div></div><div class="stat featured"><div class="stat-label">ML Bets</div><div id="acc-ml-bets" class="stat-value neutral">--</div><div id="acc-ml-bets-caption" class="stat-caption">paper bet sample</div></div><div class="stat"><div class="stat-label">Home Picks</div><div id="acc-home" class="stat-value neutral">--</div><div id="acc-home-caption" class="stat-caption">model home picks</div></div><div class="stat"><div class="stat-label">Away Picks</div><div id="acc-away" class="stat-value neutral">--</div><div id="acc-away-caption" class="stat-caption">model away picks</div></div><div class="stat"><div class="stat-label">Favorites</div><div id="acc-favorites" class="stat-value neutral">--</div><div id="acc-favorites-caption" class="stat-caption">market favorite picks</div></div><div class="stat"><div class="stat-label">Underdogs</div><div id="acc-underdogs" class="stat-value neutral">--</div><div id="acc-underdogs-caption" class="stat-caption">market underdog picks</div></div></section>
-  <div class="section-heading"><h2>Research Guardrails</h2><span>Sample gates, confidence caps, freshness, and slice policy</span></div>
-  <section class="guardrail-grid"><div class="guardrail-card"><div class="guardrail-label">Sample Gate</div><div id="guardrail-sample" class="guardrail-value waiting">--</div><div id="guardrail-sample-caption" class="guardrail-caption">waiting for sample state</div></div><div class="guardrail-card"><div class="guardrail-label">Promotion Gate</div><div id="guardrail-promotion" class="guardrail-value waiting">--</div><div id="guardrail-promotion-caption" class="guardrail-caption">shadow only</div></div><div class="guardrail-card"><div class="guardrail-label">Confidence Cap</div><div id="guardrail-confidence" class="guardrail-value waiting">--</div><div id="guardrail-confidence-caption" class="guardrail-caption">loading confidence guardrail</div></div><div class="guardrail-card"><div class="guardrail-label">Freshness</div><div id="guardrail-freshness" class="guardrail-value waiting">--</div><div id="guardrail-freshness-caption" class="guardrail-caption">source recency</div></div></section>
-  <div class="section-heading"><h2>System Health Matrix</h2><span>Pipeline reliability and source coverage</span></div>
-  <section class="health-grid"><div class="health-card"><div class="health-label">Status</div><div id="health-status" class="health-value waiting">Loading</div><div id="health-status-caption" class="health-caption">checking pipeline</div></div><div class="health-card"><div class="health-label">Predictions</div><div id="health-predictions" class="health-value neutral">--</div><div id="health-predictions-caption" class="health-caption">today board</div></div><div class="health-card"><div class="health-label">Odds</div><div id="health-odds" class="health-value neutral">--</div><div class="health-caption">OK / suspicious / unavailable</div></div><div class="health-card"><div class="health-label">Context Ready</div><div id="health-context" class="health-value neutral">--</div><div id="health-context-caption" class="health-caption">pregame context</div></div><div class="health-card"><div class="health-label">Snapshots</div><div id="health-snapshots" class="health-value neutral">--</div><div id="health-snapshots-caption" class="health-caption">clean / settled</div></div><div class="health-card"><div class="health-label">Market Rows</div><div id="health-market" class="health-value neutral">--</div><div id="health-market-caption" class="health-caption">closing ML rows</div></div><div class="health-card"><div class="health-label">Lineup Feed</div><div id="health-lineup-feed" class="health-value neutral">--</div><div id="health-lineup-feed-caption" class="health-caption">batting order coverage</div></div><div class="health-card"><div class="health-label">Model Readiness</div><div id="health-training" class="health-value neutral">--</div><div id="health-training-caption" class="health-caption">training status</div></div></section>
-  <div class="section-heading"><h2>Signal Center</h2><span>Cases grouped by paper signal, tracking, risk block, market role, and lineup quality</span></div><section class="signal-center"><div id="case-tabs" class="case-tabs"><button class="case-tab active" data-case="all">All</button></div></section>
-  <div class="section-heading"><h2>Game Board</h2><span>Product-style single-game analysis cards</span></div><section id="games" class="games"><div class="empty">Loading today's game board...</div></section>
-  <section class="policy" style="margin-top:14px"><div class="policy-card"><div class="policy-title">Evidence-first market tracking</div><p class="policy-copy">Paper entries record visible prices at recommendation time. CLV compares entry price with closing market median. Positive CLV is evidence of price capture, not proof of future profitability.</p></div><div class="policy-card"><div class="policy-title">Paper-only governance</div><p class="policy-copy">Live betting remains locked until sample size, rolling OOS validation, calibration, CLV, and risk gates all pass. This interface does not execute wagers.</p></div></section>
-  <div id="detail-overlay" class="detail-overlay"><div class="detail-panel"><div class="detail-top"><div><div id="detail-title" class="detail-title">Game Detail</div><div id="detail-subtitle" class="game-time">Loading analysis...</div></div><button class="detail-close" onclick="closeGameDetail()">Close</button></div><div id="detail-body" class="detail-sections"></div></div></div>
-  <div class="footer">MLB Intelligence Cloud - Live betting disabled - No automated wagering<br>Research dashboard for market evidence, model quality, data governance, and SaaS readiness.</div>
+
+  <div class="section-heading">
+    <h2>Mission Control Pulse</h2>
+    <span>Clean settled snapshots and market evidence</span>
+  </div>
+
+  <section class="stats">
+    <div class="stat">
+      <div class="stat-label">Settled</div>
+      <div id="total" class="stat-value neutral">--</div>
+      <div class="stat-caption">clean predictions</div>
+    </div>
+    <div class="stat featured">
+      <div class="stat-label">ML ROI</div>
+      <div id="roi" class="stat-value neutral">--</div>
+      <div id="roi-caption" class="stat-caption">paper bets</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Win Rate</div>
+      <div id="win-rate" class="stat-value neutral">--</div>
+      <div class="stat-caption">moneyline bets</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Brier</div>
+      <div id="brier" class="stat-value neutral">--</div>
+      <div class="stat-caption">probability score</div>
+    </div>
+    <div class="stat featured">
+      <div class="stat-label">Avg CLV</div>
+      <div id="avg-clv" class="stat-value waiting">Waiting</div>
+      <div id="clv-caption" class="stat-caption">entry vs closing line</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Positive CLV</div>
+      <div id="positive-clv" class="stat-value waiting">--</div>
+      <div id="positive-clv-caption" class="stat-caption">price capture rate</div>
+    </div>
+  </section>
+
+  <div class="section-heading">
+    <h2>Accuracy Diagnostics</h2>
+    <span>Breakdown of settled clean predictions</span>
+  </div>
+
+  <section class="stats">
+    <div class="stat"><div class="stat-label">All Settled</div><div id="acc-all" class="stat-value neutral">--</div><div id="acc-all-caption" class="stat-caption">all clean predictions</div></div>
+    <div class="stat featured"><div class="stat-label">ML Bets</div><div id="acc-ml-bets" class="stat-value neutral">--</div><div id="acc-ml-bets-caption" class="stat-caption">paper bet sample</div></div>
+    <div class="stat"><div class="stat-label">Home Picks</div><div id="acc-home" class="stat-value neutral">--</div><div id="acc-home-caption" class="stat-caption">model home picks</div></div>
+    <div class="stat"><div class="stat-label">Away Picks</div><div id="acc-away" class="stat-value neutral">--</div><div id="acc-away-caption" class="stat-caption">model away picks</div></div>
+    <div class="stat"><div class="stat-label">Favorites</div><div id="acc-favorites" class="stat-value neutral">--</div><div id="acc-favorites-caption" class="stat-caption">market favorite picks</div></div>
+    <div class="stat"><div class="stat-label">Underdogs</div><div id="acc-underdogs" class="stat-value neutral">--</div><div id="acc-underdogs-caption" class="stat-caption">market underdog picks</div></div>
+  </section>
+
+  <div class="section-heading">
+    <h2>Research Guardrails</h2>
+    <span>Sample gates, confidence caps, freshness, and slice policy</span>
+  </div>
+
+  <section id="guardrail-grid" class="guardrail-grid">
+    <div class="guardrail-card">
+      <div class="guardrail-label">Sample Gate</div>
+      <div id="guardrail-sample" class="guardrail-value waiting">--</div>
+      <div id="guardrail-sample-caption" class="guardrail-caption">waiting for sample state</div>
+    </div>
+    <div class="guardrail-card">
+      <div class="guardrail-label">Promotion Gate</div>
+      <div id="guardrail-promotion" class="guardrail-value waiting">--</div>
+      <div id="guardrail-promotion-caption" class="guardrail-caption">shadow only</div>
+    </div>
+    <div class="guardrail-card">
+      <div class="guardrail-label">Confidence Cap</div>
+      <div id="guardrail-confidence" class="guardrail-value waiting">--</div>
+      <div id="guardrail-confidence-caption" class="guardrail-caption">loading confidence guardrail</div>
+    </div>
+    <div class="guardrail-card">
+      <div class="guardrail-label">Freshness</div>
+      <div id="guardrail-freshness" class="guardrail-value waiting">--</div>
+      <div id="guardrail-freshness-caption" class="guardrail-caption">source recency</div>
+    </div>
+  </section>
+
+  <div class="section-heading">
+    <h2>System Health Matrix</h2>
+    <span>Pipeline reliability and source coverage</span>
+  </div>
+
+  <section id="health-grid" class="health-grid">
+    <div class="health-card"><div class="health-label">Status</div><div id="health-status" class="health-value waiting">Loading</div><div id="health-status-caption" class="health-caption">checking pipeline</div></div>
+    <div class="health-card"><div class="health-label">Predictions</div><div id="health-predictions" class="health-value neutral">--</div><div id="health-predictions-caption" class="health-caption">today board</div></div>
+    <div class="health-card"><div class="health-label">Odds</div><div id="health-odds" class="health-value neutral">--</div><div class="health-caption">OK / suspicious / unavailable</div></div>
+    <div class="health-card"><div class="health-label">Context Ready</div><div id="health-context" class="health-value neutral">--</div><div id="health-context-caption" class="health-caption">pregame context</div></div>
+    <div class="health-card"><div class="health-label">Snapshots</div><div id="health-snapshots" class="health-value neutral">--</div><div id="health-snapshots-caption" class="health-caption">clean / settled</div></div>
+    <div class="health-card"><div class="health-label">Market Rows</div><div id="health-market" class="health-value neutral">--</div><div id="health-market-caption" class="health-caption">closing ML rows</div></div>
+    <div class="health-card"><div class="health-label">Lineup Feed</div><div id="health-lineup-feed" class="health-value neutral">--</div><div id="health-lineup-feed-caption" class="health-caption">batting order coverage</div></div>
+    <div class="health-card"><div class="health-label">Model Readiness</div><div id="health-training" class="health-value neutral">--</div><div id="health-training-caption" class="health-caption">training status</div></div>
+  </section>
+
+  <div class="section-heading">
+    <h2>Signal Center</h2>
+    <span>Cases grouped by paper signal, strong favorite, weak underdog, large edge, and lineup quality</span>
+  </div>
+
+  <section class="signal-center">
+    <div id="case-tabs" class="case-tabs">
+      <button class="case-tab active" data-case="all">All</button>
+    </div>
+  </section>
+
+  <div class="section-heading">
+    <h2>Game Board</h2>
+    <span>Product-style single-game analysis cards</span>
+  </div>
+
+  <section id="games" class="games">
+    <div class="empty">Loading today's game board...</div>
+  </section>
+
+  <section class="policy" style="margin-top:14px;">
+    <div class="policy-card">
+      <div class="policy-title">Evidence-first market tracking</div>
+      <p class="policy-copy">Paper entries record visible prices at recommendation time. CLV compares entry price with closing market median. Positive CLV is evidence of price capture, not proof of future profitability.</p>
+    </div>
+    <div class="policy-card">
+      <div class="policy-title">Paper-only governance</div>
+      <p class="policy-copy">Live betting remains locked until sample size, rolling OOS validation, calibration, CLV, and risk gates all pass. This interface does not execute wagers.</p>
+    </div>
+  </section>
+
+  <div id="detail-overlay" class="detail-overlay">
+    <div class="detail-panel">
+      <div class="detail-top">
+        <div>
+          <div id="detail-title" class="detail-title">Game Detail</div>
+          <div id="detail-subtitle" class="game-time">Loading analysis...</div>
+        </div>
+        <button class="detail-close" onclick="closeGameDetail()">Close</button>
+      </div>
+      <div id="detail-body" class="detail-sections"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    MLB Intelligence Cloud - Live betting disabled - No automated wagering<br>
+    Research dashboard for market evidence, model quality, data governance, and SaaS readiness.
+  </div>
 </div>
+
 <script>
-let activeCase="all";
-function escapeText(v){return String(v==null?"":v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#39;")}
-function parseUtcTimestamp(raw){if(!raw)return null;const t=String(raw);const n=/(?:Z|[+-]\d{2}:\d{2})$/i.test(t)?t:`${t}Z`;const d=new Date(n);return Number.isNaN(d.valueOf())?null:d}
-function formatPercent(v,d=1,s=false){const n=Number(v);if(!Number.isFinite(n))return"--";const sign=s&&n>0?"+":"";return`${sign}${(n*100).toFixed(d)}%`}
-function displayTime(row){const raw=row.start_time||row.game_datetime||row.game_time||row.game_date;if(!raw)return"--";if(/^\d{4}-\d{2}-\d{2}$/.test(String(raw)))return"Time pending";const p=parseUtcTimestamp(raw);if(!p)return"--";return p.toLocaleString("zh-TW",{timeZone:"Asia/Taipei",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false})}
-function signalStatusLabel(s){const v=String(s||"TRACKING_ONLY").toUpperCase();if(v==="PAPER_SIGNAL")return"Paper Signal";if(v==="TRACKING_ONLY")return"Tracking Only";if(v==="BLOCKED_BY_RISK")return"Blocked by Risk";if(v==="BLOCKED_BY_DATA")return"Blocked by Data";if(v==="NO_SIGNAL")return"No Signal";return v.replaceAll("_"," ")}
-function productSignalClass(s){const v=String(s||"").toUpperCase();if(v==="PAPER_SIGNAL")return"paper";if(v.startsWith("BLOCKED"))return"blocked";if(v==="NO_SIGNAL")return"no-signal";return"track"}
-function caseLabel(id){return{all:"All",paper_signals:"Paper",tracking_only:"Tracking",blocked:"Blocked",positive_edge:"Positive Edge",high_edge:"High Edge",favorites:"Favorites",underdogs:"Underdogs",lineup_missing:"Lineup Missing",high_confidence:"High Confidence",no_signal:"No Signal"}[id]||id.replaceAll("_"," ")}
-function renderResearchGuardrails(data){const s=data.summary||{},c=Number(s.clean_settled_samples||0),t=Number(s.minimum_clean_train_samples||300),p=Number(s.minimum_promotion_samples||500),mc=s.recommended_max_display_confidence;document.getElementById("guardrail-sample").textContent=`${c} / ${t}`;document.getElementById("guardrail-sample").className=`guardrail-value ${c>=t?"positive":"waiting"}`;document.getElementById("guardrail-sample-caption").textContent=c>=t?"training sample gate met":"training sample gate not met";document.getElementById("guardrail-promotion").textContent=`${c} / ${p}`;document.getElementById("guardrail-promotion").className=`guardrail-value ${c>=p?"positive":"waiting"}`;document.getElementById("guardrail-promotion-caption").textContent="production replacement locked";document.getElementById("guardrail-confidence").textContent=mc==null?"Capped":formatPercent(mc,0);document.getElementById("guardrail-confidence-caption").textContent=s.block_high_confidence_language?"high-confidence language blocked":"confidence language allowed in shadow only";document.getElementById("guardrail-freshness").textContent=s.freshness_global_grade||"--";const stale=Array.isArray(s.stale_sources)?s.stale_sources:[];document.getElementById("guardrail-freshness-caption").textContent=stale.length?`stale: ${stale.slice(0,3).join(", ")}`:"all tracked sources acceptable"}
-function renderSignalTabs(board){const counts=board.case_counts||{},target=document.getElementById("case-tabs"),ordered=["all","paper_signals","tracking_only","blocked","positive_edge","high_edge","favorites","underdogs","lineup_missing","high_confidence","no_signal"];target.innerHTML=ordered.filter(id=>id==="all"||Number(counts[id]||0)>0).map(id=>`<button class="case-tab${id===activeCase?" active":""}" data-case="${escapeText(id)}">${escapeText(caseLabel(id))} ${Number(counts[id]||0)?`(${counts[id]})`:""}</button>`).join("");[...target.querySelectorAll(".case-tab")].forEach(b=>b.addEventListener("click",()=>{activeCase=b.getAttribute("data-case")||"all";renderSignalTabs(board);renderProductGameBoard(board)}))}
-function productGameCard(g){const prob=g.selected_probability==null?"--":formatPercent(g.selected_probability),edge=g.edge==null?"Edge --":`Edge ${formatPercent(g.edge,1,true)}`,marketHome=g.market_home_probability==null?"--":formatPercent(g.market_home_probability),homeProb=g.home_probability==null?"--":formatPercent(g.home_probability),lineupGrade=g.lineup_context&&g.lineup_context.lineup_confidence_grade?g.lineup_context.lineup_confidence_grade:"missing",reasons=Array.isArray(g.signal_reasons)?g.signal_reasons:[],features=Array.isArray(g.top_features)?g.top_features:[];return`<article class="game-card product" onclick="openGameDetail('${escapeText(g.game_id)}')"><div class="signal ${productSignalClass(g.signal_status)}"><span>${escapeText(signalStatusLabel(g.signal_status))}</span><span class="signal-edge">${escapeText(edge)}</span></div><div class="game-body"><div class="matchup-row"><div><div class="matchup">${escapeText(g.matchup||"--")}</div><div class="game-time">${escapeText(displayTime(g))}</div></div><div class="probability">${escapeText(prob)}<small>${escapeText(g.selected_team||"Model pick")}</small></div></div><div class="tags"><span class="tag green">Confidence ${escapeText(g.confidence_grade||"D")}</span><span class="tag ${g.market_role==="underdog"?"amber":"green"}">${escapeText(g.market_role||"unknown")}</span><span class="tag ${lineupGrade==="A"||lineupGrade==="B"?"green":lineupGrade==="C"?"amber":"red"}">Lineup ${escapeText(lineupGrade)}</span><span class="tag muted">${escapeText(g.odds_quality_status||"odds unknown")}</span></div><p class="source">Model home: ${escapeText(homeProb)} | Market home: ${escapeText(marketHome)}<br>Source: ${escapeText(g.odds_source||"No verified source")}</p><div class="market-grid"><div class="market"><span class="market-label">Moneyline</span><span class="market-value">${escapeText(g.moneyline_recommendation||"NO BET")}</span></div><div class="market"><span class="market-label">Odds</span><span class="market-value">${escapeText(g.home_team||"Home")} ${g.home_moneyline_odds??"--"}<br>${escapeText(g.away_team||"Away")} ${g.away_moneyline_odds??"--"}</span></div><div class="market"><span class="market-label">Spread</span><span class="market-value">${escapeText(g.spread_recommendation||"NO BET")}</span></div><div class="market"><span class="market-label">Total</span><span class="market-value">${escapeText(g.total_recommendation||"NO BET")}</span></div></div><div class="factors">Signal reason: ${reasons.length?reasons.map(escapeText).slice(0,2).join(" - "):"No signal reason available."}</div><div class="factors">Key factors: ${features.length?features.map(escapeText).slice(0,4).join(" - "):"No additional factors available."}</div></div></article>`}
-function renderProductGameBoard(board){const target=document.getElementById("games"),games=Array.isArray(board.games)?board.games:[],filtered=games.filter(g=>activeCase==="all"||(Array.isArray(g.case_tags)&&g.case_tags.includes(activeCase)));if(!filtered.length){target.innerHTML=`<div class="empty">No games in ${escapeText(caseLabel(activeCase))}.</div>`;return}target.innerHTML=filtered.map(productGameCard).join("")}
-async function openGameDetail(id){const overlay=document.getElementById("detail-overlay"),title=document.getElementById("detail-title"),subtitle=document.getElementById("detail-subtitle"),body=document.getElementById("detail-body");overlay.classList.add("open");title.textContent="Loading game detail...";subtitle.textContent=id;body.innerHTML="";try{const r=await fetch(`/api/game-detail/${encodeURIComponent(id)}`);if(!r.ok)throw new Error(`Game detail API returned ${r.status}`);const p=await r.json(),g=p.game||{},sections=Array.isArray(p.sections)?p.sections:[];title.textContent=g.matchup||"Game Detail";subtitle.textContent=`${signalStatusLabel(g.signal_status)} Â· ${g.selected_team||"No selected team"}`;body.innerHTML=sections.map(s=>`<div class="detail-section"><h3>${escapeText(s.title||s.id||"Section")}</h3>${(Array.isArray(s.items)?s.items:[]).map(i=>`<div class="detail-row"><span>${escapeText(i.label||"")}</span><strong>${escapeText(formatDetailValue(i.value))}</strong></div>`).join("")}</div>`).join("")}catch(e){title.textContent="Game detail unavailable";subtitle.textContent=e.message;body.innerHTML=`<div class="empty">Unable to load game detail.</div>`}}
-function closeGameDetail(){document.getElementById("detail-overlay").classList.remove("open")}
-function formatDetailValue(v){if(v==null||v==="")return"--";if(typeof v==="number"){if(v>=0&&v<=1)return formatPercent(v);return v.toFixed(2)}if(typeof v==="boolean")return v?"Yes":"No";return String(v)}
-function accuracyText(b){return!b||b.accuracy==null?"--":formatPercent(b.accuracy,1)}function accuracyCaption(b,f){return!b?f:`${b.correct??0} / ${b.sample_count??0} correct`}function setAccuracyValue(id,b){const e=document.getElementById(id);if(!e)return;e.textContent=accuracyText(b);const v=b&&b.accuracy!=null?Number(b.accuracy):null;e.className=v==null?"stat-value waiting":v>=.55?"stat-value positive":v<.5?"stat-value negative":"stat-value neutral"}
-function renderAccuracyDiagnostics(d){const b=d.accuracy_breakdown||{};setAccuracyValue("acc-all",b.all_settled);document.getElementById("acc-all-caption").textContent=accuracyCaption(b.all_settled,"all clean predictions");setAccuracyValue("acc-ml-bets",b.moneyline_paper_bets);document.getElementById("acc-ml-bets-caption").textContent=accuracyCaption(b.moneyline_paper_bets,"paper bet sample");setAccuracyValue("acc-home",b.home_model_picks);document.getElementById("acc-home-caption").textContent=accuracyCaption(b.home_model_picks,"model home picks");setAccuracyValue("acc-away",b.away_model_picks);document.getElementById("acc-away-caption").textContent=accuracyCaption(b.away_model_picks,"model away picks");setAccuracyValue("acc-favorites",b.favorites);document.getElementById("acc-favorites-caption").textContent=accuracyCaption(b.favorites,"market favorite picks");setAccuracyValue("acc-underdogs",b.underdogs);document.getElementById("acc-underdogs-caption").textContent=accuracyCaption(b.underdogs,"market underdog picks")}
-function renderPerformance(d){document.getElementById("total").textContent=d.total??"--";const roi=document.getElementById("roi");if(d.roi==null){roi.textContent="No bets";roi.className="stat-value waiting"}else{roi.textContent=formatPercent(d.roi,1,true);roi.className=`stat-value ${d.roi>=0?"positive":"negative"}`}document.getElementById("roi-caption").textContent=`${d.moneyline_bets||0} settled ML bets`;const wr=document.getElementById("win-rate");wr.textContent=d.win_rate==null?"--":formatPercent(d.win_rate);wr.className=d.win_rate==null?"stat-value waiting":"stat-value neutral";const br=document.getElementById("brier");br.textContent=d.brier==null?"--":Number(d.brier).toFixed(3);br.className=d.brier==null?"stat-value waiting":"stat-value neutral";const ac=document.getElementById("avg-clv"),pc=document.getElementById("positive-clv");if(d.avg_clv==null){ac.textContent="Waiting";ac.className="stat-value waiting";pc.textContent="--";pc.className="stat-value waiting";document.getElementById("clv-caption").textContent=d.clv_message||"closing lines pending"}else{ac.textContent=formatPercent(d.avg_clv,2,true);ac.className=`stat-value ${d.avg_clv>=0?"positive":"negative"}`;pc.textContent=formatPercent(d.positive_clv_rate);pc.className=`stat-value ${d.positive_clv_rate>=.5?"positive":"negative"}`;document.getElementById("clv-caption").textContent=`${d.clv_samples||0} entry vs close samples`}document.getElementById("positive-clv-caption").textContent=`${d.clv_samples||0} CLV samples`}
-function renderHealth(d){const s=String(d.status||"UNKNOWN");document.getElementById("health-status").textContent=s;document.getElementById("health-status").className=`health-value ${s==="OK"?"positive":s==="ERROR"?"negative":"waiting"}`;document.getElementById("health-status-caption").textContent=Array.isArray(d.messages)&&d.messages.length?d.messages[0]:"pipeline checked";document.getElementById("health-predictions").textContent=`${d.prediction_count||0}/${d.scheduled_game_count||0}`;document.getElementById("health-odds").textContent=`${d.odds?.ok||0}/${(d.odds?.ok||0)+(d.odds?.suspicious||0)+(d.odds?.unavailable||0)+(d.odds?.missing||0)}`;document.getElementById("health-context").textContent=`${d.daily_context?.ready_context_count||0}`;document.getElementById("health-context-caption").textContent=`${d.daily_context?.latest_context_count||0} latest context rows`;document.getElementById("health-snapshots").textContent=`${d.snapshots?.clean_rows||0}/${d.snapshots?.stored_rows||0}`;document.getElementById("health-snapshots-caption").textContent=`${d.snapshots?.settled_rows||0} settled`;document.getElementById("health-market").textContent=`${d.market_odds_history?.closing_moneyline_rows||0}`;document.getElementById("health-market-caption").textContent=`${d.market_odds_history?.stored_rows||0} market rows`;document.getElementById("health-lineup-feed").textContent=`${d.daily_context?.lineup_player_count_rows||d.daily_context?.confirmed_lineup_count||0}`;document.getElementById("health-lineup-feed-caption").textContent="lineup-ready context rows";const tr=d.training||{};document.getElementById("health-training").textContent=tr.trained?"Trained":`${tr.sample_count||0}/${tr.minimum_required||0}`;document.getElementById("health-training-caption").textContent=tr.reason||"model readiness"}
-async function loadDashboard(){let messages=[];try{const r=await fetch("/api/predictions");if(!r.ok)throw new Error(`Predictions API returned ${r.status}`);const p=await r.json();const g=parseUtcTimestamp(p.generated_at);const u=g?g.toLocaleString("zh-TW",{timeZone:"Asia/Taipei",year:"numeric",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}):"--";document.getElementById("update-time").textContent=`Updated in Taipei: ${u}`}catch(e){messages.push(`<div class="message bad">Predictions load failed: ${escapeText(e.message)}</div>`)}try{const r=await fetch("/api/research-guardrails");if(!r.ok)throw new Error(`Research guardrails API returned ${r.status}`);renderResearchGuardrails(await r.json())}catch(e){messages.push(`<div class="message warn">Research guardrails load failed: ${escapeText(e.message)}</div>`)}try{const r=await fetch("/api/game-board");if(!r.ok)throw new Error(`Game board API returned ${r.status}`);const b=await r.json();renderSignalTabs(b);renderProductGameBoard(b)}catch(e){messages.push(`<div class="message warn">Product game board load failed: ${escapeText(e.message)}</div>`);document.getElementById("games").innerHTML='<div class="empty">Product game board unavailable.</div>'}try{const r=await fetch("/api/performance");if(!r.ok)throw new Error(`Performance API returned ${r.status}`);const p=await r.json();renderPerformance(p);renderAccuracyDiagnostics(p)}catch(e){messages.push(`<div class="message bad">Performance load failed: ${escapeText(e.message)}</div>`)}try{const r=await fetch("/api/health");if(!r.ok)throw new Error(`Health API returned ${r.status}`);renderHealth(await r.json())}catch(e){messages.push(`<div class="message bad">Health load failed: ${escapeText(e.message)}</div>`)}if(messages.length)document.getElementById("messages").innerHTML=messages.join("")}
+let productBoardData = null;
+let activeCase = "all";
+
+function escapeText(value) {
+  return String(value == null ? "" : value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function parseUtcTimestamp(raw) {
+  if (!raw) return null;
+  const text = String(raw);
+  const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(text);
+  const normalized = hasTimezone ? text : `${text}Z`;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.valueOf()) ? null : parsed;
+}
+
+function formatPercent(value, decimals = 1, signed = false) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "--";
+  const sign = signed && number > 0 ? "+" : "";
+  return `${sign}${(number * 100).toFixed(decimals)}%`;
+}
+
+function shortPercent(value, decimals = 1, signed = false) {
+  return formatPercent(value, decimals, signed);
+}
+
+function displayTime(row) {
+  const raw = row.start_time || row.game_datetime || row.game_time || row.game_date;
+  if (!raw) return "--";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(raw))) return "Time pending";
+  const parsed = parseUtcTimestamp(raw);
+  if (!parsed) return "--";
+  return parsed.toLocaleString("zh-TW", {
+    timeZone: "Asia/Taipei",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+}
+
+function signalStatusLabel(status) {
+  const value = String(status || "TRACKING_ONLY").toUpperCase();
+  if (value === "PAPER_SIGNAL") return "Paper Signal";
+  if (value === "TRACKING_ONLY") return "Tracking Only";
+  if (value === "BLOCKED_BY_RISK") return "Blocked by Risk";
+  if (value === "BLOCKED_BY_DATA") return "Blocked by Data";
+  if (value === "NO_SIGNAL") return "No Signal";
+  return value.replaceAll("_", " ");
+}
+
+function productSignalClass(status) {
+  const value = String(status || "").toUpperCase();
+  if (value === "PAPER_SIGNAL") return "paper";
+  if (value.startsWith("BLOCKED")) return "blocked";
+  if (value === "NO_SIGNAL") return "no-signal";
+  return "track";
+}
+
+function caseLabel(caseId) {
+  const labels = {
+    all: "All",
+    paper_signals: "Paper",
+    strong_favorite_signal: "Strong Favorite",
+    clean_paper_signal: "Clean Paper",
+    tracking_only: "Tracking",
+    blocked: "Blocked",
+    suspicious_large_edge: "Suspicious Large Edge",
+    weak_underdog: "Weak Underdog",
+    positive_edge: "Positive Edge",
+    high_edge: "High Edge",
+    favorites: "Favorites",
+    underdogs: "Underdogs",
+    lineup_missing: "Lineup Missing",
+    high_confidence: "High Confidence",
+    no_signal: "No Signal"
+  };
+  return labels[caseId] || caseId.replaceAll("_", " ");
+}
+
+function renderResearchGuardrails(guardrailData) {
+  const summary = guardrailData.summary || {};
+  const cleanSamples = Number(summary.clean_settled_samples || 0);
+  const trainMin = Number(summary.minimum_clean_train_samples || 300);
+  const promotionMin = Number(summary.minimum_promotion_samples || 500);
+  const maxConfidence = summary.recommended_max_display_confidence;
+  const edgePolicy = summary.edge_sanity_policy || {};
+  const signalPolicy = summary.signal_quality_policy || {};
+
+  document.getElementById("guardrail-sample").textContent = `${cleanSamples} / ${trainMin}`;
+  document.getElementById("guardrail-sample").className =
+    `guardrail-value ${cleanSamples >= trainMin ? "positive" : "waiting"}`;
+  document.getElementById("guardrail-sample-caption").textContent =
+    cleanSamples >= trainMin ? "training sample gate met" : "training sample gate not met";
+
+  document.getElementById("guardrail-promotion").textContent = `${cleanSamples} / ${promotionMin}`;
+  document.getElementById("guardrail-promotion").className =
+    `guardrail-value ${cleanSamples >= promotionMin ? "positive" : "waiting"}`;
+  document.getElementById("guardrail-promotion-caption").textContent =
+    signalPolicy.sample_gate_open ? "research sample gate open" : "production replacement locked";
+
+  document.getElementById("guardrail-confidence").textContent =
+    maxConfidence == null ? "Capped" : shortPercent(maxConfidence, 0);
+  document.getElementById("guardrail-confidence").className =
+    `guardrail-value ${summary.block_high_confidence_language ? "waiting" : "positive"}`;
+  document.getElementById("guardrail-confidence-caption").textContent =
+    edgePolicy.block_large_edge
+      ? `large edge: ${edgePolicy.large_edge_policy || "TRACKING_ONLY"}`
+      : summary.block_high_confidence_language
+      ? "high-confidence language blocked"
+      : "confidence language allowed in shadow only";
+
+  document.getElementById("guardrail-freshness").textContent = summary.freshness_global_grade || "--";
+  const stale = Array.isArray(summary.stale_sources) ? summary.stale_sources : [];
+  document.getElementById("guardrail-freshness").className =
+    `guardrail-value ${stale.length ? "waiting" : "positive"}`;
+  document.getElementById("guardrail-freshness-caption").textContent =
+    stale.length ? `stale: ${stale.slice(0, 3).join(", ")}` : "all tracked sources acceptable";
+}
+
+function renderSignalTabs(boardData) {
+  const counts = boardData.case_counts || {};
+  const target = document.getElementById("case-tabs");
+  const ordered = [
+    "all",
+    "paper_signals",
+    "strong_favorite_signal",
+    "clean_paper_signal",
+    "tracking_only",
+    "blocked",
+    "suspicious_large_edge",
+    "weak_underdog",
+    "positive_edge",
+    "high_edge",
+    "favorites",
+    "underdogs",
+    "lineup_missing",
+    "high_confidence",
+    "no_signal"
+  ];
+
+  target.innerHTML = ordered
+    .filter(caseId => caseId === "all" || Number(counts[caseId] || 0) > 0)
+    .map(caseId => {
+      const count = Number(counts[caseId] || 0);
+      const active = caseId === activeCase ? " active" : "";
+      return `<button class="case-tab${active}" data-case="${escapeText(caseId)}">${escapeText(caseLabel(caseId))} ${count ? `(${count})` : ""}</button>`;
+    })
+    .join("");
+
+  [...target.querySelectorAll(".case-tab")].forEach(button => {
+    button.addEventListener("click", () => {
+      activeCase = button.getAttribute("data-case") || "all";
+      renderSignalTabs(boardData);
+      renderProductGameBoard(boardData);
+    });
+  });
+}
+
+function productGameCard(game) {
+  const probability = game.selected_probability == null ? "--" : shortPercent(game.selected_probability);
+  const edge = game.edge == null ? "Edge --" : `Edge ${shortPercent(game.edge, 1, true)}`;
+  const marketHome = game.market_home_probability == null ? "--" : shortPercent(game.market_home_probability);
+  const homeProb = game.home_probability == null ? "--" : shortPercent(game.home_probability);
+  const lineupGrade = game.lineup_context && game.lineup_context.lineup_confidence_grade ? game.lineup_context.lineup_confidence_grade : "missing";
+  const reasons = Array.isArray(game.signal_reasons) ? game.signal_reasons : [];
+  const topFeatures = Array.isArray(game.top_features) ? game.top_features : [];
+
+  return `
+    <article class="game-card product" onclick="openGameDetail('${escapeText(game.game_id)}')">
+      <div class="signal ${productSignalClass(game.signal_status)}">
+        <span>${escapeText(signalStatusLabel(game.signal_status))}</span>
+        <span class="signal-edge">${escapeText(edge)}</span>
+      </div>
+      <div class="game-body">
+        <div class="matchup-row">
+          <div>
+            <div class="matchup">${escapeText(game.matchup || "--")}</div>
+            <div class="game-time">${escapeText(displayTime(game))}</div>
+          </div>
+          <div class="probability">
+            ${escapeText(probability)}
+            <small>${escapeText(game.selected_team || "Model pick")}</small>
+          </div>
+        </div>
+
+        <div class="tags">
+          <span class="tag green">Confidence ${escapeText(game.confidence_grade || "D")}</span>
+          <span class="tag ${game.market_role === "underdog" ? "amber" : "green"}">${escapeText(game.market_role || "unknown")}</span>
+          <span class="tag ${lineupGrade === "A" || lineupGrade === "B" ? "green" : lineupGrade === "C" ? "amber" : "red"}">Lineup ${escapeText(lineupGrade)}</span>
+          <span class="tag muted">${escapeText(game.odds_quality_status || "odds unknown")}</span>
+        </div>
+
+        <p class="source">
+          Model home: ${escapeText(homeProb)} | Market home: ${escapeText(marketHome)}<br>
+          Source: ${escapeText(game.odds_source || "No verified source")}
+        </p>
+
+        <div class="market-grid">
+          <div class="market"><span class="market-label">Moneyline</span><span class="market-value">${escapeText(game.moneyline_recommendation || "NO BET")}</span></div>
+          <div class="market"><span class="market-label">Odds</span><span class="market-value">${escapeText(game.home_team || "Home")} ${game.home_moneyline_odds ?? "--"}<br>${escapeText(game.away_team || "Away")} ${game.away_moneyline_odds ?? "--"}</span></div>
+          <div class="market"><span class="market-label">Spread</span><span class="market-value">${escapeText(game.spread_recommendation || "NO BET")}</span></div>
+          <div class="market"><span class="market-label">Total</span><span class="market-value">${escapeText(game.total_recommendation || "NO BET")}</span></div>
+        </div>
+
+        <div class="factors">
+          Signal reason: ${reasons.length ? reasons.map(escapeText).slice(0, 2).join(" - ") : "No signal reason available."}
+        </div>
+
+        <div class="factors">
+          Key factors: ${topFeatures.length ? topFeatures.map(escapeText).slice(0, 4).join(" - ") : "No additional factors available."}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderProductGameBoard(boardData) {
+  productBoardData = boardData;
+  const target = document.getElementById("games");
+  const games = Array.isArray(boardData.games) ? boardData.games : [];
+
+  const filtered = games.filter(game => {
+    if (activeCase === "all") return true;
+    const tags = Array.isArray(game.case_tags) ? game.case_tags : [];
+    return tags.includes(activeCase);
+  });
+
+  if (!filtered.length) {
+    target.innerHTML = `<div class="empty">No games in ${escapeText(caseLabel(activeCase))}.</div>`;
+    return;
+  }
+
+  target.innerHTML = filtered.map(productGameCard).join("");
+}
+
+async function openGameDetail(gameId) {
+  const overlay = document.getElementById("detail-overlay");
+  const title = document.getElementById("detail-title");
+  const subtitle = document.getElementById("detail-subtitle");
+  const body = document.getElementById("detail-body");
+
+  overlay.classList.add("open");
+  title.textContent = "Loading game detail...";
+  subtitle.textContent = gameId;
+  body.innerHTML = "";
+
+  try {
+    const response = await fetch(`/api/game-detail/${encodeURIComponent(gameId)}`);
+    if (!response.ok) throw new Error(`Game detail API returned ${response.status}`);
+
+    const payload = await response.json();
+    const game = payload.game || {};
+    const sections = Array.isArray(payload.sections) ? payload.sections : [];
+
+    title.textContent = game.matchup || "Game Detail";
+    subtitle.textContent = `${signalStatusLabel(game.signal_status)} Â· ${game.selected_team || "No selected team"}`;
+
+    body.innerHTML = sections.map(section => `
+      <div class="detail-section">
+        <h3>${escapeText(section.title || section.id || "Section")}</h3>
+        ${(Array.isArray(section.items) ? section.items : []).map(item => `
+          <div class="detail-row">
+            <span>${escapeText(item.label || "")}</span>
+            <strong>${escapeText(formatDetailValue(item.value))}</strong>
+          </div>
+        `).join("")}
+      </div>
+    `).join("");
+  } catch (error) {
+    title.textContent = "Game detail unavailable";
+    subtitle.textContent = error.message;
+    body.innerHTML = `<div class="empty">Unable to load game detail.</div>`;
+  }
+}
+
+function closeGameDetail() {
+  document.getElementById("detail-overlay").classList.remove("open");
+}
+
+function formatDetailValue(value) {
+  if (value == null || value === "") return "--";
+  if (typeof value === "number") {
+    if (value >= 0 && value <= 1) return shortPercent(value);
+    return value.toFixed(2);
+  }
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  return String(value);
+}
+
+function accuracyText(bucket) {
+  if (!bucket || bucket.accuracy == null) return "--";
+  return formatPercent(bucket.accuracy, 1);
+}
+
+function accuracyCaption(bucket, fallback) {
+  if (!bucket) return fallback;
+  const sampleCount = bucket.sample_count ?? 0;
+  const correct = bucket.correct ?? 0;
+  return `${correct} / ${sampleCount} correct`;
+}
+
+function setAccuracyValue(id, bucket) {
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.textContent = accuracyText(bucket);
+  const value = bucket && bucket.accuracy != null ? Number(bucket.accuracy) : null;
+  if (value == null) element.className = "stat-value waiting";
+  else if (value >= 0.55) element.className = "stat-value positive";
+  else if (value < 0.50) element.className = "stat-value negative";
+  else element.className = "stat-value neutral";
+}
+
+function renderAccuracyDiagnostics(performanceData) {
+  const breakdown = performanceData.accuracy_breakdown || {};
+  setAccuracyValue("acc-all", breakdown.all_settled);
+  document.getElementById("acc-all-caption").textContent = accuracyCaption(breakdown.all_settled, "all clean predictions");
+  setAccuracyValue("acc-ml-bets", breakdown.moneyline_paper_bets);
+  document.getElementById("acc-ml-bets-caption").textContent = accuracyCaption(breakdown.moneyline_paper_bets, "paper bet sample");
+  setAccuracyValue("acc-home", breakdown.home_model_picks);
+  document.getElementById("acc-home-caption").textContent = accuracyCaption(breakdown.home_model_picks, "model home picks");
+  setAccuracyValue("acc-away", breakdown.away_model_picks);
+  document.getElementById("acc-away-caption").textContent = accuracyCaption(breakdown.away_model_picks, "model away picks");
+  setAccuracyValue("acc-favorites", breakdown.favorites);
+  document.getElementById("acc-favorites-caption").textContent = accuracyCaption(breakdown.favorites, "market favorite picks");
+  setAccuracyValue("acc-underdogs", breakdown.underdogs);
+  document.getElementById("acc-underdogs-caption").textContent = accuracyCaption(breakdown.underdogs, "market underdog picks");
+}
+
+function renderPerformance(performanceData) {
+  document.getElementById("total").textContent = performanceData.total ?? "--";
+
+  const roi = document.getElementById("roi");
+  if (performanceData.roi == null) {
+    roi.textContent = "No bets";
+    roi.className = "stat-value waiting";
+  } else {
+    roi.textContent = formatPercent(performanceData.roi, 1, true);
+    roi.className = `stat-value ${performanceData.roi >= 0 ? "positive" : "negative"}`;
+  }
+
+  document.getElementById("roi-caption").textContent =
+    `${performanceData.moneyline_bets || 0} settled ML bets`;
+
+  const winRate = document.getElementById("win-rate");
+  if (performanceData.win_rate == null) {
+    winRate.textContent = "--";
+    winRate.className = "stat-value waiting";
+  } else {
+    winRate.textContent = formatPercent(performanceData.win_rate);
+    winRate.className = "stat-value neutral";
+  }
+
+  const brier = document.getElementById("brier");
+  if (performanceData.brier == null) {
+    brier.textContent = "--";
+    brier.className = "stat-value waiting";
+  } else {
+    brier.textContent = Number(performanceData.brier).toFixed(3);
+    brier.className = "stat-value neutral";
+  }
+
+  const avgClv = document.getElementById("avg-clv");
+  const positiveClv = document.getElementById("positive-clv");
+
+  if (performanceData.avg_clv == null) {
+    avgClv.textContent = "Waiting";
+    avgClv.className = "stat-value waiting";
+    positiveClv.textContent = "--";
+    positiveClv.className = "stat-value waiting";
+    document.getElementById("clv-caption").textContent = performanceData.clv_message || "closing lines pending";
+  } else {
+    avgClv.textContent = formatPercent(performanceData.avg_clv, 2, true);
+    avgClv.className = `stat-value ${performanceData.avg_clv >= 0 ? "positive" : "negative"}`;
+    positiveClv.textContent = formatPercent(performanceData.positive_clv_rate);
+    positiveClv.className = `stat-value ${performanceData.positive_clv_rate >= 0.5 ? "positive" : "negative"}`;
+    document.getElementById("clv-caption").textContent = `${performanceData.clv_samples || 0} entry vs close samples`;
+  }
+
+  document.getElementById("positive-clv-caption").textContent = `${performanceData.clv_samples || 0} CLV samples`;
+}
+
+function renderHealth(data) {
+  const status = String(data.status || "UNKNOWN");
+  document.getElementById("health-status").textContent = status;
+  document.getElementById("health-status").className =
+    `health-value ${status === "OK" ? "positive" : status === "ERROR" ? "negative" : "waiting"}`;
+  document.getElementById("health-status-caption").textContent =
+    Array.isArray(data.messages) && data.messages.length ? data.messages[0] : "pipeline checked";
+
+  document.getElementById("health-predictions").textContent = `${data.prediction_count || 0}/${data.scheduled_game_count || 0}`;
+  document.getElementById("health-odds").textContent =
+    `${data.odds?.ok || 0}/${(data.odds?.ok || 0) + (data.odds?.suspicious || 0) + (data.odds?.unavailable || 0) + (data.odds?.missing || 0)}`;
+  document.getElementById("health-context").textContent =
+    `${data.daily_context?.ready_context_count || 0}`;
+  document.getElementById("health-context-caption").textContent =
+    `${data.daily_context?.latest_context_count || 0} latest context rows`;
+  document.getElementById("health-snapshots").textContent =
+    `${data.snapshots?.clean_rows || 0}/${data.snapshots?.stored_rows || 0}`;
+  document.getElementById("health-snapshots-caption").textContent =
+    `${data.snapshots?.settled_rows || 0} settled`;
+  document.getElementById("health-market").textContent =
+    `${data.market_odds_history?.closing_moneyline_rows || 0}`;
+  document.getElementById("health-market-caption").textContent =
+    `${data.market_odds_history?.stored_rows || 0} market rows`;
+  document.getElementById("health-lineup-feed").textContent =
+    `${data.daily_context?.lineup_player_count_rows || data.daily_context?.confirmed_lineup_count || 0}`;
+  document.getElementById("health-lineup-feed-caption").textContent = "lineup-ready context rows";
+
+  const training = data.training || {};
+  document.getElementById("health-training").textContent =
+    training.trained ? "Trained" : `${training.sample_count || 0}/${training.minimum_required || 0}`;
+  document.getElementById("health-training-caption").textContent =
+    training.reason || "model readiness";
+}
+
+async function loadDashboard() {
+  let predictionData = null;
+  const dashboardMessages = [];
+
+  try {
+    const predictionResponse = await fetch("/api/predictions");
+    if (!predictionResponse.ok) throw new Error(`Predictions API returned ${predictionResponse.status}`);
+
+    predictionData = await predictionResponse.json();
+    const generatedAt = parseUtcTimestamp(predictionData.generated_at);
+    const updated = generatedAt
+      ? generatedAt.toLocaleString("zh-TW", {
+          timeZone: "Asia/Taipei",
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          hour12: false
+        })
+      : "--";
+
+    document.getElementById("update-time").textContent = `Updated in Taipei: ${updated}`;
+  } catch (error) {
+    dashboardMessages.push(`<div class="message bad">Predictions load failed: ${escapeText(error.message)}</div>`);
+  }
+
+  try {
+    const guardrailResponse = await fetch("/api/research-guardrails");
+    if (!guardrailResponse.ok) throw new Error(`Research guardrails API returned ${guardrailResponse.status}`);
+    const guardrailData = await guardrailResponse.json();
+    renderResearchGuardrails(guardrailData);
+  } catch (error) {
+    dashboardMessages.push(`<div class="message warn">Research guardrails load failed: ${escapeText(error.message)}</div>`);
+  }
+
+  try {
+    const boardResponse = await fetch("/api/game-board");
+    if (!boardResponse.ok) throw new Error(`Game board API returned ${boardResponse.status}`);
+    const gameBoardData = await boardResponse.json();
+    renderSignalTabs(gameBoardData);
+    renderProductGameBoard(gameBoardData);
+  } catch (error) {
+    dashboardMessages.push(`<div class="message warn">Product game board load failed: ${escapeText(error.message)}</div>`);
+    document.getElementById("games").innerHTML = '<div class="empty">Product game board unavailable.</div>';
+  }
+
+  try {
+    const performanceResponse = await fetch("/api/performance");
+    if (!performanceResponse.ok) throw new Error(`Performance API returned ${performanceResponse.status}`);
+    const performanceData = await performanceResponse.json();
+    renderPerformance(performanceData);
+    renderAccuracyDiagnostics(performanceData);
+  } catch (error) {
+    dashboardMessages.push(`<div class="message bad">Performance load failed: ${escapeText(error.message)}</div>`);
+  }
+
+  try {
+    const healthResponse = await fetch("/api/health");
+    if (!healthResponse.ok) throw new Error(`Health API returned ${healthResponse.status}`);
+    const healthData = await healthResponse.json();
+    renderHealth(healthData);
+  } catch (error) {
+    dashboardMessages.push(`<div class="message bad">Health load failed: ${escapeText(error.message)}</div>`);
+  }
+
+  if (dashboardMessages.length) {
+    document.getElementById("messages").innerHTML = dashboardMessages.join("");
+  }
+}
+
 loadDashboard();
-</script></body></html>
+</script>
+</body>
+</html>
 """
 
 
@@ -183,7 +1574,12 @@ def _normalize_game_id(value: Any) -> str:
 
 
 def _bool_series(series: pd.Series) -> pd.Series:
-    return series.astype(str).str.strip().str.lower().isin({"true", "1", "yes", "y", "valid", "ok"})
+    return (
+        series.astype(str)
+        .str.strip()
+        .str.lower()
+        .isin({"true", "1", "yes", "y", "valid", "ok"})
+    )
 
 
 def _enrich_start_times(payload: dict[str, Any]) -> dict[str, Any]:
@@ -237,34 +1633,51 @@ def _recommendation_side(recommendation: str, home_team: str, away_team: str) ->
 def _prepare_clean_dashboard_snapshots(frame: pd.DataFrame) -> pd.DataFrame:
     if frame.empty or "game_id" not in frame.columns:
         return pd.DataFrame()
+
     result = frame.copy()
     result["game_id"] = result["game_id"].apply(_normalize_game_id)
     result = result[result["game_id"] != ""].copy()
+
     if "pipeline_version" in result.columns:
         preferred = result[result["pipeline_version"].astype(str) == CLEAN_PIPELINE_VERSION].copy()
         if not preferred.empty:
             result = preferred
+
     if "snapshot_valid" in result.columns:
         result = result[_bool_series(result["snapshot_valid"])].copy()
+
     leakage_columns = [
-        "home_win", "home_score", "away_score", "final_score", "home_final_score",
-        "away_final_score", "settled_at", "actual_winner", "actual_result",
-        "final_home_score", "final_away_score", "postgame_win_probability",
+        "home_win",
+        "home_score",
+        "away_score",
+        "final_score",
+        "home_final_score",
+        "away_final_score",
+        "settled_at",
+        "actual_winner",
+        "actual_result",
+        "final_home_score",
+        "final_away_score",
+        "postgame_win_probability",
     ]
     result = result.drop(columns=[column for column in leakage_columns if column in result.columns], errors="ignore")
+
     if "snapshot_created_at" in result.columns:
         result["snapshot_created_at"] = pd.to_datetime(result["snapshot_created_at"], errors="coerce", utc=True)
         result = result.sort_values("snapshot_created_at")
         result = result.groupby("game_id", as_index=False).tail(1)
+
     return result.reset_index(drop=True)
 
 
 def _prepare_finalized_dashboard_outcomes(frame: pd.DataFrame) -> pd.DataFrame:
     if frame.empty or "game_id" not in frame.columns:
         return pd.DataFrame()
+
     result = frame.copy()
     result["game_id"] = result["game_id"].apply(_normalize_game_id)
     result = result[result["game_id"] != ""].copy()
+
     if "home_win" not in result.columns:
         if {"home_score", "away_score"}.issubset(set(result.columns)):
             home_score = pd.to_numeric(result["home_score"], errors="coerce")
@@ -272,9 +1685,11 @@ def _prepare_finalized_dashboard_outcomes(frame: pd.DataFrame) -> pd.DataFrame:
             result["home_win"] = (home_score > away_score).astype("Int64")
         else:
             return pd.DataFrame()
+
     result["home_win"] = pd.to_numeric(result["home_win"], errors="coerce")
     result = result[result["home_win"].isin([0, 1])].copy()
     result["home_win"] = result["home_win"].astype(int)
+
     return result[["game_id", "home_win"]].drop_duplicates("game_id", keep="last")
 
 
@@ -283,14 +1698,18 @@ def _combine_dashboard_finalized_outcomes(finalized_games: pd.DataFrame, snapsho
     prepared_finalized = _prepare_finalized_dashboard_outcomes(finalized_games)
     if not prepared_finalized.empty:
         frames.append(prepared_finalized)
+
     prepared_cache = _prepare_finalized_dashboard_outcomes(snapshot_outcomes)
     if not prepared_cache.empty:
         frames.append(prepared_cache)
+
     if not frames:
         return pd.DataFrame()
+
     combined = pd.concat(frames, ignore_index=True)
     combined["game_id"] = combined["game_id"].apply(_normalize_game_id)
     combined = combined[combined["game_id"] != ""].copy()
+
     return combined.drop_duplicates("game_id", keep="last").reset_index(drop=True)
 
 
@@ -298,62 +1717,101 @@ def _load_finalized_joined_clean_snapshots() -> tuple[pd.DataFrame, str | None]:
     snapshots, snapshot_error = _read_csv_safe(SNAPSHOT_PATH)
     if snapshot_error is not None:
         return pd.DataFrame(), f"prediction_snapshots unavailable: {snapshot_error}"
+
     finalized, finalized_error = _read_csv_safe(FINALIZED_GAMES_PATH)
     if finalized_error is not None:
         finalized = pd.DataFrame()
+
     snapshot_outcomes, snapshot_outcomes_error = _read_csv_safe(FINALIZED_SNAPSHOT_OUTCOMES_PATH)
     if snapshot_outcomes_error is not None:
         snapshot_outcomes = pd.DataFrame()
+
     if finalized.empty and snapshot_outcomes.empty:
         return pd.DataFrame(), "finalized_games and finalized_snapshot_outcomes unavailable"
+
     clean_snapshots = _prepare_clean_dashboard_snapshots(snapshots)
     finalized_outcomes = _combine_dashboard_finalized_outcomes(finalized, snapshot_outcomes)
+
     if clean_snapshots.empty:
         return pd.DataFrame(), "No clean pregame snapshots available"
     if finalized_outcomes.empty:
         return pd.DataFrame(), "No trusted finalized outcomes available"
+
     joined = clean_snapshots.merge(finalized_outcomes, on="game_id", how="inner")
     if joined.empty:
         return pd.DataFrame(), "No clean snapshots join trusted finalized outcomes by game_id"
+
     return joined.reset_index(drop=True), None
 
 
 def _build_accuracy_bucket(frame: pd.DataFrame, pick_column: str = "model_pick_side") -> dict[str, Any]:
     if frame.empty:
         return {"sample_count": 0, "correct": 0, "accuracy": None}
+
     result = frame.copy()
     result["home_win"] = pd.to_numeric(result["home_win"], errors="coerce")
     result = result[result["home_win"].isin([0, 1])].copy()
     if result.empty:
         return {"sample_count": 0, "correct": 0, "accuracy": None}
-    correct = (((result[pick_column] == "home") & (result["home_win"] == 1)) | ((result[pick_column] == "away") & (result["home_win"] == 0)))
+
+    correct = (
+        ((result[pick_column] == "home") & (result["home_win"] == 1))
+        | ((result[pick_column] == "away") & (result["home_win"] == 0))
+    )
     sample_count = int(len(result))
     correct_count = int(correct.sum())
-    return {"sample_count": sample_count, "correct": correct_count, "accuracy": float(correct_count / sample_count) if sample_count else None}
+    return {
+        "sample_count": sample_count,
+        "correct": correct_count,
+        "accuracy": float(correct_count / sample_count) if sample_count else None,
+    }
 
 
 def _build_accuracy_breakdown(settled: pd.DataFrame) -> dict[str, Any]:
     if settled.empty:
         return {}
+
     frame = settled.copy()
+
     probability_column = None
     for column in ["displayed_home_win_pct", "predicted_home_win_pct", "premarket_model_home_prob"]:
         if column in frame.columns:
             probability_column = column
             break
+
     if probability_column is not None:
         frame["_model_home_prob"] = pd.to_numeric(frame[probability_column], errors="coerce")
     else:
         frame["_model_home_prob"] = 0.5
+
     frame["model_pick_side"] = frame["_model_home_prob"].apply(lambda value: "home" if pd.notna(value) and value >= 0.5 else "away")
+
     market_col = "market_no_vig_home_prob" if "market_no_vig_home_prob" in frame.columns else None
     if market_col:
         frame["_market_home_prob"] = pd.to_numeric(frame[market_col], errors="coerce")
         frame["market_favorite_side"] = frame["_market_home_prob"].apply(lambda value: "home" if pd.notna(value) and value >= 0.5 else "away")
-        frame["market_role"] = frame.apply(lambda row: "favorite" if row["model_pick_side"] == row["market_favorite_side"] else "underdog", axis=1)
+        frame["market_role"] = frame.apply(
+            lambda row: "favorite" if row["model_pick_side"] == row["market_favorite_side"] else "underdog",
+            axis=1,
+        )
     else:
         frame["market_role"] = "unknown"
-    paper_bets = frame[((frame.get("recommendation_status", pd.Series(dtype=str)).astype(str).str.upper() == "PAPER_BET") & (frame.get("odds_quality_status", pd.Series(dtype=str)).astype(str).str.upper() == "OK"))].copy()
+
+    paper_bets = frame[
+        (
+            frame.get("recommendation_status", pd.Series(dtype=str))
+            .astype(str)
+            .str.upper()
+            == "PAPER_BET"
+        )
+        & (
+            frame.get("odds_quality_status", pd.Series(dtype=str))
+            .astype(str)
+            .str.upper()
+            == "OK"
+        )
+    ].copy()
+
     return {
         "all_settled": _build_accuracy_bucket(frame),
         "moneyline_paper_bets": _build_accuracy_bucket(paper_bets),
@@ -368,50 +1826,83 @@ def _load_closing_moneyline() -> pd.DataFrame:
     market, market_error = _read_csv_safe(MARKET_ODDS_PATH)
     if market_error is not None or market.empty:
         return pd.DataFrame()
+
     required_columns = {"game_id", "market", "side", "odds", "is_closing_snapshot"}
     if not required_columns.issubset(set(market.columns)):
         return pd.DataFrame()
+
     result = market.copy()
     result["game_id"] = result["game_id"].apply(_normalize_game_id)
     result["odds"] = pd.to_numeric(result["odds"], errors="coerce")
     result["is_closing_snapshot"] = _bool_series(result["is_closing_snapshot"])
+
     if "pipeline_version" in result.columns:
         result = result[result["pipeline_version"].astype(str) == CLEAN_PIPELINE_VERSION].copy()
-    result = result[(result["market"].astype(str).str.lower() == "moneyline") & result["is_closing_snapshot"] & result["side"].astype(str).str.lower().isin(["home", "away"]) & (result["odds"] > 1.0)].copy()
+
+    result = result[
+        (result["market"].astype(str).str.lower() == "moneyline")
+        & result["is_closing_snapshot"]
+        & result["side"].astype(str).str.lower().isin(["home", "away"])
+        & (result["odds"] > 1.0)
+    ].copy()
+
     return result
 
 
 def _moneyline_clv_metrics(clean_snapshots: pd.DataFrame) -> dict[str, Any]:
-    result = {"avg_clv": None, "positive_clv_rate": None, "clv_samples": 0, "clv_message": "Waiting for closing lines"}
+    result = {
+        "avg_clv": None,
+        "positive_clv_rate": None,
+        "clv_samples": 0,
+        "clv_message": "Waiting for closing lines",
+    }
+
     if clean_snapshots.empty:
         result["clv_message"] = "No clean snapshots for CLV"
         return result
+
     closing = _load_closing_moneyline()
     if closing.empty:
         result["clv_message"] = "No closing moneyline rows available"
         return result
+
     clv_values = []
+
     for _, row in clean_snapshots.iterrows():
-        side = _recommendation_side(str(row.get("moneyline_recommendation") or ""), str(row.get("home_team") or ""), str(row.get("away_team") or ""))
+        side = _recommendation_side(
+            str(row.get("moneyline_recommendation") or ""),
+            str(row.get("home_team") or ""),
+            str(row.get("away_team") or ""),
+        )
         if side is None:
             continue
+
         entry_column = "home_moneyline_odds" if side == "home" else "away_moneyline_odds"
         entry_odds = row.get(entry_column)
         try:
             entry_odds = float(entry_odds)
         except Exception:
             continue
+
         if entry_odds <= 1.0:
             continue
-        game_closing = closing[(closing["game_id"] == _normalize_game_id(row.get("game_id"))) & (closing["side"].astype(str).str.lower() == side)]["odds"].dropna()
+
+        game_closing = closing[
+            (closing["game_id"] == _normalize_game_id(row.get("game_id")))
+            & (closing["side"].astype(str).str.lower() == side)
+        ]["odds"].dropna()
+
         if game_closing.empty:
             continue
+
         closing_odds = float(game_closing.median())
         entry_probability = 1.0 / float(entry_odds)
         closing_probability = 1.0 / closing_odds
         clv_values.append(closing_probability - entry_probability)
+
     if not clv_values:
         return result
+
     result["avg_clv"] = float(sum(clv_values) / len(clv_values))
     result["positive_clv_rate"] = float(sum(value > 0 for value in clv_values) / len(clv_values))
     result["clv_samples"] = int(len(clv_values))
@@ -436,10 +1927,13 @@ def get_performance() -> dict[str, Any]:
         "accuracy_breakdown": {},
         "message": "No finalized-joined clean samples yet",
     }
+
     if not SNAPSHOT_PATH.exists():
         result["message"] = "prediction_snapshots.csv is missing"
         return result
+
     joined, joined_error = _load_finalized_joined_clean_snapshots()
+
     try:
         snapshots, snapshot_error = _read_csv_safe(SNAPSHOT_PATH)
         if snapshot_error is None:
@@ -447,43 +1941,72 @@ def get_performance() -> dict[str, Any]:
             result.update(_moneyline_clv_metrics(clean_snapshots))
     except Exception as exc:
         result["clv_message"] = f"CLV calculation unavailable: {exc}"
+
     if joined_error is not None:
         result["message"] = joined_error
         return result
+
     settled = joined.copy()
     settled["home_win"] = pd.to_numeric(settled["home_win"], errors="coerce")
     settled = settled[settled["home_win"].isin([0, 1])].copy()
+
     if settled.empty:
         result["message"] = "No finalized-joined clean samples after outcome validation"
         return result
+
     settled["home_win"] = settled["home_win"].astype(int)
     result["clean_sample_count"] = int(len(settled))
     result["total"] = int(len(settled))
     result["accuracy_breakdown"] = _build_accuracy_breakdown(settled)
+
     if "displayed_home_win_pct" in settled.columns:
         scored = settled[["home_win", "displayed_home_win_pct"]].copy()
         scored["displayed_home_win_pct"] = pd.to_numeric(scored["displayed_home_win_pct"], errors="coerce")
         scored = scored.dropna()
         if not scored.empty:
             result["brier"] = float(brier_score_loss(scored["home_win"], scored["displayed_home_win_pct"]))
-    paper_bets = settled[((settled.get("recommendation_status", pd.Series(dtype=str)).astype(str).str.upper() == "PAPER_BET") & (settled.get("odds_quality_status", pd.Series(dtype=str)).astype(str).str.upper() == "OK"))].copy()
+
+    paper_bets = settled[
+        (
+            settled.get("recommendation_status", pd.Series(dtype=str))
+            .astype(str)
+            .str.upper()
+            == "PAPER_BET"
+        )
+        & (
+            settled.get("odds_quality_status", pd.Series(dtype=str))
+            .astype(str)
+            .str.upper()
+            == "OK"
+        )
+    ].copy()
+
     wins: list[int] = []
     profits: list[float] = []
+
     for _, row in paper_bets.iterrows():
-        side = _recommendation_side(row.get("moneyline_recommendation", ""), row.get("home_team", ""), row.get("away_team", ""))
+        side = _recommendation_side(
+            row.get("moneyline_recommendation", ""),
+            row.get("home_team", ""),
+            row.get("away_team", ""),
+        )
         if side is None:
             continue
+
         odds_value = row.get("home_moneyline_odds") if side == "home" else row.get("away_moneyline_odds")
         odds = pd.to_numeric(odds_value, errors="coerce")
         if pd.isna(odds) or float(odds) <= 1.0:
             continue
+
         won = int(row["home_win"] == 1) if side == "home" else int(row["home_win"] == 0)
         wins.append(won)
         profits.append((float(odds) - 1.0) if won else -1.0)
+
     if profits:
         result["moneyline_bets"] = int(len(profits))
         result["win_rate"] = float(sum(wins) / len(wins))
         result["roi"] = float(sum(profits) / len(profits))
+
     result["message"] = "Statistics from trusted finalized outcomes joined to clean pregame snapshots"
     return result
 
@@ -520,7 +2043,9 @@ def get_health() -> dict[str, Any]:
         },
         "messages": [],
     }
+
     messages: list[str] = result["messages"]
+
     report, report_error = _read_prediction_report_safe()
     if report is None:
         result["status"] = "WARNING"
@@ -542,15 +2067,27 @@ def get_health() -> dict[str, Any]:
                     result["odds"]["unavailable"] += 1
                 else:
                     result["odds"]["missing"] += 1
+
     snapshots, snapshot_error = _read_csv_safe(SNAPSHOT_PATH)
     if snapshot_error is None:
         clean = _prepare_clean_dashboard_snapshots(snapshots)
         joined, _ = _load_finalized_joined_clean_snapshots()
-        result["snapshots"] = {"file_exists": True, "stored_rows": int(len(snapshots)), "clean_rows": int(len(clean)), "settled_rows": int(len(joined))}
+        result["snapshots"] = {
+            "file_exists": True,
+            "stored_rows": int(len(snapshots)),
+            "clean_rows": int(len(clean)),
+            "settled_rows": int(len(joined)),
+        }
+
     market, market_error = _read_csv_safe(MARKET_ODDS_PATH)
     if market_error is None:
         closing = _load_closing_moneyline()
-        result["market_odds_history"] = {"file_exists": True, "stored_rows": int(len(market)), "closing_moneyline_rows": int(len(closing))}
+        result["market_odds_history"] = {
+            "file_exists": True,
+            "stored_rows": int(len(market)),
+            "closing_moneyline_rows": int(len(closing)),
+        }
+
     context, context_error = _read_csv_safe(DAILY_CONTEXT_PATH)
     if context_error is None:
         result["daily_context"]["file_exists"] = True
@@ -566,6 +2103,7 @@ def get_health() -> dict[str, Any]:
             home_counts = pd.to_numeric(context["home_lineup_player_count"], errors="coerce").fillna(0)
             away_counts = pd.to_numeric(context["away_lineup_player_count"], errors="coerce").fillna(0)
             result["daily_context"]["lineup_player_count_rows"] = int(((home_counts >= 9) & (away_counts >= 9)).sum())
+
     sample_state, sample_state_error = _read_json_safe(SAMPLE_STATE_PATH)
     training_status, training_error = _read_json_safe(TRAINING_STATUS_PATH)
     if sample_state or training_status:
@@ -578,8 +2116,10 @@ def get_health() -> dict[str, Any]:
         result["training"]["remaining_samples"] = max(minimum - result["training"]["sample_count"], 0) if minimum else None
         result["training"]["model_type"] = str(training_status.get("model_type", ""))
         result["training"]["reason"] = str(training_status.get("reason", ""))
+
     if messages and result["status"] == "OK":
         result["status"] = "WARNING"
+
     return result
 
 
@@ -595,10 +2135,14 @@ def get_research_guardrails() -> dict[str, Any]:
         "model_correctness": Path("report/model_correctness_report.json"),
         "model_decision_guardrail": Path("report/model_decision_guardrail_report.json"),
         "research_promotion_readiness": Path("report/research_promotion_readiness_report.json"),
+        "edge_sanity_guardrail": Path("report/edge_sanity_guardrail_report.json"),
+        "signal_quality": Path("report/signal_quality_report.json"),
     }
+
     reports: dict[str, Any] = {}
     missing: list[str] = []
     errors: dict[str, str] = {}
+
     for name, path in report_map.items():
         payload, error = _read_json_safe(path)
         if error is not None:
@@ -607,13 +2151,22 @@ def get_research_guardrails() -> dict[str, Any]:
             errors[name] = str(error)
         else:
             reports[name] = payload if isinstance(payload, dict) else {}
+
     sample_state = reports.get("sample_state", {})
     confidence = reports.get("confidence_bucket_guardrail", {})
     slice_gate = reports.get("slice_promotion_gate", {})
     lineup_quality = reports.get("lineup_quality", {})
     freshness = reports.get("feature_freshness", {})
     correctness = reports.get("model_correctness", {})
-    confidence_policy = confidence.get("global_policy") if isinstance(confidence.get("global_policy"), dict) else {}
+    edge_sanity = reports.get("edge_sanity_guardrail", {})
+    signal_quality = reports.get("signal_quality", {})
+
+    confidence_policy = (
+        confidence.get("global_policy")
+        if isinstance(confidence.get("global_policy"), dict)
+        else {}
+    )
+
     summary = {
         "clean_settled_samples": int(sample_state.get("clean_settled_snapshots") or 0),
         "train_eligible_samples": int(sample_state.get("train_eligible_samples") or 0),
@@ -633,10 +2186,16 @@ def get_research_guardrails() -> dict[str, Any]:
         "overall_model_correctness": correctness.get("overall_accuracy"),
         "blocked_filters": correctness.get("blocked_filters", []),
         "recommended_filters": correctness.get("recommended_filters", []),
+        "edge_sanity_policy": edge_sanity.get("policy", {}),
+        "signal_quality_policy": signal_quality.get("global_policy", {}),
+        "signal_quality_cases": signal_quality.get("cases", []),
     }
+
+    status = "partial" if errors else "ok"
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-        "status": "partial" if errors else "ok",
+        "status": status,
         "summary": summary,
         "reports": reports,
         "missing": missing,
@@ -694,7 +2253,11 @@ def _product_market_home_probability(prediction: dict[str, Any]) -> float | None
 
 
 def _product_selected_side(prediction: dict[str, Any], home_probability: float | None) -> str:
-    recommendation_side = _recommendation_side(str(prediction.get("moneyline_recommendation") or ""), str(prediction.get("home_team") or ""), str(prediction.get("away_team") or ""))
+    recommendation_side = _recommendation_side(
+        str(prediction.get("moneyline_recommendation") or ""),
+        str(prediction.get("home_team") or ""),
+        str(prediction.get("away_team") or ""),
+    )
     if recommendation_side in {"home", "away"}:
         return recommendation_side
     if home_probability is None:
@@ -732,12 +2295,13 @@ def _product_edge(home_probability: float | None, market_home_probability: float
 def _product_confidence_grade(probability: float | None, edge: float | None) -> str:
     if probability is None:
         return "D"
+    confidence = probability
     edge_abs = abs(edge) if edge is not None else 0.0
-    if probability >= 0.62 and edge_abs >= 0.04:
+    if confidence >= 0.62 and edge_abs >= 0.04:
         return "A"
-    if probability >= 0.58 and edge_abs >= 0.025:
+    if confidence >= 0.58 and edge_abs >= 0.025:
         return "B"
-    if probability >= 0.54 or edge_abs >= 0.015:
+    if confidence >= 0.54 or edge_abs >= 0.015:
         return "C"
     return "D"
 
@@ -749,31 +2313,50 @@ def _product_signal_status(prediction: dict[str, Any], selected_side: str, marke
     slice_policy = guardrail_summary.get("slice_policy")
     if not isinstance(slice_policy, dict):
         slice_policy = {}
+
+    edge_policy = guardrail_summary.get("edge_sanity_policy")
+    if not isinstance(edge_policy, dict):
+        edge_policy = {}
+
     if odds_quality in {"SUSPICIOUS", "UNAVAILABLE", "MISSING"}:
         reasons.append(f"odds quality is {odds_quality}")
         return "BLOCKED_BY_DATA", reasons
+
     if bool(guardrail_summary.get("block_high_confidence_language")) and confidence_grade == "A":
         reasons.append("high-confidence language is capped by guardrail")
         return "TRACKING_ONLY", reasons
+
     if market_role == "underdog":
         underdog_policy = slice_policy.get("home_underdog") if selected_side == "home" else slice_policy.get("away_underdog")
         if str(underdog_policy).upper() == "PAPER_ENTRY_BLOCKED_BY_RISK":
             reasons.append("underdog slice is blocked by risk guardrail")
             return "BLOCKED_BY_RISK", reasons
+
     if recommendation_status == "PAPER_BET":
         reasons.append("existing prediction marks this as paper bet")
         return "PAPER_SIGNAL", reasons
+
     if recommendation_status == "TRACKING_ONLY":
         reasons.append("existing prediction is tracking only")
         return "TRACKING_ONLY", reasons
+
     if recommendation_status in {"NO_SIGNAL", "NO BET", "PASS"}:
         reasons.append("no actionable model signal")
         return "NO_SIGNAL", reasons
+
     return "TRACKING_ONLY", reasons
 
 
-def _product_case_tags(signal_status: str, selected_side: str, market_role: str, edge: float | None, confidence_grade: str, lineup_grade: str) -> list[str]:
+def _product_case_tags(
+    signal_status: str,
+    selected_side: str,
+    market_role: str,
+    edge: float | None,
+    confidence_grade: str,
+    lineup_grade: str,
+) -> list[str]:
     tags = ["all"]
+
     if signal_status == "PAPER_SIGNAL":
         tags.append("paper_signals")
     if signal_status == "TRACKING_ONLY":
@@ -782,22 +2365,51 @@ def _product_case_tags(signal_status: str, selected_side: str, market_role: str,
         tags.append("blocked")
     if signal_status == "NO_SIGNAL":
         tags.append("no_signal")
+
     if edge is not None and edge > 0:
         tags.append("positive_edge")
     if edge is not None and edge >= 0.03:
         tags.append("high_edge")
+
     if market_role == "favorite":
         tags.append("favorites")
     elif market_role == "underdog":
         tags.append("underdogs")
+
     if selected_side == "home":
         tags.append("home_picks")
     elif selected_side == "away":
         tags.append("away_picks")
+
     if confidence_grade in {"A", "B"}:
         tags.append("high_confidence")
+
     if str(lineup_grade).lower() in {"d", "missing", "", "none", "nan"}:
         tags.append("lineup_missing")
+
+    edge_abs = abs(edge) if edge is not None else None
+
+    if (
+        market_role == "favorite"
+        and edge_abs is not None
+        and 0.03 <= edge_abs < 0.05
+    ):
+        tags.append("strong_favorite_signal")
+
+    if edge_abs is not None and edge_abs >= 0.05:
+        tags.append("suspicious_large_edge")
+
+    if market_role == "underdog":
+        tags.append("weak_underdog")
+
+    if (
+        signal_status == "PAPER_SIGNAL"
+        and market_role == "favorite"
+        and edge_abs is not None
+        and 0.01 <= edge_abs < 0.05
+    ):
+        tags.append("clean_paper_signal")
+
     return sorted(set(str(tag) for tag in tags if tag))
 
 
@@ -805,8 +2417,10 @@ def _load_lineup_quality_lookup() -> dict[str, dict[str, Any]]:
     frame, error = _read_csv_safe(LINEUP_QUALITY_CONTEXT_PATH)
     if error is not None or frame.empty or "game_id" not in frame.columns:
         return {}
+
     result = frame.copy()
     result["game_id"] = result["game_id"].apply(_normalize_game_id)
+
     lookup: dict[str, dict[str, Any]] = {}
     for _, row in result.iterrows():
         game_id = _normalize_game_id(row.get("game_id"))
@@ -820,6 +2434,7 @@ def _load_lineup_quality_lookup() -> dict[str, dict[str, Any]]:
             "lineup_quality_diff": _safe_float(row.get("lineup_quality_diff")),
             "lineup_quality_warning": row.get("lineup_quality_warning"),
         }
+
     return lookup
 
 
@@ -832,19 +2447,47 @@ def _build_product_game(prediction: dict[str, Any], guardrail_summary: dict[str,
     market_role = _product_market_role(selected_side, market_home_probability)
     edge = _product_edge(home_probability, market_home_probability, selected_side, prediction)
     confidence_grade = _product_confidence_grade(selected_probability, edge)
+
     lineup_context = lineup_lookup.get(game_id, {})
     lineup_grade = str(lineup_context.get("lineup_confidence_grade") or "missing")
-    signal_status, signal_reasons = _product_signal_status(prediction, selected_side, market_role, confidence_grade, guardrail_summary)
-    case_tags = _product_case_tags(signal_status, selected_side, market_role, edge, confidence_grade, lineup_grade)
+
+    signal_status, signal_reasons = _product_signal_status(
+        prediction,
+        selected_side,
+        market_role,
+        confidence_grade,
+        guardrail_summary,
+    )
+
+    edge_policy = guardrail_summary.get("edge_sanity_policy")
+    if not isinstance(edge_policy, dict):
+        edge_policy = {}
+    edge_abs = abs(edge) if edge is not None else None
+    if edge_abs is not None and edge_abs >= 0.05 and bool(edge_policy.get("block_large_edge")):
+        signal_status = "BLOCKED_BY_RISK"
+        signal_reasons.append("large edge is blocked by edge sanity guardrail")
+
+    case_tags = _product_case_tags(
+        signal_status=signal_status,
+        selected_side=selected_side,
+        market_role=market_role,
+        edge=edge,
+        confidence_grade=confidence_grade,
+        lineup_grade=lineup_grade,
+    )
+
     away_team = str(prediction.get("away_team") or "Away")
     home_team = str(prediction.get("home_team") or "Home")
     selected_team = home_team if selected_side == "home" else away_team if selected_side == "away" else ""
+
     top_features = prediction.get("top_features")
     if not isinstance(top_features, list):
         top_features = []
+
     block_details = prediction.get("recommendation_block_details")
     if not isinstance(block_details, list):
         block_details = []
+
     game = {
         "game_id": game_id,
         "game_date": prediction.get("game_date"),
@@ -884,11 +2527,19 @@ def _build_product_game(prediction: dict[str, Any], guardrail_summary: dict[str,
         "automated_wagering_allowed": False,
         "production_model_replacement_allowed": False,
     }
+
     return _sanitize_json_value(game)
 
 
 def _game_sort_key(game: dict[str, Any]) -> tuple[int, float, float]:
-    status_rank = {"PAPER_SIGNAL": 0, "TRACKING_ONLY": 1, "BLOCKED_BY_RISK": 2, "BLOCKED_BY_DATA": 3, "NO_SIGNAL": 4}.get(str(game.get("signal_status")), 5)
+    status_rank = {
+        "PAPER_SIGNAL": 0,
+        "TRACKING_ONLY": 1,
+        "BLOCKED_BY_RISK": 2,
+        "BLOCKED_BY_DATA": 3,
+        "NO_SIGNAL": 4,
+    }.get(str(game.get("signal_status")), 5)
+
     edge = _safe_float(game.get("edge")) or 0.0
     probability = _safe_float(game.get("selected_probability")) or 0.0
     return (status_rank, -abs(edge), -probability)
@@ -899,6 +2550,7 @@ def get_game_board() -> dict[str, Any]:
     report, report_error = _read_prediction_report_safe()
     guardrails = get_research_guardrails()
     guardrail_summary = guardrails.get("summary", {}) if isinstance(guardrails, dict) else {}
+
     if report is None:
         return {
             "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -910,15 +2562,19 @@ def get_game_board() -> dict[str, Any]:
             "automated_wagering_allowed": False,
             "production_model_replacement_allowed": False,
         }
+
     report = _enrich_start_times(report)
     rows = _product_rows_from_prediction_report(report)
     lineup_lookup = _load_lineup_quality_lookup()
+
     games = [_build_product_game(row, guardrail_summary, lineup_lookup) for row in rows]
     games = sorted(games, key=_game_sort_key)
+
     case_counts: dict[str, int] = {}
     for game in games:
         for tag in game.get("case_tags", []):
             case_counts[tag] = case_counts.get(tag, 0) + 1
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "prediction_generated_at": report.get("generated_at"),
@@ -941,6 +2597,7 @@ def get_signal_center() -> dict[str, Any]:
     games = board.get("games", [])
     if not isinstance(games, list):
         games = []
+
     case_labels = {
         "all": "All Games",
         "paper_signals": "Paper Signals",
@@ -950,14 +2607,25 @@ def get_signal_center() -> dict[str, Any]:
         "high_edge": "High Edge",
         "favorites": "Favorites",
         "underdogs": "Underdogs",
+        "strong_favorite_signal": "Strong Favorite",
+        "suspicious_large_edge": "Suspicious Large Edge",
+        "weak_underdog": "Weak Underdog",
+        "clean_paper_signal": "Clean Paper Signal",
         "lineup_missing": "Lineup Missing",
         "high_confidence": "High Confidence",
         "no_signal": "No Signal",
     }
+
     cases: dict[str, dict[str, Any]] = {}
     for case_id, label in case_labels.items():
         grouped = [game for game in games if case_id in set(game.get("case_tags", []))]
-        cases[case_id] = {"case_id": case_id, "label": label, "count": len(grouped), "games": grouped}
+        cases[case_id] = {
+            "case_id": case_id,
+            "label": label,
+            "count": len(grouped),
+            "games": grouped,
+        }
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "status": board.get("status", "ok"),
@@ -976,66 +2644,98 @@ def get_game_detail(game_id: str) -> dict[str, Any]:
     games = board.get("games", [])
     if not isinstance(games, list):
         games = []
+
     selected = None
     for game in games:
         if _normalize_game_id(game.get("game_id")) == normalized_id:
             selected = game
             break
+
     if selected is None:
         raise HTTPException(status_code=404, detail="Game not found")
+
     raw = selected.get("raw_prediction")
     if not isinstance(raw, dict):
         raw = {}
+
     data_quality = raw.get("data_quality_status")
     if not isinstance(data_quality, dict):
         data_quality = {}
+
     governance = raw.get("model_governance_status")
     if not isinstance(governance, dict):
         governance = {}
+
     lineup_context = selected.get("lineup_context")
     if not isinstance(lineup_context, dict):
         lineup_context = {}
+
     sections = [
-        {"id": "matchup_overview", "title": "Matchup Overview", "items": [
-            {"label": "Matchup", "value": selected.get("matchup")},
-            {"label": "Start Time", "value": selected.get("start_time") or selected.get("game_date")},
-            {"label": "Selected Team", "value": selected.get("selected_team")},
-            {"label": "Market Role", "value": selected.get("market_role")},
-        ]},
-        {"id": "ai_prediction", "title": "AI Prediction", "items": [
-            {"label": "Signal Status", "value": selected.get("signal_status")},
-            {"label": "Confidence Grade", "value": selected.get("confidence_grade")},
-            {"label": "Selected Probability", "value": selected.get("selected_probability")},
-            {"label": "Home Probability", "value": selected.get("home_probability")},
-        ]},
-        {"id": "market_comparison", "title": "Market Comparison", "items": [
-            {"label": "Market Home Probability", "value": selected.get("market_home_probability")},
-            {"label": "Model Edge", "value": selected.get("edge")},
-            {"label": "Home ML Odds", "value": selected.get("home_moneyline_odds")},
-            {"label": "Away ML Odds", "value": selected.get("away_moneyline_odds")},
-            {"label": "Odds Source", "value": selected.get("odds_source")},
-        ]},
-        {"id": "lineup_quality", "title": "Lineup Quality", "items": [
-            {"label": "Lineup Grade", "value": lineup_context.get("lineup_confidence_grade")},
-            {"label": "Home Score", "value": lineup_context.get("home_lineup_quality_score")},
-            {"label": "Away Score", "value": lineup_context.get("away_lineup_quality_score")},
-            {"label": "Warning", "value": lineup_context.get("lineup_quality_warning")},
-        ]},
-        {"id": "risk_guardrail", "title": "Risk & Guardrail", "items": [
-            {"label": "Recommendation Status", "value": selected.get("recommendation_status")},
-            {"label": "Odds Quality", "value": selected.get("odds_quality_status")},
-            {"label": "Block Reason", "value": selected.get("recommendation_block_reason")},
-            {"label": "Live Betting Allowed", "value": False},
-            {"label": "Automated Wagering Allowed", "value": False},
-        ]},
-        {"id": "model_governance", "title": "Model Governance", "items": [
-            {"label": "Mode", "value": governance.get("mode")},
-            {"label": "Clean Model Samples", "value": governance.get("clean_model_sample_count")},
-            {"label": "Minimum Samples", "value": governance.get("min_clean_train_samples")},
-            {"label": "Prediction Allowed", "value": data_quality.get("prediction_allowed")},
-            {"label": "Bet Allowed", "value": data_quality.get("bet_allowed")},
-        ]},
+        {
+            "id": "matchup_overview",
+            "title": "Matchup Overview",
+            "items": [
+                {"label": "Matchup", "value": selected.get("matchup")},
+                {"label": "Start Time", "value": selected.get("start_time") or selected.get("game_date")},
+                {"label": "Selected Team", "value": selected.get("selected_team")},
+                {"label": "Market Role", "value": selected.get("market_role")},
+            ],
+        },
+        {
+            "id": "ai_prediction",
+            "title": "AI Prediction",
+            "items": [
+                {"label": "Signal Status", "value": selected.get("signal_status")},
+                {"label": "Confidence Grade", "value": selected.get("confidence_grade")},
+                {"label": "Selected Probability", "value": selected.get("selected_probability")},
+                {"label": "Home Probability", "value": selected.get("home_probability")},
+            ],
+        },
+        {
+            "id": "market_comparison",
+            "title": "Market Comparison",
+            "items": [
+                {"label": "Market Home Probability", "value": selected.get("market_home_probability")},
+                {"label": "Model Edge", "value": selected.get("edge")},
+                {"label": "Home ML Odds", "value": selected.get("home_moneyline_odds")},
+                {"label": "Away ML Odds", "value": selected.get("away_moneyline_odds")},
+                {"label": "Odds Source", "value": selected.get("odds_source")},
+            ],
+        },
+        {
+            "id": "lineup_quality",
+            "title": "Lineup Quality",
+            "items": [
+                {"label": "Lineup Grade", "value": lineup_context.get("lineup_confidence_grade")},
+                {"label": "Home Score", "value": lineup_context.get("home_lineup_quality_score")},
+                {"label": "Away Score", "value": lineup_context.get("away_lineup_quality_score")},
+                {"label": "Warning", "value": lineup_context.get("lineup_quality_warning")},
+            ],
+        },
+        {
+            "id": "risk_guardrail",
+            "title": "Risk & Guardrail",
+            "items": [
+                {"label": "Recommendation Status", "value": selected.get("recommendation_status")},
+                {"label": "Odds Quality", "value": selected.get("odds_quality_status")},
+                {"label": "Block Reason", "value": selected.get("recommendation_block_reason")},
+                {"label": "Live Betting Allowed", "value": False},
+                {"label": "Automated Wagering Allowed", "value": False},
+            ],
+        },
+        {
+            "id": "model_governance",
+            "title": "Model Governance",
+            "items": [
+                {"label": "Mode", "value": governance.get("mode")},
+                {"label": "Clean Model Samples", "value": governance.get("clean_model_sample_count")},
+                {"label": "Minimum Samples", "value": governance.get("min_clean_train_samples")},
+                {"label": "Prediction Allowed", "value": data_quality.get("prediction_allowed")},
+                {"label": "Bet Allowed", "value": data_quality.get("bet_allowed")},
+            ],
+        },
     ]
+
     return {
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "status": "ok",
@@ -1054,12 +2754,14 @@ def get_game_detail(game_id: str) -> dict[str, Any]:
 def run_background(authorization: str = Header(None)) -> dict[str, str]:
     if not ADMIN_TOKEN or not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
         raise HTTPException(status_code=401, detail="Unauthorized")
+
     def task() -> None:
         try:
             if generate_predictions is not None:
                 generate_predictions()
         except Exception as exc:
             print(f"Background prediction error: {exc}")
+
     threading.Thread(target=task, daemon=True).start()
     return {"status": "started"}
 
@@ -1068,7 +2770,11 @@ def run_background(authorization: str = Header(None)) -> dict[str, str]:
 def train_nrfi(authorization: str = Header(None)) -> dict[str, str]:
     if not ADMIN_TOKEN or not authorization or authorization != f"Bearer {ADMIN_TOKEN}":
         raise HTTPException(status_code=401, detail="Unauthorized")
-    return {"status": "disabled", "message": "NRFI training is currently disabled"}
+
+    return {
+        "status": "disabled",
+        "message": "NRFI training is currently disabled",
+    }
 
 
 @app.get("/health")
