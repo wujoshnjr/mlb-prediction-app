@@ -436,7 +436,8 @@ def _picked_signed_feature(frame: pd.DataFrame, column: str, *, invert: bool = F
     if invert:
         values = -values
 
-    return np.where(frame["model_pick_side"] == "home", values, -values)
+    signed_values = np.where(frame["model_pick_side"] == "home", values, -values)
+    return pd.Series(signed_values, index=frame.index)
 
 
 def build_report() -> dict[str, Any]:
