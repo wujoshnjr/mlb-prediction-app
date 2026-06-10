@@ -295,7 +295,9 @@ def _prepare_snapshots(
 
 def _select_output_columns(frame: pd.DataFrame) -> Tuple[List[str], List[str]]:
     leakage_removed = sorted(
-        column for column in frame.columns if column in LEAKAGE_COLUMNS
+        column
+        for column in frame.columns
+        if column in LEAKAGE_COLUMNS and column != "home_win"
     )
 
     available_core = [
@@ -390,6 +392,10 @@ def build_training_samples(
         return report
 
     merged = snapshots.merge(outcomes, on="game_id", how="inner")
+
+    if "edge_at_prediction_time" not in merged.columns and "model_edge_home" in merged.columns:
+        merged["edge_at_prediction_time"] = merged["model_edge_home"]
+            
     report["linked_rows"] = int(len(merged))
     report["dropped_missing_outcome_rows"] = int(len(snapshots) - len(merged))
 
