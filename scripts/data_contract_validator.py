@@ -33,6 +33,8 @@ REQUIRED_JSON_REPORTS = {
     "training_status": DATA_DIR / "training_status.json",
     "sample_state": DATA_DIR / "sample_state.json",
     "sample_state_report": REPORT_DIR / "sample_state_report.json",
+    "edge_sanity_guardrail": REPORT_DIR / "edge_sanity_guardrail_report.json",
+    "signal_quality": REPORT_DIR / "signal_quality_report.json",
 }
 
 OPTIONAL_JSON_REPORTS = {
