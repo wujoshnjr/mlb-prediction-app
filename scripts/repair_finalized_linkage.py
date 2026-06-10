@@ -923,29 +923,29 @@ def build_report(
         if sleep_seconds > 0:
             time.sleep(sleep_seconds)
 
-append_summary = _append_finalized_rows(finalized_path, rows_to_append)
+    append_summary = _append_finalized_rows(finalized_path, rows_to_append)
 
-api_final_written_count = int(append_summary.get("inserted", 0) or 0)
-api_final_but_not_written_count += max(
-    0,
-    len(rows_to_append) - api_final_written_count,
-)
+    api_final_written_count = int(append_summary.get("inserted", 0) or 0)
+    api_final_but_not_written_count += max(
+        0,
+        len(rows_to_append) - api_final_written_count,
+    )
 
-finalized_after_raw, finalized_after_status = _read_csv(finalized_path)
-finalized_after = _prepare_finalized(finalized_after_raw)
-finalized_ids_after = _finalized_ids(finalized_after)
-overlap_after = snapshot_ids & finalized_ids_after
+    finalized_after_raw, finalized_after_status = _read_csv(finalized_path)
+    finalized_after = _prepare_finalized(finalized_after_raw)
+    finalized_ids_after = _finalized_ids(finalized_after)
+    overlap_after = snapshot_ids & finalized_ids_after
 
-trusted_cache_rows = _trusted_cache_rows_from_finalized(
-    finalized_after,
-    valid_snapshot_ids=snapshot_ids,
-)
+    trusted_cache_rows = _trusted_cache_rows_from_finalized(
+        finalized_after,
+        valid_snapshot_ids=snapshot_ids,
+    )
 
-outcome_cache_summary = _upsert_trusted_outcome_cache(
-    finalized_snapshot_outcomes_path,
-    trusted_cache_rows,
-    valid_snapshot_ids=snapshot_ids,
-)
+    outcome_cache_summary = _upsert_trusted_outcome_cache(
+        finalized_snapshot_outcomes_path,
+        trusted_cache_rows,
+        valid_snapshot_ids=snapshot_ids,
+    )
 
     if snapshot_ids and not overlap_after:
         warnings.append(
@@ -954,7 +954,7 @@ outcome_cache_summary = _upsert_trusted_outcome_cache(
 
     if missing_ids and attempted == 0:
         warnings.append("Missing finalized snapshot game_ids exist, but no repair candidates were attempted.")
-
+        
     status = "ok" if not errors else "partial"
 
     report = {
