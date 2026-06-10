@@ -489,6 +489,7 @@ def build_sample_state() -> Dict[str, Any]:
         "train_eligible_samples": train_eligible_samples,
         "training_status_sample_count": training_status_sample_count,
         "loaded_artifact_sample_count": loaded_artifact_sample_count,
+        "model_artifact_training_samples": loaded_artifact_sample_count,
         "active_model_sample_count": active_model_sample_count,
         "model_artifact_valid": model_artifact_valid,
         "model_artifact_error": model_artifact_error,
