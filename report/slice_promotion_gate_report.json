@@ -1,34 +1,37 @@
 {
-  "generated_at": "2026-06-10T02:24:33.309953+00:00",
+  "generated_at": "2026-06-10T04:16:55.256976+00:00",
   "status": "ok",
   "global_decision": "NO_PROMOTION_SHADOW_ONLY",
-  "sample_count": 168,
+  "sample_count": 0,
   "minimum_research_sample": 300,
   "paper_entry_policy": {
     "home_favorite": "TRACKING_ONLY",
     "away_favorite": "TRACKING_ONLY",
     "home_underdog": "PAPER_ENTRY_BLOCKED_BY_RISK",
     "away_underdog": "PAPER_ENTRY_BLOCKED_BY_RISK",
-    "high_confidence": "TRACKING_ONLY",
+    "high_confidence": "PAPER_ENTRY_BLOCKED_BY_RISK",
     "lineup_missing": "TRACKING_ONLY",
     "lineup_ready": "MODEL_SIGNAL_ONLY",
     "default": "TRACKING_ONLY"
   },
   "evidence": {
-    "underdog_accuracy": 0.4888888888888889,
-    "underdog_ece": 0.06360666666666669,
-    "underdog_sample_count": 45,
+    "underdog_accuracy": null,
+    "underdog_ece": null,
+    "underdog_sample_count": 0,
     "underdog_policy": "TRACKING_ONLY",
-    "high_confidence_blocked": false,
+    "high_confidence_blocked": true,
     "unsafe_confidence_buckets": [],
     "calibration_ready": false,
     "calibration_ece": null
   },
   "blockers": [
-    "insufficient_samples_for_slice_promotion: 168 < 300",
+    "high-confidence language is blocked by confidence guardrail",
+    "insufficient_samples_for_slice_promotion: 0 < 300",
     "underdog slice is not approved for paper entry upgrade"
   ],
-  "warnings": [],
+  "warnings": [
+    "underdog sample_count below 30; underdog paper entry remains blocked or tracking only"
+  ],
   "errors": [],
   "live_betting_allowed": false,
   "automated_wagering_allowed": false,

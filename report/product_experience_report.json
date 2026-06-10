@@ -1,0 +1,415 @@
+{
+  "generated_at": "2026-06-10T04:16:56.494160+00:00",
+  "status": "ok",
+  "product_summary": {
+    "mode": "MLB_ONLY_PAPER_RESEARCH",
+    "primary_strength": "favorite/home/odds-ok/paper-bet/moderate-edge signals",
+    "primary_risks": [
+      "underdog slice remains weak",
+      "edge_5_plus is downgraded by edge sanity guardrail",
+      "sample gate remains below research promotion threshold"
+    ],
+    "sample_count": 0,
+    "overall_accuracy": null,
+    "production_allowed": false,
+    "live_betting_allowed": false,
+    "automated_wagering_allowed": false
+  },
+  "hero_metrics": [
+    {
+      "card_id": "overall_accuracy",
+      "label": "Overall Accuracy",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 settled samples",
+      "priority": 1
+    },
+    {
+      "card_id": "sample_gate",
+      "label": "Research Sample Gate",
+      "value": 0,
+      "display_value": "0 / 300",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "Needed before research promotion opens",
+      "priority": 2
+    },
+    {
+      "card_id": "preferred_edge",
+      "label": "Preferred Edge Bucket",
+      "value": null,
+      "display_value": "--",
+      "sample_count": null,
+      "status": "waiting",
+      "caption": "Moderate edge is preferred over extreme edge",
+      "priority": 3
+    },
+    {
+      "card_id": "large_edge_guardrail",
+      "label": "Large Edge Guardrail",
+      "value": true,
+      "display_value": "Blocked",
+      "sample_count": null,
+      "status": "negative",
+      "caption": "Extreme edge is downgraded when evidence is weak",
+      "priority": 4
+    }
+  ],
+  "signal_case_cards": [
+    {
+      "case_id": "strong_favorite_signal",
+      "label": "Strong Favorite Signal",
+      "status": "TRACKING_ONLY",
+      "display_status": "TRACKING ONLY",
+      "ui_status": "waiting",
+      "evidence": {
+        "favorite_accuracy": null,
+        "favorite_sample_count": 0,
+        "home_accuracy": null,
+        "home_sample_count": 0,
+        "edge_3_to_5_accuracy": null,
+        "edge_3_to_5_sample_count": 0,
+        "odds_ok_accuracy": null,
+        "odds_ok_sample_count": 0,
+        "paper_bet_accuracy": null,
+        "paper_bet_sample_count": 0
+      },
+      "reason": [
+        "Favorite picks, clean odds, and moderate edge are the strongest current slices.",
+        "Keep shadow-only until sample gate reaches 300."
+      ],
+      "summary": "Favorite picks, clean odds, and moderate edge are the strongest current slices.",
+      "ui_priority": 1,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false,
+      "production_model_replacement_allowed": false
+    },
+    {
+      "case_id": "weak_underdog",
+      "label": "Weak Underdog",
+      "status": "PAPER_ENTRY_BLOCKED_BY_RISK",
+      "display_status": "PAPER ENTRY BLOCKED BY RISK",
+      "ui_status": "negative",
+      "evidence": {
+        "underdog_accuracy": null,
+        "underdog_sample_count": 0,
+        "underdog_report_accuracy": null,
+        "underdog_policy": "TRACKING_ONLY"
+      },
+      "reason": [
+        "Underdog slice remains below acceptable paper-entry quality.",
+        "Keep underdogs tracking-only or blocked by risk."
+      ],
+      "summary": "Underdog slice remains below acceptable paper-entry quality.",
+      "ui_priority": 2,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false,
+      "production_model_replacement_allowed": false
+    },
+    {
+      "case_id": "suspicious_large_edge",
+      "label": "Suspicious Large Edge",
+      "status": "PAPER_ENTRY_BLOCKED_BY_RISK",
+      "display_status": "PAPER ENTRY BLOCKED BY RISK",
+      "ui_status": "negative",
+      "evidence": {
+        "edge_5_plus_accuracy": null,
+        "edge_5_plus_sample_count": 0,
+        "preferred_edge_bucket": null,
+        "block_large_edge": true,
+        "large_edge_reasons": [
+          "No joined settled samples."
+        ]
+      },
+      "reason": [
+        "Large edge is not automatically better.",
+        "Current evidence suggests moderate edge is more reliable than extreme edge."
+      ],
+      "summary": "Large edge is not automatically better.",
+      "ui_priority": 3,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false,
+      "production_model_replacement_allowed": false
+    },
+    {
+      "case_id": "clean_paper_signal",
+      "label": "Clean Paper Signal",
+      "status": "TRACKING_ONLY",
+      "display_status": "TRACKING ONLY",
+      "ui_status": "waiting",
+      "evidence": {
+        "paper_bet_accuracy": null,
+        "paper_bet_sample_count": 0,
+        "odds_ok_accuracy": null,
+        "odds_ok_sample_count": 0
+      },
+      "reason": [
+        "Paper-bet and OK-odds slices are outperforming tracking-only slices.",
+        "Do not expand paper volume until guardrails stay stable."
+      ],
+      "summary": "Paper-bet and OK-odds slices are outperforming tracking-only slices.",
+      "ui_priority": 4,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false,
+      "production_model_replacement_allowed": false
+    }
+  ],
+  "evidence_cards": [
+    {
+      "card_id": "favorite_pick",
+      "label": "Favorite Pick",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Market favorite model picks",
+      "priority": 1
+    },
+    {
+      "card_id": "underdog_pick",
+      "label": "Underdog Pick",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Weak slice; risk-blocked",
+      "priority": 2
+    },
+    {
+      "card_id": "home_pick",
+      "label": "Home Pick",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Home side model picks",
+      "priority": 3
+    },
+    {
+      "card_id": "away_pick",
+      "label": "Away Pick",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Away side model picks",
+      "priority": 4
+    },
+    {
+      "card_id": "odds_ok",
+      "label": "Odds OK",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Verified odds quality",
+      "priority": 5
+    },
+    {
+      "card_id": "paper_bet",
+      "label": "Paper Bet",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Existing paper-entry gate",
+      "priority": 6
+    },
+    {
+      "card_id": "tracking_only",
+      "label": "Tracking Only",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Non-entry tracking signals",
+      "priority": 7
+    },
+    {
+      "card_id": "edge_3_to_5",
+      "label": "Edge 3\u20135%",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Best current edge slice",
+      "priority": 8
+    },
+    {
+      "card_id": "edge_5_plus",
+      "label": "Edge 5%+",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Suspicious large edge",
+      "priority": 9
+    },
+    {
+      "card_id": "confidence_55_60",
+      "label": "Confidence 55\u201360%",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Stable confidence range",
+      "priority": 10
+    },
+    {
+      "card_id": "confidence_60_65",
+      "label": "Confidence 60\u201365%",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Secondary confidence range",
+      "priority": 11
+    },
+    {
+      "card_id": "underdog_policy",
+      "label": "Underdog Policy",
+      "value": "TRACKING_ONLY",
+      "display_value": "TRACKING ONLY",
+      "sample_count": 0,
+      "status": "negative",
+      "caption": "Underdog remains blocked or tracking-only unless evidence improves",
+      "priority": 12
+    }
+  ],
+  "risk_cards": [
+    {
+      "risk_id": "large_edge",
+      "label": "Large Edge Risk",
+      "status": "blocked",
+      "display_status": "TRACKING_ONLY",
+      "reasons": [
+        "No joined settled samples."
+      ],
+      "description": "Extreme edge is downgraded when historical evidence underperforms moderate edge.",
+      "priority": 1
+    },
+    {
+      "risk_id": "underdog",
+      "label": "Underdog Risk",
+      "status": "blocked",
+      "display_status": "TRACKING_ONLY",
+      "reasons": [
+        "insufficient settled underdog samples"
+      ],
+      "description": "Underdog picks remain weak and should not be upgraded.",
+      "priority": 2
+    },
+    {
+      "risk_id": "confidence_language",
+      "label": "Confidence Language",
+      "status": "capped",
+      "display_status": "CAPPED",
+      "reasons": [
+        "no joined settled samples"
+      ],
+      "description": "High-confidence wording is governed separately from model probability.",
+      "priority": 3
+    },
+    {
+      "risk_id": "sample_gate",
+      "label": "Sample Gate",
+      "status": "blocked",
+      "display_status": "NO_PROMOTION_SHADOW_ONLY",
+      "reasons": [
+        "high-confidence language is blocked by confidence guardrail",
+        "insufficient_samples_for_slice_promotion: 0 < 300",
+        "underdog slice is not approved for paper entry upgrade"
+      ],
+      "description": "Promotion is blocked until minimum research sample is reached.",
+      "priority": 4
+    },
+    {
+      "risk_id": "freshness",
+      "label": "Data Freshness",
+      "status": "warning",
+      "display_status": "C",
+      "reasons": [
+        "prediction_snapshots"
+      ],
+      "description": "Fresh data improves interpretability of game-board signals.",
+      "priority": 5
+    },
+    {
+      "risk_id": "paper_entry_policy",
+      "label": "Paper Entry Policy",
+      "status": "tracking",
+      "display_status": "SLICE_CONTROLLED",
+      "reasons": [
+        "away_favorite: TRACKING_ONLY",
+        "away_underdog: PAPER_ENTRY_BLOCKED_BY_RISK",
+        "default: TRACKING_ONLY",
+        "high_confidence: PAPER_ENTRY_BLOCKED_BY_RISK",
+        "home_favorite: TRACKING_ONLY",
+        "home_underdog: PAPER_ENTRY_BLOCKED_BY_RISK",
+        "lineup_missing: TRACKING_ONLY",
+        "lineup_ready: MODEL_SIGNAL_ONLY"
+      ],
+      "description": "Each signal slice has its own model-safety status.",
+      "priority": 6
+    }
+  ],
+  "recommended_ui_sections": [
+    {
+      "section_id": "today_overview",
+      "label": "Today Overview",
+      "description": "High-level market and research status for the day.",
+      "priority": 1
+    },
+    {
+      "section_id": "signal_center",
+      "label": "Signal Center",
+      "description": "Group games by signal quality and risk classification.",
+      "priority": 2
+    },
+    {
+      "section_id": "game_board",
+      "label": "Game Board",
+      "description": "Single-game cards with model, market, edge, and guardrail context.",
+      "priority": 3
+    },
+    {
+      "section_id": "evidence_center",
+      "label": "Evidence Center",
+      "description": "Settled-sample slices that explain which signals are currently working.",
+      "priority": 4
+    },
+    {
+      "section_id": "risk_center",
+      "label": "Risk Center",
+      "description": "Explicitly shows why certain cases remain tracking-only or blocked.",
+      "priority": 5
+    }
+  ],
+  "copy_blocks": {
+    "hero_title": "MLB Intelligence Cloud",
+    "hero_subtitle": "AI Sports Research Terminal",
+    "hero_body": "A paper-only MLB research dashboard for market comparison, model evidence, signal quality, lineup context, and safety guardrails.",
+    "signal_center_intro": "Signals are grouped by evidence quality. Strong Favorite and Clean Paper are model-signal-only research cases; Weak Underdog and Suspicious Large Edge remain blocked.",
+    "evidence_center_intro": "Evidence cards summarize settled-sample accuracy by market role, confidence, edge, odds quality, and recommendation status.",
+    "safety_footer": "Live betting is disabled. No automated wagering. No user funds. All outputs are for paper tracking and model research."
+  },
+  "source_reports": {
+    "sample_state": "data/sample_state.json",
+    "model_correctness": "report/model_correctness_report.json",
+    "edge_sanity": "report/edge_sanity_guardrail_report.json",
+    "signal_quality": "report/signal_quality_report.json",
+    "underdog": "report/underdog_diagnostic_report.json",
+    "confidence": "report/confidence_bucket_guardrail_report.json",
+    "slice_gate": "report/slice_promotion_gate_report.json",
+    "lineup": "report/lineup_quality_report.json",
+    "freshness": "report/feature_freshness_report.json",
+    "readiness": "report/research_promotion_readiness_report.json"
+  },
+  "warnings": [],
+  "errors": [],
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false,
+  "production_model_replacement_allowed": false
+}

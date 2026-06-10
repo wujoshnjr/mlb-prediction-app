@@ -1,71 +1,18 @@
 {
-  "generated_at": "2026-06-10T02:24:27.184679+00:00",
-  "status": "ok",
-  "trained": true,
-  "skipped": false,
-  "skip_reason": "",
-  "sample_count": 88,
-  "train_count": 61,
-  "calibration_count": 13,
-  "validation_count": 14,
-  "model_columns": [
-    "lightgbm_classifier",
-    "logistic_baseline",
-    "market_residual_model",
-    "xgboost_classifier"
-  ],
-  "ensemble_methods": {
-    "simple_average": {
-      "ok": true,
-      "sample_count": 14,
-      "positive_count": 7,
-      "negative_count": 7,
-      "brier": 0.2500923955190187,
-      "logloss": 0.6934749033946129,
-      "accuracy": 0.6428571428571429,
-      "auc": 0.6326530612244898,
-      "ece": 0.24462236190564268,
-      "warnings": [],
-      "errors": []
-    },
-    "weighted_average": {
-      "ok": true,
-      "sample_count": 14,
-      "positive_count": 7,
-      "negative_count": 7,
-      "brier": 0.2531582491301482,
-      "logloss": 0.700230446850849,
-      "accuracy": 0.6428571428571429,
-      "auc": 0.6122448979591837,
-      "ece": 0.2442915154980692,
-      "warnings": [],
-      "errors": [],
-      "weights": {
-        "lightgbm_classifier": 0.25834633450503763,
-        "logistic_baseline": 0.28068197081018864,
-        "market_residual_model": 0.20497744165942394,
-        "xgboost_classifier": 0.2559942530253497
-      }
-    },
-    "logistic_stacking": {
-      "ok": true,
-      "sample_count": 14,
-      "positive_count": 7,
-      "negative_count": 7,
-      "brier": 0.25746454713217626,
-      "logloss": 0.7081483346362287,
-      "accuracy": 0.35714285714285715,
-      "auc": 0.42857142857142855,
-      "ece": 0.18216819104095364,
-      "warnings": [],
-      "errors": []
-    }
-  },
-  "recommended_shadow_ensemble": "simple_average",
+  "generated_at": "2026-06-10T04:16:49.389396+00:00",
+  "status": "partial",
+  "trained": false,
+  "skipped": true,
+  "skip_reason": "walk-forward predictions unavailable: No columns to parse from file",
+  "sample_count": 0,
+  "train_count": 0,
+  "calibration_count": 0,
+  "validation_count": 0,
+  "ensemble_methods": {},
+  "recommended_shadow_ensemble": null,
   "promotion_eligible": false,
   "promotion_blockers": [
-    "sample_count below promotion threshold: 88 < 300",
-    "best ensemble ECE above threshold: 0.2446 > 0.05"
+    "walk-forward predictions unavailable: No columns to parse from file"
   ],
   "warnings": [],
   "shadow_only": true,

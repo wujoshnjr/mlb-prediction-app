@@ -1,144 +1,33 @@
 {
-  "generated_at": "2026-06-10T02:24:31.983883+00:00",
-  "status": "ok",
-  "sample_count": 168,
-  "underdog_sample_count": 45,
+  "generated_at": "2026-06-10T04:16:54.002908+00:00",
+  "status": "skipped",
+  "sample_count": 0,
+  "underdog_sample_count": 0,
   "overall": {
-    "sample_count": 45,
-    "correct": 22,
-    "accuracy": 0.4888888888888889,
-    "brier": 0.2507027553333333,
-    "logloss": 0.6945814704411064,
-    "ece": 0.06360666666666669,
-    "insufficient_sample": false,
-    "decision": "weak_slice"
+    "sample_count": 0,
+    "correct": 0,
+    "accuracy": null,
+    "brier": null,
+    "logloss": null,
+    "ece": null,
+    "insufficient_sample": true,
+    "decision": "insufficient_sample"
   },
-  "buckets": {
-    "home_underdog": {
-      "sample_count": 15,
-      "correct": 7,
-      "accuracy": 0.4666666666666667,
-      "brier": 0.24572651333333334,
-      "logloss": 0.6846080896966323,
-      "ece": 0.07665333333333338,
-      "insufficient_sample": true,
-      "decision": "insufficient_sample"
-    },
-    "away_underdog": {
-      "sample_count": 30,
-      "correct": 15,
-      "accuracy": 0.5,
-      "brier": 0.25319087633333337,
-      "logloss": 0.6995681608133435,
-      "ece": 0.05708333333333332,
-      "insufficient_sample": false,
-      "decision": "tracking_only"
-    },
-    "positive_clv_underdog": {
-      "sample_count": 27,
-      "correct": 9,
-      "accuracy": 0.3333333333333333,
-      "brier": 0.2609762607407407,
-      "logloss": 0.7154674456316487,
-      "ece": 0.2255555555555555,
-      "insufficient_sample": true,
-      "decision": "insufficient_sample"
-    },
-    "non_positive_clv_underdog": {
-      "sample_count": 18,
-      "correct": 13,
-      "accuracy": 0.7222222222222222,
-      "brier": 0.23529249722222223,
-      "logloss": 0.6632525076552931,
-      "ece": 0.2143500000000001,
-      "insufficient_sample": true,
-      "decision": "insufficient_sample"
-    },
-    "starter_edge_underdog": {
-      "sample_count": 22,
-      "correct": 11,
-      "accuracy": 0.5,
-      "brier": 0.25590873000000003,
-      "logloss": 0.7053997045459982,
-      "ece": 0.10515454545454543,
-      "insufficient_sample": true,
-      "decision": "insufficient_sample"
-    },
-    "no_starter_edge_underdog": {
-      "sample_count": 23,
-      "correct": 11,
-      "accuracy": 0.4782608695652174,
-      "brier": 0.24572312739130436,
-      "logloss": 0.6842335943407754,
-      "ece": 0.08676956521739126,
-      "insufficient_sample": true,
-      "decision": "insufficient_sample"
-    },
-    "bullpen_edge_underdog": {
-      "sample_count": 2,
-      "correct": 2,
-      "accuracy": 1.0,
-      "brier": 0.17675600500000002,
-      "logloss": 0.5452327817661705,
-      "ece": 0.41995000000000005,
-      "insufficient_sample": true,
-      "decision": "insufficient_sample"
-    },
-    "lineup_context_available_underdog": {
-      "sample_count": 0,
-      "correct": 0,
-      "accuracy": null,
-      "brier": null,
-      "logloss": null,
-      "ece": null,
-      "insufficient_sample": true,
-      "decision": "insufficient_sample"
-    },
-    "lineup_context_missing_underdog": {
-      "sample_count": 45,
-      "correct": 22,
-      "accuracy": 0.4888888888888889,
-      "brier": 0.2507027553333333,
-      "logloss": 0.6945814704411064,
-      "ece": 0.06360666666666669,
-      "insufficient_sample": false,
-      "decision": "weak_slice"
-    },
-    "high_confidence_underdog": {
-      "sample_count": 1,
-      "correct": 1,
-      "accuracy": 1.0,
-      "brier": 0.10118761,
-      "logloss": 0.3828722594555299,
-      "ece": 0.3181,
-      "insufficient_sample": true,
-      "decision": "insufficient_sample"
-    },
-    "low_confidence_underdog": {
-      "sample_count": 44,
-      "correct": 21,
-      "accuracy": 0.4772727272727273,
-      "brier": 0.2541008268181818,
-      "logloss": 0.7016657706907785,
-      "ece": 0.07228181818181818,
-      "insufficient_sample": false,
-      "decision": "weak_slice"
-    }
-  },
+  "buckets": {},
   "recommendation": {
     "underdog_policy": "TRACKING_ONLY",
     "allow_when": [],
     "block_when": [
-      "lineup_context_missing_underdog is weak",
-      "low_confidence_underdog is weak",
-      "overall underdog slice is not strong enough for paper entry upgrade"
+      "insufficient settled underdog samples"
     ],
-    "notes": []
+    "notes": [
+      "No prediction snapshots join trusted finalized outcomes."
+    ]
   },
   "sample_state": {
-    "generated_at": "2026-06-10T02:24:29.804660+00:00",
-    "last_updated": "2026-06-10T02:24:29.804676+00:00",
-    "status": "ok",
+    "generated_at": "2026-06-10T04:16:51.981399+00:00",
+    "last_updated": "2026-06-10T04:16:51.981412+00:00",
+    "status": "partial",
     "input_files": {
       "prediction_snapshots": {
         "path": "data/prediction_snapshots.csv",
@@ -149,7 +38,7 @@
       "finalized_games": {
         "path": "data/finalized_games.csv",
         "exists": true,
-        "rows": 963,
+        "rows": 795,
         "error": ""
       },
       "finalized_snapshot_outcomes": {
@@ -191,14 +80,14 @@
     },
     "raw_snapshots": 192,
     "valid_snapshots": 192,
-    "settled_snapshots": 168,
-    "clean_settled_snapshots": 168,
-    "train_eligible_samples": 168,
-    "model_artifact_training_samples": 168,
+    "settled_snapshots": 0,
+    "clean_settled_snapshots": 0,
+    "train_eligible_samples": 0,
+    "model_artifact_training_samples": 0,
     "walkforward_predictions": 0,
-    "finalized_games": 965,
-    "linked_games": 168,
-    "link_rate": 0.875,
+    "finalized_games": 797,
+    "linked_games": 0,
+    "link_rate": 0.0,
     "minimum_clean_train_samples": 300,
     "minimum_promotion_samples": 500,
     "minimum_walkforward_predictions": 300,
@@ -211,17 +100,22 @@
     "live_betting_allowed": false,
     "shadow_live_allowed": false,
     "production_allowed": false,
-    "errors": [],
+    "errors": [
+      "Finalized linkage diagnostic reports positive overlap, but actual combined finalized outcome join is zero. This indicates stale report or finalized outcome persistence failure."
+    ],
     "warnings": [
-      "Finalized linkage diagnostic: overlap_after=168, api_final_written=0, pending_not_final=24, api_not_found_or_failed=0."
+      "No prediction snapshots currently join to finalized_games.csv. Training, calibration, and settled evidence will remain unavailable.",
+      "Finalized linkage diagnostic: overlap_after=172, api_final_written=0, pending_not_final=20, api_not_found_or_failed=0."
     ],
     "recommendations": [
-      "Train-eligible samples are below threshold: 168 < 300.",
-      "Promotion sample threshold not met: 168 < 500.",
+      "Train-eligible samples are below threshold: 0 < 300.",
+      "Promotion sample threshold not met: 0 < 500.",
       "Rolling walk-forward predictions below threshold: 0 < 300."
     ]
   },
-  "warnings": [],
+  "warnings": [
+    "No prediction snapshots join trusted finalized outcomes."
+  ],
   "errors": [],
   "live_betting_allowed": false,
   "automated_wagering_allowed": false,
