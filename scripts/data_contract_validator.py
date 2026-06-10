@@ -63,6 +63,7 @@ OPTIONAL_JSON_REPORTS = {
     "feature_freshness": REPORT_DIR / "feature_freshness_report.json",
     "lineup_quality": REPORT_DIR / "lineup_quality_report.json",
     "model_correctness": REPORT_DIR / "model_correctness_report.json",
+    "product_experience": REPORT_DIR / "product_experience_report.json",
 }
 
 REQUIRED_NON_JSON_FILES = {
