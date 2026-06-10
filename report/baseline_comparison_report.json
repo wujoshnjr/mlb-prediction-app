@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-10T04:16:39.758724+00:00",
-  "status": "insufficient_samples",
+  "generated_at": "2026-06-10T05:39:28.955543+00:00",
+  "status": "ok",
   "input_files": {
     "prediction": {
       "path": "report/prediction.json",
@@ -17,28 +17,71 @@
     "finalized_games": {
       "path": "data/finalized_games.csv",
       "exists": true,
-      "rows": 795,
+      "rows": 970,
       "error": ""
     },
     "market_odds_history": {
       "path": "data/market_odds_history.csv",
       "exists": true,
-      "rows": 34982,
+      "rows": 35197,
       "error": ""
     }
   },
-  "settled_prediction_count": 0,
-  "baselines": {},
-  "comparison": {},
-  "skipped_baselines": [
-    "model",
-    "market_no_vig",
-    "elo",
-    "constant_50",
-    "home_historical_rate",
-    "log5"
-  ],
+  "settled_prediction_count": 175,
+  "baselines": {
+    "model": {
+      "name": "model",
+      "count": 175,
+      "brier": 0.250143,
+      "logloss": 0.693696,
+      "accuracy": 0.542857
+    },
+    "market_no_vig": {
+      "name": "market_no_vig",
+      "count": 172,
+      "brier": 0.271888,
+      "logloss": 0.776176,
+      "accuracy": 0.546512
+    },
+    "elo": {
+      "name": "elo",
+      "count": 175,
+      "brier": 0.252874,
+      "logloss": 0.7001,
+      "accuracy": 0.548571
+    },
+    "constant_50": {
+      "name": "constant_50",
+      "count": 175,
+      "brier": 0.25,
+      "logloss": 0.693147,
+      "accuracy": 0.537143
+    },
+    "home_historical_rate": {
+      "name": "home_historical_rate",
+      "count": 175,
+      "brier": 0.248659,
+      "logloss": 0.690463,
+      "accuracy": 0.537143
+    },
+    "log5": {
+      "name": "log5",
+      "count": 175,
+      "brier": 0.452171,
+      "logloss": 10.628072,
+      "accuracy": 0.497143
+    }
+  },
+  "comparison": {
+    "model_brier": 0.250143,
+    "market_brier": 0.271888,
+    "model_logloss": 0.693696,
+    "market_logloss": 0.776176,
+    "model_beats_market_brier": true,
+    "model_beats_market_logloss": true
+  },
+  "skipped_baselines": [],
   "recommendations": [
-    "No settled prediction snapshots with home_win were available."
+    "Settled sample count is below 300; baseline comparisons are not production-reliable."
   ]
 }

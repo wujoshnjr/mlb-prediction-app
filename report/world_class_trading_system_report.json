@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-06-10T04:17:03.076321+00:00",
+  "generated_at": "2026-06-10T05:39:56.379126+00:00",
   "status": "paper_trading_only_blocked_for_live",
   "world_class_stage": "advanced_shadow_trading_candidate",
-  "overall_score": 75.0,
+  "overall_score": 83.33,
   "overall_grade": "B",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
@@ -59,14 +59,12 @@
           "passed": true,
           "weight": 15,
           "details": {
-            "linked_game_count": 0
+            "linked_game_count": 175
           }
         }
       ],
       "blockers": [],
-      "warnings": [
-        "settled prediction link report is valid, but linked_game_count is still zero"
-      ],
+      "warnings": [],
       "recommendations": [
         "Keep event-time, snapshot-time, entry odds, closing odds, decision audit, and settle result linked by game_id.",
         "Prediction sanitizer change_count should remain zero after prediction.py source cleanup.",
@@ -76,20 +74,20 @@
     "research_quality": {
       "name": "Layer 2 - Research Quality",
       "status": "blocked",
-      "score": 35,
-      "grade": "F",
+      "score": 65,
+      "grade": "C",
       "signals": [
         {
           "name": "model_beats_market_brier",
-          "passed": false,
+          "passed": true,
           "weight": 15,
-          "details": null
+          "details": 0.250143
         },
         {
           "name": "model_beats_market_logloss",
-          "passed": false,
+          "passed": true,
           "weight": 15,
-          "details": null
+          "details": 0.693696
         },
         {
           "name": "avg_clv_positive",
@@ -107,7 +105,7 @@
           "name": "calibration_ready",
           "passed": false,
           "weight": 10,
-          "details": 0
+          "details": 175
         },
         {
           "name": "walkforward_ready",
@@ -125,11 +123,11 @@
           "name": "settled_samples_at_least_500",
           "passed": false,
           "weight": 5,
-          "details": 0
+          "details": 175
         }
       ],
       "blockers": [
-        "settled prediction samples < 500 (0)",
+        "settled prediction samples < 500 (175)",
         "rolling OOS predictions < 300 (0)",
         "calibration is not ready"
       ],
@@ -194,7 +192,7 @@
     "model_upgrade_path": {
       "name": "Layer 4 - Model Upgrade Path",
       "status": "blocked",
-      "score": 40.0,
+      "score": 51.67,
       "grade": "D",
       "signals": [
         {
@@ -202,7 +200,7 @@
           "passed": false,
           "weight": 20,
           "details": {
-            "sample_count": 0,
+            "sample_count": 175,
             "minimum": 300
           }
         },
@@ -216,13 +214,13 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 39
+          "details": 40
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
           "passed": true,
           "weight": 20,
-          "details": 0.7096774193548387
+          "details": 0.7258064516129032
         },
         {
           "name": "rolling_oos_started",
@@ -232,7 +230,7 @@
         }
       ],
       "blockers": [
-        "clean training samples below threshold: 0 < 300",
+        "clean training samples below threshold: 175 < 300",
         "model is not trained yet"
       ],
       "warnings": [
@@ -320,14 +318,13 @@
   },
   "critical_blockers": [],
   "blockers": [
-    "research_quality: settled prediction samples < 500 (0)",
+    "research_quality: settled prediction samples < 500 (175)",
     "research_quality: rolling OOS predictions < 300 (0)",
     "research_quality: calibration is not ready",
-    "model_upgrade_path: clean training samples below threshold: 0 < 300",
+    "model_upgrade_path: clean training samples below threshold: 175 < 300",
     "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
-    "data_trust: settled prediction link report is valid, but linked_game_count is still zero",
     "risk_controls: paper exposure is high for research stage: 14.25",
     "model_upgrade_path: rolling OOS evaluation has not started producing predictions"
   ],

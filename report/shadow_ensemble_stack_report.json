@@ -1,18 +1,71 @@
 {
-  "generated_at": "2026-06-10T04:16:49.389396+00:00",
-  "status": "partial",
-  "trained": false,
-  "skipped": true,
-  "skip_reason": "walk-forward predictions unavailable: No columns to parse from file",
-  "sample_count": 0,
-  "train_count": 0,
-  "calibration_count": 0,
-  "validation_count": 0,
-  "ensemble_methods": {},
-  "recommended_shadow_ensemble": null,
+  "generated_at": "2026-06-10T05:39:41.638705+00:00",
+  "status": "ok",
+  "trained": true,
+  "skipped": false,
+  "skip_reason": "",
+  "sample_count": 95,
+  "train_count": 66,
+  "calibration_count": 14,
+  "validation_count": 15,
+  "model_columns": [
+    "lightgbm_classifier",
+    "logistic_baseline",
+    "market_residual_model",
+    "xgboost_classifier"
+  ],
+  "ensemble_methods": {
+    "simple_average": {
+      "ok": true,
+      "sample_count": 15,
+      "positive_count": 8,
+      "negative_count": 7,
+      "brier": 0.24749333774604496,
+      "logloss": 0.6887692422763885,
+      "accuracy": 0.6666666666666666,
+      "auc": 0.625,
+      "ece": 0.25047689140746193,
+      "warnings": [],
+      "errors": []
+    },
+    "weighted_average": {
+      "ok": true,
+      "sample_count": 15,
+      "positive_count": 8,
+      "negative_count": 7,
+      "brier": 0.2506307123862745,
+      "logloss": 0.6953940128690691,
+      "accuracy": 0.6666666666666666,
+      "auc": 0.6071428571428571,
+      "ece": 0.2539884812269113,
+      "warnings": [],
+      "errors": [],
+      "weights": {
+        "lightgbm_classifier": 0.26085104467375414,
+        "logistic_baseline": 0.2784094580350186,
+        "market_residual_model": 0.20493448418960442,
+        "xgboost_classifier": 0.25580501310162285
+      }
+    },
+    "logistic_stacking": {
+      "ok": true,
+      "sample_count": 15,
+      "positive_count": 8,
+      "negative_count": 7,
+      "brier": 0.257984867055138,
+      "logloss": 0.7092642282797381,
+      "accuracy": 0.4666666666666667,
+      "auc": 0.41071428571428575,
+      "ece": 0.11020292375329621,
+      "warnings": [],
+      "errors": []
+    }
+  },
+  "recommended_shadow_ensemble": "simple_average",
   "promotion_eligible": false,
   "promotion_blockers": [
-    "walk-forward predictions unavailable: No columns to parse from file"
+    "sample_count below promotion threshold: 95 < 300",
+    "best ensemble ECE above threshold: 0.2505 > 0.05"
   ],
   "warnings": [],
   "shadow_only": true,

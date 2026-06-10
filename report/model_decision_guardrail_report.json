@@ -1,35 +1,1155 @@
 {
-  "generated_at": "2026-06-10T04:16:48.506509+00:00",
+  "generated_at": "2026-06-10T05:39:40.678210+00:00",
   "status": "blocked",
   "decision": "NO_PROMOTION_SHADOW_ONLY",
-  "recommended_challenger": null,
-  "clean_settled_samples": 172,
-  "train_eligible_samples": 172,
-  "calibration_sample_count": 0,
+  "recommended_challenger": "lightgbm_classifier",
+  "clean_settled_samples": 175,
+  "train_eligible_samples": 175,
+  "calibration_sample_count": 175,
   "calibration_ready": false,
-  "calibration_ece": null,
-  "market_metrics": {},
-  "models": [],
-  "critical_findings": [],
+  "calibration_ece": 0.06907371428571428,
+  "market_metrics": {
+    "ok": true,
+    "sample_count": 94,
+    "positive_count": 47,
+    "negative_count": 47,
+    "brier": 0.27223446387000855,
+    "logloss": 0.7831665923589477,
+    "accuracy": 0.5,
+    "auc": 0.5294250792213671,
+    "ece": 0.1343030814084838,
+    "warnings": [],
+    "errors": []
+  },
+  "models": [
+    {
+      "model_name": "lightgbm_classifier",
+      "oos_count": 95,
+      "raw_metrics": {
+        "ok": true,
+        "sample_count": 95,
+        "positive_count": 48,
+        "negative_count": 47,
+        "brier": 0.2580593467957888,
+        "logloss": 0.7102432718280065,
+        "accuracy": 0.5157894736842106,
+        "auc": 0.4893617021276596,
+        "ece": 0.0854795738848498,
+        "warnings": [],
+        "errors": []
+      },
+      "beats_market_brier": true,
+      "beats_market_logloss": true,
+      "bucket_metrics": {
+        "high_65_plus": {
+          "ok": true,
+          "sample_count": 16,
+          "positive_count": 6,
+          "negative_count": 10,
+          "brier": 0.3004409188577409,
+          "logloss": 0.7997726269396945,
+          "accuracy": 0.4375,
+          "auc": 0.5583333333333333,
+          "ece": 0.27634429401160837,
+          "warnings": [],
+          "errors": []
+        },
+        "low_45_55": {
+          "ok": true,
+          "sample_count": 46,
+          "positive_count": 26,
+          "negative_count": 20,
+          "brier": 0.25293423807652793,
+          "logloss": 0.699042064650426,
+          "accuracy": 0.5,
+          "auc": 0.4278846153846154,
+          "ece": 0.05619538652081633,
+          "warnings": [],
+          "errors": []
+        },
+        "medium_55_65": {
+          "ok": true,
+          "sample_count": 33,
+          "positive_count": 16,
+          "negative_count": 17,
+          "brier": 0.24465479673805454,
+          "logloss": 0.6824489035971485,
+          "accuracy": 0.5757575757575758,
+          "auc": 0.5955882352941176,
+          "ece": 0.07436741060449487,
+          "warnings": [],
+          "errors": []
+        }
+      },
+      "side_metrics": {
+        "away": {
+          "ok": true,
+          "sample_count": 31,
+          "positive_count": 15,
+          "negative_count": 16,
+          "brier": 0.24318691100531642,
+          "logloss": 0.6790953145384981,
+          "accuracy": 0.5161290322580645,
+          "auc": 0.6333333333333333,
+          "ece": 0.11679291441991003,
+          "warnings": [],
+          "errors": []
+        },
+        "home": {
+          "ok": true,
+          "sample_count": 64,
+          "positive_count": 33,
+          "negative_count": 31,
+          "brier": 0.2652631828817989,
+          "logloss": 0.7253305636401118,
+          "accuracy": 0.515625,
+          "auc": 0.4144672531769306,
+          "ece": 0.07031217456318001,
+          "warnings": [],
+          "errors": []
+        }
+      },
+      "slice_findings": [
+        {
+          "model_name": "lightgbm_classifier",
+          "slice": "away",
+          "severity": "warning",
+          "reason": "away slice is weak or poorly calibrated",
+          "sample_count": 31,
+          "accuracy": 0.5161290322580645,
+          "brier": 0.24318691100531642,
+          "ece": 0.11679291441991003,
+          "recommended_action": "tracking_only_until_slice_improves"
+        }
+      ],
+      "shrinkage": {
+        "attempted": true,
+        "skip_reason": "",
+        "recommended_alpha": 0.45,
+        "raw_validation_metrics": {
+          "ok": true,
+          "sample_count": 29,
+          "positive_count": 14,
+          "negative_count": 15,
+          "brier": 0.250481208301102,
+          "logloss": 0.6952509195353684,
+          "accuracy": 0.5172413793103449,
+          "auc": 0.5523809523809524,
+          "ece": 0.20913831608867944,
+          "warnings": [],
+          "errors": []
+        },
+        "shrunk_validation_metrics": {
+          "ok": true,
+          "sample_count": 29,
+          "positive_count": 14,
+          "negative_count": 15,
+          "brier": 0.2474593451280248,
+          "logloss": 0.688102959400156,
+          "accuracy": 0.5172413793103449,
+          "auc": 0.5523809523809524,
+          "ece": 0.032451996234786104,
+          "warnings": [],
+          "errors": []
+        },
+        "candidates": [
+          {
+            "alpha": 0.25,
+            "brier": 0.24803151525143374,
+            "logloss": 0.6892128854883445,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.02569172204614545
+          },
+          {
+            "alpha": 0.3,
+            "brier": 0.24780492124762785,
+            "logloss": 0.6887632126377241,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.027381790593305637
+          },
+          {
+            "alpha": 0.35,
+            "brier": 0.2476340282257911,
+            "logloss": 0.6884275789007458,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.029071859140465818
+          },
+          {
+            "alpha": 0.4,
+            "brier": 0.24751883618592335,
+            "logloss": 0.6882070663285037,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.030761927687625895
+          },
+          {
+            "alpha": 0.45,
+            "brier": 0.2474593451280248,
+            "logloss": 0.688102959400156,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.032451996234786104
+          },
+          {
+            "alpha": 0.5,
+            "brier": 0.24745555505209535,
+            "logloss": 0.6881167550637988,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.03414206478194623
+          },
+          {
+            "alpha": 0.55,
+            "brier": 0.24750746595813505,
+            "logloss": 0.688250174498666,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.035832133329106286
+          },
+          {
+            "alpha": 0.6,
+            "brier": 0.2476150778461438,
+            "logloss": 0.6885051767997367,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.06094536237296776
+          },
+          {
+            "alpha": 0.65,
+            "brier": 0.2477783907161217,
+            "logloss": 0.6888839748266593,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.06458736096151971
+          },
+          {
+            "alpha": 0.7,
+            "brier": 0.2479974045680687,
+            "logloss": 0.6893890535078196,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.06822935955007153
+          },
+          {
+            "alpha": 0.75,
+            "brier": 0.24827211940198482,
+            "logloss": 0.6900231909494553,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.17431429359850273
+          },
+          {
+            "alpha": 0.8,
+            "brier": 0.24860253521787,
+            "logloss": 0.6907894827716753,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.17559041891886268
+          },
+          {
+            "alpha": 0.85,
+            "brier": 0.24898865201572437,
+            "logloss": 0.6916913701815135,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.1495398217744364
+          },
+          {
+            "alpha": 0.9,
+            "brier": 0.24943046979554784,
+            "logloss": 0.6927326724023085,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.1512368903980848
+          },
+          {
+            "alpha": 0.95,
+            "brier": 0.24992798855734036,
+            "logloss": 0.6939176242147029,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.18044695850360631
+          },
+          {
+            "alpha": 1.0,
+            "brier": 0.250481208301102,
+            "logloss": 0.6952509195353684,
+            "accuracy": 0.5172413793103449,
+            "ece": 0.20913831608867944
+          }
+        ]
+      },
+      "recommended_usage": "SHADOW_CHALLENGER_OBSERVE",
+      "promotion_blockers": [
+        "per-model OOS below threshold: 95 < 300",
+        "model ECE not acceptable: 0.0854795738848498 > 0.05",
+        "weak slices detected"
+      ],
+      "shadow_only": true,
+      "production_model_replacement_allowed": false
+    },
+    {
+      "model_name": "logistic_baseline",
+      "oos_count": 95,
+      "raw_metrics": {
+        "ok": true,
+        "sample_count": 95,
+        "positive_count": 48,
+        "negative_count": 47,
+        "brier": 0.32886529009180976,
+        "logloss": 1.008783028084905,
+        "accuracy": 0.45263157894736844,
+        "auc": 0.44459219858156024,
+        "ece": 0.2340486031427899,
+        "warnings": [],
+        "errors": []
+      },
+      "beats_market_brier": false,
+      "beats_market_logloss": false,
+      "bucket_metrics": {
+        "high_65_plus": {
+          "ok": true,
+          "sample_count": 46,
+          "positive_count": 26,
+          "negative_count": 20,
+          "brier": 0.3964439132834258,
+          "logloss": 1.3115713264748172,
+          "accuracy": 0.45652173913043476,
+          "auc": 0.43653846153846154,
+          "ece": 0.3563764567908486,
+          "warnings": [],
+          "errors": []
+        },
+        "low_45_55": {
+          "ok": true,
+          "sample_count": 19,
+          "positive_count": 11,
+          "negative_count": 8,
+          "brier": 0.2559819878307616,
+          "logloss": 0.705139032004855,
+          "accuracy": 0.47368421052631576,
+          "auc": 0.38636363636363635,
+          "ece": 0.06953008434857558,
+          "warnings": [],
+          "errors": []
+        },
+        "medium_55_65": {
+          "ok": true,
+          "sample_count": 30,
+          "positive_count": 11,
+          "negative_count": 19,
+          "brier": 0.27140415929666245,
+          "logloss": 0.7368155014044048,
+          "accuracy": 0.43333333333333335,
+          "auc": 0.4401913875598086,
+          "ece": 0.17885202348279836,
+          "warnings": [],
+          "errors": []
+        }
+      },
+      "side_metrics": {
+        "away": {
+          "ok": true,
+          "sample_count": 43,
+          "positive_count": 24,
+          "negative_count": 19,
+          "brier": 0.3529830016650894,
+          "logloss": 1.1572380471809214,
+          "accuracy": 0.4418604651162791,
+          "auc": 0.4671052631578947,
+          "ece": 0.2675306167405903,
+          "warnings": [],
+          "errors": []
+        },
+        "home": {
+          "ok": true,
+          "sample_count": 52,
+          "positive_count": 24,
+          "negative_count": 28,
+          "brier": 0.3089217978292901,
+          "logloss": 0.8860221469093529,
+          "accuracy": 0.46153846153846156,
+          "auc": 0.49702380952380953,
+          "ece": 0.20636155343691656,
+          "warnings": [],
+          "errors": []
+        }
+      },
+      "slice_findings": [
+        {
+          "model_name": "logistic_baseline",
+          "slice": "high_65_plus",
+          "severity": "critical",
+          "reason": "high confidence bucket is overconfident or below 50% accuracy",
+          "sample_count": 46,
+          "accuracy": 0.45652173913043476,
+          "brier": 0.3964439132834258,
+          "ece": 0.3563764567908486,
+          "recommended_action": "cap_or_shrink_high_confidence_probabilities"
+        },
+        {
+          "model_name": "logistic_baseline",
+          "slice": "away",
+          "severity": "warning",
+          "reason": "away slice is weak or poorly calibrated",
+          "sample_count": 43,
+          "accuracy": 0.4418604651162791,
+          "brier": 0.3529830016650894,
+          "ece": 0.2675306167405903,
+          "recommended_action": "tracking_only_until_slice_improves"
+        }
+      ],
+      "shrinkage": {
+        "attempted": true,
+        "skip_reason": "",
+        "recommended_alpha": 0.25,
+        "raw_validation_metrics": {
+          "ok": true,
+          "sample_count": 29,
+          "positive_count": 14,
+          "negative_count": 15,
+          "brier": 0.33085977442452985,
+          "logloss": 0.9138494848056178,
+          "accuracy": 0.4482758620689655,
+          "auc": 0.4857142857142857,
+          "ece": 0.2922988304142645,
+          "warnings": [],
+          "errors": []
+        },
+        "shrunk_validation_metrics": {
+          "ok": true,
+          "sample_count": 29,
+          "positive_count": 14,
+          "negative_count": 15,
+          "brier": 0.2563584073528828,
+          "logloss": 0.7059419858076929,
+          "accuracy": 0.4482758620689655,
+          "auc": 0.4857142857142857,
+          "ece": 0.1377298800173592,
+          "warnings": [],
+          "errors": []
+        },
+        "candidates": [
+          {
+            "alpha": 0.25,
+            "brier": 0.2563584073528828,
+            "logloss": 0.7059419858076929,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.1377298800173592
+          },
+          {
+            "alpha": 0.3,
+            "brier": 0.25873861172371937,
+            "logloss": 0.710814231744457,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.18625956376317024
+          },
+          {
+            "alpha": 0.35,
+            "brier": 0.2614883237279758,
+            "logloss": 0.7165153300984887,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.191440755424848
+          },
+          {
+            "alpha": 0.4,
+            "brier": 0.2646075433656524,
+            "logloss": 0.7230860951783636,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.15453789288534145
+          },
+          {
+            "alpha": 0.45,
+            "brier": 0.2680962706367489,
+            "logloss": 0.7305776996178295,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.15876892259945735
+          },
+          {
+            "alpha": 0.5,
+            "brier": 0.2719545055412654,
+            "logloss": 0.7390537806710983,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.18925286348299433
+          },
+          {
+            "alpha": 0.55,
+            "brier": 0.27618224807920183,
+            "logloss": 0.7485933260388243,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.19138573494728323
+          },
+          {
+            "alpha": 0.6,
+            "brier": 0.28077949825055826,
+            "logloss": 0.7592946755720595,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.23188805767363618
+          },
+          {
+            "alpha": 0.65,
+            "brier": 0.2857462560553348,
+            "logloss": 0.7712811701959953,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.23640376604312657
+          },
+          {
+            "alpha": 0.7,
+            "brier": 0.29108252149353137,
+            "logloss": 0.7847093150080175,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.23892687188361006
+          },
+          {
+            "alpha": 0.75,
+            "brier": 0.2967882945651477,
+            "logloss": 0.7997809275936895,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.2503318372189561
+          },
+          {
+            "alpha": 0.8,
+            "brier": 0.3028635752701842,
+            "logloss": 0.8167618886259526,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.246927229005533
+          },
+          {
+            "alpha": 0.85,
+            "brier": 0.30930836360864056,
+            "logloss": 0.8360124279844366,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.2788290667899356
+          },
+          {
+            "alpha": 0.9,
+            "brier": 0.316122659580517,
+            "logloss": 0.8580389418849991,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.28356074852012414
+          },
+          {
+            "alpha": 0.95,
+            "brier": 0.3233064631858134,
+            "logloss": 0.8835895649145775,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.2741534392970591
+          },
+          {
+            "alpha": 1.0,
+            "brier": 0.33085977442452985,
+            "logloss": 0.9138494848056178,
+            "accuracy": 0.4482758620689655,
+            "ece": 0.2922988304142645
+          }
+        ]
+      },
+      "recommended_usage": "TRACKING_ONLY",
+      "promotion_blockers": [
+        "per-model OOS below threshold: 95 < 300",
+        "does not beat market brier or logloss",
+        "model ECE not acceptable: 0.2340486031427899 > 0.05",
+        "weak slices detected"
+      ],
+      "shadow_only": true,
+      "production_model_replacement_allowed": false
+    },
+    {
+      "model_name": "market_residual_model",
+      "oos_count": 94,
+      "raw_metrics": {
+        "ok": true,
+        "sample_count": 94,
+        "positive_count": 47,
+        "negative_count": 47,
+        "brier": 0.2754102235258811,
+        "logloss": 0.7770943130152403,
+        "accuracy": 0.48936170212765956,
+        "auc": 0.48619284744228153,
+        "ece": 0.12833091092987536,
+        "warnings": [],
+        "errors": []
+      },
+      "beats_market_brier": false,
+      "beats_market_logloss": true,
+      "bucket_metrics": {
+        "high_65_plus": {
+          "ok": true,
+          "sample_count": 27,
+          "positive_count": 11,
+          "negative_count": 16,
+          "brier": 0.33363526129624854,
+          "logloss": 0.975804408333191,
+          "accuracy": 0.48148148148148145,
+          "auc": 0.4659090909090909,
+          "ece": 0.278303502039284,
+          "warnings": [],
+          "errors": []
+        },
+        "low_45_55": {
+          "ok": true,
+          "sample_count": 33,
+          "positive_count": 19,
+          "negative_count": 14,
+          "brier": 0.25061765060154056,
+          "logloss": 0.6943701893123356,
+          "accuracy": 0.48484848484848486,
+          "auc": 0.49248120300751874,
+          "ece": 0.0713737125008705,
+          "warnings": [],
+          "errors": []
+        },
+        "medium_55_65": {
+          "ok": true,
+          "sample_count": 34,
+          "positive_count": 17,
+          "negative_count": 17,
+          "brier": 0.25323607313480223,
+          "logloss": 0.6995861809155697,
+          "accuracy": 0.5,
+          "auc": 0.5709342560553634,
+          "ece": 0.09438281558278643,
+          "warnings": [],
+          "errors": []
+        }
+      },
+      "side_metrics": {
+        "away": {
+          "ok": true,
+          "sample_count": 33,
+          "positive_count": 17,
+          "negative_count": 16,
+          "brier": 0.2640284371953855,
+          "logloss": 0.7302306551463578,
+          "accuracy": 0.48484848484848486,
+          "auc": 0.5992647058823529,
+          "ece": 0.15006230153434091,
+          "warnings": [],
+          "errors": []
+        },
+        "home": {
+          "ok": true,
+          "sample_count": 61,
+          "positive_count": 30,
+          "negative_count": 31,
+          "brier": 0.2815675833440181,
+          "logloss": 0.8024467836656197,
+          "accuracy": 0.4918032786885246,
+          "auc": 0.46344086021505376,
+          "ece": 0.1165745848651645,
+          "warnings": [],
+          "errors": []
+        }
+      },
+      "slice_findings": [
+        {
+          "model_name": "market_residual_model",
+          "slice": "high_65_plus",
+          "severity": "critical",
+          "reason": "high confidence bucket is overconfident or below 50% accuracy",
+          "sample_count": 27,
+          "accuracy": 0.48148148148148145,
+          "brier": 0.33363526129624854,
+          "ece": 0.278303502039284,
+          "recommended_action": "cap_or_shrink_high_confidence_probabilities"
+        },
+        {
+          "model_name": "market_residual_model",
+          "slice": "away",
+          "severity": "warning",
+          "reason": "away slice is weak or poorly calibrated",
+          "sample_count": 33,
+          "accuracy": 0.48484848484848486,
+          "brier": 0.2640284371953855,
+          "ece": 0.15006230153434091,
+          "recommended_action": "tracking_only_until_slice_improves"
+        }
+      ],
+      "shrinkage": {
+        "attempted": true,
+        "skip_reason": "",
+        "recommended_alpha": 0.35,
+        "raw_validation_metrics": {
+          "ok": true,
+          "sample_count": 29,
+          "positive_count": 14,
+          "negative_count": 15,
+          "brier": 0.2596122964203376,
+          "logloss": 0.7111981069788014,
+          "accuracy": 0.5862068965517241,
+          "auc": 0.4952380952380952,
+          "ece": 0.2143057990831972,
+          "warnings": [],
+          "errors": []
+        },
+        "shrunk_validation_metrics": {
+          "ok": true,
+          "sample_count": 29,
+          "positive_count": 14,
+          "negative_count": 15,
+          "brier": 0.24761798292111212,
+          "logloss": 0.6880705529732005,
+          "accuracy": 0.5862068965517241,
+          "auc": 0.4952380952380952,
+          "ece": 0.04651413043441008,
+          "warnings": [],
+          "errors": []
+        },
+        "candidates": [
+          {
+            "alpha": 0.25,
+            "brier": 0.24766709540233217,
+            "logloss": 0.6883524548619225,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.05785492075364265
+          },
+          {
+            "alpha": 0.3,
+            "brier": 0.24757939277901878,
+            "logloss": 0.6880963292148362,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.05218452559402631
+          },
+          {
+            "alpha": 0.35,
+            "brier": 0.24761798292111212,
+            "logloss": 0.6880705529732005,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.04651413043441008
+          },
+          {
+            "alpha": 0.4,
+            "brier": 0.24778286582861223,
+            "logloss": 0.6882759400490516,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.04084373527479378
+          },
+          {
+            "alpha": 0.45,
+            "brier": 0.248074041501519,
+            "logloss": 0.6887145542347116,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.055717903061122454
+          },
+          {
+            "alpha": 0.5,
+            "brier": 0.24849150993983254,
+            "logloss": 0.6893897649083116,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.0523302371177224
+          },
+          {
+            "alpha": 0.55,
+            "brier": 0.2490352711435527,
+            "logloss": 0.6903063397796999,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.09054795130080628
+          },
+          {
+            "alpha": 0.6,
+            "brier": 0.2497053251126797,
+            "logloss": 0.6914705810340291,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.13636140554354184
+          },
+          {
+            "alpha": 0.65,
+            "brier": 0.25050167184721334,
+            "logloss": 0.6928905145789263,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.1152368460192801
+          },
+          {
+            "alpha": 0.7,
+            "brier": 0.2514243113471538,
+            "logloss": 0.6945761467056889,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.15624018927100525
+          },
+          {
+            "alpha": 0.75,
+            "brier": 0.25247324361250095,
+            "logloss": 0.6965398090733257,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.15631645894799828
+          },
+          {
+            "alpha": 0.8,
+            "brier": 0.2536484686432548,
+            "logloss": 0.6987966227027183,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.19785550550534214
+          },
+          {
+            "alpha": 0.85,
+            "brier": 0.25494998643941547,
+            "logloss": 0.7013651266015046,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.19836802632356398
+          },
+          {
+            "alpha": 0.9,
+            "brier": 0.25637779700098273,
+            "logloss": 0.7042681401259212,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.21209425891142963
+          },
+          {
+            "alpha": 0.95,
+            "brier": 0.25793190032795676,
+            "logloss": 0.7075339662737252,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.19939306796000766
+          },
+          {
+            "alpha": 1.0,
+            "brier": 0.2596122964203376,
+            "logloss": 0.7111981069788014,
+            "accuracy": 0.5862068965517241,
+            "ece": 0.2143057990831972
+          }
+        ]
+      },
+      "recommended_usage": "SHADOW_CHALLENGER_OBSERVE",
+      "promotion_blockers": [
+        "per-model OOS below threshold: 94 < 300",
+        "model ECE not acceptable: 0.12833091092987536 > 0.05",
+        "weak slices detected"
+      ],
+      "shadow_only": true,
+      "production_model_replacement_allowed": false
+    },
+    {
+      "model_name": "xgboost_classifier",
+      "oos_count": 95,
+      "raw_metrics": {
+        "ok": true,
+        "sample_count": 95,
+        "positive_count": 48,
+        "negative_count": 47,
+        "brier": 0.2571465304684248,
+        "logloss": 0.7078944005848616,
+        "accuracy": 0.47368421052631576,
+        "auc": 0.48359929078014185,
+        "ece": 0.09867024390321032,
+        "warnings": [],
+        "errors": []
+      },
+      "beats_market_brier": true,
+      "beats_market_logloss": true,
+      "bucket_metrics": {
+        "high_65_plus": {
+          "ok": true,
+          "sample_count": 5,
+          "positive_count": 3,
+          "negative_count": 2,
+          "brier": 0.25472699593287446,
+          "logloss": 0.7061742514171842,
+          "accuracy": 0.6,
+          "auc": 0.3333333333333333,
+          "ece": 0.09381587505340579,
+          "warnings": [],
+          "errors": []
+        },
+        "low_45_55": {
+          "ok": true,
+          "sample_count": 48,
+          "positive_count": 27,
+          "negative_count": 21,
+          "brier": 0.25180865045100936,
+          "logloss": 0.696771404999437,
+          "accuracy": 0.4583333333333333,
+          "auc": 0.48059964726631393,
+          "ece": 0.06745787026981515,
+          "warnings": [],
+          "errors": []
+        },
+        "medium_55_65": {
+          "ok": true,
+          "sample_count": 42,
+          "positive_count": 18,
+          "negative_count": 24,
+          "brier": 0.2635350045997031,
+          "logloss": 0.7208111752024509,
+          "accuracy": 0.47619047619047616,
+          "auc": 0.5497685185185185,
+          "ece": 0.14074598891394477,
+          "warnings": [],
+          "errors": []
+        }
+      },
+      "side_metrics": {
+        "away": {
+          "ok": true,
+          "sample_count": 23,
+          "positive_count": 13,
+          "negative_count": 10,
+          "brier": 0.2531403581431108,
+          "logloss": 0.6993054318361416,
+          "accuracy": 0.43478260869565216,
+          "auc": 0.5384615384615385,
+          "ece": 0.13845104108686035,
+          "warnings": [],
+          "errors": []
+        },
+        "home": {
+          "ok": true,
+          "sample_count": 72,
+          "positive_count": 35,
+          "negative_count": 37,
+          "brier": 0.2584262799612334,
+          "logloss": 0.7106380989351468,
+          "accuracy": 0.4861111111111111,
+          "auc": 0.5181467181467181,
+          "ece": 0.0859624892473221,
+          "warnings": [],
+          "errors": []
+        }
+      },
+      "slice_findings": [
+        {
+          "model_name": "xgboost_classifier",
+          "slice": "away",
+          "severity": "warning",
+          "reason": "away slice is weak or poorly calibrated",
+          "sample_count": 23,
+          "accuracy": 0.43478260869565216,
+          "brier": 0.2531403581431108,
+          "ece": 0.13845104108686035,
+          "recommended_action": "tracking_only_until_slice_improves"
+        }
+      ],
+      "shrinkage": {
+        "attempted": true,
+        "skip_reason": "",
+        "recommended_alpha": 0.25,
+        "raw_validation_metrics": {
+          "ok": true,
+          "sample_count": 29,
+          "positive_count": 14,
+          "negative_count": 15,
+          "brier": 0.2617770776796266,
+          "logloss": 0.717932632070506,
+          "accuracy": 0.4827586206896552,
+          "auc": 0.49047619047619045,
+          "ece": 0.11386351235981648,
+          "warnings": [],
+          "errors": []
+        },
+        "shrunk_validation_metrics": {
+          "ok": true,
+          "sample_count": 29,
+          "positive_count": 14,
+          "negative_count": 15,
+          "brier": 0.25130069104329217,
+          "logloss": 0.6957537095257669,
+          "accuracy": 0.4827586206896552,
+          "auc": 0.49047619047619045,
+          "ece": 0.03497010906194819,
+          "warnings": [],
+          "errors": []
+        },
+        "candidates": [
+          {
+            "alpha": 0.25,
+            "brier": 0.25130069104329217,
+            "logloss": 0.6957537095257669,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.03497010906194819
+          },
+          {
+            "alpha": 0.3,
+            "brier": 0.25169231552207977,
+            "logloss": 0.6965421642229821,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.03851585501226892
+          },
+          {
+            "alpha": 0.35,
+            "brier": 0.2521277687575771,
+            "logloss": 0.6974214919588768,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.04206160096258954
+          },
+          {
+            "alpha": 0.4,
+            "brier": 0.2526070507497841,
+            "logloss": 0.6983928228341548,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.04560734691291021
+          },
+          {
+            "alpha": 0.45,
+            "brier": 0.25313016149870093,
+            "logloss": 0.6994574740921304,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.07659052451109065
+          },
+          {
+            "alpha": 0.5,
+            "brier": 0.25369710100432735,
+            "logloss": 0.7006169599616883,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.052698838813551564
+          },
+          {
+            "alpha": 0.55,
+            "brier": 0.25430786926666354,
+            "logloss": 0.7018730033854651,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.05624458476387223
+          },
+          {
+            "alpha": 0.6,
+            "brier": 0.25496246628570945,
+            "logloss": 0.7032275498535876,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.05979033071419289
+          },
+          {
+            "alpha": 0.65,
+            "brier": 0.2556608920614651,
+            "logloss": 0.7046827836127698,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.06333607666451359
+          },
+          {
+            "alpha": 0.7,
+            "brier": 0.25640314659393043,
+            "logloss": 0.7062411465796902,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.0668818226148342
+          },
+          {
+            "alpha": 0.75,
+            "brier": 0.25718922988310544,
+            "logloss": 0.7079053603590256,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.07042756856515489
+          },
+          {
+            "alpha": 0.8,
+            "brier": 0.25801914192899034,
+            "logloss": 0.7096784518536232,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.10143563747406012
+          },
+          {
+            "alpha": 0.85,
+            "brier": 0.25889288273158484,
+            "logloss": 0.7115637830614824,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.10849554225288591
+          },
+          {
+            "alpha": 0.9,
+            "brier": 0.259810452290889,
+            "logloss": 0.7135650857871239,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.13019874373386645
+          },
+          {
+            "alpha": 0.95,
+            "brier": 0.26077185060690294,
+            "logloss": 0.7156865021610738,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.13072702643172496
+          },
+          {
+            "alpha": 1.0,
+            "brier": 0.2617770776796266,
+            "logloss": 0.717932632070506,
+            "accuracy": 0.4827586206896552,
+            "ece": 0.11386351235981648
+          }
+        ]
+      },
+      "recommended_usage": "SHADOW_CHALLENGER_OBSERVE",
+      "promotion_blockers": [
+        "per-model OOS below threshold: 95 < 300",
+        "model ECE not acceptable: 0.09867024390321032 > 0.05",
+        "weak slices detected"
+      ],
+      "shadow_only": true,
+      "production_model_replacement_allowed": false
+    }
+  ],
+  "critical_findings": [
+    {
+      "model_name": "lightgbm_classifier",
+      "slice": "away",
+      "severity": "warning",
+      "reason": "away slice is weak or poorly calibrated",
+      "sample_count": 31,
+      "accuracy": 0.5161290322580645,
+      "brier": 0.24318691100531642,
+      "ece": 0.11679291441991003,
+      "recommended_action": "tracking_only_until_slice_improves"
+    },
+    {
+      "model_name": "logistic_baseline",
+      "slice": "high_65_plus",
+      "severity": "critical",
+      "reason": "high confidence bucket is overconfident or below 50% accuracy",
+      "sample_count": 46,
+      "accuracy": 0.45652173913043476,
+      "brier": 0.3964439132834258,
+      "ece": 0.3563764567908486,
+      "recommended_action": "cap_or_shrink_high_confidence_probabilities"
+    },
+    {
+      "model_name": "logistic_baseline",
+      "slice": "away",
+      "severity": "warning",
+      "reason": "away slice is weak or poorly calibrated",
+      "sample_count": 43,
+      "accuracy": 0.4418604651162791,
+      "brier": 0.3529830016650894,
+      "ece": 0.2675306167405903,
+      "recommended_action": "tracking_only_until_slice_improves"
+    },
+    {
+      "model_name": "market_residual_model",
+      "slice": "high_65_plus",
+      "severity": "critical",
+      "reason": "high confidence bucket is overconfident or below 50% accuracy",
+      "sample_count": 27,
+      "accuracy": 0.48148148148148145,
+      "brier": 0.33363526129624854,
+      "ece": 0.278303502039284,
+      "recommended_action": "cap_or_shrink_high_confidence_probabilities"
+    },
+    {
+      "model_name": "market_residual_model",
+      "slice": "away",
+      "severity": "warning",
+      "reason": "away slice is weak or poorly calibrated",
+      "sample_count": 33,
+      "accuracy": 0.48484848484848486,
+      "brier": 0.2640284371953855,
+      "ece": 0.15006230153434091,
+      "recommended_action": "tracking_only_until_slice_improves"
+    },
+    {
+      "model_name": "xgboost_classifier",
+      "slice": "away",
+      "severity": "warning",
+      "reason": "away slice is weak or poorly calibrated",
+      "sample_count": 23,
+      "accuracy": 0.43478260869565216,
+      "brier": 0.2531403581431108,
+      "ece": 0.13845104108686035,
+      "recommended_action": "tracking_only_until_slice_improves"
+    }
+  ],
   "probability_policy": {
     "official_probability_change_allowed": false,
     "shadow_probability_shrinkage_allowed": true,
-    "recommended_default_alpha": 0.85,
-    "recommended_max_display_confidence": 0.75,
-    "block_high_confidence_language": false,
-    "blocked_or_downgraded_slices": [],
+    "recommended_default_alpha": 0.7,
+    "recommended_max_display_confidence": 0.65,
+    "block_high_confidence_language": true,
+    "blocked_or_downgraded_slices": [
+      "away",
+      "high_65_plus"
+    ],
     "explanation": "Because calibration and high-confidence slices are not promotion-ready, shadow probabilities should be shrunk toward 50% and high-confidence language should be disabled."
   },
   "blockers": [
     "calibration report is not ready",
-    "calibration samples below threshold: 0 < 300",
-    "clean settled samples below promotion threshold: 172 < 500",
-    "train eligible samples below threshold: 172 < 300",
-    "walk-forward predictions unavailable"
+    "calibration samples below threshold: 175 < 300",
+    "clean settled samples below promotion threshold: 175 < 500",
+    "overall ECE above threshold: 0.06907371428571428 > 0.05",
+    "train eligible samples below threshold: 175 < 300"
   ],
-  "warnings": [
-    "walk_forward_predictions unavailable: No columns to parse from file"
-  ],
+  "warnings": [],
   "next_actions": [
     "Do not replace official prediction model.",
     "Do not lower sample gates.",
