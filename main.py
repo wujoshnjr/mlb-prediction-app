@@ -8,6 +8,7 @@ Product UI Upgrade v1 + Signal Quality Upgrade v2:
 - Product-style Game Board
 - Single-game detail payloads
 - Signal quality cases: Strong Favorite, Clean Paper, Suspicious Large Edge, Weak Underdog
+- Product Experience API: Evidence Center, Risk Center, and product-copy blocks
 - Paper-only / shadow-research-only safety locks
 
 This file is intentionally self-contained so it can replace the existing main.py.
@@ -51,6 +52,7 @@ SAMPLE_STATE_PATH = Path("data/sample_state.json")
 FINALIZED_GAMES_PATH = Path("data/finalized_games.csv")
 FINALIZED_SNAPSHOT_OUTCOMES_PATH = Path("data/finalized_snapshot_outcomes.csv")
 LINEUP_QUALITY_CONTEXT_PATH = Path("data/lineup_quality_context.csv")
+PRODUCT_EXPERIENCE_PATH = Path("report/product_experience_report.json")
 
 CLEAN_PIPELINE_VERSION = "baseline_v2_clean"
 
@@ -943,6 +945,33 @@ body::before {
     <div class="health-card"><div class="health-label">Model Readiness</div><div id="health-training" class="health-value neutral">--</div><div id="health-training-caption" class="health-caption">training status</div></div>
   </section>
 
+
+  <div class="section-heading">
+    <h2>Evidence Center</h2>
+    <span>Settled-sample slices explaining what is working and what is blocked</span>
+  </div>
+
+  <section id="evidence-grid" class="health-grid">
+    <div class="health-card">
+      <div class="health-label">Evidence</div>
+      <div class="health-value waiting">Loading</div>
+      <div class="health-caption">product experience report</div>
+    </div>
+  </section>
+
+  <div class="section-heading">
+    <h2>Risk Center</h2>
+    <span>Why some signals remain tracking-only or blocked</span>
+  </div>
+
+  <section id="risk-grid" class="health-grid">
+    <div class="health-card">
+      <div class="health-label">Risk</div>
+      <div class="health-value waiting">Loading</div>
+      <div class="health-caption">guardrail report</div>
+    </div>
+  </section>
+
   <div class="section-heading">
     <h2>Signal Center</h2>
     <span>Cases grouped by paper signal, strong favorite, weak underdog, large edge, and lineup quality</span>
@@ -1119,6 +1148,69 @@ function renderResearchGuardrails(guardrailData) {
     `guardrail-value ${stale.length ? "waiting" : "positive"}`;
   document.getElementById("guardrail-freshness-caption").textContent =
     stale.length ? `stale: ${stale.slice(0, 3).join(", ")}` : "all tracked sources acceptable";
+}
+
+
+function cardStatusClass(status) {
+  const value = String(status || "neutral").toLowerCase();
+  if (["positive", "ok", "allowed"].includes(value)) return "positive";
+  if (["negative", "blocked", "bad"].includes(value)) return "negative";
+  if (["waiting", "tracking", "capped"].includes(value)) return "waiting";
+  return "neutral";
+}
+
+function renderProductExperience(productData) {
+  const evidenceTarget = document.getElementById("evidence-grid");
+  const riskTarget = document.getElementById("risk-grid");
+
+  if (!evidenceTarget || !riskTarget) return;
+
+  const evidenceCards = Array.isArray(productData.evidence_cards)
+    ? productData.evidence_cards
+    : [];
+
+  const riskCards = Array.isArray(productData.risk_cards)
+    ? productData.risk_cards
+    : [];
+
+  if (evidenceCards.length) {
+    evidenceTarget.innerHTML = evidenceCards.slice(0, 8).map(card => `
+      <div class="health-card">
+        <div class="health-label">${escapeText(card.label || card.card_id || "Evidence")}</div>
+        <div class="health-value ${cardStatusClass(card.status)}">${escapeText(card.display_value || "--")}</div>
+        <div class="health-caption">${escapeText(card.caption || "")}</div>
+      </div>
+    `).join("");
+  } else {
+    evidenceTarget.innerHTML = `
+      <div class="health-card">
+        <div class="health-label">Evidence</div>
+        <div class="health-value waiting">Waiting</div>
+        <div class="health-caption">product_experience_report unavailable</div>
+      </div>
+    `;
+  }
+
+  if (riskCards.length) {
+    riskTarget.innerHTML = riskCards.slice(0, 8).map(card => {
+      const reasons = Array.isArray(card.reasons) ? card.reasons : [];
+      return `
+        <div class="health-card">
+          <div class="health-label">${escapeText(card.label || card.risk_id || "Risk")}</div>
+          <div class="health-value ${cardStatusClass(card.status)}">${escapeText(card.display_status || card.status || "--")}</div>
+          <div class="health-caption">${escapeText(reasons.slice(0, 2).join(" Â· ") || card.description || "")}</div>
+        </div>
+      `;
+    }).join("");
+  } else {
+    riskTarget.innerHTML = `
+      <div class="health-card">
+        <div class="health-label">Risk</div>
+        <div class="health-value waiting">Waiting</div>
+        <div class="health-caption">risk cards unavailable</div>
+      </div>
+    `;
+  }
 }
 
 function renderSignalTabs(boardData) {
@@ -1452,6 +1544,17 @@ async function loadDashboard() {
     renderResearchGuardrails(guardrailData);
   } catch (error) {
     dashboardMessages.push(`<div class="message warn">Research guardrails load failed: ${escapeText(error.message)}</div>`);
+  }
+
+
+  try {
+    const productResponse = await fetch("/api/product-experience");
+    if (!productResponse.ok) throw new Error(`Product experience API returned ${productResponse.status}`);
+
+    const productData = await productResponse.json();
+    renderProductExperience(productData);
+  } catch (error) {
+    dashboardMessages.push(`<div class="message warn">Product experience load failed: ${escapeText(error.message)}</div>`);
   }
 
   try {
@@ -2137,6 +2240,7 @@ def get_research_guardrails() -> dict[str, Any]:
         "research_promotion_readiness": Path("report/research_promotion_readiness_report.json"),
         "edge_sanity_guardrail": Path("report/edge_sanity_guardrail_report.json"),
         "signal_quality": Path("report/signal_quality_report.json"),
+        "product_experience": PRODUCT_EXPERIENCE_PATH,
     }
 
     reports: dict[str, Any] = {}
@@ -2189,6 +2293,11 @@ def get_research_guardrails() -> dict[str, Any]:
         "edge_sanity_policy": edge_sanity.get("policy", {}),
         "signal_quality_policy": signal_quality.get("global_policy", {}),
         "signal_quality_cases": signal_quality.get("cases", []),
+        "product_summary": reports.get("product_experience", {}).get("product_summary", {}),
+        "product_hero_metrics": reports.get("product_experience", {}).get("hero_metrics", []),
+        "product_signal_cases": reports.get("product_experience", {}).get("signal_case_cards", []),
+        "product_evidence_cards": reports.get("product_experience", {}).get("evidence_cards", []),
+        "product_risk_cards": reports.get("product_experience", {}).get("risk_cards", []),
     }
 
     status = "partial" if errors else "ok"
@@ -2204,6 +2313,44 @@ def get_research_guardrails() -> dict[str, Any]:
         "automated_wagering_allowed": False,
         "production_model_replacement_allowed": False,
     }
+
+
+
+@app.get("/api/product-experience")
+def get_product_experience() -> dict[str, Any]:
+    product_experience, error = _read_json_safe(PRODUCT_EXPERIENCE_PATH)
+
+    if error is not None:
+        return {
+            "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "status": "partial",
+            "error": error,
+            "product_summary": {
+                "mode": "MLB_ONLY_PAPER_RESEARCH",
+                "production_allowed": False,
+                "live_betting_allowed": False,
+                "automated_wagering_allowed": False,
+            },
+            "hero_metrics": [],
+            "signal_case_cards": [],
+            "evidence_cards": [],
+            "risk_cards": [],
+            "recommended_ui_sections": [],
+            "copy_blocks": {
+                "hero_title": "MLB Intelligence Cloud",
+                "hero_subtitle": "AI Sports Research Terminal",
+                "hero_body": "Paper-only MLB research dashboard.",
+                "safety_footer": "Live betting is disabled. No automated wagering.",
+            },
+            "live_betting_allowed": False,
+            "automated_wagering_allowed": False,
+            "production_model_replacement_allowed": False,
+        }
+
+    product_experience["live_betting_allowed"] = False
+    product_experience["automated_wagering_allowed"] = False
+    product_experience["production_model_replacement_allowed"] = False
+    return _sanitize_json_value(product_experience)
 
 
 def _product_rows_from_prediction_report(report: dict[str, Any]) -> list[dict[str, Any]]:
