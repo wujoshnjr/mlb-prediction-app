@@ -2304,8 +2304,15 @@ def load_ml_model() -> tuple[Any | None, list[str] | None, int, str]:
             f"reason={artifact_status.get('reason') or 'unknown'}"
         )
 
+    if artifact_status.get("active_model_allowed") is not True:
+        return None, None, 0, (
+            "Model artifact is not allowed for active ML use; using manual baseline. "
+            f"reason={artifact_status.get('reason') or 'unknown'}"
+        )
+
     if training_status.get("trained") is not True:
         return None, None, 0, "training_status.trained is false; using manual baseline."
+
     if not MODEL_FILE.exists():
         return None, None, 0, "Model artifact does not exist."
 
@@ -2334,6 +2341,39 @@ def load_ml_model() -> tuple[Any | None, list[str] | None, int, str]:
             artifact.get("training_sample_count"),
             0,
         )
+
+        artifact_status_sample_count = as_int(
+            artifact_status.get("training_sample_count"),
+            0,
+        )
+        training_status_sample_count = as_int(
+            training_status.get("sample_count"),
+            0,
+        )
+
+        if artifact_status_sample_count and training_sample_count != artifact_status_sample_count:
+            return (
+                None,
+                None,
+                training_sample_count,
+                (
+                    "Model artifact sample count conflicts with model_artifact_status: "
+                    f"artifact={training_sample_count}, "
+                    f"status={artifact_status_sample_count}."
+                ),
+            )
+
+        if training_status_sample_count and training_sample_count != training_status_sample_count:
+            return (
+                None,
+                None,
+                training_sample_count,
+                (
+                    "Model artifact sample count conflicts with training_status: "
+                    f"artifact={training_sample_count}, "
+                    f"training_status={training_status_sample_count}."
+                ),
+            )
 
         expected_model_type = "calibrated_logistic_regression_with_imputer"
         artifact_model_type = str(artifact.get("model_type", "")).strip()
@@ -2401,25 +2441,6 @@ def load_ml_model() -> tuple[Any | None, list[str] | None, int, str]:
 
     except Exception as exc:
         return None, None, 0, str(exc)
-
-
-def load_nrfi_model() -> tuple[Any | None, bool]:
-    if not getattr(config, "NRFI_USE_ML", False) or NRFIModel is None:
-        return None, False
-
-    model_path = Path("models/nrf_model.pkl")
-    if not model_path.exists():
-        print("NRFI model artifact does not exist; using fallback behavior.")
-        return None, False
-
-    try:
-        nrfi_model = NRFIModel(str(model_path))
-        nrfi_model.load()
-        print("Loaded NRFI model.")
-        return nrfi_model, True
-    except Exception as exc:
-        print(f"Unable to load NRFI model: {exc}")
-        return None, False
 
 
 def build_schedule_frame(raw_rows: Any) -> pd.DataFrame:
