@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-06-10T16:07:36.679750+00:00",
+  "generated_at": "2026-06-10T18:55:19.369764+00:00",
   "source": "report/feature_availability_diagnostic.json",
   "model_feature_count": 26,
   "tracking_only_feature_count": 36,
   "grade_counts": {
     "A": 40,
-    "B": 4,
-    "C": 3,
+    "B": 5,
+    "C": 2,
     "D": 15
   },
   "model_features": [
@@ -302,9 +302,9 @@
       "group": "other",
       "grade": "A",
       "availability_rate": 1.0,
-      "non_zero_rate": 1.0,
+      "non_zero_rate": 0.8667,
       "missing_rate": 0.0,
-      "zero_rate": 0.0,
+      "zero_rate": 0.1333,
       "latest_importance": 0.0,
       "training_allowed_by_schema": true,
       "tracking_only_by_schema": false,
@@ -623,6 +623,19 @@
       "recommendation": "tracking_only_by_schema"
     },
     {
+      "feature": "lineup_context_available",
+      "group": "lineup",
+      "grade": "B",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.2667,
+      "missing_rate": 0.0,
+      "zero_rate": 0.7333,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": true,
+      "tracking_only_by_schema": false,
+      "recommendation": "allowed_in_main_model"
+    },
+    {
       "feature": "precip_effect",
       "group": "weather",
       "grade": "B",
@@ -640,9 +653,9 @@
       "group": "weather",
       "grade": "B",
       "availability_rate": 1.0,
-      "non_zero_rate": 0.3333,
+      "non_zero_rate": 0.2667,
       "missing_rate": 0.0,
-      "zero_rate": 0.6667,
+      "zero_rate": 0.7333,
       "latest_importance": 0.0,
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
@@ -662,26 +675,13 @@
       "recommendation": "tracking_only_by_schema"
     },
     {
-      "feature": "lineup_context_available",
-      "group": "lineup",
+      "feature": "temp_effect",
+      "group": "weather",
       "grade": "C",
       "availability_rate": 1.0,
       "non_zero_rate": 0.1333,
       "missing_rate": 0.0,
       "zero_rate": 0.8667,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": true,
-      "tracking_only_by_schema": false,
-      "recommendation": "exclude_until_stable"
-    },
-    {
-      "feature": "temp_effect",
-      "group": "weather",
-      "grade": "C",
-      "availability_rate": 1.0,
-      "non_zero_rate": 0.0667,
-      "missing_rate": 0.0,
-      "zero_rate": 0.9333,
       "latest_importance": 0.0,
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
