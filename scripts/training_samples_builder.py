@@ -392,10 +392,6 @@ def build_training_samples(
         return report
 
     merged = snapshots.merge(outcomes, on="game_id", how="inner")
-
-    if "edge_at_prediction_time" not in merged.columns and "model_edge_home" in merged.columns:
-        merged["edge_at_prediction_time"] = merged["model_edge_home"]
-            
     report["linked_rows"] = int(len(merged))
     report["dropped_missing_outcome_rows"] = int(len(snapshots) - len(merged))
 
@@ -408,6 +404,9 @@ def build_training_samples(
     merged["home_win"] = pd.to_numeric(merged["_outcome_home_win"], errors="coerce")
     merged = merged[merged["home_win"].isin([0, 1])].copy()
     merged["home_win"] = merged["home_win"].astype(int)
+
+    if "edge_at_prediction_time" not in merged.columns and "model_edge_home" in merged.columns:
+        merged["edge_at_prediction_time"] = merged["model_edge_home"]
 
     if "snapshot_created_at" in merged.columns:
         merged["snapshot_created_at"] = pd.to_datetime(
@@ -427,7 +426,11 @@ def build_training_samples(
     report["leakage_columns_removed"] = leakage_removed
 
     if "home_win" not in output_columns:
-        insertion_index = output_columns.index("away_team") + 1 if "away_team" in output_columns else len(output_columns)
+        insertion_index = (
+            output_columns.index("away_team") + 1
+            if "away_team" in output_columns
+            else len(output_columns)
+        )
         output_columns.insert(insertion_index, "home_win")
 
     training_samples = merged[output_columns].copy()
