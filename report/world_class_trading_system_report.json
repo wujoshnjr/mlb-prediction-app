@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-09T22:46:29.735317+00:00",
+  "generated_at": "2026-06-10T00:33:48.235588+00:00",
   "status": "paper_trading_only_blocked_for_live",
   "world_class_stage": "advanced_shadow_trading_candidate",
   "overall_score": 83.15,
@@ -52,7 +52,7 @@
           "name": "per_pick_clv_joined",
           "passed": true,
           "weight": 15,
-          "details": 155
+          "details": 159
         },
         {
           "name": "settled_prediction_link_report_ok",
@@ -93,13 +93,13 @@
           "name": "avg_clv_positive",
           "passed": true,
           "weight": 20,
-          "details": 0.255211
+          "details": 0.260817
         },
         {
           "name": "positive_clv_rate_at_least_55pct",
           "passed": true,
           "weight": 15,
-          "details": 0.5613
+          "details": 0.566
         },
         {
           "name": "calibration_ready",
@@ -181,7 +181,9 @@
         }
       ],
       "blockers": [],
-      "warnings": [],
+      "warnings": [
+        "paper exposure is high for research stage: 12.25"
+      ],
       "recommendations": [
         "Keep live betting locked until governance, sample size, CLV, calibration, and risk gates explicitly allow a later shadow phase.",
         "Paper exposure should remain small while research grade is below production readiness."
@@ -212,7 +214,7 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 34
+          "details": 35
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
@@ -280,7 +282,7 @@
           "name": "paper_ledger_ok",
           "passed": true,
           "weight": 10,
-          "details": 38
+          "details": 49
         },
         {
           "name": "risk_exposure_ok",
@@ -323,6 +325,7 @@
     "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
+    "risk_controls: paper exposure is high for research stage: 12.25",
     "model_upgrade_path: rolling OOS evaluation has not started producing predictions"
   ],
   "input_files": {

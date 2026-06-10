@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-06-09T22:45:57.597330+00:00",
+  "generated_at": "2026-06-10T00:33:15.069323+00:00",
   "daily_context": {
     "exists": true,
     "error": "",
-    "row_count": 1970,
+    "row_count": 1985,
     "column_count": 108,
     "schema_versions": [
       "daily_context_v1",
       "daily_context_v2",
       "daily_context_v3"
     ],
-    "latest_captured_at": "2026-06-09T22:25:45.628325+00:00",
+    "latest_captured_at": "2026-06-10T00:13:07.611497+00:00",
     "latest_game_count": 15,
     "columns_present": [
       "home_starter_status",
@@ -37,48 +37,45 @@
     "error": "",
     "prediction_count": 15,
     "pitcher_status_counts": {
-      "high_confidence_probable": 14,
-      "confirmed": 1
+      "mixed_probable": 4,
+      "high_confidence_probable": 11
     },
     "lineup_status_counts": {
-      "confirmed": 12,
-      "partial_confirmed": 2,
-      "pending": 1
+      "pending": 15
     },
     "starter_confidence_status_counts": {
       "known": 15
     },
     "missing_critical_field_counts": {
-      "none": 10,
-      "away_bullpen_data_available": 2,
-      "away_closer_available_known": 2,
-      "away_lineup_confirmed": 3,
-      "home_lineup_confirmed": 1
+      "home_starting_pitcher_confirmed": 4,
+      "away_starting_pitcher_confirmed": 4,
+      "home_lineup_confirmed": 15,
+      "away_lineup_confirmed": 15
     },
     "context_status_counts": {
-      "TRACKING_ONLY_CONTEXT_NOT_READY": 14,
-      "READY_FOR_BETTING": 1
+      "TRACKING_ONLY_CONTEXT_NOT_READY": 15
     },
     "betting_readiness_status_counts": {
-      "risk_blocked": 4,
-      "model_blocked": 11
+      "risk_blocked": 7,
+      "model_blocked": 5,
+      "odds_blocked": 3
     },
     "live_bet_candidate_count": 0,
-    "average_betting_readiness_score": 0.1933,
+    "average_betting_readiness_score": 0.0,
     "risk_flag_counts": {
-      "closer_high_fatigue": 9,
-      "data_quality_bet_blocked": 14,
+      "context_missing_fields": 15,
+      "data_quality_bet_blocked": 15,
       "early_model_small_sample": 15,
-      "large_anti_market_edge_early_model": 4,
+      "large_anti_market_edge_early_model": 7,
+      "lineup_not_confirmed": 15,
       "model_governance_live_locked": 15,
       "non_ml_model": 15,
       "risk_guard_rejected": 11,
-      "starter_confirmation_pending": 14,
-      "closer_fatigue": 4,
-      "bullpen_not_available": 2,
-      "context_missing_fields": 5,
-      "edge_below_threshold": 4,
-      "lineup_not_confirmed": 3
+      "closer_fatigue": 7,
+      "starter_confirmation_pending": 11,
+      "edge_below_threshold": 1,
+      "edge_unavailable": 3,
+      "odds_not_ok": 3
     },
     "feature_health_flag_counts": {
       "none": 15
@@ -89,28 +86,28 @@
     "top3_woba_zero_count": 0,
     "practical_ready_count": 0,
     "official_ready_count": 0,
-    "risk_blocked_count": 4
+    "risk_blocked_count": 7
   },
   "schema_checks": {
     "context_has_starter_confidence_columns": true,
     "context_has_closer_known_columns": true,
     "prediction_has_starter_confidence_summary": true,
     "prediction_missing_only_lineup_when_starter_high_confidence": true,
-    "starter_confirmation_still_in_filtered_missing_fields": false,
+    "starter_confirmation_still_in_filtered_missing_fields": true,
     "prediction_has_betting_readiness": true,
     "practical_ready_exists_when_missing_only_starter_confirmation": false
   },
   "latest_snapshot_checks": {
-    "latest_rows": 146,
+    "latest_rows": 161,
     "starter_status_counts": {
       "home": {
-        "high_confidence_probable": 112,
-        "unknown": 32,
+        "high_confidence_probable": 126,
+        "unknown": 33,
         "confirmed": 2
       },
       "away": {
-        "high_confidence_probable": 112,
-        "unknown": 31,
+        "high_confidence_probable": 124,
+        "unknown": 34,
         "medium_confidence_probable": 1,
         "confirmed": 2
       }
@@ -119,15 +116,15 @@
       "confirmed": 102,
       "partial_confirmed": 10,
       "projected_available": 0,
-      "pending": 34
+      "pending": 49
     },
-    "closer_known_count": 111,
-    "high_confidence_starter_count": 116,
+    "closer_known_count": 126,
+    "high_confidence_starter_count": 131,
     "projected_lineup_available_count": 0,
     "confirmed_lineup_count": 102
   },
   "recommendations": [
-    "Closer high fatigue risk detected; consider conservative stake multiplier or manual review.",
+    "High-confidence starter rows still include starting_pitcher_confirmed inside filtered missing_critical_fields. Check context v3 filtering in prediction.py.",
     "Early model guard is active. Keep live betting disabled until sample size and CLV improve.",
     "Lineup confirmation remains a betting blocker. Prioritize projected/confirmed lineup integration.",
     "Large anti-market edges are being blocked while the model is still early-stage."
