@@ -599,12 +599,21 @@ def _append_finalized_rows(path: Path, rows: List[Dict[str, Any]]) -> Dict[str, 
     }
     
 
-def _upsert_trusted_outcome_cache(path: Path, rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+def _upsert_trusted_outcome_cache(
+    path: Path,
+    rows: List[Dict[str, Any]],
+    *,
+    valid_snapshot_ids: Optional[set[str]] = None,
+) -> Dict[str, Any]:
     """Persist trusted finalized outcomes for snapshot game_ids.
 
     This cache protects dashboard / sample_state metrics from stale or overwritten
     finalized_games.csv files. Rows must still come from trusted final-result
     sources, never from prediction_snapshots embedded outcome columns.
+
+    valid_snapshot_ids is used as a safety fence so test fixture rows such as
+    999 or snapshot-123 cannot survive in the production cache when they are not
+    part of the current prediction snapshot universe.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -627,11 +636,23 @@ def _upsert_trusted_outcome_cache(path: Path, rows: List[Dict[str, Any]]) -> Dic
         existing = existing[existing["game_id"] != ""].copy()
         existing = existing.drop_duplicates("game_id", keep="last")
 
+    allowed_ids = {
+        _normalize_game_id(value)
+        for value in (valid_snapshot_ids or set())
+        if _normalize_game_id(value)
+    }
+
+    if allowed_ids and not existing.empty:
+        existing = existing[existing["game_id"].isin(allowed_ids)].copy()
+
     normalized_rows: List[Dict[str, Any]] = []
 
     for row in rows:
         game_id = _normalize_game_id(row.get("game_id"))
         if not game_id:
+            continue
+
+        if allowed_ids and game_id not in allowed_ids:
             continue
 
         home_score = _safe_int(row.get("home_score"))
@@ -679,6 +700,7 @@ def _upsert_trusted_outcome_cache(path: Path, rows: List[Dict[str, Any]]) -> Dic
         "path": str(path),
         "received": len(rows),
         "upserted": len(normalized_rows),
+        "retained_existing": int(len(existing)),
         "total_rows_after": int(len(combined)),
     }
 
@@ -687,6 +709,7 @@ def build_report(
     *,
     snapshot_path: Path = SNAPSHOT_PATH,
     finalized_path: Path = FINALIZED_PATH,
+    finalized_snapshot_outcomes_path: Path = FINALIZED_SNAPSHOT_OUTCOMES_PATH,
     report_path: Path = REPORT_PATH,
     max_repair_attempts: int = MAX_REPAIR_ATTEMPTS,
     request_get: Callable[..., Any] = requests.get,
@@ -825,8 +848,9 @@ def build_report(
 
     append_summary = _append_finalized_rows(finalized_path, rows_to_append)
     outcome_cache_summary = _upsert_trusted_outcome_cache(
-        FINALIZED_SNAPSHOT_OUTCOMES_PATH,
+        finalized_snapshot_outcomes_path,
         rows_to_append,
+        valid_snapshot_ids=snapshot_ids,
     )
 
     api_final_written_count = int(append_summary.get("inserted", 0) or 0)
