@@ -143,7 +143,9 @@ jobs:
             scripts/model_correctness_report.py \
             scripts/edge_sanity_guardrail.py \
             scripts/signal_quality_report.py \
-            scripts/product_experience_report.py 
+            scripts/product_experience_report.py \
+            scripts/training_samples_builder.py \
+            scripts/model_artifact_status.py
             
       - name: Update finalized game results
         run: python scripts/update_results.py
@@ -153,6 +155,16 @@ jobs:
       - name: Repair finalized linkage from snapshots
         continue-on-error: true
         run: python scripts/repair_finalized_linkage.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build canonical training samples
+        run: python scripts/training_samples_builder.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build model artifact status before training
+        run: python scripts/model_artifact_status.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -191,6 +203,11 @@ jobs:
 
       - name: Train model if enough finalized samples are available
         run: python train_ensemble.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build model artifact status after training
+        run: python scripts/model_artifact_status.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -598,8 +615,12 @@ jobs:
             report/walkforward_predictions.csv
             report/rolling_walkforward_predictions.csv
             report/decision_audit.csv
+            report/training_samples_report.json
+            report/model_artifact_status_report.json
             data/model_registry.json
             data/sample_state.json
+            data/training_samples.csv
+            data/model_artifact_status.json
             data/paper_trading_ledger.csv
             data/calibrator.pkl
             data/market_residual_model.pkl
@@ -655,6 +676,8 @@ jobs:
             report/settled_prediction_link_report.json \
             report/finalized_linkage_diagnostic_report.json \
             report/sample_state_report.json \
+            report/training_samples_report.json \
+            report/model_artifact_status_report.json \
             report/snapshot_sanitization_report.json \
             report/prediction_sanitization_report.json \
             report/model_registry_report.json \
@@ -690,6 +713,8 @@ jobs:
             data/walk_forward_predictions.csv \
             data/model_registry.json \
             data/sample_state.json \
+            data/training_samples.csv \
+            data/model_artifact_status.json \
             data/paper_trading_ledger.csv \
             data/top3_player_context.csv \
             data/pitcher_advanced_context.csv \
