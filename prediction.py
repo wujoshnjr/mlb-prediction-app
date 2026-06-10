@@ -1890,6 +1890,8 @@ def evaluate_betting_readiness(
         "betting_risk_flags": sorted(set(risk_flags)),
         "betting_readiness_reasons": reasons,
         "stake_multiplier": float(stake_multiplier),
+        "signal_type": "paper_research_signal",
+        "betting_mode": "paper_trading",
         "moneyline_gate_status": gate_status,
         "selected_edge": (
             round(float(selected_edge), 4)
