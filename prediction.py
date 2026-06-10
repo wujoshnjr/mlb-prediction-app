@@ -109,6 +109,9 @@ HISTORICAL_DIR = Path("data/historical")
 LAST_GAME_FILE = Path("data/team_last_game.json")
 MODEL_FILE = Path("data/calibrator.pkl")
 EVALUATION_CLV_DIAGNOSTIC_FILE = Path("report/evaluation_clv_diagnostic.json")
+SAMPLE_STATE_FILE = Path("data/sample_state.json")
+TRAINING_STATUS_FILE = Path("data/training_status.json")
+MODEL_ARTIFACT_STATUS_FILE = Path("data/model_artifact_status.json")
 
 DAILY_CONTEXT_FILE = Path("data/daily_game_context.csv")
 PROJECTED_LINEUP_CONTEXT_FILE = Path("data/projected_lineup_context.csv")
@@ -708,6 +711,108 @@ def build_weather_context_summary(
     }
 
 
+def read_json_object(path: Path) -> dict[str, Any]:
+    """Read a JSON object safely. Missing or invalid files return {}."""
+    if not path.exists():
+        return {}
+
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+    return payload if isinstance(payload, dict) else {}
+
+
+def build_model_governance(
+    sample_state: dict[str, Any],
+    training_status: dict[str, Any],
+    artifact_status: dict[str, Any],
+    min_clean_train_samples: int = MIN_CLEAN_TRAIN_SAMPLES,
+) -> dict[str, Any]:
+    """Build consistent model governance fields for prediction.json.
+
+    Rules:
+    - Artifact invalid means no active ML model.
+    - training_status.trained false means no active ML model.
+    - sample count below threshold means no active ML model.
+    - Safety flags are always false.
+    """
+    sample_state = sample_state or {}
+    training_status = training_status or {}
+    artifact_status = artifact_status or {}
+
+    training_status_sample_count = as_int(training_status.get("sample_count"), 0)
+    clean_settled_sample_count = as_int(
+        sample_state.get(
+            "clean_settled_sample_count",
+            sample_state.get("clean_settled_snapshots", 0),
+        ),
+        0,
+    )
+    train_eligible_samples = as_int(
+        sample_state.get("train_eligible_samples", clean_settled_sample_count),
+        clean_settled_sample_count,
+    )
+    loaded_artifact_sample_count = as_int(
+        artifact_status.get(
+            "training_sample_count",
+            artifact_status.get("loaded_artifact_sample_count", 0),
+        ),
+        0,
+    )
+
+    trained = bool(training_status.get("trained") is True)
+    artifact_valid = bool(artifact_status.get("valid") is True)
+    artifact_allowed = bool(artifact_status.get("active_model_allowed") is True)
+    artifact_feature_count = as_int(artifact_status.get("feature_count"), 0)
+
+    is_ml_model = (
+        trained
+        and artifact_valid
+        and artifact_allowed
+        and loaded_artifact_sample_count >= min_clean_train_samples
+        and training_status_sample_count >= min_clean_train_samples
+    )
+
+    active_model_sample_count = loaded_artifact_sample_count if is_ml_model else 0
+
+    if is_ml_model:
+        model_source = "ml"
+        model_family = str(
+            artifact_status.get("model_type")
+            or training_status.get("model_family")
+            or "calibrated_logistic_baseline"
+        )
+        governance_status = "active_ml_model"
+        model_feature_count = artifact_feature_count
+    else:
+        model_source = "manual_baseline"
+        model_family = "manual_market_adjusted_baseline"
+        governance_status = "research_tracking_only"
+        model_feature_count = 0
+
+    return {
+        "model_source": model_source,
+        "model_family": model_family,
+        "is_ml_model": bool(is_ml_model),
+        "active_model_sample_count": int(active_model_sample_count),
+        "clean_settled_sample_count": int(clean_settled_sample_count),
+        "train_eligible_samples": int(train_eligible_samples),
+        "training_status_sample_count": int(training_status_sample_count),
+        "loaded_artifact_sample_count": int(loaded_artifact_sample_count),
+        "model_artifact_valid": bool(artifact_valid),
+        "model_artifact_allowed": bool(artifact_allowed),
+        "model_artifact_error": str(artifact_status.get("error") or ""),
+        "model_artifact_reason": str(artifact_status.get("reason") or ""),
+        "model_feature_count": int(model_feature_count),
+        "model_governance_status": governance_status,
+        "live_betting_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_model_replacement_allowed": False,
+    }
+
+
 def latest_context_csv_by_game(
     path: Path,
     captured_at_column: str,
@@ -752,12 +857,29 @@ def load_model_governance_status(
     clean_model_sample_count: int,
     errors: list[str],
 ) -> dict[str, Any]:
-    """Build global model governance status for live-betting control."""
+    """Build global model governance status.
+
+    This project is a personal research engine, not an automated wagering system.
+    Live betting and production wagering are always disabled.
+    """
+    sample_state = read_json_object(SAMPLE_STATE_FILE)
+    training_status = read_json_object(TRAINING_STATUS_FILE)
+    artifact_status = read_json_object(MODEL_ARTIFACT_STATUS_FILE)
+
+    model_governance = build_model_governance(
+        sample_state=sample_state,
+        training_status=training_status,
+        artifact_status=artifact_status,
+        min_clean_train_samples=MIN_CLEAN_TRAIN_SAMPLES,
+    )
+
     governance: dict[str, Any] = {
         "mode": "paper_trading_only",
-        "force_paper_trading_only": FORCE_PAPER_TRADING_ONLY,
+        "force_paper_trading_only": True,
         "live_betting_allowed": False,
         "shadow_live_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_model_replacement_allowed": False,
         "clean_model_sample_count": int(clean_model_sample_count or 0),
         "min_clean_train_samples": MIN_CLEAN_TRAIN_SAMPLES,
         "min_live_bet_samples": MIN_LIVE_BET_SAMPLES,
@@ -766,21 +888,20 @@ def load_model_governance_status(
         "positive_clv_rate": None,
         "evaluated_clv_picks": 0,
         "live_bet_candidate_count": 0,
-        "block_reasons": [],
+        "block_reasons": [
+            "force_paper_trading_only_enabled",
+            "live_betting_locked_for_personal_research_engine",
+        ],
+        "model_governance": model_governance,
     }
 
-    block_reasons: list[str] = []
-
-    if FORCE_PAPER_TRADING_ONLY:
-        block_reasons.append("force_paper_trading_only_enabled")
-
     if clean_model_sample_count < MIN_CLEAN_TRAIN_SAMPLES:
-        block_reasons.append(
+        governance["block_reasons"].append(
             f"clean_model_sample_count_below_train_min:{clean_model_sample_count}<{MIN_CLEAN_TRAIN_SAMPLES}"
         )
 
     if clean_model_sample_count < MIN_LIVE_BET_SAMPLES:
-        block_reasons.append(
+        governance["block_reasons"].append(
             f"clean_model_sample_count_below_live_min:{clean_model_sample_count}<{MIN_LIVE_BET_SAMPLES}"
         )
 
@@ -804,7 +925,6 @@ def load_model_governance_status(
                 positive_clv_rate = float(positive_count) / float(evaluated_count)
                 governance["positive_clv_rate"] = round(positive_clv_rate, 4)
             else:
-                positive_clv_rate = None
                 governance["positive_clv_rate"] = None
 
             governance["live_bet_candidate_count"] = int(
@@ -812,33 +932,28 @@ def load_model_governance_status(
             )
 
             if avg_clv is None or avg_clv <= 0:
-                block_reasons.append("avg_clv_not_positive")
+                governance["block_reasons"].append("avg_clv_not_positive")
 
-            if positive_clv_rate is None or positive_clv_rate <= MIN_POSITIVE_CLV_RATE:
-                block_reasons.append("positive_clv_rate_below_threshold")
+            if (
+                governance["positive_clv_rate"] is None
+                or as_float(governance["positive_clv_rate"], 0.0) <= MIN_POSITIVE_CLV_RATE
+            ):
+                governance["block_reasons"].append("positive_clv_rate_below_threshold")
 
         except Exception as exc:
             errors.append(f"Unable to load model governance evaluation: {exc}")
-            block_reasons.append("evaluation_clv_diagnostic_unreadable")
+            governance["block_reasons"].append("evaluation_clv_diagnostic_unreadable")
     else:
-        block_reasons.append("evaluation_clv_diagnostic_missing")
+        governance["block_reasons"].append("evaluation_clv_diagnostic_missing")
 
-    governance["block_reasons"] = sorted(set(block_reasons))
-    governance["live_betting_allowed"] = len(governance["block_reasons"]) == 0
+    governance["block_reasons"] = sorted(set(governance["block_reasons"]))
 
-    governance["shadow_live_allowed"] = (
-        governance["clean_model_sample_count"] >= MIN_CLEAN_TRAIN_SAMPLES
-        and governance.get("avg_clv") is not None
-        and as_float(governance.get("avg_clv"), -1.0) > 0
-        and as_float(governance.get("positive_clv_rate"), 0.0) > MIN_POSITIVE_CLV_RATE
-    )
-
-    if governance["live_betting_allowed"]:
-        governance["mode"] = "live_eligible"
-    elif governance["shadow_live_allowed"]:
-        governance["mode"] = "shadow_live_only"
-    else:
-        governance["mode"] = "paper_trading_only"
+    # Hard safety override.
+    governance["live_betting_allowed"] = False
+    governance["shadow_live_allowed"] = False
+    governance["automated_wagering_allowed"] = False
+    governance["production_model_replacement_allowed"] = False
+    governance["mode"] = "paper_trading_only"
 
     return governance
 
