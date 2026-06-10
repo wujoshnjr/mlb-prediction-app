@@ -2293,6 +2293,17 @@ def prepare_team_frame(raw_rows: Any) -> pd.DataFrame:
 
 def load_ml_model() -> tuple[Any | None, list[str] | None, int, str]:
     """Load only a sufficiently trained model for the active clean pipeline."""
+    artifact_status = read_json_object(MODEL_ARTIFACT_STATUS_FILE)
+    training_status = read_json_object(TRAINING_STATUS_FILE)
+
+    if artifact_status.get("valid") is not True:
+        return None, None, 0, (
+            "Model artifact status is not valid; using manual baseline. "
+            f"reason={artifact_status.get('reason') or 'unknown'}"
+        )
+
+    if training_status.get("trained") is not True:
+        return None, None, 0, "training_status.trained is false; using manual baseline."
     if not MODEL_FILE.exists():
         return None, None, 0, "Model artifact does not exist."
 
