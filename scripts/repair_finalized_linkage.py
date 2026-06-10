@@ -705,6 +705,83 @@ def _upsert_trusted_outcome_cache(
     }
 
 
+def _trusted_cache_rows_from_finalized(
+    finalized: pd.DataFrame,
+    *,
+    valid_snapshot_ids: set[str],
+) -> List[Dict[str, Any]]:
+    """Build trusted outcome-cache rows from finalized_games overlap.
+
+    repair_finalized_linkage may find that snapshot game_ids already overlap
+    finalized_games.csv. Those rows do not enter rows_to_append, but they still
+    must be copied into finalized_snapshot_outcomes.csv so sample_state,
+    model_correctness, edge_sanity, and product_experience can join trusted
+    outcomes.
+
+    This function only uses finalized_games-style trusted rows and only keeps
+    ids that are present in the current prediction snapshot universe.
+    """
+    if finalized.empty or "game_id" not in finalized.columns:
+        return []
+
+    allowed_ids = {
+        _normalize_game_id(value)
+        for value in valid_snapshot_ids
+        if _normalize_game_id(value)
+    }
+
+    if not allowed_ids:
+        return []
+
+    frame = finalized.copy()
+    frame["game_id"] = frame["game_id"].apply(_normalize_game_id)
+    frame = frame[frame["game_id"].isin(allowed_ids)].copy()
+
+    if frame.empty:
+        return []
+
+    for column in FINALIZED_FIELDNAMES:
+        if column not in frame.columns:
+            frame[column] = ""
+
+    frame = frame[FINALIZED_FIELDNAMES].copy()
+    frame = frame.drop_duplicates("game_id", keep="last")
+
+    rows: List[Dict[str, Any]] = []
+
+    for _, row in frame.iterrows():
+        game_id = _normalize_game_id(row.get("game_id"))
+        if not game_id:
+            continue
+
+        home_score = _safe_int(row.get("home_score"))
+        away_score = _safe_int(row.get("away_score"))
+        home_win = _safe_int(row.get("home_win"))
+
+        if home_win not in {0, 1}:
+            if home_score is None or away_score is None:
+                continue
+            home_win = 1 if home_score > away_score else 0
+
+        if home_score is None or away_score is None:
+            continue
+
+        rows.append(
+            {
+                "game_id": game_id,
+                "game_date": str(row.get("game_date") or "").strip(),
+                "home_team": str(row.get("home_team") or "").strip(),
+                "away_team": str(row.get("away_team") or "").strip(),
+                "home_score": str(home_score),
+                "away_score": str(away_score),
+                "home_win": str(home_win),
+                "status": "Final",
+            }
+        )
+
+    return rows
+
+
 def build_report(
     *,
     snapshot_path: Path = SNAPSHOT_PATH,
@@ -846,23 +923,29 @@ def build_report(
         if sleep_seconds > 0:
             time.sleep(sleep_seconds)
 
-    append_summary = _append_finalized_rows(finalized_path, rows_to_append)
-    outcome_cache_summary = _upsert_trusted_outcome_cache(
-        finalized_snapshot_outcomes_path,
-        rows_to_append,
-        valid_snapshot_ids=snapshot_ids,
-    )
+append_summary = _append_finalized_rows(finalized_path, rows_to_append)
 
-    api_final_written_count = int(append_summary.get("inserted", 0) or 0)
-    api_final_but_not_written_count += max(
-        0,
-        len(rows_to_append) - api_final_written_count,
-    )
+api_final_written_count = int(append_summary.get("inserted", 0) or 0)
+api_final_but_not_written_count += max(
+    0,
+    len(rows_to_append) - api_final_written_count,
+)
 
-    finalized_after_raw, finalized_after_status = _read_csv(finalized_path)
-    finalized_after = _prepare_finalized(finalized_after_raw)
-    finalized_ids_after = _finalized_ids(finalized_after)
-    overlap_after = snapshot_ids & finalized_ids_after
+finalized_after_raw, finalized_after_status = _read_csv(finalized_path)
+finalized_after = _prepare_finalized(finalized_after_raw)
+finalized_ids_after = _finalized_ids(finalized_after)
+overlap_after = snapshot_ids & finalized_ids_after
+
+trusted_cache_rows = _trusted_cache_rows_from_finalized(
+    finalized_after,
+    valid_snapshot_ids=snapshot_ids,
+)
+
+outcome_cache_summary = _upsert_trusted_outcome_cache(
+    finalized_snapshot_outcomes_path,
+    trusted_cache_rows,
+    valid_snapshot_ids=snapshot_ids,
+)
 
     if snapshot_ids and not overlap_after:
         warnings.append(
@@ -896,6 +979,7 @@ def build_report(
         "direct_matched_count": direct_matched_count,
         "schedule_matched_count": schedule_matched_count,
         "append_summary": append_summary,
+        "trusted_outcome_cache_seed_count": len(trusted_cache_rows),
         "trusted_outcome_cache_summary": outcome_cache_summary,
         "input_files": {
             "prediction_snapshots": snapshot_status,
