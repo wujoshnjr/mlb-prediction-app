@@ -35,8 +35,16 @@ def _live_payload(
             "status": {"abstractGameState": status, "detailedState": status},
             "datetime": {"officialDate": official_date},
             "teams": {
-                "home": {"name": home, "teamName": home, "abbreviation": home[:3].upper()},
-                "away": {"name": away, "teamName": away, "abbreviation": away[:3].upper()},
+                "home": {
+                    "name": home,
+                    "teamName": home,
+                    "abbreviation": home[:3].upper(),
+                },
+                "away": {
+                    "name": away,
+                    "teamName": away,
+                    "abbreviation": away[:3].upper(),
+                },
             },
         },
         "liveData": {
@@ -95,17 +103,24 @@ def _write_snapshots(path: Path, *, game_id: str = "999") -> None:
 def test_direct_live_feed_final_appends_snapshot_game_id(tmp_path: Path) -> None:
     snapshot_path = tmp_path / "prediction_snapshots.csv"
     finalized_path = tmp_path / "finalized_games.csv"
+    outcome_cache_path = tmp_path / "finalized_snapshot_outcomes.csv"
     report_path = tmp_path / "report" / "finalized_linkage_diagnostic_report.json"
 
     _write_snapshots(snapshot_path, game_id="999")
     pd.DataFrame(columns=["game_id", "home_win"]).to_csv(finalized_path, index=False)
 
     def fake_get(url: str, **kwargs: Any) -> FakeResponse:
-        return FakeResponse(_live_payload(home="Los Angeles Dodgers", away="San Francisco Giants"))
+        return FakeResponse(
+            _live_payload(
+                home="Los Angeles Dodgers",
+                away="San Francisco Giants",
+            )
+        )
 
     report = build_report(
         snapshot_path=snapshot_path,
         finalized_path=finalized_path,
+        finalized_snapshot_outcomes_path=outcome_cache_path,
         report_path=report_path,
         request_get=fake_get,
         sleep_seconds=0,
@@ -119,10 +134,15 @@ def test_direct_live_feed_final_appends_snapshot_game_id(tmp_path: Path) -> None
     assert finalized.iloc[-1]["game_id"] == "999"
     assert finalized.iloc[-1]["home_win"] == "1"
 
+    outcome_cache = pd.read_csv(outcome_cache_path, dtype=str)
+    assert outcome_cache.iloc[-1]["game_id"] == "999"
+    assert outcome_cache.iloc[-1]["home_win"] == "1"
+
 
 def test_schedule_match_repairs_when_direct_feed_fails(tmp_path: Path) -> None:
     snapshot_path = tmp_path / "prediction_snapshots.csv"
     finalized_path = tmp_path / "finalized_games.csv"
+    outcome_cache_path = tmp_path / "finalized_snapshot_outcomes.csv"
     report_path = tmp_path / "report" / "finalized_linkage_diagnostic_report.json"
 
     _write_snapshots(snapshot_path, game_id="snapshot-123")
@@ -136,6 +156,7 @@ def test_schedule_match_repairs_when_direct_feed_fails(tmp_path: Path) -> None:
     report = build_report(
         snapshot_path=snapshot_path,
         finalized_path=finalized_path,
+        finalized_snapshot_outcomes_path=outcome_cache_path,
         report_path=report_path,
         request_get=fake_get,
         sleep_seconds=0,
@@ -148,6 +169,10 @@ def test_schedule_match_repairs_when_direct_feed_fails(tmp_path: Path) -> None:
     assert finalized.iloc[-1]["game_id"] == "snapshot-123"
     assert finalized.iloc[-1]["home_win"] == "1"
 
+    outcome_cache = pd.read_csv(outcome_cache_path, dtype=str)
+    assert outcome_cache.iloc[-1]["game_id"] == "snapshot-123"
+    assert outcome_cache.iloc[-1]["home_win"] == "1"
+
 
 def test_missing_files_produce_structured_report(tmp_path: Path) -> None:
     report_path = tmp_path / "report" / "finalized_linkage_diagnostic_report.json"
@@ -155,6 +180,7 @@ def test_missing_files_produce_structured_report(tmp_path: Path) -> None:
     report = build_report(
         snapshot_path=tmp_path / "missing_snapshots.csv",
         finalized_path=tmp_path / "missing_finalized.csv",
+        finalized_snapshot_outcomes_path=tmp_path / "finalized_snapshot_outcomes.csv",
         report_path=report_path,
         sleep_seconds=0,
     )
