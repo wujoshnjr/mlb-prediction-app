@@ -2468,6 +2468,45 @@ def load_nrfi_model() -> tuple[Any | None, bool]:
 
 
 def build_schedule_frame(raw_rows: Any) -> pd.DataFrame:
+    """Normalize scheduled games into the columns used by the predictor."""
+    frame = pd.DataFrame(raw_rows or [])
+
+    if frame.empty:
+        return frame
+
+    required_columns = ("game_id", "home_team", "away_team")
+    missing_columns = [
+        column for column in required_columns if column not in frame.columns
+    ]
+    if missing_columns:
+        raise ValueError(f"Schedule data is missing columns: {missing_columns}")
+
+    frame = frame.copy()
+    frame["home_team"] = frame["home_team"].map(normalize_team)
+    frame["away_team"] = frame["away_team"].map(normalize_team)
+
+    if "game_date" not in frame.columns:
+        frame["game_date"] = datetime.now().strftime("%Y-%m-%d")
+
+    if "game_time" not in frame.columns:
+        frame["game_time"] = ""
+
+    if "start_time" not in frame.columns:
+        frame["start_time"] = ""
+
+    if "game_status" not in frame.columns:
+        if "status" in frame.columns:
+            frame["game_status"] = frame["status"]
+        else:
+            frame["game_status"] = ""
+
+    if "venue" not in frame.columns:
+        frame["venue"] = ""
+
+    return frame
+
+
+def build_pitcher_lookup(raw_rows: Any) -> dict[Any, pd.Series]:
     """Create a game_id to pitcher-data lookup."""
     frame = pd.DataFrame(raw_rows or [])
     if frame.empty or "game_id" not in frame.columns:
@@ -2480,7 +2519,7 @@ def build_schedule_frame(raw_rows: Any) -> pd.DataFrame:
         lookup[str(game_id)] = row
 
     return lookup
-
+    
 
 def get_team_row(team_frame: pd.DataFrame, team: str) -> pd.Series | None:
     if team_frame.empty or "name" not in team_frame.columns:
