@@ -2443,46 +2443,31 @@ def load_ml_model() -> tuple[Any | None, list[str] | None, int, str]:
         return None, None, 0, str(exc)
 
 
+def load_nrfi_model() -> tuple[Any | None, bool]:
+    """Load optional NRFI model.
+
+    NRFI ML is optional and disabled unless config.NRFI_USE_ML is true.
+    Missing or unloadable NRFI model must not fail the main MLB prediction pipeline.
+    """
+    if not getattr(config, "NRFI_USE_ML", False) or NRFIModel is None:
+        return None, False
+
+    model_path = Path("models/nrf_model.pkl")
+    if not model_path.exists():
+        print("NRFI model artifact does not exist; using fallback behavior.")
+        return None, False
+
+    try:
+        nrfi_model = NRFIModel(str(model_path))
+        nrfi_model.load()
+        print("Loaded NRFI model.")
+        return nrfi_model, True
+    except Exception as exc:
+        print(f"Unable to load NRFI model: {exc}")
+        return None, False
+
+
 def build_schedule_frame(raw_rows: Any) -> pd.DataFrame:
-    """Normalize scheduled games into the columns used by the predictor."""
-    frame = pd.DataFrame(raw_rows or [])
-
-    if frame.empty:
-        return frame
-
-    required_columns = ("game_id", "home_team", "away_team")
-    missing_columns = [
-        column for column in required_columns if column not in frame.columns
-    ]
-    if missing_columns:
-        raise ValueError(f"Schedule data is missing columns: {missing_columns}")
-
-    frame = frame.copy()
-    frame["home_team"] = frame["home_team"].map(normalize_team)
-    frame["away_team"] = frame["away_team"].map(normalize_team)
-
-    if "game_date" not in frame.columns:
-        frame["game_date"] = datetime.now().strftime("%Y-%m-%d")
-
-    if "game_time" not in frame.columns:
-        frame["game_time"] = ""
-
-    if "start_time" not in frame.columns:
-        frame["start_time"] = ""
-
-    if "game_status" not in frame.columns:
-        if "status" in frame.columns:
-            frame["game_status"] = frame["status"]
-        else:
-            frame["game_status"] = ""
-
-    if "venue" not in frame.columns:
-        frame["venue"] = ""
-
-    return frame
-
-
-def build_pitcher_lookup(raw_rows: Any) -> dict[Any, pd.Series]:
     """Create a game_id to pitcher-data lookup."""
     frame = pd.DataFrame(raw_rows or [])
     if frame.empty or "game_id" not in frame.columns:
