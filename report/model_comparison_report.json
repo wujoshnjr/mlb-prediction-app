@@ -1,20 +1,433 @@
 {
-  "generated_at": "2026-06-10T06:19:54.542957+00:00",
-  "status": "partial",
-  "sample_count": 0,
-  "validation_count": 0,
-  "walkforward_oos_predictions": 0,
+  "generated_at": "2026-06-10T12:08:51.389198+00:00",
+  "status": "ok",
+  "sample_count": 176,
+  "validation_count": 27,
+  "walkforward_oos_predictions": 96,
   "calibration_ready": false,
   "feature_ready_for_review_count": 0,
-  "model_ranking_by_brier": [],
-  "model_ranking_by_logloss": [],
-  "model_ranking_by_accuracy": [],
-  "model_ranking_by_ece": [],
-  "model_ranking_by_auc": [],
-  "models": [],
-  "model_vs_market_comparison": {},
+  "model_ranking_by_brier": [
+    {
+      "model_name": "market_no_vig_baseline",
+      "brier": 0.2524060868286095
+    },
+    {
+      "model_name": "lightgbm_market_residual",
+      "brier": 0.256633478585059
+    },
+    {
+      "model_name": "lightgbm_classifier",
+      "brier": 0.257707428812606
+    },
+    {
+      "model_name": "xgboost_classifier",
+      "brier": 0.26417927465961943
+    },
+    {
+      "model_name": "logistic_baseline",
+      "brier": 0.3072176545402524
+    }
+  ],
+  "model_ranking_by_logloss": [
+    {
+      "model_name": "lightgbm_classifier",
+      "logloss": 0.7087617277320993
+    },
+    {
+      "model_name": "lightgbm_market_residual",
+      "logloss": 0.7092985010829813
+    },
+    {
+      "model_name": "market_no_vig_baseline",
+      "logloss": 0.7155813736866814
+    },
+    {
+      "model_name": "xgboost_classifier",
+      "logloss": 0.7220345959225669
+    },
+    {
+      "model_name": "logistic_baseline",
+      "logloss": 0.8162406483900156
+    }
+  ],
+  "model_ranking_by_accuracy": [
+    {
+      "model_name": "xgboost_classifier",
+      "accuracy": 0.5555555555555556
+    },
+    {
+      "model_name": "market_no_vig_baseline",
+      "accuracy": 0.5185185185185185
+    },
+    {
+      "model_name": "lightgbm_market_residual",
+      "accuracy": 0.5185185185185185
+    },
+    {
+      "model_name": "lightgbm_classifier",
+      "accuracy": 0.4444444444444444
+    },
+    {
+      "model_name": "logistic_baseline",
+      "accuracy": 0.3333333333333333
+    }
+  ],
+  "model_ranking_by_ece": [
+    {
+      "model_name": "xgboost_classifier",
+      "ece": 0.07112878340261956
+    },
+    {
+      "model_name": "lightgbm_market_residual",
+      "ece": 0.0732584197934745
+    },
+    {
+      "model_name": "lightgbm_classifier",
+      "ece": 0.11375625207473601
+    },
+    {
+      "model_name": "market_no_vig_baseline",
+      "ece": 0.16963032577535092
+    },
+    {
+      "model_name": "logistic_baseline",
+      "ece": 0.2937018572654922
+    }
+  ],
+  "model_ranking_by_auc": [
+    {
+      "model_name": "market_no_vig_baseline",
+      "auc": 0.5659340659340659
+    },
+    {
+      "model_name": "lightgbm_market_residual",
+      "auc": 0.510989010989011
+    },
+    {
+      "model_name": "lightgbm_classifier",
+      "auc": 0.4862637362637363
+    },
+    {
+      "model_name": "xgboost_classifier",
+      "auc": 0.46153846153846156
+    },
+    {
+      "model_name": "logistic_baseline",
+      "auc": 0.3516483516483516
+    }
+  ],
+  "models": [
+    {
+      "model_name": "market_no_vig_baseline",
+      "trained": false,
+      "skipped": false,
+      "skip_reason": "",
+      "train_count": 0,
+      "calibration_count": 0,
+      "validation_count": 27,
+      "feature_count": 1,
+      "features_used": [
+        "market_no_vig_home_prob"
+      ],
+      "experimental_features_used": [],
+      "brier": 0.2524060868286095,
+      "logloss": 0.7155813736866814,
+      "accuracy": 0.5185185185185185,
+      "auc": 0.5659340659340659,
+      "ece": 0.16963032577535092,
+      "beats_market_brier": null,
+      "beats_market_logloss": null,
+      "beats_market_accuracy": null,
+      "promotion_eligible": false,
+      "promotion_blockers": [
+        "market baseline is not a candidate model"
+      ],
+      "warnings": [],
+      "errors": [],
+      "model_stability_score": 77.0,
+      "overfitting_warning": "small validation sample",
+      "small_sample_warning": "sample_count below promotion threshold: 176 < 300"
+    },
+    {
+      "model_name": "logistic_baseline",
+      "trained": true,
+      "skipped": false,
+      "skip_reason": "",
+      "train_count": 123,
+      "calibration_count": 26,
+      "validation_count": 27,
+      "feature_count": 26,
+      "features_used": [
+        "elo_diff",
+        "bt_strength_diff",
+        "sp_era_diff",
+        "sp_fip_diff",
+        "sp_csw_diff",
+        "sp_stuff_plus_diff",
+        "k_pct_diff",
+        "bb_pct_diff",
+        "pitcher_rating_diff",
+        "bullpen_ip_diff",
+        "bullpen_availability_diff",
+        "dynamic_park_factor",
+        "winrate_diff",
+        "timezone_diff",
+        "sp_fip_diff_available",
+        "sp_csw_diff_available",
+        "sp_stuff_plus_diff_available",
+        "pitcher_advanced_available",
+        "bullpen_context_available",
+        "statcast_woba_available",
+        "top3_woba_available",
+        "weather_available",
+        "team_form_available",
+        "lineup_context_available",
+        "starter_context_available",
+        "odds_available"
+      ],
+      "experimental_features_used": [],
+      "brier": 0.3072176545402524,
+      "logloss": 0.8162406483900156,
+      "accuracy": 0.3333333333333333,
+      "auc": 0.3516483516483516,
+      "ece": 0.2937018572654922,
+      "beats_market_brier": false,
+      "beats_market_logloss": false,
+      "beats_market_accuracy": false,
+      "promotion_eligible": false,
+      "promotion_blockers": [
+        "insufficient_samples_for_promotion: 176 < 300",
+        "ece above candidate threshold: 0.2937 > 0.05",
+        "does not beat market brier or logloss"
+      ],
+      "warnings": [],
+      "errors": [],
+      "model_stability_score": 61.0,
+      "overfitting_warning": "small validation sample",
+      "small_sample_warning": "sample_count below promotion threshold: 176 < 300"
+    },
+    {
+      "model_name": "lightgbm_classifier",
+      "trained": true,
+      "skipped": false,
+      "skip_reason": "",
+      "train_count": 123,
+      "calibration_count": 26,
+      "validation_count": 27,
+      "feature_count": 26,
+      "features_used": [
+        "elo_diff",
+        "bt_strength_diff",
+        "sp_era_diff",
+        "sp_fip_diff",
+        "sp_csw_diff",
+        "sp_stuff_plus_diff",
+        "k_pct_diff",
+        "bb_pct_diff",
+        "pitcher_rating_diff",
+        "bullpen_ip_diff",
+        "bullpen_availability_diff",
+        "dynamic_park_factor",
+        "winrate_diff",
+        "timezone_diff",
+        "sp_fip_diff_available",
+        "sp_csw_diff_available",
+        "sp_stuff_plus_diff_available",
+        "pitcher_advanced_available",
+        "bullpen_context_available",
+        "statcast_woba_available",
+        "top3_woba_available",
+        "weather_available",
+        "team_form_available",
+        "lineup_context_available",
+        "starter_context_available",
+        "odds_available"
+      ],
+      "experimental_features_used": [],
+      "brier": 0.257707428812606,
+      "logloss": 0.7087617277320993,
+      "accuracy": 0.4444444444444444,
+      "auc": 0.4862637362637363,
+      "ece": 0.11375625207473601,
+      "beats_market_brier": false,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": false,
+      "promotion_eligible": false,
+      "promotion_blockers": [
+        "insufficient_samples_for_promotion: 176 < 300",
+        "ece above candidate threshold: 0.1138 > 0.05"
+      ],
+      "warnings": [],
+      "errors": [],
+      "model_stability_score": 69.0,
+      "overfitting_warning": "small validation sample",
+      "small_sample_warning": "sample_count below promotion threshold: 176 < 300"
+    },
+    {
+      "model_name": "xgboost_classifier",
+      "trained": true,
+      "skipped": false,
+      "skip_reason": "",
+      "train_count": 123,
+      "calibration_count": 26,
+      "validation_count": 27,
+      "feature_count": 26,
+      "features_used": [
+        "elo_diff",
+        "bt_strength_diff",
+        "sp_era_diff",
+        "sp_fip_diff",
+        "sp_csw_diff",
+        "sp_stuff_plus_diff",
+        "k_pct_diff",
+        "bb_pct_diff",
+        "pitcher_rating_diff",
+        "bullpen_ip_diff",
+        "bullpen_availability_diff",
+        "dynamic_park_factor",
+        "winrate_diff",
+        "timezone_diff",
+        "sp_fip_diff_available",
+        "sp_csw_diff_available",
+        "sp_stuff_plus_diff_available",
+        "pitcher_advanced_available",
+        "bullpen_context_available",
+        "statcast_woba_available",
+        "top3_woba_available",
+        "weather_available",
+        "team_form_available",
+        "lineup_context_available",
+        "starter_context_available",
+        "odds_available"
+      ],
+      "experimental_features_used": [],
+      "brier": 0.26417927465961943,
+      "logloss": 0.7220345959225669,
+      "accuracy": 0.5555555555555556,
+      "auc": 0.46153846153846156,
+      "ece": 0.07112878340261956,
+      "beats_market_brier": false,
+      "beats_market_logloss": false,
+      "beats_market_accuracy": true,
+      "promotion_eligible": false,
+      "promotion_blockers": [
+        "insufficient_samples_for_promotion: 176 < 300",
+        "ece above candidate threshold: 0.0711 > 0.05",
+        "does not beat market brier or logloss"
+      ],
+      "warnings": [],
+      "errors": [],
+      "model_stability_score": 61.0,
+      "overfitting_warning": "small validation sample",
+      "small_sample_warning": "sample_count below promotion threshold: 176 < 300"
+    },
+    {
+      "model_name": "lightgbm_market_residual",
+      "trained": true,
+      "skipped": false,
+      "skip_reason": "",
+      "train_count": 123,
+      "calibration_count": 26,
+      "validation_count": 27,
+      "feature_count": 27,
+      "features_used": [
+        "elo_diff",
+        "bt_strength_diff",
+        "sp_era_diff",
+        "sp_fip_diff",
+        "sp_csw_diff",
+        "sp_stuff_plus_diff",
+        "k_pct_diff",
+        "bb_pct_diff",
+        "pitcher_rating_diff",
+        "bullpen_ip_diff",
+        "bullpen_availability_diff",
+        "dynamic_park_factor",
+        "winrate_diff",
+        "timezone_diff",
+        "sp_fip_diff_available",
+        "sp_csw_diff_available",
+        "sp_stuff_plus_diff_available",
+        "pitcher_advanced_available",
+        "bullpen_context_available",
+        "statcast_woba_available",
+        "top3_woba_available",
+        "weather_available",
+        "team_form_available",
+        "lineup_context_available",
+        "starter_context_available",
+        "odds_available",
+        "market_no_vig_home_prob"
+      ],
+      "experimental_features_used": [],
+      "brier": 0.256633478585059,
+      "logloss": 0.7092985010829813,
+      "accuracy": 0.5185185185185185,
+      "auc": 0.510989010989011,
+      "ece": 0.0732584197934745,
+      "beats_market_brier": false,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": false,
+      "promotion_eligible": false,
+      "promotion_blockers": [
+        "insufficient_samples_for_promotion: 176 < 300",
+        "ece above candidate threshold: 0.0733 > 0.05"
+      ],
+      "warnings": [
+        "dropped_invalid_market_prob_rows: train=3, validation=0"
+      ],
+      "errors": [],
+      "residual_train_count": 120,
+      "residual_validation_count": 27,
+      "dropped_invalid_market_prob_rows": {
+        "train": 3,
+        "validation": 0
+      },
+      "model_stability_score": 65.0,
+      "overfitting_warning": "small validation sample",
+      "small_sample_warning": "sample_count below promotion threshold: 176 < 300"
+    }
+  ],
+  "model_vs_market_comparison": {
+    "lightgbm_classifier": {
+      "beats_market_brier": true,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": true,
+      "delta_brier": -0.01571824596277377,
+      "delta_logloss": -0.07555255994408328,
+      "delta_accuracy": 0.02609649122807023,
+      "brier_skill_score_vs_market": 0.05766942932355157
+    },
+    "logistic_baseline": {
+      "beats_market_brier": false,
+      "beats_market_logloss": false,
+      "beats_market_accuracy": false,
+      "delta_brier": 0.04932759293372513,
+      "delta_logloss": 0.20593762531303883,
+      "delta_accuracy": -0.02598684210526314,
+      "brier_skill_score_vs_market": -0.1809803804527299
+    },
+    "market_residual_model": {
+      "beats_market_brier": false,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": false,
+      "delta_brier": 0.002304938116086175,
+      "delta_logloss": -0.007617788737248721,
+      "delta_accuracy": -0.010526315789473661,
+      "brier_skill_score_vs_market": -0.008456698418869646
+    },
+    "xgboost_classifier": {
+      "beats_market_brier": true,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": false,
+      "delta_brier": -0.015769918591558463,
+      "delta_logloss": -0.07611648127215931,
+      "delta_accuracy": -0.02598684210526314,
+      "brier_skill_score_vs_market": 0.05785901351893308
+    }
+  },
   "recommended_champion": null,
-  "recommended_challenger": null,
+  "recommended_challenger": "lightgbm_market_residual",
   "no_promotion_reason": [
     "no model is promotion eligible"
   ],
