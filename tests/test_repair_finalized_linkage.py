@@ -58,6 +58,51 @@ def _live_payload(
     }
 
 
+def test_existing_finalized_overlap_seeds_trusted_outcome_cache(tmp_path: Path) -> None:
+    snapshot_path = tmp_path / "prediction_snapshots.csv"
+    finalized_path = tmp_path / "finalized_games.csv"
+    outcome_cache_path = tmp_path / "finalized_snapshot_outcomes.csv"
+    report_path = tmp_path / "report" / "finalized_linkage_diagnostic_report.json"
+
+    _write_snapshots(snapshot_path, game_id="999")
+
+    pd.DataFrame(
+        [
+            {
+                "game_id": "999",
+                "game_date": "2026-05-27",
+                "home_team": "Los Angeles Dodgers",
+                "away_team": "San Francisco Giants",
+                "home_score": 5,
+                "away_score": 3,
+                "home_win": 1,
+                "status": "Final",
+            }
+        ]
+    ).to_csv(finalized_path, index=False)
+
+    def fake_get(url: str, **kwargs: Any) -> FakeResponse:
+        raise AssertionError("API should not be called when finalized overlap already exists")
+
+    report = build_report(
+        snapshot_path=snapshot_path,
+        finalized_path=finalized_path,
+        finalized_snapshot_outcomes_path=outcome_cache_path,
+        report_path=report_path,
+        request_get=fake_get,
+        sleep_seconds=0,
+    )
+
+    assert report["overlap_count_after"] == 1
+    assert report["trusted_outcome_cache_seed_count"] == 1
+    assert report["trusted_outcome_cache_summary"]["total_rows_after"] == 1
+
+    outcome_cache = pd.read_csv(outcome_cache_path, dtype=str)
+    assert len(outcome_cache) == 1
+    assert outcome_cache.iloc[0]["game_id"] == "999"
+    assert outcome_cache.iloc[0]["home_win"] == "1"
+
+
 def _schedule_payload() -> dict[str, Any]:
     return {
         "dates": [
