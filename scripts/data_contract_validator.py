@@ -35,6 +35,9 @@ REQUIRED_JSON_REPORTS = {
     "sample_state_report": REPORT_DIR / "sample_state_report.json",
     "edge_sanity_guardrail": REPORT_DIR / "edge_sanity_guardrail_report.json",
     "signal_quality": REPORT_DIR / "signal_quality_report.json",
+    "training_samples": REPORT_DIR / "training_samples_report.json",
+    "model_artifact_status": DATA_DIR / "model_artifact_status.json",
+    "model_artifact_status_report": REPORT_DIR / "model_artifact_status_report.json",
 }
 
 OPTIONAL_JSON_REPORTS = {
@@ -70,6 +73,7 @@ REQUIRED_NON_JSON_FILES = {
     "html_report": REPORT_DIR / "index.html",
     "walkforward_predictions": REPORT_DIR / "walkforward_predictions.csv",
     "rolling_walkforward_predictions": REPORT_DIR / "rolling_walkforward_predictions.csv",
+    "training_samples": DATA_DIR / "training_samples.csv",
 }
 
 OPTIONAL_NON_JSON_FILES = {
