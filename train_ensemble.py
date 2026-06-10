@@ -1,10 +1,17 @@
 # train_ensemble.py
-"""Train and calibrate the MLB ensemble model using finalized historical games."""
+"""Train and calibrate the MLB baseline model from canonical training samples.
+
+Canonical source:
+- data/training_samples.csv
+
+This file intentionally refuses to re-join prediction_snapshots.csv and
+finalized_games.csv. Outcome linkage is owned by the evidence chain.
+"""
 
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -23,42 +30,34 @@ from scripts.feature_schema import (
     AVAILABILITY_FLAG_FEATURES,
     TRACKING_ONLY_FEATURES,
 )
+
 try:
     import config
 except ImportError:
     class config:  # type: ignore[no-redef]
         PIPELINE_VERSION = "baseline_v2_clean"
-        SNAPSHOT_STORE_FILE = "data/prediction_snapshots.csv"
         ALLOW_LEGACY_TRAINING_DATA = False
         MIN_CLEAN_TRAIN_SAMPLES = 300
 
 
-PIPELINE_VERSION = str(
-    getattr(config, "PIPELINE_VERSION", "baseline_v2_clean")
-)
-SNAPSHOT_FILE = Path(
-    str(
-        getattr(
-            config,
-            "SNAPSHOT_STORE_FILE",
-            "data/prediction_snapshots.csv",
-        )
-    )
-)
-FINALIZED_FILE = Path("data/finalized_games.csv")
-ALLOW_LEGACY_TRAINING_DATA = bool(
-    getattr(config, "ALLOW_LEGACY_TRAINING_DATA", False)
-)
-MIN_TRAIN_SAMPLES = int(
-    getattr(config, "MIN_CLEAN_TRAIN_SAMPLES", 300)
-)
+PIPELINE_VERSION = str(getattr(config, "PIPELINE_VERSION", "baseline_v2_clean"))
+ALLOW_LEGACY_TRAINING_DATA = bool(getattr(config, "ALLOW_LEGACY_TRAINING_DATA", False))
+MIN_TRAIN_SAMPLES = int(getattr(config, "MIN_CLEAN_TRAIN_SAMPLES", 300))
 
+TRAINING_SAMPLES_FILE = Path("data/training_samples.csv")
 MODEL_OUTPUT = Path("data/calibrator.pkl")
 STATUS_FILE = Path("data/training_status.json")
 TRAINING_LOG = Path("data/training_log.csv")
 FEATURE_IMPORTANCE_LOG = Path("data/feature_importance.csv")
+
 MODEL_SCHEMA_VERSION = "v3-feature-governed"
 MODEL_TYPE = "calibrated_logistic_regression_with_imputer"
+TRAINING_SOURCE = "data/training_samples.csv"
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
 
 def write_status(
     trained: bool,
@@ -70,17 +69,23 @@ def write_status(
     used_feature_count: int | None = None,
     transformed_feature_count: int | None = None,
     removed_features: list[str] | None = None,
+    train_sample_count: int | None = None,
+    calibration_sample_count: int | None = None,
+    test_sample_count: int | None = None,
 ) -> None:
     status = {
+        "generated_at": _utc_now(),
+        "timestamp": datetime.now().isoformat(),
         "pipeline_version": PIPELINE_VERSION,
         "schema_version": MODEL_SCHEMA_VERSION,
-        "training_source": "finalized_joined_prediction_snapshots",
+        "training_source": TRAINING_SOURCE,
         "allow_legacy_training_data": ALLOW_LEGACY_TRAINING_DATA,
         "model_type": MODEL_TYPE,
+        "model_family": "calibrated_logistic_baseline",
         "minimum_clean_train_samples": MIN_TRAIN_SAMPLES,
-        "trained": trained,
-        "skipped": skipped,
-        "sample_count": sample_count,
+        "trained": bool(trained),
+        "skipped": bool(skipped),
+        "sample_count": int(sample_count),
         "reason": reason,
         "brier": brier,
         "logloss": logloss,
@@ -90,21 +95,24 @@ def write_status(
         "used_feature_count": used_feature_count,
         "transformed_feature_count": transformed_feature_count,
         "removed_low_variance_features": removed_features or [],
-        "training_allowed_for_production": (
-            trained is True and sample_count >= MIN_TRAIN_SAMPLES
-        ),
-        "timestamp": datetime.now().isoformat(),
+        "train_sample_count": train_sample_count,
+        "calibration_sample_count": calibration_sample_count,
+        "test_sample_count": test_sample_count,
+        "training_allowed_for_production": False,
+        "live_betting_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_allowed": False,
+        "production_model_replacement_allowed": False,
     }
 
     STATUS_FILE.parent.mkdir(parents=True, exist_ok=True)
     STATUS_FILE.write_text(
-        json.dumps(status, indent=2),
+        json.dumps(status, indent=2, ensure_ascii=True),
         encoding="utf-8",
     )
 
 
 def append_csv(path: Path, row: dict[str, Any]) -> None:
-    """Append one row while preserving schema when columns evolve."""
     path.parent.mkdir(parents=True, exist_ok=True)
     new_frame = pd.DataFrame([row])
 
@@ -141,116 +149,80 @@ def append_csv(path: Path, row: dict[str, Any]) -> None:
     combined.to_csv(path, index=False, encoding="utf-8")
 
 
-def _normalize_game_id(value: Any) -> str:
-    if value is None:
-        return ""
-
-    try:
-        if pd.isna(value):
-            return ""
-    except Exception:
-        pass
-
-    text = str(value).strip()
-    if not text:
-        return ""
-
-    try:
-        parsed = float(text)
-        if np.isfinite(parsed) and parsed.is_integer():
-            return str(int(parsed))
-    except Exception:
-        pass
-
-    return text
-
-
-def _bool_series(series: pd.Series) -> pd.Series:
-    if series.dtype == bool:
-        return series.fillna(False)
-
-    normalized = series.astype(str).str.strip().str.lower()
-    return normalized.isin({"true", "1", "yes", "y", "valid", "ok"})
-
-
-def _prepare_snapshot_features(path: Path) -> pd.DataFrame:
-    frame = pd.read_csv(path)
-
-    if "game_id" not in frame.columns:
+def _load_training_samples() -> pd.DataFrame:
+    if not TRAINING_SAMPLES_FILE.exists():
+        write_status(
+            trained=False,
+            skipped=True,
+            sample_count=0,
+            reason="training_samples_missing",
+        )
         return pd.DataFrame()
 
-    frame = frame.copy()
-    frame["game_id"] = frame["game_id"].apply(_normalize_game_id)
-    frame = frame[frame["game_id"] != ""].copy()
-
-    if "pipeline_version" in frame.columns:
-        frame = frame[frame["pipeline_version"].astype(str) == PIPELINE_VERSION].copy()
-
-    if "snapshot_valid" in frame.columns:
-        frame = frame[_bool_series(frame["snapshot_valid"])].copy()
-
-    for leakage_column in ("home_win", "home_score", "away_score"):
-        if leakage_column in frame.columns:
-            frame = frame.drop(columns=[leakage_column])
-
-    if "snapshot_created_at" not in frame.columns:
+    try:
+        frame = pd.read_csv(TRAINING_SAMPLES_FILE)
+    except Exception as exc:
+        write_status(
+            trained=False,
+            skipped=True,
+            sample_count=0,
+            reason=f"unable_to_read_training_samples:{exc}",
+        )
         return pd.DataFrame()
-
-    frame["snapshot_created_at"] = pd.to_datetime(
-        frame["snapshot_created_at"],
-        errors="coerce",
-        utc=True,
-    )
-    frame = frame.dropna(subset=["snapshot_created_at"])
 
     if frame.empty:
-        return frame
+        write_status(
+            trained=False,
+            skipped=True,
+            sample_count=0,
+            reason="training_samples_empty",
+        )
+        return pd.DataFrame()
 
-    frame = (
-        frame.sort_values("snapshot_created_at")
-        .groupby("game_id", as_index=False)
-        .tail(1)
-        .reset_index(drop=True)
-    )
-
-    return frame
-
-
-def _prepare_finalized_outcomes(path: Path) -> pd.DataFrame:
-    frame = pd.read_csv(path)
-
-    if "game_id" not in frame.columns:
+    if "home_win" not in frame.columns:
+        write_status(
+            trained=False,
+            skipped=True,
+            sample_count=int(len(frame)),
+            reason="training_samples_missing_home_win",
+        )
         return pd.DataFrame()
 
     frame = frame.copy()
-    frame["game_id"] = frame["game_id"].apply(_normalize_game_id)
-    frame = frame[frame["game_id"] != ""].copy()
-
-    if "home_win" not in frame.columns:
-        if {"home_score", "away_score"}.issubset(frame.columns):
-            home_score = pd.to_numeric(frame["home_score"], errors="coerce")
-            away_score = pd.to_numeric(frame["away_score"], errors="coerce")
-            frame["home_win"] = (home_score > away_score).astype("Int64")
-        else:
-            return pd.DataFrame()
-
     frame["home_win"] = pd.to_numeric(frame["home_win"], errors="coerce")
     frame = frame[frame["home_win"].isin([0, 1])].copy()
     frame["home_win"] = frame["home_win"].astype(int)
 
-    return frame[["game_id", "home_win"]].drop_duplicates("game_id", keep="last")
+    if "game_id" in frame.columns:
+        frame["game_id"] = frame["game_id"].astype(str).str.strip()
+        frame = frame[frame["game_id"] != ""].copy()
+
+    if "pipeline_version" in frame.columns:
+        frame = frame[frame["pipeline_version"].astype(str) == PIPELINE_VERSION].copy()
+
+    if frame.empty:
+        write_status(
+            trained=False,
+            skipped=True,
+            sample_count=0,
+            reason="no_clean_training_samples_after_contract_filters",
+        )
+        return pd.DataFrame()
+
+    frame = frame.drop_duplicates("game_id", keep="first") if "game_id" in frame.columns else frame
+
+    return frame.reset_index(drop=True)
 
 
 def prepare_data() -> (
     tuple[np.ndarray, np.ndarray, np.ndarray, pd.DataFrame, list[str], list[str], int]
     | None
 ):
-    """Load clean pregame snapshots and join outcomes only from finalized_games.csv."""
     if ALLOW_LEGACY_TRAINING_DATA:
         write_status(
-            False,
-            True,
-            0,
+            trained=False,
+            skipped=True,
+            sample_count=0,
             reason=(
                 "Legacy training data is enabled, but baseline_v2_clean "
                 "training refuses legacy rows to prevent leakage."
@@ -258,83 +230,30 @@ def prepare_data() -> (
         )
         return None
 
-    if not SNAPSHOT_FILE.exists():
-        write_status(
-            False,
-            True,
-            0,
-            reason="Clean prediction snapshot file does not exist.",
-        )
-        return None
-
-    if not FINALIZED_FILE.exists():
-        write_status(
-            False,
-            True,
-            0,
-            reason="finalized_games.csv does not exist; trusted outcomes are unavailable.",
-        )
-        return None
-
-    try:
-        snapshots = _prepare_snapshot_features(SNAPSHOT_FILE)
-        finalized = _prepare_finalized_outcomes(FINALIZED_FILE)
-    except Exception as exc:
-        write_status(
-            False,
-            True,
-            0,
-            reason=f"Unable to prepare finalized-joined training rows: {exc}",
-        )
-        return None
-
-    if snapshots.empty:
-        write_status(
-            False,
-            True,
-            0,
-            reason="No valid clean pregame prediction snapshots are available.",
-        )
-        return None
-
-    if finalized.empty:
-        write_status(
-            False,
-            True,
-            0,
-            reason="No trusted finalized outcomes are available in finalized_games.csv.",
-        )
-        return None
-
-    frame = snapshots.merge(
-        finalized,
-        on="game_id",
-        how="inner",
-    )
-
+    frame = _load_training_samples()
     if frame.empty:
-        write_status(
-            False,
-            True,
-            0,
-            reason="No prediction snapshots join to finalized_games.csv by game_id.",
-        )
         return None
 
-    frame = frame.sort_values("snapshot_created_at").reset_index(drop=True)
+    sample_count = int(len(frame))
 
-    sample_count = len(frame)
     if sample_count < MIN_TRAIN_SAMPLES:
         write_status(
-            False,
-            True,
-            sample_count,
-            reason=(
-                "Not enough finalized-joined clean snapshots "
-                f"({sample_count} < {MIN_TRAIN_SAMPLES})."
-            ),
+            trained=False,
+            skipped=True,
+            sample_count=sample_count,
+            reason=f"insufficient_clean_training_samples:{sample_count}<{MIN_TRAIN_SAMPLES}",
         )
         return None
+
+    if "snapshot_created_at" in frame.columns:
+        frame["snapshot_created_at"] = pd.to_datetime(
+            frame["snapshot_created_at"],
+            errors="coerce",
+            utc=True,
+        )
+        frame = frame.sort_values("snapshot_created_at").reset_index(drop=True)
+    else:
+        frame = frame.reset_index(drop=True)
 
     for column in MODEL_FEATURES:
         if column not in frame.columns:
@@ -348,10 +267,14 @@ def prepare_data() -> (
         if column in AVAILABILITY_FLAG_FEATURES:
             frame[column] = frame[column].fillna(0.0).clip(lower=0.0, upper=1.0)
 
-    latest_snapshot = frame["snapshot_created_at"].max()
-    frame["days_ago"] = (
-        latest_snapshot - frame["snapshot_created_at"]
-    ).dt.days.fillna(0)
+    if "snapshot_created_at" in frame.columns and frame["snapshot_created_at"].notna().any():
+        latest_snapshot = frame["snapshot_created_at"].max()
+        frame["days_ago"] = (
+            latest_snapshot - frame["snapshot_created_at"]
+        ).dt.days.fillna(0)
+    else:
+        frame["days_ago"] = 0
+
     frame["sample_weight"] = np.exp(
         -frame["days_ago"] / 365 * np.log(2)
     ).clip(lower=0.1)
@@ -365,10 +288,10 @@ def prepare_data() -> (
 
     if not np.any(keep):
         write_status(
-            False,
-            True,
-            sample_count,
-            reason="All finalized-joined candidate features have zero variance.",
+            trained=False,
+            skipped=True,
+            sample_count=sample_count,
+            reason="all_candidate_features_have_zero_variance",
         )
         return None
 
@@ -377,8 +300,6 @@ def prepare_data() -> (
         for feature, retained in zip(MODEL_FEATURES, keep)
         if not retained
     ]
-    if removed_features:
-        print(f"Removed low-variance clean features: {removed_features}")
 
     used_features = [
         feature
@@ -387,10 +308,9 @@ def prepare_data() -> (
     ]
 
     return matrix[:, keep], target, weights, frame, used_features, removed_features, sample_count
-    
+
 
 def make_calibrator(estimator: Any) -> CalibratedClassifierCV:
-    """Create a sigmoid calibrator around an already fitted estimator."""
     try:
         from sklearn.frozen import FrozenEstimator
 
@@ -423,10 +343,10 @@ def train() -> None:
         or calibration_end >= row_count
     ):
         write_status(
-            False,
-            True,
-            sample_count,
-            reason="Not enough samples after train/calibration/test split.",
+            trained=False,
+            skipped=True,
+            sample_count=sample_count,
+            reason="not_enough_samples_after_train_calibration_test_split",
         )
         return
 
@@ -448,10 +368,10 @@ def train() -> None:
     ):
         if len(np.unique(subset)) < 2:
             write_status(
-                False,
-                True,
-                sample_count,
-                reason=f"{name} set contains only one target class.",
+                trained=False,
+                skipped=True,
+                sample_count=sample_count,
+                reason=f"{name}_set_contains_only_one_target_class",
             )
             return
 
@@ -502,33 +422,51 @@ def train() -> None:
         )
     except Exception:
         transformed_features = list(used_features)
-        
+
     artifact = {
         "model": calibrated,
         "features": used_features,
+        "feature_names": used_features,
         "transformed_features": transformed_features,
         "schema_version": MODEL_SCHEMA_VERSION,
         "pipeline_version": PIPELINE_VERSION,
-        "training_source": "finalized_joined_prediction_snapshots",
+        "training_source": TRAINING_SOURCE,
         "model_type": MODEL_TYPE,
+        "model_family": "calibrated_logistic_baseline",
         "trained_at": datetime.now().isoformat(),
         "training_sample_count": sample_count,
+        "sample_count": sample_count,
         "test_brier": round(test_brier, 4),
         "test_logloss": round(test_logloss, 4),
+        "metadata": {
+            "artifact_version": "v1",
+            "pipeline_version": PIPELINE_VERSION,
+            "schema_version": MODEL_SCHEMA_VERSION,
+            "model_type": MODEL_TYPE,
+            "training_source": TRAINING_SOURCE,
+            "training_sample_count": sample_count,
+            "created_at": _utc_now(),
+            "feature_names": used_features,
+            "brier": round(test_brier, 4),
+            "logloss": round(test_logloss, 4),
+        },
     }
 
     MODEL_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(artifact, MODEL_OUTPUT)
 
     write_status(
-        True,
-        False,
-        sample_count,
+        trained=True,
+        skipped=False,
+        sample_count=sample_count,
         brier=round(test_brier, 4),
         logloss=round(test_logloss, 4),
         used_feature_count=len(used_features),
         transformed_feature_count=len(transformed_features),
         removed_features=removed_features,
+        train_sample_count=len(x_train),
+        calibration_sample_count=len(x_calib),
+        test_sample_count=len(x_test),
     )
 
     append_csv(
@@ -537,7 +475,7 @@ def train() -> None:
             "timestamp": datetime.now().isoformat(),
             "pipeline_version": PIPELINE_VERSION,
             "schema_version": MODEL_SCHEMA_VERSION,
-            "training_source": "finalized_joined_prediction_snapshots",
+            "training_source": TRAINING_SOURCE,
             "model_type": MODEL_TYPE,
             "num_samples": len(all_rows),
             "model_feature_count": len(MODEL_FEATURES),
@@ -573,6 +511,8 @@ def train() -> None:
     sorted_indices = np.argsort(absolute_coefficients)
     print("Five lowest absolute clean-model coefficients:")
     for index in sorted_indices[:5]:
+        if index >= len(importance_feature_names):
+            continue
         print(
             f"  {importance_feature_names[index]}: "
             f"{absolute_coefficients[index]:.6f}"
