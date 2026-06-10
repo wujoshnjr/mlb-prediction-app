@@ -66,6 +66,7 @@ TRACKED_FILES = [
     "report/model_correctness_report.json",
     "report/edge_sanity_guardrail_report.json",
     "report/signal_quality_report.json",
+    "report/product_experience_report.json",
     "data/lineup_quality_context.csv",
     "data/finalized_snapshot_outcomes.csv",
     "data/walk_forward_predictions.csv",
