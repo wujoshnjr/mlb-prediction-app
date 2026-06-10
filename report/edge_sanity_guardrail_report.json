@@ -1,0 +1,65 @@
+{
+  "generated_at": "2026-06-10T02:24:32.903385+00:00",
+  "status": "ok",
+  "sample_count": 165,
+  "buckets": {
+    "edge_0_to_1": {
+      "sample_count": 12,
+      "correct": 7,
+      "accuracy": 0.5833333333333334,
+      "brier": 0.28470271250000007,
+      "logloss": 0.7707221188912041,
+      "ece": 0.25234166666666674,
+      "insufficient_sample": true,
+      "decision": "insufficient_sample"
+    },
+    "edge_1_to_3": {
+      "sample_count": 20,
+      "correct": 11,
+      "accuracy": 0.55,
+      "brier": 0.23907026449999996,
+      "logloss": 0.6679385037002168,
+      "ece": 0.05476500000000002,
+      "insufficient_sample": false,
+      "decision": "preferred_shadow_slice"
+    },
+    "edge_3_to_5": {
+      "sample_count": 23,
+      "correct": 18,
+      "accuracy": 0.782608695652174,
+      "brier": 0.23225652521739132,
+      "logloss": 0.6573977692682642,
+      "ece": 0.2543826086956521,
+      "insufficient_sample": false,
+      "decision": "tracking_only"
+    },
+    "edge_5_plus": {
+      "sample_count": 110,
+      "correct": 56,
+      "accuracy": 0.509090909090909,
+      "brier": 0.2505998035454546,
+      "logloss": 0.694794522897965,
+      "ece": 0.10113727272727269,
+      "insufficient_sample": false,
+      "decision": "tracking_only"
+    }
+  },
+  "policy": {
+    "preferred_edge_bucket": "edge_3_to_5",
+    "large_edge_policy": "TRACKING_ONLY",
+    "block_large_edge": true,
+    "large_edge_reasons": [
+      "edge_5_plus accuracy below 53%",
+      "edge_5_plus underperforms edge_3_to_5 by more than 3 percentage points"
+    ],
+    "notes": [
+      "Large model edge is not automatically better.",
+      "Use edge_3_to_5 as preferred shadow slice only while evidence remains stable."
+    ]
+  },
+  "warnings": [],
+  "errors": [],
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false,
+  "production_model_replacement_allowed": false
+}
