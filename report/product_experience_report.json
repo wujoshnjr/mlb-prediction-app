@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-10T05:39:49.282641+00:00",
+  "generated_at": "2026-06-10T06:20:03.739368+00:00",
   "status": "ok",
   "product_summary": {
     "mode": "MLB_ONLY_PAPER_RESEARCH",
@@ -9,8 +9,8 @@
       "edge_5_plus is downgraded by edge sanity guardrail",
       "sample gate remains below research promotion threshold"
     ],
-    "sample_count": 175,
-    "overall_accuracy": 0.5428571428571428,
+    "sample_count": 0,
+    "overall_accuracy": null,
     "production_allowed": false,
     "live_betting_allowed": false,
     "automated_wagering_allowed": false
@@ -19,19 +19,19 @@
     {
       "card_id": "overall_accuracy",
       "label": "Overall Accuracy",
-      "value": 0.5428571428571428,
-      "display_value": "54.3%",
-      "sample_count": 175,
-      "status": "neutral",
-      "caption": "175 settled samples",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 settled samples",
       "priority": 1
     },
     {
       "card_id": "sample_gate",
       "label": "Research Sample Gate",
-      "value": 175,
-      "display_value": "175 / 300",
-      "sample_count": 175,
+      "value": 0,
+      "display_value": "0 / 300",
+      "sample_count": 0,
       "status": "waiting",
       "caption": "Needed before research promotion opens",
       "priority": 2
@@ -39,10 +39,10 @@
     {
       "card_id": "preferred_edge",
       "label": "Preferred Edge Bucket",
-      "value": "edge_3_to_5",
-      "display_value": "edge 3 to 5",
+      "value": null,
+      "display_value": "--",
       "sample_count": null,
-      "status": "positive",
+      "status": "waiting",
       "caption": "Moderate edge is preferred over extreme edge",
       "priority": 3
     },
@@ -61,20 +61,20 @@
     {
       "case_id": "strong_favorite_signal",
       "label": "Strong Favorite Signal",
-      "status": "MODEL_SIGNAL_ONLY",
-      "display_status": "MODEL SIGNAL ONLY",
-      "ui_status": "positive",
+      "status": "TRACKING_ONLY",
+      "display_status": "TRACKING ONLY",
+      "ui_status": "waiting",
       "evidence": {
-        "favorite_accuracy": 0.5615384615384615,
-        "favorite_sample_count": 130,
-        "home_accuracy": 0.5795454545454546,
-        "home_sample_count": 88,
-        "edge_3_to_5_accuracy": 0.782608695652174,
-        "edge_3_to_5_sample_count": 23,
-        "odds_ok_accuracy": 0.5641025641025641,
-        "odds_ok_sample_count": 156,
-        "paper_bet_accuracy": 0.576,
-        "paper_bet_sample_count": 125
+        "favorite_accuracy": null,
+        "favorite_sample_count": 0,
+        "home_accuracy": null,
+        "home_sample_count": 0,
+        "edge_3_to_5_accuracy": null,
+        "edge_3_to_5_sample_count": 0,
+        "odds_ok_accuracy": null,
+        "odds_ok_sample_count": 0,
+        "paper_bet_accuracy": null,
+        "paper_bet_sample_count": 0
       },
       "reason": [
         "Favorite picks, clean odds, and moderate edge are the strongest current slices.",
@@ -93,9 +93,9 @@
       "display_status": "PAPER ENTRY BLOCKED BY RISK",
       "ui_status": "negative",
       "evidence": {
-        "underdog_accuracy": 0.4888888888888889,
-        "underdog_sample_count": 45,
-        "underdog_report_accuracy": 0.4888888888888889,
+        "underdog_accuracy": null,
+        "underdog_sample_count": 0,
+        "underdog_report_accuracy": null,
         "underdog_policy": "TRACKING_ONLY"
       },
       "reason": [
@@ -115,13 +115,12 @@
       "display_status": "PAPER ENTRY BLOCKED BY RISK",
       "ui_status": "negative",
       "evidence": {
-        "edge_5_plus_accuracy": 0.4956521739130435,
-        "edge_5_plus_sample_count": 115,
-        "preferred_edge_bucket": "edge_3_to_5",
+        "edge_5_plus_accuracy": null,
+        "edge_5_plus_sample_count": 0,
+        "preferred_edge_bucket": null,
         "block_large_edge": true,
         "large_edge_reasons": [
-          "edge_5_plus accuracy below 53%",
-          "edge_5_plus underperforms edge_3_to_5 by more than 3 percentage points"
+          "No joined settled samples."
         ]
       },
       "reason": [
@@ -137,14 +136,14 @@
     {
       "case_id": "clean_paper_signal",
       "label": "Clean Paper Signal",
-      "status": "MODEL_SIGNAL_ONLY",
-      "display_status": "MODEL SIGNAL ONLY",
-      "ui_status": "positive",
+      "status": "TRACKING_ONLY",
+      "display_status": "TRACKING ONLY",
+      "ui_status": "waiting",
       "evidence": {
-        "paper_bet_accuracy": 0.576,
-        "paper_bet_sample_count": 125,
-        "odds_ok_accuracy": 0.5641025641025641,
-        "odds_ok_sample_count": 156
+        "paper_bet_accuracy": null,
+        "paper_bet_sample_count": 0,
+        "odds_ok_accuracy": null,
+        "odds_ok_sample_count": 0
       },
       "reason": [
         "Paper-bet and OK-odds slices are outperforming tracking-only slices.",
@@ -161,111 +160,111 @@
     {
       "card_id": "favorite_pick",
       "label": "Favorite Pick",
-      "value": 0.5615384615384615,
-      "display_value": "56.2%",
-      "sample_count": 130,
-      "status": "positive",
-      "caption": "130 samples \u00b7 Market favorite model picks",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Market favorite model picks",
       "priority": 1
     },
     {
       "card_id": "underdog_pick",
       "label": "Underdog Pick",
-      "value": 0.4888888888888889,
-      "display_value": "48.9%",
-      "sample_count": 45,
-      "status": "negative",
-      "caption": "45 samples \u00b7 Weak slice; risk-blocked",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Weak slice; risk-blocked",
       "priority": 2
     },
     {
       "card_id": "home_pick",
       "label": "Home Pick",
-      "value": 0.5795454545454546,
-      "display_value": "58.0%",
-      "sample_count": 88,
-      "status": "positive",
-      "caption": "88 samples \u00b7 Home side model picks",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Home side model picks",
       "priority": 3
     },
     {
       "card_id": "away_pick",
       "label": "Away Pick",
-      "value": 0.5057471264367817,
-      "display_value": "50.6%",
-      "sample_count": 87,
-      "status": "neutral",
-      "caption": "87 samples \u00b7 Away side model picks",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Away side model picks",
       "priority": 4
     },
     {
       "card_id": "odds_ok",
       "label": "Odds OK",
-      "value": 0.5641025641025641,
-      "display_value": "56.4%",
-      "sample_count": 156,
-      "status": "positive",
-      "caption": "156 samples \u00b7 Verified odds quality",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Verified odds quality",
       "priority": 5
     },
     {
       "card_id": "paper_bet",
       "label": "Paper Bet",
-      "value": 0.576,
-      "display_value": "57.6%",
-      "sample_count": 125,
-      "status": "positive",
-      "caption": "125 samples \u00b7 Existing paper-entry gate",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Existing paper-entry gate",
       "priority": 6
     },
     {
       "card_id": "tracking_only",
       "label": "Tracking Only",
-      "value": 0.46,
-      "display_value": "46.0%",
-      "sample_count": 50,
-      "status": "negative",
-      "caption": "50 samples \u00b7 Non-entry tracking signals",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Non-entry tracking signals",
       "priority": 7
     },
     {
       "card_id": "edge_3_to_5",
       "label": "Edge 3\u20135%",
-      "value": 0.782608695652174,
-      "display_value": "78.3%",
-      "sample_count": 23,
-      "status": "positive",
-      "caption": "23 samples \u00b7 Best current edge slice",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Best current edge slice",
       "priority": 8
     },
     {
       "card_id": "edge_5_plus",
       "label": "Edge 5%+",
-      "value": 0.4956521739130435,
-      "display_value": "49.6%",
-      "sample_count": 115,
-      "status": "negative",
-      "caption": "115 samples \u00b7 Suspicious large edge",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Suspicious large edge",
       "priority": 9
     },
     {
       "card_id": "confidence_55_60",
       "label": "Confidence 55\u201360%",
-      "value": 0.6,
-      "display_value": "60.0%",
-      "sample_count": 30,
-      "status": "positive",
-      "caption": "30 samples \u00b7 Stable confidence range",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Stable confidence range",
       "priority": 10
     },
     {
       "card_id": "confidence_60_65",
       "label": "Confidence 60\u201365%",
-      "value": 0.5471698113207547,
-      "display_value": "54.7%",
-      "sample_count": 53,
-      "status": "neutral",
-      "caption": "53 samples \u00b7 Secondary confidence range",
+      "value": null,
+      "display_value": "--",
+      "sample_count": 0,
+      "status": "waiting",
+      "caption": "0 samples \u00b7 Secondary confidence range",
       "priority": 11
     },
     {
@@ -273,7 +272,7 @@
       "label": "Underdog Policy",
       "value": "TRACKING_ONLY",
       "display_value": "TRACKING ONLY",
-      "sample_count": 45,
+      "sample_count": 0,
       "status": "negative",
       "caption": "Underdog remains blocked or tracking-only unless evidence improves",
       "priority": 12
@@ -286,8 +285,7 @@
       "status": "blocked",
       "display_status": "TRACKING_ONLY",
       "reasons": [
-        "edge_5_plus accuracy below 53%",
-        "edge_5_plus underperforms edge_3_to_5 by more than 3 percentage points"
+        "No joined settled samples."
       ],
       "description": "Extreme edge is downgraded when historical evidence underperforms moderate edge.",
       "priority": 1
@@ -298,9 +296,7 @@
       "status": "blocked",
       "display_status": "TRACKING_ONLY",
       "reasons": [
-        "lineup_context_missing_underdog is weak",
-        "low_confidence_underdog is weak",
-        "overall underdog slice is not strong enough for paper entry upgrade"
+        "insufficient settled underdog samples"
       ],
       "description": "Underdog picks remain weak and should not be upgraded.",
       "priority": 2
@@ -308,9 +304,11 @@
     {
       "risk_id": "confidence_language",
       "label": "Confidence Language",
-      "status": "allowed",
-      "display_status": "SHADOW_ONLY",
-      "reasons": [],
+      "status": "capped",
+      "display_status": "CAPPED",
+      "reasons": [
+        "no joined settled samples"
+      ],
       "description": "High-confidence wording is governed separately from model probability.",
       "priority": 3
     },
@@ -320,7 +318,8 @@
       "status": "blocked",
       "display_status": "NO_PROMOTION_SHADOW_ONLY",
       "reasons": [
-        "insufficient_samples_for_slice_promotion: 175 < 300",
+        "high-confidence language is blocked by confidence guardrail",
+        "insufficient_samples_for_slice_promotion: 0 < 300",
         "underdog slice is not approved for paper entry upgrade"
       ],
       "description": "Promotion is blocked until minimum research sample is reached.",

@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-06-10T05:39:49.478865+00:00",
+  "generated_at": "2026-06-10T06:20:03.931142+00:00",
   "status": "insufficient_evidence",
-  "readiness_score": 64.29,
+  "readiness_score": 57.14,
   "research_promotion_allowed": false,
   "official_model_replacement_allowed": false,
   "production_model_replacement_allowed": false,
@@ -10,8 +10,8 @@
   "automated_wagering_allowed": false,
   "user_funds_handled": false,
   "recommended_champion": null,
-  "recommended_challenger": "lightgbm_classifier",
-  "recommended_shadow_ensemble": "simple_average",
+  "recommended_challenger": null,
+  "recommended_shadow_ensemble": null,
   "thresholds": {
     "min_train_eligible_samples": 300,
     "min_promotion_clean_samples": 500,
@@ -19,15 +19,15 @@
     "max_ece": 0.05
   },
   "evidence_summary": {
-    "clean_settled_samples": 175,
-    "train_eligible_samples": 175,
-    "linked_games": 175,
-    "pending_not_final": 17,
-    "model_lab_sample_count": 175,
-    "walkforward_oos_predictions": 95,
-    "calibration_sample_count": 175,
-    "calibration_ece": 0.06907371428571428,
-    "feature_candidate_shadow_count": 20,
+    "clean_settled_samples": 0,
+    "train_eligible_samples": 0,
+    "linked_games": 176,
+    "pending_not_final": 16,
+    "model_lab_sample_count": 0,
+    "walkforward_oos_predictions": 0,
+    "calibration_sample_count": 0,
+    "calibration_ece": null,
+    "feature_candidate_shadow_count": 0,
     "feature_ready_for_review_count": 0,
     "prediction_trust": {
       "total": 0,
@@ -37,25 +37,22 @@
       "counts": {}
     },
     "market_edge": {
-      "any_model_beats_market_brier": true,
-      "any_model_beats_market_logloss": true,
-      "best_brier_delta": -0.015087933401583764,
-      "best_logloss_delta": -0.07527219177408606,
-      "best_brier_model": "xgboost_classifier",
-      "best_logloss_model": "xgboost_classifier"
+      "any_model_beats_market_brier": false,
+      "any_model_beats_market_logloss": false,
+      "best_brier_delta": null,
+      "best_logloss_delta": null,
+      "best_brier_model": null,
+      "best_logloss_model": null
     },
     "model_decision_guardrail_status": "blocked",
     "model_decision_guardrail_decision": "NO_PROMOTION_SHADOW_ONLY",
     "probability_policy": {
       "official_probability_change_allowed": false,
       "shadow_probability_shrinkage_allowed": true,
-      "recommended_default_alpha": 0.7,
-      "recommended_max_display_confidence": 0.65,
-      "block_high_confidence_language": true,
-      "blocked_or_downgraded_slices": [
-        "away",
-        "high_65_plus"
-      ],
+      "recommended_default_alpha": 0.85,
+      "recommended_max_display_confidence": 0.75,
+      "block_high_confidence_language": false,
+      "blocked_or_downgraded_slices": [],
       "explanation": "Because calibration and high-confidence slices are not promotion-ready, shadow probabilities should be shrunk toward 50% and high-confidence language should be disabled."
     }
   },
@@ -64,8 +61,8 @@
       "name": "finalized_linkage_gate",
       "passed": true,
       "current": {
-        "linked_games": 175,
-        "pending_not_final": 17,
+        "linked_games": 176,
+        "pending_not_final": 16,
         "api_not_found_or_failed": 0
       },
       "required": "linked_games > 0 and api_not_found_or_failed == 0",
@@ -76,18 +73,18 @@
     {
       "name": "train_sample_gate",
       "passed": false,
-      "current": 175,
+      "current": 0,
       "required": 300,
-      "blocker": "train eligible samples below threshold: 175 < 300",
+      "blocker": "train eligible samples below threshold: 0 < 300",
       "warning": "",
       "details": {}
     },
     {
       "name": "promotion_sample_gate",
       "passed": false,
-      "current": 175,
+      "current": 0,
       "required": 500,
-      "blocker": "clean settled samples below promotion threshold: 175 < 500",
+      "blocker": "clean settled samples below promotion threshold: 0 < 500",
       "warning": "",
       "details": {}
     },
@@ -95,8 +92,8 @@
       "name": "model_lab_gate",
       "passed": false,
       "current": {
-        "sample_count": 175,
-        "best_shadow_model": "lightgbm_classifier",
+        "sample_count": 0,
+        "best_shadow_model": null,
         "champion_candidate": null
       },
       "required": "sample_count >= 300 and best shadow model exists",
@@ -107,25 +104,25 @@
     {
       "name": "walk_forward_oos_gate",
       "passed": false,
-      "current": 95,
+      "current": 0,
       "required": 300,
-      "blocker": "walk-forward OOS predictions below threshold: 95 < 300",
+      "blocker": "walk-forward OOS predictions below threshold: 0 < 300",
       "warning": "",
       "details": {}
     },
     {
       "name": "market_comparison_gate",
-      "passed": true,
+      "passed": false,
       "current": {
-        "any_model_beats_market_brier": true,
-        "any_model_beats_market_logloss": true,
-        "best_brier_delta": -0.015087933401583764,
-        "best_logloss_delta": -0.07527219177408606,
-        "best_brier_model": "xgboost_classifier",
-        "best_logloss_model": "xgboost_classifier"
+        "any_model_beats_market_brier": false,
+        "any_model_beats_market_logloss": false,
+        "best_brier_delta": null,
+        "best_logloss_delta": null,
+        "best_brier_model": null,
+        "best_logloss_model": null
       },
       "required": "at least one shadow model beats market brier or logloss",
-      "blocker": "",
+      "blocker": "no shadow model has proven brier/logloss edge over market in walk-forward report",
       "warning": "",
       "details": {}
     },
@@ -135,17 +132,14 @@
       "current": {
         "decision": "NO_PROMOTION_SHADOW_ONLY",
         "status": "blocked",
-        "recommended_challenger": "lightgbm_classifier",
+        "recommended_challenger": null,
         "probability_policy": {
           "official_probability_change_allowed": false,
           "shadow_probability_shrinkage_allowed": true,
-          "recommended_default_alpha": 0.7,
-          "recommended_max_display_confidence": 0.65,
-          "block_high_confidence_language": true,
-          "blocked_or_downgraded_slices": [
-            "away",
-            "high_65_plus"
-          ],
+          "recommended_default_alpha": 0.85,
+          "recommended_max_display_confidence": 0.75,
+          "block_high_confidence_language": false,
+          "blocked_or_downgraded_slices": [],
           "explanation": "Because calibration and high-confidence slices are not promotion-ready, shadow probabilities should be shrunk toward 50% and high-confidence language should be disabled."
         }
       },
@@ -158,9 +152,9 @@
       "name": "calibration_gate",
       "passed": false,
       "current": {
-        "sample_count": 175,
+        "sample_count": 0,
         "calibration_ready": false,
-        "ece": 0.06907371428571428
+        "ece": null
       },
       "required": {
         "sample_count": 300,
@@ -175,7 +169,7 @@
       "name": "feature_governance_gate",
       "passed": true,
       "current": {
-        "candidate_shadow_count": 20,
+        "candidate_shadow_count": 0,
         "ready_for_review_count": 0
       },
       "required": "features remain in shadow unless reviewed",
@@ -202,8 +196,8 @@
       "name": "shadow_ensemble_gate",
       "passed": true,
       "current": {
-        "sample_count": 95,
-        "recommended_shadow_ensemble": "simple_average",
+        "sample_count": 0,
+        "recommended_shadow_ensemble": null,
         "promotion_eligible": false
       },
       "required": "shadow ensemble must remain non-production",
@@ -244,10 +238,11 @@
   ],
   "blockers": [
     "calibration sample count, readiness, or ECE threshold not satisfied",
-    "clean settled samples below promotion threshold: 175 < 500",
+    "clean settled samples below promotion threshold: 0 < 500",
     "model lab does not have enough samples or no challenger model",
-    "train eligible samples below threshold: 175 < 300",
-    "walk-forward OOS predictions below threshold: 95 < 300"
+    "no shadow model has proven brier/logloss edge over market in walk-forward report",
+    "train eligible samples below threshold: 0 < 300",
+    "walk-forward OOS predictions below threshold: 0 < 300"
   ],
   "warnings": [
     "C/D trust grades should be monitored but do not block research readiness by themselves",
@@ -338,10 +333,10 @@
     }
   },
   "next_recommended_actions": [
-    "Accumulate 125 more train-eligible finalized samples.",
-    "Accumulate 325 more clean settled samples for promotion-grade review.",
-    "Accumulate 205 more walk-forward OOS predictions.",
-    "Improve calibration: ECE 0.0691 is above 0.05.",
+    "Accumulate 300 more train-eligible finalized samples.",
+    "Accumulate 500 more clean settled samples for promotion-grade review.",
+    "Accumulate 300 more walk-forward OOS predictions.",
+    "Require a shadow model to beat market brier or logloss over walk-forward OOS before research promotion review.",
     "Keep official prediction on current calibrated logistic baseline until all gates pass.",
     "Keep LightGBM, XGBoost, residual, and ensemble outputs shadow-only.",
     "Do not lower sample gates to force promotion."

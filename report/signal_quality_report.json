@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-06-10T05:39:48.856909+00:00",
+  "generated_at": "2026-06-10T06:20:03.325030+00:00",
   "status": "ok",
   "global_policy": {
     "global_decision": "NO_PROMOTION_SHADOW_ONLY",
-    "sample_count": 175,
+    "sample_count": 0,
     "minimum_research_sample": 300,
     "sample_gate_open": false,
     "preferred_signal_recipe": [
@@ -20,32 +20,32 @@
       "recommendation_status:TRACKING_ONLY"
     ],
     "confidence_policy": {
-      "recommended_max_display_confidence": 0.75,
-      "block_high_confidence_language": false,
-      "default_shrink_alpha": 0.85,
-      "reason": []
+      "recommended_max_display_confidence": 0.65,
+      "block_high_confidence_language": true,
+      "default_shrink_alpha": 0.7,
+      "reason": [
+        "no joined settled samples"
+      ]
     },
-    "unsafe_confidence_buckets": [
-      "50_55"
-    ],
+    "unsafe_confidence_buckets": [],
     "freshness_global_grade": "C"
   },
   "cases": [
     {
       "case_id": "strong_favorite_signal",
       "label": "Strong Favorite Signal",
-      "status": "MODEL_SIGNAL_ONLY",
+      "status": "TRACKING_ONLY",
       "evidence": {
-        "favorite_accuracy": 0.5615384615384615,
-        "favorite_sample_count": 130,
-        "home_accuracy": 0.5795454545454546,
-        "home_sample_count": 88,
-        "edge_3_to_5_accuracy": 0.782608695652174,
-        "edge_3_to_5_sample_count": 23,
-        "odds_ok_accuracy": 0.5641025641025641,
-        "odds_ok_sample_count": 156,
-        "paper_bet_accuracy": 0.576,
-        "paper_bet_sample_count": 125
+        "favorite_accuracy": null,
+        "favorite_sample_count": 0,
+        "home_accuracy": null,
+        "home_sample_count": 0,
+        "edge_3_to_5_accuracy": null,
+        "edge_3_to_5_sample_count": 0,
+        "odds_ok_accuracy": null,
+        "odds_ok_sample_count": 0,
+        "paper_bet_accuracy": null,
+        "paper_bet_sample_count": 0
       },
       "reason": [
         "Favorite picks, clean odds, and moderate edge are the strongest current slices.",
@@ -61,9 +61,9 @@
       "label": "Weak Underdog",
       "status": "PAPER_ENTRY_BLOCKED_BY_RISK",
       "evidence": {
-        "underdog_accuracy": 0.4888888888888889,
-        "underdog_sample_count": 45,
-        "underdog_report_accuracy": 0.4888888888888889,
+        "underdog_accuracy": null,
+        "underdog_sample_count": 0,
+        "underdog_report_accuracy": null,
         "underdog_policy": "TRACKING_ONLY"
       },
       "reason": [
@@ -80,13 +80,12 @@
       "label": "Suspicious Large Edge",
       "status": "PAPER_ENTRY_BLOCKED_BY_RISK",
       "evidence": {
-        "edge_5_plus_accuracy": 0.4956521739130435,
-        "edge_5_plus_sample_count": 115,
-        "preferred_edge_bucket": "edge_3_to_5",
+        "edge_5_plus_accuracy": null,
+        "edge_5_plus_sample_count": 0,
+        "preferred_edge_bucket": null,
         "block_large_edge": true,
         "large_edge_reasons": [
-          "edge_5_plus accuracy below 53%",
-          "edge_5_plus underperforms edge_3_to_5 by more than 3 percentage points"
+          "No joined settled samples."
         ]
       },
       "reason": [
@@ -101,12 +100,12 @@
     {
       "case_id": "clean_paper_signal",
       "label": "Clean Paper Signal",
-      "status": "MODEL_SIGNAL_ONLY",
+      "status": "TRACKING_ONLY",
       "evidence": {
-        "paper_bet_accuracy": 0.576,
-        "paper_bet_sample_count": 125,
-        "odds_ok_accuracy": 0.5641025641025641,
-        "odds_ok_sample_count": 156
+        "paper_bet_accuracy": null,
+        "paper_bet_sample_count": 0,
+        "odds_ok_accuracy": null,
+        "odds_ok_sample_count": 0
       },
       "reason": [
         "Paper-bet and OK-odds slices are outperforming tracking-only slices.",
