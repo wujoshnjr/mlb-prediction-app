@@ -45,10 +45,27 @@ def test_sample_state_uses_finalized_snapshot_outcome_cache(tmp_path: Path, monk
             }
         ]
     )
+    training_samples = pd.DataFrame(
+        [
+            {
+                "snapshot_id": "test-snapshot-1",
+                "game_id": "823295",
+                "game_date": "2026-05-27",
+                "snapshot_created_at": "2026-05-27T12:00:00Z",
+                "start_time": "2026-05-27T20:10:00Z",
+                "home_team": "Padres",
+                "away_team": "Phillies",
+                "home_win": 1,
+                "pipeline_version": "baseline_v2_clean",
+                "snapshot_policy": "first_seen_pregame",
+            }
+        ]
+    )
 
     snapshots.to_csv(data_dir / "prediction_snapshots.csv", index=False)
     finalized_games.to_csv(data_dir / "finalized_games.csv", index=False)
     outcome_cache.to_csv(data_dir / "finalized_snapshot_outcomes.csv", index=False)
+    training_samples.to_csv(data_dir / "training_samples.csv", index=False)
 
     (report_dir / "settled_prediction_link_report.json").write_text("{}", encoding="utf-8")
     (report_dir / "finalized_linkage_diagnostic_report.json").write_text(
@@ -56,13 +73,24 @@ def test_sample_state_uses_finalized_snapshot_outcome_cache(tmp_path: Path, monk
         encoding="utf-8",
     )
     (report_dir / "rolling_walkforward_evaluation.json").write_text("{}", encoding="utf-8")
-    (data_dir / "training_status.json").write_text("{}", encoding="utf-8")
+    (data_dir / "training_status.json").write_text(
+        '{"trained": false, "sample_count": 1}',
+        encoding="utf-8",
+    )
+    (data_dir / "model_artifact_status.json").write_text(
+        '{"valid": false, "training_sample_count": 0, "reason": "missing"}',
+        encoding="utf-8",
+    )
 
     monkeypatch.setattr("scripts.sample_state_builder.SNAPSHOT_PATH", data_dir / "prediction_snapshots.csv")
     monkeypatch.setattr("scripts.sample_state_builder.FINALIZED_PATH", data_dir / "finalized_games.csv")
     monkeypatch.setattr(
         "scripts.sample_state_builder.FINALIZED_SNAPSHOT_OUTCOMES_PATH",
         data_dir / "finalized_snapshot_outcomes.csv",
+    )
+    monkeypatch.setattr(
+        "scripts.sample_state_builder.TRAINING_SAMPLES_PATH",
+        data_dir / "training_samples.csv",
     )
     monkeypatch.setattr(
         "scripts.sample_state_builder.LINK_REPORT_PATH",
@@ -81,6 +109,10 @@ def test_sample_state_uses_finalized_snapshot_outcome_cache(tmp_path: Path, monk
         data_dir / "training_status.json",
     )
     monkeypatch.setattr(
+        "scripts.sample_state_builder.MODEL_ARTIFACT_STATUS_PATH",
+        data_dir / "model_artifact_status.json",
+    )
+    monkeypatch.setattr(
         "scripts.sample_state_builder.CALIBRATOR_PATH",
         data_dir / "calibrator.pkl",
     )
@@ -88,6 +120,7 @@ def test_sample_state_uses_finalized_snapshot_outcome_cache(tmp_path: Path, monk
     state = build_sample_state()
 
     assert state["clean_settled_snapshots"] == 1
+    assert state["clean_settled_sample_count"] == 1
     assert state["train_eligible_samples"] == 1
     assert state["linked_games"] == 1
     assert state["link_rate"] == 1.0
