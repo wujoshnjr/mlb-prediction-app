@@ -22,17 +22,20 @@ CORE_MODEL_FEATURES = [
     "elo_diff",
     "bt_strength_diff",
     "sp_era_diff",
+    "pitcher_rating_diff",
+    "dynamic_park_factor",
+    "winrate_diff",
+    "timezone_diff",
+]
+
+DEFERRED_ZERO_MODEL_FEATURES = [
     "sp_fip_diff",
     "sp_csw_diff",
     "sp_stuff_plus_diff",
     "k_pct_diff",
     "bb_pct_diff",
-    "pitcher_rating_diff",
     "bullpen_ip_diff",
     "bullpen_availability_diff",
-    "dynamic_park_factor",
-    "winrate_diff",
-    "timezone_diff",
 ]
 
 AVAILABILITY_FLAG_FEATURES = [
@@ -52,7 +55,7 @@ AVAILABILITY_FLAG_FEATURES = [
 
 MODEL_FEATURES = CORE_MODEL_FEATURES + AVAILABILITY_FLAG_FEATURES
 
-TRACKING_ONLY_FEATURES = [
+TRACKING_ONLY_FEATURES = DEFERRED_ZERO_MODEL_FEATURES + [
     "is_day_game",
     "catcher_era_diff",
     "cs_diff",
@@ -91,7 +94,7 @@ TRACKING_ONLY_FEATURES = [
     "platoon_ops_diff",
 ]
 
-CANDIDATE_SHADOW_FEATURES = [
+CANDIDATE_SHADOW_FEATURES = DEFERRED_ZERO_MODEL_FEATURES + [
     "statcast_woba_diff",
     "top3_woba_diff",
     "barrel_pa_diff",
