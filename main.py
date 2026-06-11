@@ -824,7 +824,7 @@ body::before {
   <section class="hero">
     <div class="hero-content">
       <div>
-        <div class="hero-kicker">AI Sports Research Â· MLB only Â· Paper tracking</div>
+        <div class="hero-kicker">AI Sports Research &middot; MLB only &middot; Paper tracking</div>
         <h1><span class="hero-gradient">Multi-game AI analysis with model guardrails</span></h1>
         <p class="hero-copy">
           Product-style MLB game board with market comparison, signal cases, lineup quality,
@@ -842,7 +842,7 @@ body::before {
         <div class="terminal-lines">
           <div class="terminal-line"><span>Mode</span><span>Shadow Research</span></div>
           <div class="terminal-line"><span>Execution</span><span>No Automated Wagering</span></div>
-          <div class="terminal-line"><span>Evidence</span><span>CLV Â· OOS Â· Calibration</span></div>
+          <div class="terminal-line"><span>Evidence</span><span>CLV &middot; OOS &middot; Calibration</span></div>
         </div>
       </aside>
     </div>
@@ -1199,7 +1199,7 @@ function renderProductExperience(productData) {
         <div class="health-card">
           <div class="health-label">${escapeText(card.label || card.risk_id || "Risk")}</div>
           <div class="health-value ${cardStatusClass(card.status)}">${escapeText(card.display_status || card.status || "--")}</div>
-          <div class="health-caption">${escapeText(reasons.slice(0, 2).join(" Â· ") || card.description || "")}</div>
+          <div class="health-caption">${escapeText(reasons.slice(0, 2).join(" · ") || card.description || "")}</div>
         </div>
       `;
     }).join("");
@@ -1356,8 +1356,7 @@ async function openGameDetail(gameId) {
     const sections = Array.isArray(payload.sections) ? payload.sections : [];
 
     title.textContent = game.matchup || "Game Detail";
-    subtitle.textContent = `${signalStatusLabel(game.signal_status)} Â· ${game.selected_team || "No selected team"}`;
-
+    subtitle.textContent = `${signalStatusLabel(game.signal_status)} · ${game.selected_team || "No selected team"}`;
     body.innerHTML = sections.map(section => `
       <div class="detail-section">
         <h3>${escapeText(section.title || section.id || "Section")}</h3>
@@ -1438,8 +1437,8 @@ function renderDailyModelAccuracy(accuracyData) {
 
   setAccuracyValue("acc-all", official);
   document.getElementById("acc-all-caption").textContent =
-    `${accuracyCaption(official, "trusted finalized outcomes only")} Â· pending ${pending.count || 0}`;
-
+    `${accuracyCaption(official, "trusted finalized outcomes only")} · pending ${pending.count || 0}`;
+    
   setAccuracyValue("acc-ml-bets", slices.paper_signals);
   document.getElementById("acc-ml-bets-caption").textContent =
     accuracyCaption(slices.paper_signals, "official paper signal sample");
