@@ -53,6 +53,7 @@ FINALIZED_GAMES_PATH = Path("data/finalized_games.csv")
 FINALIZED_SNAPSHOT_OUTCOMES_PATH = Path("data/finalized_snapshot_outcomes.csv")
 LINEUP_QUALITY_CONTEXT_PATH = Path("data/lineup_quality_context.csv")
 PRODUCT_EXPERIENCE_PATH = Path("report/product_experience_report.json")
+DAILY_MODEL_ACCURACY_PATH = Path("report/daily_model_accuracy_report.json")
 
 CLEAN_PIPELINE_VERSION = "baseline_v2_clean"
 
@@ -889,7 +890,7 @@ body::before {
 
   <div class="section-heading">
     <h2>Accuracy Diagnostics</h2>
-    <span>Breakdown of settled clean predictions</span>
+    <span>Official accuracy from trusted finalized outcomes</span>
   </div>
 
   <section class="stats">
@@ -1257,6 +1258,9 @@ function productGameCard(game) {
   const edge = game.edge == null ? "Edge --" : `Edge ${shortPercent(game.edge, 1, true)}`;
   const marketHome = game.market_home_probability == null ? "--" : shortPercent(game.market_home_probability);
   const homeProb = game.home_probability == null ? "--" : shortPercent(game.home_probability);
+  const pickSide = game.selected_side ? String(game.selected_side).toUpperCase() : "--";
+  const pickLabel = game.selected_team ? `${game.selected_team} (${pickSide})` : "No pick";
+  const modelSource = game.model_source || "unknown";
   const lineupGrade = game.lineup_context && game.lineup_context.lineup_confidence_grade ? game.lineup_context.lineup_confidence_grade : "missing";
   const reasons = Array.isArray(game.signal_reasons) ? game.signal_reasons : [];
   const topFeatures = Array.isArray(game.top_features) ? game.top_features : [];
@@ -1275,7 +1279,8 @@ function productGameCard(game) {
           </div>
           <div class="probability">
             ${escapeText(probability)}
-            <small>${escapeText(game.selected_team || "Model pick")}</small>
+            <small>Pick Win Prob</small>
+            <small>${escapeText(pickLabel)}</small>
           </div>
         </div>
 
@@ -1284,9 +1289,11 @@ function productGameCard(game) {
           <span class="tag ${game.market_role === "underdog" ? "amber" : "green"}">${escapeText(game.market_role || "unknown")}</span>
           <span class="tag ${lineupGrade === "A" || lineupGrade === "B" ? "green" : lineupGrade === "C" ? "amber" : "red"}">Lineup ${escapeText(lineupGrade)}</span>
           <span class="tag muted">${escapeText(game.odds_quality_status || "odds unknown")}</span>
+          <span class="tag muted">Model ${escapeText(modelSource)}</span>
         </div>
 
         <p class="source">
+          Pick: ${escapeText(pickLabel)}<br>
           Model home: ${escapeText(homeProb)} | Market home: ${escapeText(marketHome)}<br>
           Source: ${escapeText(game.odds_source || "No verified source")}
         </p>
@@ -1420,6 +1427,38 @@ function renderAccuracyDiagnostics(performanceData) {
   document.getElementById("acc-favorites-caption").textContent = accuracyCaption(breakdown.favorites, "market favorite picks");
   setAccuracyValue("acc-underdogs", breakdown.underdogs);
   document.getElementById("acc-underdogs-caption").textContent = accuracyCaption(breakdown.underdogs, "market underdog picks");
+}
+
+function renderDailyModelAccuracy(accuracyData) {
+  if (!accuracyData || typeof accuracyData !== "object") return;
+
+  const official = accuracyData.official_accuracy || {};
+  const slices = accuracyData.slices || {};
+  const pending = accuracyData.pending_predictions || {};
+
+  setAccuracyValue("acc-all", official);
+  document.getElementById("acc-all-caption").textContent =
+    `${accuracyCaption(official, "trusted finalized outcomes only")} Â· pending ${pending.count || 0}`;
+
+  setAccuracyValue("acc-ml-bets", slices.paper_signals);
+  document.getElementById("acc-ml-bets-caption").textContent =
+    accuracyCaption(slices.paper_signals, "official paper signal sample");
+
+  setAccuracyValue("acc-home", slices.home_picks);
+  document.getElementById("acc-home-caption").textContent =
+    accuracyCaption(slices.home_picks, "official home-side picks");
+
+  setAccuracyValue("acc-away", slices.away_picks);
+  document.getElementById("acc-away-caption").textContent =
+    accuracyCaption(slices.away_picks, "official away-side picks");
+
+  setAccuracyValue("acc-favorites", slices.favorites);
+  document.getElementById("acc-favorites-caption").textContent =
+    accuracyCaption(slices.favorites, "official market favorite picks");
+
+  setAccuracyValue("acc-underdogs", slices.underdogs);
+  document.getElementById("acc-underdogs-caption").textContent =
+    accuracyCaption(slices.underdogs, "official market underdog picks");
 }
 
 function renderPerformance(performanceData) {
@@ -1576,6 +1615,15 @@ async function loadDashboard() {
     renderAccuracyDiagnostics(performanceData);
   } catch (error) {
     dashboardMessages.push(`<div class="message bad">Performance load failed: ${escapeText(error.message)}</div>`);
+  }
+
+  try {
+    const accuracyResponse = await fetch("/api/daily-model-accuracy");
+    if (!accuracyResponse.ok) throw new Error(`Daily model accuracy API returned ${accuracyResponse.status}`);
+    const accuracyData = await accuracyResponse.json();
+    renderDailyModelAccuracy(accuracyData);
+  } catch (error) {
+    dashboardMessages.push(`<div class="message warn">Daily model accuracy load failed: ${escapeText(error.message)}</div>`);
   }
 
   try {
@@ -2112,6 +2160,73 @@ def get_performance() -> dict[str, Any]:
 
     result["message"] = "Statistics from trusted finalized outcomes joined to clean pregame snapshots"
     return result
+
+
+@app.get("/api/daily-model-accuracy")
+def get_daily_model_accuracy() -> dict[str, Any]:
+    payload, error = _read_json_safe(DAILY_MODEL_ACCURACY_PATH)
+
+    if error is not None:
+        return {
+            "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "status": "partial",
+            "error": error,
+            "official_accuracy": {
+                "sample_count": 0,
+                "correct": 0,
+                "accuracy": None,
+                "brier": None,
+                "logloss": None,
+                "source": "trusted_finalized_snapshot_outcomes",
+            },
+            "daily_accuracy": [],
+            "rolling_windows": {
+                "7d": {"sample_count": 0, "correct": 0, "accuracy": None},
+                "30d": {"sample_count": 0, "correct": 0, "accuracy": None},
+            },
+            "slices": {
+                "home_picks": {"sample_count": 0, "correct": 0, "accuracy": None},
+                "away_picks": {"sample_count": 0, "correct": 0, "accuracy": None},
+                "favorites": {"sample_count": 0, "correct": 0, "accuracy": None},
+                "underdogs": {"sample_count": 0, "correct": 0, "accuracy": None},
+                "paper_signals": {"sample_count": 0, "correct": 0, "accuracy": None},
+                "tracking_only": {"sample_count": 0, "correct": 0, "accuracy": None},
+            },
+            "pending_predictions": {
+                "count": 0,
+                "latest_game_date": None,
+                "reason": "daily_model_accuracy_report_unavailable",
+            },
+            "clv_metrics": {
+                "available": False,
+                "avg_clv": None,
+                "positive_clv_rate": None,
+                "note": "CLV is price movement, not win/loss accuracy.",
+            },
+            "prediction_probability_metrics": {
+                "forecast_only": True,
+                "prediction_count": 0,
+                "avg_home_probability": None,
+                "avg_selected_probability": None,
+                "note": "Forecast probabilities are not settled win/loss accuracy.",
+            },
+            "interpretation": {
+                "official_accuracy_available": False,
+                "display_warning": "Accuracy only includes settled games with trusted outcomes.",
+                "do_not_mix_with_clv": True,
+            },
+            "live_betting_allowed": False,
+            "automated_wagering_allowed": False,
+            "production_model_replacement_allowed": False,
+            "warnings": ["daily_model_accuracy_report.json unavailable"],
+            "errors": [],
+            "recommendations": ["Run scripts/daily_model_accuracy_report.py in the workflow."],
+        }
+
+    payload["live_betting_allowed"] = False
+    payload["automated_wagering_allowed"] = False
+    payload["production_model_replacement_allowed"] = False
+    return _sanitize_json_value(payload)
 
 
 @app.get("/api/health")
@@ -2657,6 +2772,9 @@ def _build_product_game(prediction: dict[str, Any], guardrail_summary: dict[str,
         "spread_recommendation": prediction.get("spread_recommendation"),
         "total_recommendation": prediction.get("total_recommendation"),
         "recommendation_status": prediction.get("recommendation_status"),
+        "model_source": prediction.get("model_source"),
+        "model_load_error": prediction.get("model_load_error"),
+        "model_training_sample_count": prediction.get("model_training_sample_count"),
         "recommendation_block_reason": prediction.get("recommendation_block_reason"),
         "recommendation_block_details": block_details[:5],
         "odds_quality_status": prediction.get("odds_quality_status"),
@@ -2825,6 +2943,7 @@ def get_game_detail(game_id: str) -> dict[str, Any]:
                 {"label": "Matchup", "value": selected.get("matchup")},
                 {"label": "Start Time", "value": selected.get("start_time") or selected.get("game_date")},
                 {"label": "Selected Team", "value": selected.get("selected_team")},
+                {"label": "Selected Side", "value": selected.get("selected_side")},
                 {"label": "Market Role", "value": selected.get("market_role")},
             ],
         },
@@ -2834,8 +2953,9 @@ def get_game_detail(game_id: str) -> dict[str, Any]:
             "items": [
                 {"label": "Signal Status", "value": selected.get("signal_status")},
                 {"label": "Confidence Grade", "value": selected.get("confidence_grade")},
-                {"label": "Selected Probability", "value": selected.get("selected_probability")},
+                {"label": "Pick Win Probability", "value": selected.get("selected_probability")},
                 {"label": "Home Probability", "value": selected.get("home_probability")},
+                {"label": "Model Source", "value": selected.get("model_source")},
             ],
         },
         {
