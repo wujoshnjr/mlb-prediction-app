@@ -1,26 +1,26 @@
 {
-  "generated_at": "2026-06-10T21:48:52.082762+00:00",
+  "generated_at": "2026-06-11T01:49:35.126896+00:00",
   "status": "ok",
-  "sample_count": 178,
-  "underdog_sample_count": 47,
+  "sample_count": 182,
+  "underdog_sample_count": 48,
   "overall": {
-    "sample_count": 47,
-    "correct": 23,
-    "accuracy": 0.48936170212765956,
-    "brier": 0.2505252495744681,
-    "logloss": 0.6942247100711111,
-    "ece": 0.06176808510638295,
+    "sample_count": 48,
+    "correct": 24,
+    "accuracy": 0.5,
+    "brier": 0.24969707375000003,
+    "logloss": 0.6925642131968122,
+    "ece": 0.05091666666666664,
     "insufficient_sample": false,
-    "decision": "weak_slice"
+    "decision": "tracking_only"
   },
   "buckets": {
     "home_underdog": {
-      "sample_count": 15,
-      "correct": 7,
-      "accuracy": 0.4666666666666667,
-      "brier": 0.24572651333333334,
-      "logloss": 0.6846080896966323,
-      "ece": 0.07665333333333338,
+      "sample_count": 16,
+      "correct": 8,
+      "accuracy": 0.5,
+      "brier": 0.24354190687500005,
+      "logloss": 0.6802276378471399,
+      "ece": 0.04316875000000004,
       "insufficient_sample": true,
       "decision": "insufficient_sample"
     },
@@ -35,12 +35,12 @@
       "decision": "tracking_only"
     },
     "positive_clv_underdog": {
-      "sample_count": 28,
-      "correct": 10,
-      "accuracy": 0.35714285714285715,
-      "brier": 0.2597374832142857,
-      "logloss": 0.7129754382663629,
-      "ece": 0.2005107142857143,
+      "sample_count": 29,
+      "correct": 11,
+      "accuracy": 0.3793103448275862,
+      "brier": 0.25804904620689656,
+      "logloss": 0.7095804528125146,
+      "ece": 0.17776551724137934,
       "insufficient_sample": true,
       "decision": "insufficient_sample"
     },
@@ -55,12 +55,12 @@
       "decision": "insufficient_sample"
     },
     "starter_edge_underdog": {
-      "sample_count": 22,
-      "correct": 11,
-      "accuracy": 0.5,
-      "brier": 0.25590873000000003,
-      "logloss": 0.7053997045459982,
-      "ece": 0.10515454545454543,
+      "sample_count": 23,
+      "correct": 12,
+      "accuracy": 0.5217391304347826,
+      "brier": 0.25394629869565216,
+      "logloss": 0.7014484504398572,
+      "ece": 0.12054347826086957,
       "insufficient_sample": true,
       "decision": "insufficient_sample"
     },
@@ -95,14 +95,14 @@
       "decision": "insufficient_sample"
     },
     "lineup_context_missing_underdog": {
-      "sample_count": 47,
-      "correct": 23,
-      "accuracy": 0.48936170212765956,
-      "brier": 0.2505252495744681,
-      "logloss": 0.6942247100711111,
-      "ece": 0.06176808510638295,
+      "sample_count": 48,
+      "correct": 24,
+      "accuracy": 0.5,
+      "brier": 0.24969707375000003,
+      "logloss": 0.6925642131968122,
+      "ece": 0.05091666666666664,
       "insufficient_sample": false,
-      "decision": "weak_slice"
+      "decision": "tracking_only"
     },
     "high_confidence_underdog": {
       "sample_count": 1,
@@ -115,12 +115,12 @@
       "decision": "insufficient_sample"
     },
     "low_confidence_underdog": {
-      "sample_count": 46,
-      "correct": 22,
-      "accuracy": 0.4782608695652174,
-      "brier": 0.25377172,
-      "logloss": 0.7009932416062324,
-      "ece": 0.07002608695652171,
+      "sample_count": 47,
+      "correct": 23,
+      "accuracy": 0.48936170212765956,
+      "brier": 0.2528568495744681,
+      "logloss": 0.6991534037019457,
+      "ece": 0.058768085106382935,
       "insufficient_sample": false,
       "decision": "weak_slice"
     }
@@ -129,40 +129,39 @@
     "underdog_policy": "TRACKING_ONLY",
     "allow_when": [],
     "block_when": [
-      "lineup_context_missing_underdog is weak",
       "low_confidence_underdog is weak",
       "overall underdog slice is not strong enough for paper entry upgrade"
     ],
     "notes": []
   },
   "sample_state": {
-    "generated_at": "2026-06-10T21:48:49.743759+00:00",
-    "last_updated": "2026-06-10T21:48:49.743774+00:00",
+    "generated_at": "2026-06-11T01:49:32.799499+00:00",
+    "last_updated": "2026-06-11T01:49:32.799514+00:00",
     "status": "ok",
     "current_stage": "STAGE_2_BASELINE_TRAINING_READY",
     "input_files": {
       "prediction_snapshots": {
         "path": "data/prediction_snapshots.csv",
         "exists": true,
-        "rows": 192,
+        "rows": 200,
         "error": ""
       },
       "finalized_games": {
         "path": "data/finalized_games.csv",
         "exists": true,
-        "rows": 973,
+        "rows": 977,
         "error": ""
       },
       "finalized_snapshot_outcomes": {
         "path": "data/finalized_snapshot_outcomes.csv",
         "exists": true,
-        "rows": 178,
+        "rows": 182,
         "error": ""
       },
       "training_samples": {
         "path": "data/training_samples.csv",
         "exists": true,
-        "rows": 178,
+        "rows": 182,
         "error": ""
       },
       "settled_prediction_link_report": {
@@ -196,23 +195,23 @@
         "type": "dict"
       }
     },
-    "raw_snapshots": 192,
-    "valid_snapshots": 192,
-    "finalized_games": 973,
-    "finalized_snapshot_outcome_rows": 178,
-    "linked_games": 178,
-    "settled_snapshots": 178,
-    "clean_settled_snapshots": 178,
-    "clean_settled_sample_count": 178,
-    "train_eligible_samples": 178,
-    "training_status_sample_count": 178,
+    "raw_snapshots": 200,
+    "valid_snapshots": 200,
+    "finalized_games": 977,
+    "finalized_snapshot_outcome_rows": 182,
+    "linked_games": 182,
+    "settled_snapshots": 182,
+    "clean_settled_snapshots": 182,
+    "clean_settled_sample_count": 182,
+    "train_eligible_samples": 182,
+    "training_status_sample_count": 182,
     "loaded_artifact_sample_count": 109,
     "model_artifact_training_samples": 109,
     "active_model_sample_count": 0,
     "model_artifact_valid": false,
     "model_artifact_error": "",
     "walkforward_predictions": 0,
-    "link_rate": 0.927083,
+    "link_rate": 0.91,
     "minimum_clean_train_samples": 300,
     "minimum_promotion_samples": 500,
     "minimum_walkforward_predictions": 300,
@@ -227,13 +226,13 @@
     "production_model_replacement_allowed": false,
     "errors": [],
     "warnings": [
-      "Finalized linkage diagnostic: overlap_after=178, api_final_written=0, pending_not_final=14, api_not_found_or_failed=0.",
+      "Finalized linkage diagnostic: overlap_after=182, api_final_written=0, pending_not_final=10, api_not_found_or_failed=0.",
       "Model artifact is not valid for active ML use; prediction must use manual or market baseline."
     ],
     "recommendations": [
-      "Promotion sample threshold not met: 178 < 500.",
+      "Promotion sample threshold not met: 182 < 500.",
       "Rolling walk-forward predictions below threshold: 0 < 300.",
-      "Train-eligible samples are below threshold: 178 < 300."
+      "Train-eligible samples are below threshold: 182 < 300."
     ]
   },
   "warnings": [],
