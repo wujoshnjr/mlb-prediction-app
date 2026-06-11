@@ -38,6 +38,7 @@ REQUIRED_JSON_REPORTS = {
     "training_samples": REPORT_DIR / "training_samples_report.json",
     "model_artifact_status": DATA_DIR / "model_artifact_status.json",
     "model_artifact_status_report": REPORT_DIR / "model_artifact_status_report.json",
+    "daily_model_accuracy": REPORT_DIR / "daily_model_accuracy_report.json",
 }
 
 OPTIONAL_JSON_REPORTS = {
@@ -300,6 +301,63 @@ def _validate_training_status(report: Dict[str, Any], errors: List[str]) -> None
     )
 
 
+def _validate_daily_model_accuracy(report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report("daily_model_accuracy", report, errors)
+
+    _require_keys(
+        report,
+        [
+            "pipeline_version",
+            "official_accuracy",
+            "daily_accuracy",
+            "rolling_windows",
+            "slices",
+            "pending_predictions",
+            "clv_metrics",
+            "prediction_probability_metrics",
+            "interpretation",
+            "live_betting_allowed",
+            "automated_wagering_allowed",
+            "production_model_replacement_allowed",
+        ],
+        errors,
+        "daily_model_accuracy",
+    )
+
+    if report.get("live_betting_allowed") is not False:
+        errors.append("daily_model_accuracy: live_betting_allowed must be false")
+    if report.get("automated_wagering_allowed") is not False:
+        errors.append("daily_model_accuracy: automated_wagering_allowed must be false")
+    if report.get("production_model_replacement_allowed") is not False:
+        errors.append("daily_model_accuracy: production_model_replacement_allowed must be false")
+
+    official = report.get("official_accuracy")
+    if isinstance(official, dict):
+        _require_keys(
+            official,
+            ["sample_count", "correct", "accuracy", "brier", "logloss", "source"],
+            errors,
+            "daily_model_accuracy.official_accuracy",
+        )
+    else:
+        errors.append("daily_model_accuracy: official_accuracy is not an object")
+
+    clv_metrics = report.get("clv_metrics")
+    if isinstance(clv_metrics, dict):
+        note = str(clv_metrics.get("note") or "").lower()
+        if "not win/loss accuracy" not in note:
+            errors.append("daily_model_accuracy.clv_metrics: must clearly say CLV is not win/loss accuracy")
+    else:
+        errors.append("daily_model_accuracy: clv_metrics is not an object")
+
+    interpretation = report.get("interpretation")
+    if isinstance(interpretation, dict):
+        if interpretation.get("do_not_mix_with_clv") is not True:
+            errors.append("daily_model_accuracy.interpretation: do_not_mix_with_clv must be true")
+    else:
+        errors.append("daily_model_accuracy: interpretation is not an object")
+
+
 def build_contract_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -389,6 +447,9 @@ def build_contract_report() -> Dict[str, Any]:
 
     if "training_status" in reports:
         _validate_training_status(reports["training_status"], errors)
+
+    if "daily_model_accuracy" in reports:
+        _validate_daily_model_accuracy(reports["daily_model_accuracy"], errors)
 
     report = {
         "generated_at": _utc_now(),
