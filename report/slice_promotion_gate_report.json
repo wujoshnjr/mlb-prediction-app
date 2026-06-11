@@ -1,31 +1,34 @@
 {
-  "generated_at": "2026-06-11T01:49:36.511749+00:00",
+  "generated_at": "2026-06-11T04:34:00.663665+00:00",
   "status": "ok",
   "global_decision": "NO_PROMOTION_SHADOW_ONLY",
-  "sample_count": 182,
+  "sample_count": 191,
   "minimum_research_sample": 300,
   "paper_entry_policy": {
     "home_favorite": "TRACKING_ONLY",
     "away_favorite": "TRACKING_ONLY",
     "home_underdog": "PAPER_ENTRY_BLOCKED_BY_RISK",
     "away_underdog": "PAPER_ENTRY_BLOCKED_BY_RISK",
-    "high_confidence": "TRACKING_ONLY",
+    "high_confidence": "PAPER_ENTRY_BLOCKED_BY_RISK",
     "lineup_missing": "TRACKING_ONLY",
     "lineup_ready": "MODEL_SIGNAL_ONLY",
     "default": "TRACKING_ONLY"
   },
   "evidence": {
-    "underdog_accuracy": 0.5,
-    "underdog_ece": 0.05091666666666664,
-    "underdog_sample_count": 48,
+    "underdog_accuracy": 0.47058823529411764,
+    "underdog_ece": 0.08117450980392152,
+    "underdog_sample_count": 51,
     "underdog_policy": "TRACKING_ONLY",
-    "high_confidence_blocked": false,
-    "unsafe_confidence_buckets": [],
+    "high_confidence_blocked": true,
+    "unsafe_confidence_buckets": [
+      "65_70"
+    ],
     "calibration_ready": false,
     "calibration_ece": null
   },
   "blockers": [
-    "insufficient_samples_for_slice_promotion: 182 < 300",
+    "high-confidence language is blocked by confidence guardrail",
+    "insufficient_samples_for_slice_promotion: 191 < 300",
     "underdog slice is not approved for paper entry upgrade"
   ],
   "warnings": [],
