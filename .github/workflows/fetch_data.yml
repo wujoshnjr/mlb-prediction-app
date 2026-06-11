@@ -144,6 +144,7 @@ jobs:
             scripts/edge_sanity_guardrail.py \
             scripts/signal_quality_report.py \
             scripts/product_experience_report.py \
+            scripts/daily_model_accuracy_report.py \
             scripts/training_samples_builder.py \
             scripts/model_artifact_status.py
             
@@ -484,12 +485,17 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build daily model accuracy report
+        run: python scripts/daily_model_accuracy_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Build signal quality report
         continue-on-error: true
         run: python scripts/signal_quality_report.py
         env:
           PYTHONPATH: ${{ github.workspace }}
-
+          
       - name: Build product experience report
         continue-on-error: true
         run: python scripts/product_experience_report.py
@@ -706,6 +712,7 @@ jobs:
             report/feature_freshness_report.json \
             report/lineup_quality_report.json \
             report/model_correctness_report.json \
+            report/daily_model_accuracy_report.json \
             report/edge_sanity_guardrail_report.json \
             report/signal_quality_report.json \
             report/product_experience_report.json \
