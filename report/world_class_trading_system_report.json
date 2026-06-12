@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-06-11T23:40:42.645123+00:00",
+  "generated_at": "2026-06-12T14:39:27.485654+00:00",
   "status": "paper_trading_only_blocked_for_live",
   "world_class_stage": "advanced_shadow_trading_candidate",
-  "overall_score": 83.61,
+  "overall_score": 83.64,
   "overall_grade": "B",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
@@ -44,8 +44,8 @@
           "passed": true,
           "weight": 10,
           "details": {
-            "prediction_count": 8,
-            "audit_count": 8
+            "prediction_count": 15,
+            "audit_count": 15
           }
         },
         {
@@ -59,7 +59,7 @@
           "passed": true,
           "weight": 15,
           "details": {
-            "linked_game_count": 196
+            "linked_game_count": 198
           }
         }
       ],
@@ -81,13 +81,13 @@
           "name": "model_beats_market_brier",
           "passed": true,
           "weight": 15,
-          "details": 0.254016
+          "details": 0.253325
         },
         {
           "name": "model_beats_market_logloss",
           "passed": true,
           "weight": 15,
-          "details": 0.701918
+          "details": 0.700369
         },
         {
           "name": "avg_clv_positive",
@@ -105,7 +105,7 @@
           "name": "calibration_ready",
           "passed": false,
           "weight": 10,
-          "details": 196
+          "details": 198
         },
         {
           "name": "walkforward_ready",
@@ -123,11 +123,11 @@
           "name": "settled_samples_at_least_500",
           "passed": false,
           "weight": 5,
-          "details": 196
+          "details": 198
         }
       ],
       "blockers": [
-        "settled prediction samples < 500 (196)",
+        "settled prediction samples < 500 (198)",
         "rolling OOS predictions < 300 (0)",
         "calibration is not ready"
       ],
@@ -147,7 +147,7 @@
           "name": "prediction_live_flags_locked",
           "passed": true,
           "weight": 25,
-          "details": 8
+          "details": 15
         },
         {
           "name": "live_stake_units_zero",
@@ -192,7 +192,7 @@
     "model_upgrade_path": {
       "name": "Layer 4 - Model Upgrade Path",
       "status": "blocked",
-      "score": 53.07,
+      "score": 53.2,
       "grade": "D",
       "signals": [
         {
@@ -200,7 +200,7 @@
           "passed": false,
           "weight": 20,
           "details": {
-            "sample_count": 196,
+            "sample_count": 198,
             "minimum": 300
           }
         },
@@ -214,13 +214,13 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 52
+          "details": 53
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
           "passed": true,
           "weight": 20,
-          "details": 0.7096774193548387
+          "details": 0.5806451612903226
         },
         {
           "name": "rolling_oos_started",
@@ -230,7 +230,7 @@
         }
       ],
       "blockers": [
-        "clean training samples below threshold: 196 < 300",
+        "clean training samples below threshold: 198 < 300",
         "model is not trained yet"
       ],
       "warnings": [
@@ -270,13 +270,13 @@
           "name": "artifact_retention_ok",
           "passed": true,
           "weight": 10,
-          "details": 96
+          "details": 97
         },
         {
           "name": "decision_audit_ok",
           "passed": true,
           "weight": 10,
-          "details": 8
+          "details": 15
         },
         {
           "name": "paper_ledger_ok",
@@ -318,10 +318,10 @@
   },
   "critical_blockers": [],
   "blockers": [
-    "research_quality: settled prediction samples < 500 (196)",
+    "research_quality: settled prediction samples < 500 (198)",
     "research_quality: rolling OOS predictions < 300 (0)",
     "research_quality: calibration is not ready",
-    "model_upgrade_path: clean training samples below threshold: 196 < 300",
+    "model_upgrade_path: clean training samples below threshold: 198 < 300",
     "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
