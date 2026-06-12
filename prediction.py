@@ -1908,6 +1908,110 @@ def evaluate_betting_readiness(
     }
 
 
+    def evaluate_away_pick_guardrail(
+    *,
+    selected_side: str,
+    selected_edge: float | None,
+    selected_probability: float | None,
+    market_home_probability: float | None,
+    daily_context_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Downgrade historically weak away-paper-signal buckets to tracking-only.
+
+    This is a paper-research guardrail only.
+    It must never enable live betting, automated wagering, or production model replacement.
+    """
+    side = str(selected_side or "").strip().lower()
+    context = daily_context_summary or {}
+
+    def optional_float(value: Any) -> float | None:
+        try:
+            if value is None:
+                return None
+            parsed = float(value)
+            if not np.isfinite(parsed):
+                return None
+            return parsed
+        except Exception:
+            return None
+
+    edge = optional_float(selected_edge)
+    probability = optional_float(selected_probability)
+    market_home = optional_float(market_home_probability)
+    away_market_probability = (
+        round(float(1.0 - market_home), 6)
+        if market_home is not None
+        else None
+    )
+
+    pitcher_status = str(context.get("pitcher_status") or "").strip().lower()
+    lineup_status = str(context.get("lineup_status") or "").strip().lower()
+    bullpen_status = str(context.get("bullpen_status") or "").strip().lower()
+
+    pitcher_confirmed = pitcher_status in {
+        "confirmed",
+        "high_confidence_probable",
+        "known",
+    }
+    lineup_confirmed = lineup_status == "confirmed"
+    bullpen_available = bullpen_status == "available"
+
+    away_context_confirmed = bool(
+        pitcher_confirmed and lineup_confirmed and bullpen_available
+    )
+
+    if side != "away":
+        return {
+            "away_guardrail_status": "not_applicable",
+            "away_guardrail_applied": False,
+            "away_guardrail_reasons": [],
+            "away_guardrail_notes": [],
+            "away_selected_edge": None,
+            "away_selected_probability": None,
+            "away_market_probability": away_market_probability,
+            "away_context_confirmed": away_context_confirmed,
+        }
+
+    status = "pass"
+    reasons: list[str] = []
+    notes: list[str] = []
+
+    if edge is not None and 0.03 <= abs(edge) < 0.08:
+        status = "tracking_only"
+        reasons.append("away_mid_edge_underperforming_bucket")
+
+    if market_home is not None and 0.50 <= market_home < 0.55:
+        status = "tracking_only"
+        reasons.append("away_slight_home_market_underperforming_bucket")
+
+    if (
+        market_home is not None
+        and market_home >= 0.50
+        and probability is not None
+        and probability < 0.58
+    ):
+        status = "tracking_only"
+        reasons.append("away_low_selected_probability_vs_home_market")
+
+    if not away_context_confirmed:
+        notes.append("away_context_unconfirmed")
+
+    return {
+        "away_guardrail_status": status,
+        "away_guardrail_applied": status == "tracking_only",
+        "away_guardrail_reasons": sorted(set(reasons)),
+        "away_guardrail_notes": sorted(set(notes)),
+        "away_selected_edge": round(float(edge), 6) if edge is not None else None,
+        "away_selected_probability": (
+            round(float(probability), 6)
+            if probability is not None
+            else None
+        ),
+        "away_market_probability": away_market_probability,
+        "away_context_confirmed": away_context_confirmed,
+    }
+
+
 def calculate_accuracy_safe_model_weight(
     *,
     sample_count: int,
