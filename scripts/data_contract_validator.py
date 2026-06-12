@@ -40,6 +40,7 @@ REQUIRED_JSON_REPORTS = {
     "model_artifact_status_report": REPORT_DIR / "model_artifact_status_report.json",
     "daily_model_accuracy": REPORT_DIR / "daily_model_accuracy_report.json",
     "away_pick_diagnostic": REPORT_DIR / "away_pick_diagnostic_report.json",
+    "away_guardrail_impact": REPORT_DIR / "away_guardrail_impact_report.json",
 }
 
 OPTIONAL_JSON_REPORTS = {
@@ -485,6 +486,86 @@ def _validate_away_pick_diagnostic(report: Dict[str, Any], errors: List[str]) ->
         errors.append("away_pick_diagnostic: interpretation is not an object")
 
 
+def _validate_away_guardrail_impact(report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report("away_guardrail_impact", report, errors)
+
+    _require_keys(
+        report,
+        [
+            "report_type",
+            "pipeline_version",
+            "betting_mode",
+            "input_files",
+            "summary",
+            "reason_counts",
+            "guardrail_status_counts",
+            "downgraded_examples",
+            "interpretation",
+            "live_betting_allowed",
+            "automated_wagering_allowed",
+            "production_model_replacement_allowed",
+        ],
+        errors,
+        "away_guardrail_impact",
+    )
+
+    if report.get("report_type") != "away_guardrail_impact_v1":
+        errors.append("away_guardrail_impact: report_type must be away_guardrail_impact_v1")
+
+    if report.get("betting_mode") != "paper_research":
+        errors.append("away_guardrail_impact: betting_mode must be paper_research")
+
+    if report.get("live_betting_allowed") is not False:
+        errors.append("away_guardrail_impact: live_betting_allowed must be false")
+    if report.get("automated_wagering_allowed") is not False:
+        errors.append("away_guardrail_impact: automated_wagering_allowed must be false")
+    if report.get("production_model_replacement_allowed") is not False:
+        errors.append("away_guardrail_impact: production_model_replacement_allowed must be false")
+
+    summary = report.get("summary")
+    if isinstance(summary, dict):
+        _require_keys(
+            summary,
+            [
+                "prediction_count",
+                "away_candidate_count",
+                "away_guardrail_applied_count",
+                "away_guardrail_applied_rate",
+                "retained_away_paper_signal_count",
+                "downgraded_away_tracking_only_count",
+                "home_candidate_count",
+            ],
+            errors,
+            "away_guardrail_impact.summary",
+        )
+    else:
+        errors.append("away_guardrail_impact: summary is not an object")
+
+    if not isinstance(report.get("reason_counts"), dict):
+        errors.append("away_guardrail_impact: reason_counts is not an object")
+
+    if not isinstance(report.get("guardrail_status_counts"), dict):
+        errors.append("away_guardrail_impact: guardrail_status_counts is not an object")
+
+    if not isinstance(report.get("downgraded_examples"), list):
+        errors.append("away_guardrail_impact: downgraded_examples is not a list")
+
+    interpretation = report.get("interpretation")
+    if isinstance(interpretation, dict):
+        _require_keys(
+            interpretation,
+            [
+                "guardrail_note",
+                "paper_only_note",
+                "recommended_use",
+            ],
+            errors,
+            "away_guardrail_impact.interpretation",
+        )
+    else:
+        errors.append("away_guardrail_impact: interpretation is not an object")
+
+
 def build_contract_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -580,6 +661,9 @@ def build_contract_report() -> Dict[str, Any]:
 
     if "away_pick_diagnostic" in reports:
         _validate_away_pick_diagnostic(reports["away_pick_diagnostic"], errors)
+
+    if "away_guardrail_impact" in reports:
+        _validate_away_guardrail_impact(reports["away_guardrail_impact"], errors)
         
     report = {
         "generated_at": _utc_now(),
