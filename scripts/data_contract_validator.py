@@ -39,6 +39,7 @@ REQUIRED_JSON_REPORTS = {
     "model_artifact_status": DATA_DIR / "model_artifact_status.json",
     "model_artifact_status_report": REPORT_DIR / "model_artifact_status_report.json",
     "daily_model_accuracy": REPORT_DIR / "daily_model_accuracy_report.json",
+    "away_pick_diagnostic": REPORT_DIR / "away_pick_diagnostic_report.json",
 }
 
 OPTIONAL_JSON_REPORTS = {
@@ -356,6 +357,132 @@ def _validate_daily_model_accuracy(report: Dict[str, Any], errors: List[str]) ->
             errors.append("daily_model_accuracy.interpretation: do_not_mix_with_clv must be true")
     else:
         errors.append("daily_model_accuracy: interpretation is not an object")
+
+
+def _validate_away_pick_diagnostic(report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report("away_pick_diagnostic", report, errors)
+
+    _require_keys(
+        report,
+        [
+            "pipeline_version",
+            "report_type",
+            "betting_mode",
+            "input_files",
+            "sample_summary",
+            "official_accuracy",
+            "away_segments",
+            "away_by_edge_bucket",
+            "away_by_market_prob_bucket",
+            "clv_summary",
+            "recommended_guardrails",
+            "interpretation",
+            "live_betting_allowed",
+            "automated_wagering_allowed",
+            "production_model_replacement_allowed",
+        ],
+        errors,
+        "away_pick_diagnostic",
+    )
+
+    if report.get("report_type") != "away_pick_diagnostic_v1":
+        errors.append("away_pick_diagnostic: report_type must be away_pick_diagnostic_v1")
+
+    if report.get("betting_mode") != "paper_research":
+        errors.append("away_pick_diagnostic: betting_mode must be paper_research")
+
+    if report.get("live_betting_allowed") is not False:
+        errors.append("away_pick_diagnostic: live_betting_allowed must be false")
+    if report.get("automated_wagering_allowed") is not False:
+        errors.append("away_pick_diagnostic: automated_wagering_allowed must be false")
+    if report.get("production_model_replacement_allowed") is not False:
+        errors.append("away_pick_diagnostic: production_model_replacement_allowed must be false")
+
+    metadata = report.get("metadata")
+    if isinstance(metadata, dict):
+        if metadata.get("live_betting_allowed") is not False:
+            errors.append("away_pick_diagnostic.metadata: live_betting_allowed must be false")
+        if metadata.get("automated_wagering_allowed") is not False:
+            errors.append("away_pick_diagnostic.metadata: automated_wagering_allowed must be false")
+        if metadata.get("production_model_replacement_allowed") is not False:
+            errors.append("away_pick_diagnostic.metadata: production_model_replacement_allowed must be false")
+    else:
+        errors.append("away_pick_diagnostic: metadata is not an object")
+
+    sample_summary = report.get("sample_summary")
+    if isinstance(sample_summary, dict):
+        _require_keys(
+            sample_summary,
+            [
+                "total_predictions",
+                "settled_predictions",
+                "pending_predictions",
+                "home_pick_count",
+                "away_pick_count",
+                "away_pick_settled_count",
+                "away_pick_pending_count",
+                "away_pick_rate",
+            ],
+            errors,
+            "away_pick_diagnostic.sample_summary",
+        )
+    else:
+        errors.append("away_pick_diagnostic: sample_summary is not an object")
+
+    official = report.get("official_accuracy")
+    if isinstance(official, dict):
+        for key in ("all_picks", "home_picks", "away_picks"):
+            bucket = official.get(key)
+            if isinstance(bucket, dict):
+                _require_keys(
+                    bucket,
+                    ["sample_count", "correct", "accuracy", "brier"],
+                    errors,
+                    f"away_pick_diagnostic.official_accuracy.{key}",
+                )
+            else:
+                errors.append(f"away_pick_diagnostic.official_accuracy: {key} is not an object")
+    else:
+        errors.append("away_pick_diagnostic: official_accuracy is not an object")
+
+    away_segments = report.get("away_segments")
+    if isinstance(away_segments, dict):
+        for key in (
+            "away_favorites",
+            "away_underdogs",
+            "away_high_edge",
+            "away_low_edge",
+            "away_confirmed_context",
+            "away_unconfirmed_context",
+        ):
+            if key not in away_segments:
+                errors.append(f"away_pick_diagnostic.away_segments: missing {key}")
+    else:
+        errors.append("away_pick_diagnostic: away_segments is not an object")
+
+    clv_summary = report.get("clv_summary")
+    if isinstance(clv_summary, dict):
+        note = str(clv_summary.get("note") or "").lower()
+        if "not win/loss accuracy" not in note:
+            errors.append("away_pick_diagnostic.clv_summary: must clearly say CLV is not win/loss accuracy")
+    else:
+        errors.append("away_pick_diagnostic: clv_summary is not an object")
+
+    interpretation = report.get("interpretation")
+    if isinstance(interpretation, dict):
+        _require_keys(
+            interpretation,
+            [
+                "official_accuracy_note",
+                "pending_note",
+                "clv_note",
+                "recommended_use",
+            ],
+            errors,
+            "away_pick_diagnostic.interpretation",
+        )
+    else:
+        errors.append("away_pick_diagnostic: interpretation is not an object")
 
 
 def build_contract_report() -> Dict[str, Any]:
