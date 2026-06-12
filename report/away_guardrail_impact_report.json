@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-06-12T17:16:29.412453Z",
+  "status": "ok",
+  "report_type": "away_guardrail_impact_v1",
+  "pipeline_version": "baseline_v2_clean",
+  "betting_mode": "paper_research",
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false,
+  "production_model_replacement_allowed": false,
+  "input_files": {
+    "prediction": {
+      "path": "report/prediction.json",
+      "required": true,
+      "available": true,
+      "error": null
+    },
+    "away_pick_diagnostic": {
+      "path": "report/away_pick_diagnostic_report.json",
+      "required": false,
+      "available": true,
+      "error": null
+    }
+  },
+  "summary": {
+    "prediction_count": 15,
+    "away_candidate_count": 0,
+    "away_guardrail_applied_count": 0,
+    "away_guardrail_applied_rate": null,
+    "retained_away_paper_signal_count": 0,
+    "downgraded_away_tracking_only_count": 0,
+    "home_candidate_count": 0
+  },
+  "reason_counts": {},
+  "guardrail_status_counts": {},
+  "downgraded_examples": [],
+  "diagnostic_snapshot": {
+    "away_pick_accuracy": 0.4909090909090909,
+    "away_pick_sample_count": 110,
+    "away_pick_rate": 0.5627906976744186,
+    "recommended_guardrails": [
+      "Away picks materially underperform home picks; raise away edge threshold."
+    ]
+  },
+  "interpretation": {
+    "guardrail_note": "Away guardrail impact is measured on current prediction candidates, not settled outcomes.",
+    "paper_only_note": "This report never enables live betting, automated wagering, or production model replacement.",
+    "recommended_use": "Use this report to monitor how many away candidates are downgraded to tracking-only before evaluating settled outcomes later."
+  },
+  "warnings": [],
+  "errors": [],
+  "recommendations": [
+    "No away candidates in current prediction report; continue monitoring."
+  ]
+}
