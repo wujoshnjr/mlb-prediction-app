@@ -729,9 +729,12 @@ def _base_report(
     clv_data: dict[str, Any] | None,
     sample_state: dict[str, Any] | None,
 ) -> dict[str, Any]:
+    generated_at = _utc_now()
+
     return {
+        "generated_at": generated_at,
         "metadata": {
-            "generated_at": _utc_now(),
+            "generated_at": generated_at,
             "status": "ok",
             "pipeline_version": PIPELINE_VERSION,
             "report_type": REPORT_TYPE,
