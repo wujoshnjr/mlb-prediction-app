@@ -146,6 +146,7 @@ jobs:
             scripts/product_experience_report.py \
             scripts/daily_model_accuracy_report.py \
             scripts/away_pick_diagnostic_report.py \
+            scripts/away_guardrail_impact_report.py \
             scripts/training_samples_builder.py \
             scripts/model_artifact_status.py
             
@@ -495,6 +496,11 @@ jobs:
         run: python scripts/away_pick_diagnostic_report.py
         env:
           PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build away guardrail impact report
+        run: python scripts/away_guardrail_impact_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
           
       - name: Build signal quality report
         continue-on-error: true
@@ -720,6 +726,7 @@ jobs:
             report/model_correctness_report.json \
             report/daily_model_accuracy_report.json \
             report/away_pick_diagnostic_report.json \
+            report/away_guardrail_impact_report.json \
             report/edge_sanity_guardrail_report.json \
             report/signal_quality_report.json \
             report/product_experience_report.json \
