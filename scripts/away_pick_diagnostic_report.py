@@ -910,21 +910,34 @@ def compute_report(
 
     away_all = away_picks.copy()
 
+    away_market_home_probability = pd.to_numeric(
+        away_all["market_home_probability"],
+        errors="coerce",
+    )
+    away_selected_edge = pd.to_numeric(
+        away_all["away_selected_edge"],
+        errors="coerce",
+    )
+    away_row_clv = pd.to_numeric(
+        away_all["row_clv"],
+        errors="coerce",
+    )
+
     away_segments = {
         "away_favorites": _segment_summary(
-            away_all[away_all["market_home_probability"] < 0.5]
+            away_all[away_market_home_probability < 0.5]
         ),
         "away_underdogs": _segment_summary(
-            away_all[away_all["market_home_probability"] >= 0.5]
+            away_all[away_market_home_probability >= 0.5]
         ),
         "away_high_edge": _segment_summary(
-            away_all[away_all["away_selected_edge"].abs() >= 0.05]
+            away_all[away_selected_edge.abs() >= 0.05]
         ),
         "away_low_edge": _segment_summary(
-            away_all[away_all["away_selected_edge"].abs() < 0.03]
+            away_all[away_selected_edge.abs() < 0.03]
         ),
-        "away_positive_clv": _segment_summary(away_all[away_all["row_clv"] > 0]),
-        "away_negative_clv": _segment_summary(away_all[away_all["row_clv"] <= 0]),
+        "away_positive_clv": _segment_summary(away_all[away_row_clv > 0]),
+        "away_negative_clv": _segment_summary(away_all[away_row_clv <= 0]),
         "away_confirmed_context": _segment_summary(
             away_all[away_all["context_confirmed_flag"] == True]
         ),
