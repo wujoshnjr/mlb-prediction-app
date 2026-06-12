@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-06-12T19:31:59.955869+00:00",
+  "generated_at": "2026-06-12T22:14:19.253417+00:00",
   "source": "report/feature_availability_diagnostic.json",
   "model_feature_count": 19,
   "tracking_only_feature_count": 43,
   "grade_counts": {
-    "A": 42,
-    "B": 2,
-    "C": 2,
-    "D": 16
+    "A": 43,
+    "B": 1,
+    "C": 3,
+    "D": 15
   },
   "model_features": [
     "elo_diff",
@@ -120,9 +120,9 @@
       "group": "pitching",
       "grade": "A",
       "availability_rate": 1.0,
-      "non_zero_rate": 0.8667,
+      "non_zero_rate": 0.9333,
       "missing_rate": 0.0,
-      "zero_rate": 0.1333,
+      "zero_rate": 0.0667,
       "latest_importance": 0.0,
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
@@ -309,6 +309,19 @@
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
       "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "lineup_context_available",
+      "group": "lineup",
+      "grade": "A",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.8,
+      "missing_rate": 0.0,
+      "zero_rate": 0.2,
+      "latest_importance": 0.0,
+      "training_allowed_by_schema": true,
+      "tracking_only_by_schema": false,
+      "recommendation": "allowed_in_main_model"
     },
     {
       "feature": "log5_prob",
@@ -636,19 +649,6 @@
       "recommendation": "tracking_only_by_schema"
     },
     {
-      "feature": "temp_effect",
-      "group": "weather",
-      "grade": "B",
-      "availability_rate": 1.0,
-      "non_zero_rate": 0.2,
-      "missing_rate": 0.0,
-      "zero_rate": 0.8,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": false,
-      "tracking_only_by_schema": true,
-      "recommendation": "tracking_only_by_schema"
-    },
-    {
       "feature": "dynamic_pythag_diff",
       "group": "other",
       "grade": "C",
@@ -657,6 +657,19 @@
       "missing_rate": 0.0,
       "zero_rate": 0.9333,
       "latest_importance": 0.16481608,
+      "training_allowed_by_schema": false,
+      "tracking_only_by_schema": true,
+      "recommendation": "tracking_only_by_schema"
+    },
+    {
+      "feature": "temp_effect",
+      "group": "weather",
+      "grade": "C",
+      "availability_rate": 1.0,
+      "non_zero_rate": 0.0667,
+      "missing_rate": 0.0,
+      "zero_rate": 0.9333,
+      "latest_importance": 0.0,
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
       "recommendation": "tracking_only_by_schema"
@@ -764,19 +777,6 @@
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
       "recommendation": "tracking_only_by_schema"
-    },
-    {
-      "feature": "lineup_context_available",
-      "group": "lineup",
-      "grade": "D",
-      "availability_rate": 1.0,
-      "non_zero_rate": 0.0,
-      "missing_rate": 0.0,
-      "zero_rate": 1.0,
-      "latest_importance": 0.0,
-      "training_allowed_by_schema": true,
-      "tracking_only_by_schema": false,
-      "recommendation": "exclude_until_stable"
     },
     {
       "feature": "odds_available",

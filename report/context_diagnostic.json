@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-06-12T19:31:49.288983+00:00",
+  "generated_at": "2026-06-12T22:14:07.695686+00:00",
   "daily_context": {
     "exists": true,
     "error": "",
-    "row_count": 2214,
+    "row_count": 2229,
     "column_count": 108,
     "schema_versions": [
       "daily_context_v1",
       "daily_context_v2",
       "daily_context_v3"
     ],
-    "latest_captured_at": "2026-06-12T19:10:12.105425+00:00",
+    "latest_captured_at": "2026-06-12T21:52:30.159126+00:00",
     "latest_game_count": 15,
     "columns_present": [
       "home_starter_status",
@@ -41,21 +41,23 @@
       "mixed_probable": 1
     },
     "lineup_status_counts": {
-      "pending": 10,
-      "partial_confirmed": 5
+      "confirmed": 12,
+      "partial_confirmed": 1,
+      "pending": 2
     },
     "starter_confidence_status_counts": {
       "known": 15
     },
     "missing_critical_field_counts": {
-      "home_lineup_confirmed": 10,
-      "away_lineup_confirmed": 15,
+      "none": 10,
       "away_bullpen_data_available": 1,
       "away_closer_available_known": 1,
       "home_bullpen_data_available": 1,
       "home_closer_available_known": 1,
+      "away_lineup_confirmed": 3,
       "home_starting_pitcher_confirmed": 1,
-      "away_starting_pitcher_confirmed": 1
+      "away_starting_pitcher_confirmed": 1,
+      "home_lineup_confirmed": 2
     },
     "context_status_counts": {
       "TRACKING_ONLY_CONTEXT_NOT_READY": 15
@@ -67,17 +69,17 @@
     "average_betting_readiness_score": 0.0,
     "risk_flag_counts": {
       "closer_high_fatigue": 11,
-      "context_missing_fields": 15,
       "data_quality_bet_blocked": 15,
       "early_model_small_sample": 15,
       "edge_unavailable": 15,
-      "lineup_not_confirmed": 15,
       "model_governance_live_locked": 15,
       "non_ml_model": 15,
       "odds_not_ok": 15,
       "starter_confirmation_pending": 14,
       "closer_fatigue": 2,
-      "bullpen_not_available": 2
+      "bullpen_not_available": 2,
+      "context_missing_fields": 5,
+      "lineup_not_confirmed": 3
     },
     "feature_health_flag_counts": {
       "none": 15
@@ -115,15 +117,15 @@
       }
     },
     "lineup_status_estimate_counts": {
-      "confirmed": 118,
-      "partial_confirmed": 19,
+      "confirmed": 130,
+      "partial_confirmed": 15,
       "projected_available": 0,
-      "pending": 47
+      "pending": 39
     },
     "closer_known_count": 147,
     "high_confidence_starter_count": 154,
     "projected_lineup_available_count": 0,
-    "confirmed_lineup_count": 118
+    "confirmed_lineup_count": 130
   },
   "recommendations": [
     "High-confidence starter rows still include starting_pitcher_confirmed inside filtered missing_critical_fields. Check context v3 filtering in prediction.py.",
