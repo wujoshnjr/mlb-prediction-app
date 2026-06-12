@@ -1908,7 +1908,7 @@ def evaluate_betting_readiness(
     }
 
 
-    def evaluate_away_pick_guardrail(
+def evaluate_away_pick_guardrail(
     *,
     selected_side: str,
     selected_edge: float | None,
@@ -4060,6 +4060,42 @@ def generate_predictions() -> dict[str, Any]:
             total_recommendation = "NO BET"
             recommendation_status = "TRACKING_ONLY"
 
+        pre_guardrail_recommendation_status = recommendation_status
+        pre_guardrail_moneyline_gate_status = moneyline_gate_status
+        pre_guardrail_moneyline_recommendation = moneyline_recommendation
+
+        selected_probability_for_away_guardrail = (
+            displayed_home_win_pct
+            if moneyline_selected_side == "home"
+            else 1.0 - displayed_home_win_pct
+            if moneyline_selected_side == "away"
+            else None
+        )
+
+        away_guardrail = evaluate_away_pick_guardrail(
+            selected_side=moneyline_selected_side,
+            selected_edge=moneyline_selected_edge,
+            selected_probability=selected_probability_for_away_guardrail,
+            market_home_probability=market_probability,
+            daily_context_summary=daily_context_summary,
+        )
+
+        away_guardrail_detail_text = ""
+
+        if away_guardrail.get("away_guardrail_status") == "tracking_only":
+            recommendation_status = "TRACKING_ONLY"
+            moneyline_gate_status = "TRACKING_ONLY_AWAY_GUARDRAIL"
+            home_kelly = 0.0
+            away_kelly = 0.0
+            away_guardrail_detail_text = (
+                "Away guardrail downgraded this candidate to tracking-only: "
+                + ", ".join(
+                    str(reason)
+                    for reason in away_guardrail.get("away_guardrail_reasons", [])
+                )
+                + "."
+            )
+            
         recommendation_block_reason, recommendation_block_details = (
             build_recommendation_block_reason(
                 recommendation_status=recommendation_status,
@@ -4077,6 +4113,19 @@ def generate_predictions() -> dict[str, Any]:
             )
         )
 
+        if away_guardrail_detail_text:
+            recommendation_block_details.append(away_guardrail_detail_text)
+
+        if away_guardrail.get("away_guardrail_notes"):
+            recommendation_block_details.append(
+                "Away guardrail notes: "
+                + ", ".join(
+                    str(note)
+                    for note in away_guardrail.get("away_guardrail_notes", [])
+                )
+                + "."
+            )
+            
         betting_readiness = evaluate_betting_readiness(
             daily_context_summary,
             odds_quality_status=odds_quality_status,
@@ -4089,6 +4138,17 @@ def generate_predictions() -> dict[str, Any]:
             production_sample_threshold=MIN_CLEAN_TRAIN_SAMPLES,
         )
 
+        if away_guardrail.get("away_guardrail_applied") is True:
+            betting_readiness["stake_multiplier"] = 0.0
+            betting_readiness["effective_context_ready_for_betting"] = False
+            betting_readiness["betting_readiness_status"] = "away_guardrail_tracking_only"
+
+            readiness_reasons = betting_readiness.get("betting_readiness_reasons")
+            if isinstance(readiness_reasons, list):
+                readiness_reasons.append(
+                    "away guardrail forced this candidate to tracking-only"
+                )
+                
         data_quality_status = build_data_quality_status(
             schedule_fetch_ok=schedule_fetch_ok,
             odds_quality_status=odds_quality_status,
@@ -4316,6 +4376,33 @@ def generate_predictions() -> dict[str, Any]:
             "recommendation": moneyline_recommendation,
             "recommendation_status": recommendation_status,
             "moneyline_gate_status": moneyline_gate_status,
+            "pre_guardrail_recommendation_status": pre_guardrail_recommendation_status,
+            "pre_guardrail_moneyline_gate_status": pre_guardrail_moneyline_gate_status,
+            "pre_guardrail_moneyline_recommendation": pre_guardrail_moneyline_recommendation,
+            "away_guardrail_status": away_guardrail.get("away_guardrail_status"),
+            "away_guardrail_applied": bool(
+                away_guardrail.get("away_guardrail_applied", False)
+            ),
+            "away_guardrail_reasons": away_guardrail.get("away_guardrail_reasons", []),
+            "away_guardrail_notes": away_guardrail.get("away_guardrail_notes", []),
+            "away_selected_edge": (
+                round(float(away_guardrail["away_selected_edge"]), 4)
+                if away_guardrail.get("away_selected_edge") is not None
+                else None
+            ),
+            "away_selected_probability": (
+                round(float(away_guardrail["away_selected_probability"]), 4)
+                if away_guardrail.get("away_selected_probability") is not None
+                else None
+            ),
+            "away_market_probability": (
+                round(float(away_guardrail["away_market_probability"]), 4)
+                if away_guardrail.get("away_market_probability") is not None
+                else None
+            ),
+            "away_context_confirmed": bool(
+                away_guardrail.get("away_context_confirmed", False)
+            ),
             "risk_guard_approved": bool(risk_guard_approved),
             "risk_guard_reason": risk_guard_reason,
             "recommendation_block_reason": recommendation_block_reason,
