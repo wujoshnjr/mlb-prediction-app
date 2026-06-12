@@ -491,6 +491,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build away pick diagnostic report
+        run: python scripts/away_pick_diagnostic_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          
       - name: Build signal quality report
         continue-on-error: true
         run: python scripts/signal_quality_report.py
