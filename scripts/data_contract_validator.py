@@ -578,6 +578,9 @@ def build_contract_report() -> Dict[str, Any]:
     if "daily_model_accuracy" in reports:
         _validate_daily_model_accuracy(reports["daily_model_accuracy"], errors)
 
+    if "away_pick_diagnostic" in reports:
+        _validate_away_pick_diagnostic(reports["away_pick_diagnostic"], errors)
+        
     report = {
         "generated_at": _utc_now(),
         "status": "failed" if errors else "ok",
