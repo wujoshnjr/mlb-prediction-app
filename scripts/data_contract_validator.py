@@ -41,6 +41,7 @@ REQUIRED_JSON_REPORTS = {
     "daily_model_accuracy": REPORT_DIR / "daily_model_accuracy_report.json",
     "away_pick_diagnostic": REPORT_DIR / "away_pick_diagnostic_report.json",
     "away_guardrail_impact": REPORT_DIR / "away_guardrail_impact_report.json",
+    "odds_fetch_diagnostic": REPORT_DIR / "odds_fetch_diagnostic.json",
 }
 
 OPTIONAL_JSON_REPORTS = {
@@ -566,6 +567,85 @@ def _validate_away_guardrail_impact(report: Dict[str, Any], errors: List[str]) -
         errors.append("away_guardrail_impact: interpretation is not an object")
 
 
+def _validate_odds_fetch_diagnostic(report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report("odds_fetch_diagnostic", report, errors)
+
+    _require_keys(
+        report,
+        [
+            "status",
+            "sport_key",
+            "endpoint",
+            "requested_date",
+            "attempts",
+            "selected_attempt",
+            "final_event_count",
+            "final_usable_row_count",
+            "live_betting_allowed",
+            "automated_wagering_allowed",
+            "production_model_replacement_allowed",
+            "errors",
+            "warnings",
+            "recommendations",
+        ],
+        errors,
+        "odds_fetch_diagnostic",
+    )
+
+    if report.get("live_betting_allowed") is not False:
+        errors.append("odds_fetch_diagnostic: live_betting_allowed must be false")
+
+    if report.get("automated_wagering_allowed") is not False:
+        errors.append("odds_fetch_diagnostic: automated_wagering_allowed must be false")
+
+    if report.get("production_model_replacement_allowed") is not False:
+        errors.append(
+            "odds_fetch_diagnostic: production_model_replacement_allowed must be false"
+        )
+
+    if not isinstance(report.get("attempts"), list):
+        errors.append("odds_fetch_diagnostic: attempts must be a list")
+
+    for index, attempt in enumerate(report.get("attempts") or []):
+        if not isinstance(attempt, dict):
+            errors.append(f"odds_fetch_diagnostic.attempts[{index}]: must be an object")
+            continue
+
+        _require_keys(
+            attempt,
+            [
+                "attempt_name",
+                "params",
+                "status_code",
+                "event_count",
+                "usable_row_count",
+                "quality_counts",
+                "request_headers",
+                "error",
+            ],
+            errors,
+            f"odds_fetch_diagnostic.attempts[{index}]",
+        )
+
+        params = attempt.get("params")
+        if isinstance(params, dict):
+            api_key_value = str(params.get("apiKey") or "")
+            if api_key_value and api_key_value != "***REDACTED***":
+                errors.append(
+                    f"odds_fetch_diagnostic.attempts[{index}]: apiKey must be redacted"
+                )
+        else:
+            errors.append(
+                f"odds_fetch_diagnostic.attempts[{index}]: params must be an object"
+            )
+
+    for numeric_key in ("final_event_count", "final_usable_row_count"):
+        try:
+            int(report.get(numeric_key) or 0)
+        except Exception:
+            errors.append(f"odds_fetch_diagnostic: {numeric_key} must be numeric")
+
+
 def build_contract_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -664,7 +744,10 @@ def build_contract_report() -> Dict[str, Any]:
 
     if "away_guardrail_impact" in reports:
         _validate_away_guardrail_impact(reports["away_guardrail_impact"], errors)
-        
+
+    if "odds_fetch_diagnostic" in reports:
+        _validate_odds_fetch_diagnostic(reports["odds_fetch_diagnostic"], errors)
+
     report = {
         "generated_at": _utc_now(),
         "status": "failed" if errors else "ok",
