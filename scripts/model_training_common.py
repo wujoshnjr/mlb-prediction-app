@@ -27,7 +27,8 @@ except Exception:
 
 
 SNAPSHOT_PATH = Path(str(getattr(config, "SNAPSHOT_STORE_FILE", "data/prediction_snapshots.csv")))
-FINALIZED_PATH = Path("data/finalized_games.csv")
+FINALIZED_SNAPSHOT_OUTCOMES_PATH = Path("data/finalized_snapshot_outcomes.csv")
+FINALIZED_PATH = FINALIZED_SNAPSHOT_OUTCOMES_PATH
 PIPELINE_VERSION = str(getattr(config, "PIPELINE_VERSION", "baseline_v2_clean"))
 
 LEAKAGE_COLUMNS = {
@@ -263,11 +264,11 @@ def prepare_finalized(finalized: pd.DataFrame) -> Tuple[pd.DataFrame, List[str],
     errors: List[str] = []
 
     if finalized.empty:
-        warnings.append("finalized_games.csv is empty")
+        warnings.append("finalized_snapshot_outcomes.csv is empty")
         return pd.DataFrame(), warnings, errors
 
     if "game_id" not in finalized.columns:
-        errors.append("finalized_games.csv missing game_id")
+        errors.append("finalized_snapshot_outcomes.csv missing game_id")
         return pd.DataFrame(), warnings, errors
 
     frame = finalized.copy()
@@ -279,9 +280,9 @@ def prepare_finalized(finalized: pd.DataFrame) -> Tuple[pd.DataFrame, List[str],
             home_score = pd.to_numeric(frame["home_score"], errors="coerce")
             away_score = pd.to_numeric(frame["away_score"], errors="coerce")
             frame["home_win"] = (home_score > away_score).astype("Int64")
-            warnings.append("derived home_win from finalized_games home_score/away_score")
+            warnings.append("derived home_win from finalized_snapshot_outcomes home_score/away_score")
         else:
-            errors.append("finalized_games.csv missing home_win and score columns")
+            errors.append("finalized_snapshot_outcomes.csv missing home_win and score columns")
             return pd.DataFrame(), warnings, errors
 
     frame["home_win"] = pd.to_numeric(frame["home_win"], errors="coerce")
@@ -319,7 +320,7 @@ def build_training_frame(
         return {
             "ok": False,
             "skipped": True,
-            "skip_reason": f"prediction_snapshots unavailable: {snapshot_status['error']}",
+            "skip_reason": f"finalized_snapshot_outcomes unavailable: {finalized_status['error']}",
             "warnings": warnings,
             "errors": [snapshot_status["error"]],
             "input_files": {"snapshots": snapshot_status, "finalized": finalized_status},
@@ -377,7 +378,7 @@ def build_training_frame(
         return {
             "ok": False,
             "skipped": True,
-            "skip_reason": "no prediction snapshots join to finalized_games by game_id",
+            "skip_reason": "no prediction snapshots join to finalized_snapshot_outcomes by game_id",
             "warnings": warnings,
             "errors": errors,
             "input_files": {"snapshots": snapshot_status, "finalized": finalized_status},
