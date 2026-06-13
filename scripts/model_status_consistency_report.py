@@ -22,7 +22,6 @@ MODEL_ARTIFACT_STATUS_PATH = Path("data/model_artifact_status.json")
 PREDICTION_REPORT_PATH = Path("report/prediction.json")
 REPORT_PATH = Path("report/model_status_consistency_report.json")
 REPORT_TYPE = "model_status_consistency_v1"
-MIN_PRODUCTION_TRAINING_SAMPLES = 300
 
 
 def _utc_now() -> str:
@@ -32,12 +31,6 @@ def _utc_now() -> str:
 def _json_safe(value: Any) -> Any:
     if value is None:
         return None
-
-    if isinstance(value, (datetime,)):
-        return value.isoformat()
-
-    if isinstance(value, Path):
-        return str(value)
 
     if isinstance(value, bool):
         return value
@@ -53,21 +46,34 @@ def _json_safe(value: Any) -> Any:
     if isinstance(value, str):
         return value
 
+    if isinstance(value, Path):
+        return str(value)
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
     if isinstance(value, dict):
         return {str(key): _json_safe(item) for key, item in value.items()}
 
     if isinstance(value, (list, tuple, set)):
         return [_json_safe(item) for item in value]
 
+    try:
+        if hasattr(value, "item"):
+            return _json_safe(value.item())
+    except Exception:
+        pass
+
     return str(value)
 
 
 def safe_json_dump(data: dict[str, Any], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    safe = _json_safe(data)
 
     with path.open("w", encoding="utf-8") as handle:
         json.dump(
-            _json_safe(data),
+            safe,
             handle,
             indent=2,
             ensure_ascii=False,
@@ -84,6 +90,7 @@ def read_json_safe(path: Path) -> tuple[Any, dict[str, Any]]:
     }
 
     if not path.exists():
+        status["error"] = "file not found"
         return None, status
 
     try:
@@ -113,6 +120,7 @@ def count_csv_rows(path: Path) -> tuple[int | None, dict[str, Any]]:
     }
 
     if not path.exists():
+        status["error"] = "file not found"
         return None, status
 
     try:
@@ -161,20 +169,9 @@ def unique_ints(values: list[Any]) -> list[int]:
     return sorted(output)
 
 
-def _pick_first_int(mapping: dict[str, Any], keys: list[str]) -> int | None:
-    for key in keys:
-        parsed = to_int(mapping.get(key))
-        if parsed is not None:
-            return parsed
-
-    return None
-
-
-def _pick_first_value(mapping: dict[str, Any], keys: list[str]) -> Any:
-    for key in keys:
-        value = mapping.get(key)
-        if value is not None:
-            return value
+def _metadata_value(source: dict[str, Any], key: str) -> Any:
+    if key in source:
+        return source.get(key)
 
     return None
 
@@ -194,24 +191,22 @@ def load_artifact_metadata(path: Path) -> tuple[dict[str, Any], str]:
     info: dict[str, Any] = {key: None for key in metadata_keys}
 
     if not path.exists():
-        return info, ""
+        return info, "artifact file not found"
 
     artifact: Any = None
-    load_errors: list[str] = []
 
     if joblib is not None:
         try:
             artifact = joblib.load(path)
-        except Exception as exc:
-            load_errors.append(f"joblib: {exc}")
+        except Exception:
+            artifact = None
 
     if artifact is None:
         try:
             with path.open("rb") as handle:
                 artifact = pickle.load(handle)
         except Exception as exc:
-            load_errors.append(f"pickle: {exc}")
-            return info, "; ".join(load_errors)
+            return info, str(exc)
 
     try:
         if isinstance(artifact, dict):
@@ -220,26 +215,27 @@ def load_artifact_metadata(path: Path) -> tuple[dict[str, Any], str]:
                 artifact_metadata = {}
 
             for key in metadata_keys:
-                if artifact.get(key) is not None:
-                    info[key] = artifact.get(key)
-                elif artifact_metadata.get(key) is not None:
-                    info[key] = artifact_metadata.get(key)
+                value = _metadata_value(artifact, key)
+                if value is None:
+                    value = _metadata_value(artifact_metadata, key)
+                info[key] = value
 
-        else:
-            artifact_metadata = getattr(artifact, "metadata", {})
-            if not isinstance(artifact_metadata, dict):
-                artifact_metadata = {}
+            return info, ""
 
-            for key in metadata_keys:
-                if hasattr(artifact, key):
-                    info[key] = getattr(artifact, key)
-                elif artifact_metadata.get(key) is not None:
-                    info[key] = artifact_metadata.get(key)
+        artifact_metadata = getattr(artifact, "metadata", {})
+        if not isinstance(artifact_metadata, dict):
+            artifact_metadata = {}
+
+        for key in metadata_keys:
+            if hasattr(artifact, key):
+                info[key] = getattr(artifact, key)
+            elif key in artifact_metadata:
+                info[key] = artifact_metadata.get(key)
+
+        return info, ""
 
     except Exception as exc:
         return info, str(exc)
-
-    return info, ""
 
 
 def select_artifact_path() -> Path:
@@ -267,69 +263,71 @@ def extract_prediction_loaded_artifact_sample_counts(
 
     predictions = prediction_report.get("predictions")
     if isinstance(predictions, list):
-        for item in predictions:
-            if not isinstance(item, dict):
+        for prediction in predictions:
+            if not isinstance(prediction, dict):
                 continue
 
-            item_governance_status = item.get("model_governance_status")
-            if isinstance(item_governance_status, dict):
+            prediction_governance = prediction.get("model_governance")
+            if isinstance(prediction_governance, dict):
                 values.append(
-                    item_governance_status.get("loaded_artifact_sample_count")
+                    prediction_governance.get("loaded_artifact_sample_count")
                 )
 
-            item_governance = item.get("model_governance")
-            if isinstance(item_governance, dict):
-                values.append(item_governance.get("loaded_artifact_sample_count"))
+            prediction_governance_status = prediction.get("model_governance_status")
+            if isinstance(prediction_governance_status, dict):
+                values.append(
+                    prediction_governance_status.get("loaded_artifact_sample_count")
+                )
 
     return unique_ints(values)
 
 
-def extract_prediction_active_model_allowed(prediction_report: dict[str, Any]) -> bool:
+def extract_prediction_active_model_allowed(
+    prediction_report: dict[str, Any],
+) -> bool:
     if not isinstance(prediction_report, dict):
         return False
 
-    direct_value = prediction_report.get("active_model_allowed")
-    if isinstance(direct_value, bool):
-        return direct_value
+    if prediction_report.get("active_model_allowed") is True:
+        return True
 
-    for key in ["model_governance", "model_governance_status"]:
-        section = prediction_report.get(key)
-        if isinstance(section, dict) and isinstance(section.get("active_model_allowed"), bool):
-            return bool(section.get("active_model_allowed"))
+    for key in ("model_governance", "model_governance_status"):
+        value = prediction_report.get(key)
+        if isinstance(value, dict) and value.get("active_model_allowed") is True:
+            return True
 
     predictions = prediction_report.get("predictions")
     if isinstance(predictions, list):
-        for item in predictions:
-            if not isinstance(item, dict):
+        for prediction in predictions:
+            if not isinstance(prediction, dict):
                 continue
 
-            for key in ["model_governance", "model_governance_status"]:
-                section = item.get(key)
-                if (
-                    isinstance(section, dict)
-                    and isinstance(section.get("active_model_allowed"), bool)
-                ):
-                    return bool(section.get("active_model_allowed"))
+            for key in ("model_governance", "model_governance_status"):
+                value = prediction.get(key)
+                if isinstance(value, dict) and value.get("active_model_allowed") is True:
+                    return True
 
     return False
 
 
-def _numeric_compare_should_run(left: int | None, right: int | None) -> bool:
-    return left is not None and right is not None and left > 0 and right > 0
-
-
-def _add_mismatch_if_needed(
+def _compare_positive_ints(
     mismatches: list[dict[str, Any]],
     field: str,
     left: int | None,
     right: int | None,
 ) -> None:
-    if _numeric_compare_should_run(left, right) and left != right:
+    if left is None or right is None:
+        return
+
+    if left <= 0 or right <= 0:
+        return
+
+    if int(left) != int(right):
         mismatches.append(
             {
                 "field": field,
-                "left": left,
-                "right": right,
+                "left": int(left),
+                "right": int(right),
             }
         )
 
@@ -369,99 +367,212 @@ def generate_report() -> dict[str, Any]:
     training_samples_row_count, training_samples_status = count_csv_rows(
         TRAINING_SAMPLES_PATH
     )
+    report["input_files"]["training_samples"] = training_samples_status
+    report["training_samples_row_count"] = training_samples_row_count
+
     training_status_payload, training_status_file = read_json_safe(
         TRAINING_STATUS_PATH
     )
-    model_artifact_status_payload, model_artifact_status_file = read_json_safe(
-        MODEL_ARTIFACT_STATUS_PATH
-    )
-    prediction_payload, prediction_file = read_json_safe(PREDICTION_REPORT_PATH)
-
-    artifact_path = select_artifact_path()
-    artifact_metadata, artifact_error = load_artifact_metadata(artifact_path)
-    artifact_exists = artifact_path.exists()
-    artifact_loadable = artifact_exists and artifact_error == ""
-
-    report["input_files"] = {
-        "training_samples": training_samples_status,
-        "training_status": training_status_file,
-        "model_artifact_status": model_artifact_status_file,
-        "prediction_report": prediction_file,
-        "artifact": {
-            "path": str(artifact_path),
-            "exists": artifact_exists,
-            "loadable": artifact_loadable,
-            "error": artifact_error,
-        },
-    }
-
-    report["training_samples_row_count"] = training_samples_row_count
+    report["input_files"]["training_status"] = training_status_file
 
     if isinstance(training_status_payload, dict):
-        report["training_status_sample_count"] = _pick_first_int(
-            training_status_payload,
-            ["sample_count", "training_sample_count", "clean_training_rows"],
+        report["training_status_sample_count"] = to_int(
+            training_status_payload.get("sample_count")
         )
         report["training_status_trained"] = bool(
             training_status_payload.get("trained", False)
         )
         report["training_status_reason"] = str(
-            _pick_first_value(
-                training_status_payload,
-                ["reason", "skip_reason", "status_reason"],
-            )
+            training_status_payload.get("reason")
+            or training_status_payload.get("skip_reason")
             or ""
         )
 
-    if isinstance(model_artifact_status_payload, dict):
+    artifact_status_payload, artifact_status_file = read_json_safe(
+        MODEL_ARTIFACT_STATUS_PATH
+    )
+    report["input_files"]["model_artifact_status"] = artifact_status_file
+
+    if isinstance(artifact_status_payload, dict):
         report["artifact_status_training_sample_count"] = to_int(
-            model_artifact_status_payload.get("training_sample_count")
+            artifact_status_payload.get("training_sample_count")
         )
         report["artifact_status_training_status_sample_count"] = to_int(
-            model_artifact_status_payload.get("training_status_sample_count")
+            artifact_status_payload.get("training_status_sample_count")
         )
         report["artifact_status_training_samples_row_count"] = to_int(
-            model_artifact_status_payload.get("training_samples_row_count")
+            artifact_status_payload.get("training_samples_row_count")
         )
 
-        sample_count_consistent = model_artifact_status_payload.get(
+        sample_count_consistent = artifact_status_payload.get(
             "sample_count_consistent"
         )
         if isinstance(sample_count_consistent, bool):
-            report["artifact_status_sample_count_consistent"] = sample_count_consistent
-
-        if isinstance(model_artifact_status_payload.get("active_model_allowed"), bool):
-            report["active_model_allowed"] = bool(
-                model_artifact_status_payload.get("active_model_allowed")
+            report["artifact_status_sample_count_consistent"] = (
+                sample_count_consistent
             )
 
-    if isinstance(prediction_payload, dict):
+        if artifact_status_payload.get("active_model_allowed") is True:
+            report["active_model_allowed"] = True
+
+    prediction_report_payload, prediction_report_file = read_json_safe(
+        PREDICTION_REPORT_PATH
+    )
+    report["input_files"]["prediction_report"] = prediction_report_file
+
+    if isinstance(prediction_report_payload, dict):
         report["prediction_loaded_artifact_sample_counts"] = (
-            extract_prediction_loaded_artifact_sample_counts(prediction_payload)
+            extract_prediction_loaded_artifact_sample_counts(
+                prediction_report_payload
+            )
         )
 
-        prediction_active_allowed = extract_prediction_active_model_allowed(
-            prediction_payload
-        )
-        report["active_model_allowed"] = (
-            bool(report["active_model_allowed"]) or prediction_active_allowed
-        )
+        if extract_prediction_active_model_allowed(prediction_report_payload):
+            report["active_model_allowed"] = True
+
+    artifact_path = select_artifact_path()
+    artifact_info, artifact_error = load_artifact_metadata(artifact_path)
 
     report["artifact_selected_path"] = str(artifact_path)
-    report["artifact_exists"] = bool(artifact_exists)
-    report["artifact_loadable"] = bool(artifact_loadable)
-    report["artifact_metadata_training_sample_count"] = to_int(
-        artifact_metadata.get("training_sample_count")
-        or artifact_metadata.get("sample_count")
-        or artifact_metadata.get("n_samples")
+    report["artifact_exists"] = artifact_path.exists()
+    report["artifact_loadable"] = (
+        artifact_path.exists() and artifact_error == ""
     )
-    report["artifact_metadata_pipeline_version"] = artifact_metadata.get(
+    report["artifact_metadata_training_sample_count"] = to_int(
+        artifact_info.get("training_sample_count")
+    )
+    report["artifact_metadata_pipeline_version"] = artifact_info.get(
         "pipeline_version"
     )
 
+    report["input_files"]["artifact"] = {
+        "path": str(artifact_path),
+        "exists": artifact_path.exists(),
+        "loadable": report["artifact_loadable"],
+        "error": artifact_error,
+    }
+
     mismatches: list[dict[str, Any]] = []
 
-    training_samples_count = report["training_samples_row_count"]
-    training_status_count = report["training_status_sample_count"]
-    artifact_status_training_count = report["artifact_status_training_sample_count"]
-    artifact_status_training_status
+    training_samples_row_count = report["training_samples_row_count"]
+    training_status_sample_count = report["training_status_sample_count"]
+    artifact_status_training_sample_count = report[
+        "artifact_status_training_sample_count"
+    ]
+    artifact_metadata_training_sample_count = report[
+        "artifact_metadata_training_sample_count"
+    ]
+
+    _compare_positive_ints(
+        mismatches,
+        "training_samples_vs_training_status",
+        training_samples_row_count,
+        training_status_sample_count,
+    )
+    _compare_positive_ints(
+        mismatches,
+        "artifact_status_vs_training_status",
+        artifact_status_training_sample_count,
+        training_status_sample_count,
+    )
+    _compare_positive_ints(
+        mismatches,
+        "artifact_metadata_vs_training_status",
+        artifact_metadata_training_sample_count,
+        training_status_sample_count,
+    )
+    _compare_positive_ints(
+        mismatches,
+        "artifact_metadata_vs_training_samples",
+        artifact_metadata_training_sample_count,
+        training_samples_row_count,
+    )
+
+    for loaded_artifact_sample_count in report[
+        "prediction_loaded_artifact_sample_counts"
+    ]:
+        _compare_positive_ints(
+            mismatches,
+            "prediction_loaded_artifact_sample_count_vs_training_status",
+            loaded_artifact_sample_count,
+            training_status_sample_count,
+        )
+
+    if report["artifact_status_sample_count_consistent"] is False:
+        mismatches.append(
+            {
+                "field": "model_artifact_status_sample_count_consistent",
+                "left": False,
+                "right": True,
+            }
+        )
+
+    report["mismatches"] = mismatches
+    report["sample_count_consistent"] = len(mismatches) == 0
+
+    report["trained"] = bool(
+        report["training_status_trained"]
+        and report["artifact_exists"]
+        and report["artifact_loadable"]
+        and report["sample_count_consistent"]
+    )
+
+    file_issue = False
+    for status in report["input_files"].values():
+        if not isinstance(status, dict):
+            continue
+
+        if status.get("error") or not bool(status.get("exists", True)):
+            file_issue = True
+            break
+
+    if mismatches:
+        report["status"] = "failed"
+    elif file_issue:
+        report["status"] = "partial"
+    else:
+        report["status"] = "ok"
+
+    if mismatches:
+        report["recommendations"].append(
+            "Do not activate model artifact until sample-count mismatches are resolved."
+        )
+
+    if not report["artifact_exists"]:
+        report["recommendations"].append(
+            "No model artifact exists; manual baseline should remain active."
+        )
+
+    if not report["active_model_allowed"]:
+        report["recommendations"].append(
+            "Active model is not allowed; prediction.py should use manual baseline."
+        )
+
+    if (
+        training_status_sample_count is not None
+        and training_status_sample_count > 0
+        and training_status_sample_count < 300
+    ):
+        report["recommendations"].append(
+            "Training sample count is below minimum production training threshold."
+        )
+
+    safe_json_dump(report, REPORT_PATH)
+    return report
+
+
+def main() -> int:
+    report = generate_report()
+    print(
+        json.dumps(
+            _json_safe(report),
+            indent=2,
+            ensure_ascii=True,
+            allow_nan=False,
+        )
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
