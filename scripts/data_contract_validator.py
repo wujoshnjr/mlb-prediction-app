@@ -42,6 +42,7 @@ REQUIRED_JSON_REPORTS = {
     "away_pick_diagnostic": REPORT_DIR / "away_pick_diagnostic_report.json",
     "away_guardrail_impact": REPORT_DIR / "away_guardrail_impact_report.json",
     "odds_fetch_diagnostic": REPORT_DIR / "odds_fetch_diagnostic.json",
+    "outcome_linkage_diagnostic": REPORT_DIR / "outcome_linkage_diagnostic.json",
 }
 
 OPTIONAL_JSON_REPORTS = {
@@ -646,6 +647,90 @@ def _validate_odds_fetch_diagnostic(report: Dict[str, Any], errors: List[str]) -
             errors.append(f"odds_fetch_diagnostic: {numeric_key} must be numeric")
 
 
+def _validate_outcome_linkage_diagnostic(
+    report: Dict[str, Any],
+    errors: List[str],
+) -> None:
+    _validate_standard_report("outcome_linkage_diagnostic", report, errors)
+
+    _require_keys(
+        report,
+        [
+            "report_type",
+            "pipeline_version",
+            "snapshot_path",
+            "outcome_path",
+            "input_files",
+            "raw_snapshot_rows",
+            "valid_snapshot_rows",
+            "raw_outcome_rows",
+            "valid_outcome_rows",
+            "snapshot_game_count",
+            "outcome_game_count",
+            "overlap_game_count",
+            "overlap_rate_vs_snapshots",
+            "overlap_rate_vs_outcomes",
+            "snapshot_pipeline_versions",
+            "dropped_pipeline_mismatch_rows",
+            "missing_outcome_snapshot_examples",
+            "outcome_without_snapshot_examples",
+            "live_betting_allowed",
+            "automated_wagering_allowed",
+            "production_model_replacement_allowed",
+        ],
+        errors,
+        "outcome_linkage_diagnostic",
+    )
+
+    if report.get("report_type") != "outcome_linkage_diagnostic_v1":
+        errors.append(
+            "outcome_linkage_diagnostic: report_type must be outcome_linkage_diagnostic_v1"
+        )
+
+    if report.get("live_betting_allowed") is not False:
+        errors.append("outcome_linkage_diagnostic: live_betting_allowed must be false")
+
+    if report.get("automated_wagering_allowed") is not False:
+        errors.append(
+            "outcome_linkage_diagnostic: automated_wagering_allowed must be false"
+        )
+
+    if report.get("production_model_replacement_allowed") is not False:
+        errors.append(
+            "outcome_linkage_diagnostic: production_model_replacement_allowed must be false"
+        )
+
+    for numeric_key in [
+        "raw_snapshot_rows",
+        "valid_snapshot_rows",
+        "raw_outcome_rows",
+        "valid_outcome_rows",
+        "snapshot_game_count",
+        "outcome_game_count",
+        "overlap_game_count",
+        "dropped_pipeline_mismatch_rows",
+    ]:
+        try:
+            int(report.get(numeric_key) or 0)
+        except Exception:
+            errors.append(f"outcome_linkage_diagnostic: {numeric_key} must be numeric")
+
+    if not isinstance(report.get("snapshot_pipeline_versions"), dict):
+        errors.append(
+            "outcome_linkage_diagnostic: snapshot_pipeline_versions must be an object"
+        )
+
+    if not isinstance(report.get("missing_outcome_snapshot_examples"), list):
+        errors.append(
+            "outcome_linkage_diagnostic: missing_outcome_snapshot_examples must be a list"
+        )
+
+    if not isinstance(report.get("outcome_without_snapshot_examples"), list):
+        errors.append(
+            "outcome_linkage_diagnostic: outcome_without_snapshot_examples must be a list"
+        )
+
+
 def build_contract_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -747,6 +832,12 @@ def build_contract_report() -> Dict[str, Any]:
 
     if "odds_fetch_diagnostic" in reports:
         _validate_odds_fetch_diagnostic(reports["odds_fetch_diagnostic"], errors)
+
+    if "outcome_linkage_diagnostic" in reports:
+        _validate_outcome_linkage_diagnostic(
+            reports["outcome_linkage_diagnostic"],
+            errors,
+        )
 
     report = {
         "generated_at": _utc_now(),
