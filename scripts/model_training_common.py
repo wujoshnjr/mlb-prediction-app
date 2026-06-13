@@ -320,24 +320,23 @@ def build_training_frame(
         return {
             "ok": False,
             "skipped": True,
-            "skip_reason": f"finalized_snapshot_outcomes unavailable: {finalized_status['error']}",
+            "skip_reason": f"prediction_snapshots unavailable: {snapshot_status['error']}",
             "warnings": warnings,
             "errors": [snapshot_status["error"]],
             "input_files": {"snapshots": snapshot_status, "finalized": finalized_status},
             "frame": pd.DataFrame(),
         }
-
+    
     if finalized_status["error"]:
         return {
             "ok": False,
             "skipped": True,
-            "skip_reason": f"finalized_games unavailable: {finalized_status['error']}",
+            "skip_reason": f"finalized_snapshot_outcomes unavailable: {finalized_status['error']}",
             "warnings": warnings,
             "errors": [finalized_status["error"]],
             "input_files": {"snapshots": snapshot_status, "finalized": finalized_status},
             "frame": pd.DataFrame(),
         }
-
     snapshots, snapshot_warnings, snapshot_errors = prepare_snapshots(
         snapshots_raw,
         pipeline_version=pipeline_version,
