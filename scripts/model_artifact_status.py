@@ -11,6 +11,7 @@ It writes:
 
 from __future__ import annotations
 
+import csv
 import json
 import math
 import pickle
@@ -34,6 +35,7 @@ except Exception:
 
 CALIBRATOR_PATH = Path("data/calibrator.pkl")
 MODEL_DIR_ARTIFACT_PATH = Path("data/models/baseline_v2_clean/model.joblib")
+TRAINING_SAMPLES_PATH = Path("data/training_samples.csv")
 TRAINING_STATUS_PATH = Path("data/training_status.json")
 MODEL_ARTIFACT_STATUS_PATH = Path("data/model_artifact_status.json")
 REPORT_PATH = Path("report/model_artifact_status_report.json")
@@ -106,6 +108,37 @@ def _to_int(value: Any) -> Optional[int]:
         return int(parsed)
     except Exception:
         return None
+
+
+def _count_csv_data_rows(path: Path) -> Tuple[Optional[int], Dict[str, Any]]:
+    status = {
+        "path": str(path),
+        "exists": path.exists(),
+        "rows": None,
+        "error": "",
+    }
+
+    if not path.exists():
+        status["error"] = "file_missing"
+        return None, status
+
+    try:
+        with path.open("r", encoding="utf-8", newline="") as handle:
+            reader = csv.reader(handle)
+            try:
+                next(reader)
+            except StopIteration:
+                status["rows"] = 0
+                return 0, status
+
+            row_count = sum(1 for _ in reader)
+
+        status["rows"] = int(row_count)
+        return int(row_count), status
+
+    except Exception as exc:
+        status["error"] = str(exc)
+        return None, status
 
 
 def _select_artifact_path(
@@ -229,6 +262,7 @@ def _extract_training_sample_count(
 def build_model_artifact_status(
     artifact_path: Path = CALIBRATOR_PATH,
     model_dir_artifact_path: Path = MODEL_DIR_ARTIFACT_PATH,
+    training_samples_path: Path = TRAINING_SAMPLES_PATH,
     training_status_path: Path = TRAINING_STATUS_PATH,
     output_path: Path = MODEL_ARTIFACT_STATUS_PATH,
     report_path: Path = REPORT_PATH,
@@ -236,6 +270,9 @@ def build_model_artifact_status(
     min_clean_train_samples: int = MIN_CLEAN_TRAIN_SAMPLES,
 ) -> Dict[str, Any]:
     training_status, training_status_file = _read_json(training_status_path)
+    training_samples_row_count, training_samples_file = _count_csv_data_rows(
+        training_samples_path
+    )
 
     selected_path = _select_artifact_path(artifact_path, model_dir_artifact_path)
     artifact_exists = selected_path.exists()
@@ -253,6 +290,39 @@ def build_model_artifact_status(
     training_sample_count = _extract_training_sample_count(metadata, training_status)
     trained = bool(training_status.get("trained", False))
 
+    sample_count_mismatch_reasons: list[str] = []
+
+    if (
+        training_samples_row_count is not None
+        and training_status_sample_count > 0
+        and int(training_samples_row_count) != int(training_status_sample_count)
+    ):
+        sample_count_mismatch_reasons.append(
+            "training_samples_row_count_mismatch_training_status_sample_count"
+        )
+
+    if (
+        loadable
+        and training_sample_count > 0
+        and training_status_sample_count > 0
+        and int(training_sample_count) != int(training_status_sample_count)
+    ):
+        sample_count_mismatch_reasons.append(
+            "artifact_training_sample_count_mismatch_training_status_sample_count"
+        )
+
+    if (
+        loadable
+        and training_samples_row_count is not None
+        and training_sample_count > 0
+        and int(training_sample_count) != int(training_samples_row_count)
+    ):
+        sample_count_mismatch_reasons.append(
+            "artifact_training_sample_count_mismatch_training_samples_row_count"
+        )
+
+    sample_count_consistent = len(sample_count_mismatch_reasons) == 0
+
     valid = False
     active_model_allowed = False
     reason = "artifact_missing"
@@ -262,6 +332,8 @@ def build_model_artifact_status(
         reason = "artifact_missing"
     elif not loadable:
         reason = "invalid_pickle_or_joblib_artifact"
+    elif sample_count_mismatch_reasons:
+        reason = "sample_count_mismatch"
     elif training_sample_count < min_clean_train_samples:
         reason = "insufficient_training_samples"
     elif not artifact_pipeline_version:
@@ -294,12 +366,20 @@ def build_model_artifact_status(
         "expected_pipeline_version": pipeline_version,
         "training_sample_count": int(training_sample_count),
         "training_status_sample_count": int(training_status_sample_count),
+        "training_samples_row_count": (
+            int(training_samples_row_count)
+            if training_samples_row_count is not None
+            else None
+        ),
+        "sample_count_consistent": bool(sample_count_consistent),
+        "sample_count_mismatch_reasons": sample_count_mismatch_reasons,
         "trained": bool(trained),
         "model_type": model_type,
         "feature_count": int(len(feature_names)),
         "feature_names": feature_names,
         "metadata": metadata,
         "training_status_file": training_status_file,
+        "training_samples_file": training_samples_file,
         "error": artifact_error if artifact_error else "",
         "runtime": {
             "python_version": sys.version.split()[0],
