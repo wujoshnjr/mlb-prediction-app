@@ -90,6 +90,8 @@ jobs:
             scripts/savant_top3_context_client.py \
             scripts/update_results.py \
             scripts/repair_finalized_linkage.py \
+            scripts/model_artifact_status.py \
+            scripts/model_status_consistency_report.py \
             scripts/sample_state_builder.py \
             scripts/backfill_final_scores.py \
             scripts/rebuild_ratings.py \
@@ -151,7 +153,6 @@ jobs:
             scripts/odds_matching_diagnostic.py \
             scripts/outcome_linkage_diagnostic.py \
             scripts/training_samples_builder.py \
-            scripts/model_artifact_status.py
             
       - name: Update finalized game results
         run: python scripts/update_results.py
@@ -703,10 +704,11 @@ jobs:
             report/settle_reliability_report.json \
             report/settled_prediction_link_report.json \
             report/finalized_linkage_diagnostic_report.json \
-            report/sample_state_report.json \
             report/training_samples_report.json \
             report/outcome_linkage_diagnostic.json \
             report/model_artifact_status_report.json \
+            report/model_status_consistency_report.json \
+            report/sample_state_report.json \
             report/snapshot_sanitization_report.json \
             report/prediction_sanitization_report.json \
             report/model_registry_report.json \
