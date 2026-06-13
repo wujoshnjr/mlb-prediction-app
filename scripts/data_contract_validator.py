@@ -38,6 +38,7 @@ REQUIRED_JSON_REPORTS = {
     "training_samples": REPORT_DIR / "training_samples_report.json",
     "model_artifact_status": DATA_DIR / "model_artifact_status.json",
     "model_artifact_status_report": REPORT_DIR / "model_artifact_status_report.json",
+    "model_status_consistency": REPORT_DIR / "model_status_consistency_report.json",
     "daily_model_accuracy": REPORT_DIR / "daily_model_accuracy_report.json",
     "away_pick_diagnostic": REPORT_DIR / "away_pick_diagnostic_report.json",
     "away_guardrail_impact": REPORT_DIR / "away_guardrail_impact_report.json",
@@ -731,6 +732,61 @@ def _validate_outcome_linkage_diagnostic(
         )
 
 
+def _validate_model_status_consistency(
+    report: Dict[str, Any],
+    errors: List[str],
+) -> None:
+    _validate_standard_report("model_status_consistency", report, errors)
+
+    _require_keys(
+        report,
+        [
+            "report_type",
+            "training_samples_row_count",
+            "training_status_sample_count",
+            "artifact_status_training_sample_count",
+            "artifact_status_training_status_sample_count",
+            "artifact_metadata_training_sample_count",
+            "prediction_loaded_artifact_sample_counts",
+            "sample_count_consistent",
+            "mismatches",
+            "active_model_allowed",
+            "trained",
+            "live_betting_allowed",
+            "automated_wagering_allowed",
+            "production_model_replacement_allowed",
+        ],
+        errors,
+        "model_status_consistency",
+    )
+
+    if report.get("report_type") != "model_status_consistency_v1":
+        errors.append(
+            "model_status_consistency: report_type must be model_status_consistency_v1"
+        )
+
+    if report.get("live_betting_allowed") is not False:
+        errors.append("model_status_consistency: live_betting_allowed must be false")
+
+    if report.get("automated_wagering_allowed") is not False:
+        errors.append(
+            "model_status_consistency: automated_wagering_allowed must be false"
+        )
+
+    if report.get("production_model_replacement_allowed") is not False:
+        errors.append(
+            "model_status_consistency: production_model_replacement_allowed must be false"
+        )
+
+    if not isinstance(report.get("mismatches"), list):
+        errors.append("model_status_consistency: mismatches must be a list")
+
+    if not isinstance(report.get("prediction_loaded_artifact_sample_counts"), list):
+        errors.append(
+            "model_status_consistency: prediction_loaded_artifact_sample_counts must be a list"
+        )
+
+
 def build_contract_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -836,6 +892,12 @@ def build_contract_report() -> Dict[str, Any]:
     if "outcome_linkage_diagnostic" in reports:
         _validate_outcome_linkage_diagnostic(
             reports["outcome_linkage_diagnostic"],
+            errors,
+        )
+
+    if "model_status_consistency" in reports:
+        _validate_model_status_consistency(
+            reports["model_status_consistency"],
             errors,
         )
 
