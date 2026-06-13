@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-06-13T04:32:36.489768+00:00",
+  "generated_at": "2026-06-13T05:11:58.296992+00:00",
   "daily_context": {
     "exists": true,
     "error": "",
-    "row_count": 2252,
+    "row_count": 2267,
     "column_count": 108,
     "schema_versions": [
       "daily_context_v1",
       "daily_context_v2",
       "daily_context_v3"
     ],
-    "latest_captured_at": "2026-06-13T04:12:10.904591+00:00",
+    "latest_captured_at": "2026-06-13T05:09:00.881375+00:00",
     "latest_game_count": 15,
     "columns_present": [
       "home_starter_status",
@@ -65,7 +65,7 @@
     "live_bet_candidate_count": 0,
     "average_betting_readiness_score": 0.0,
     "risk_flag_counts": {
-      "closer_high_fatigue": 12,
+      "closer_high_fatigue": 15,
       "context_missing_fields": 15,
       "data_quality_bet_blocked": 15,
       "early_model_small_sample": 15,
@@ -78,12 +78,14 @@
       "bullpen_not_available": 2
     },
     "feature_health_flag_counts": {
-      "none": 15
+      "top3_woba_zero": 13,
+      "statcast_core_zero": 13,
+      "none": 2
     },
     "savant_top3_available_count": 15,
     "savant_top3_unavailable_count": 0,
-    "statcast_core_zero_count": 0,
-    "top3_woba_zero_count": 0,
+    "statcast_core_zero_count": 13,
+    "top3_woba_zero_count": 13,
     "practical_ready_count": 0,
     "official_ready_count": 0,
     "risk_blocked_count": 0
@@ -127,6 +129,8 @@
     "High-confidence starter rows still include starting_pitcher_confirmed inside filtered missing_critical_fields. Check context v3 filtering in prediction.py.",
     "Closer high fatigue risk detected; consider conservative stake multiplier or manual review.",
     "Early model guard is active. Keep live betting disabled until sample size and CLV improve.",
-    "Lineup confirmation remains a betting blocker. Prioritize projected/confirmed lineup integration."
+    "Lineup confirmation remains a betting blocker. Prioritize projected/confirmed lineup integration.",
+    "Core Statcast features are zero in current predictions. Check Savant / pybaseball integration before trusting advanced hitting features.",
+    "Top-3 wOBA feature is zero. The model is not receiving useful top-order hitter strength signals yet."
   ]
 }

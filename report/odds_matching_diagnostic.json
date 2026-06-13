@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-06-13T04:32:36.985106+00:00",
+  "generated_at": "2026-06-13T05:11:58.806879+00:00",
   "prediction_report": {
     "exists": true,
     "error": "",
     "scheduled_game_count": 15,
     "prediction_count": 15,
-    "generated_at": "2026-06-13T04:32:35.883034Z",
+    "generated_at": "2026-06-13T05:11:57.625743Z",
     "report_date": ""
   },
   "market_odds_history": {
@@ -47,12 +47,47 @@
   "daily_context": {
     "exists": true,
     "error": "",
-    "total_rows": 2252
+    "total_rows": 2267
   },
   "prediction_snapshots": {
     "exists": true,
     "error": "",
     "total_rows": 230
+  },
+  "odds_fetch_diagnostic": {
+    "exists": true,
+    "status": "failed",
+    "selected_attempt": null,
+    "final_event_count": 0,
+    "final_usable_row_count": 0,
+    "attempts": [
+      {
+        "attempt_name": "configured_bookmakers_full_market_date_window",
+        "params": {
+          "apiKey": "***REDACTED***",
+          "regions": "us",
+          "markets": "h2h,spreads,totals",
+          "oddsFormat": "decimal",
+          "bookmakers": "draftkings,fanduel,betmgm,bet365",
+          "commenceTimeFrom": "2026-06-13T00:00:00Z",
+          "commenceTimeTo": "2026-06-13T23:59:59Z"
+        },
+        "status_code": 401,
+        "event_count": 0,
+        "usable_row_count": 0,
+        "quality_counts": {},
+        "request_headers": {
+          "x-requests-remaining": "2",
+          "x-requests-used": "498",
+          "x-requests-last": "0"
+        },
+        "error": "Odds API 401: invalid API key"
+      }
+    ],
+    "recommendations": [
+      "Check ODDS_API_KEY secret."
+    ],
+    "error": ""
   },
   "odds_quality_counts": {
     "OK": 0,
@@ -74,6 +109,10 @@
     {
       "issue": "matching_logic_too_strict_or_schema_mismatch",
       "count": 2
+    },
+    {
+      "issue": "provider_returned_zero_events",
+      "count": 1
     }
   ],
   "unavailable_games_sample": [
@@ -660,6 +699,7 @@
   ],
   "recommendations": [
     "Relax prediction.py odds matching by adding team-name fallback or schema alias mapping.",
-    "No candidate odds found for some games. Verify team-name normalization, game_id alignment, and odds fetch timing."
+    "No candidate odds found for some games. Verify team-name normalization, game_id alignment, and odds fetch timing.",
+    "The Odds API returned zero events. Check ODDS_API_KEY, subscription, quota headers, baseball_mlb availability, and date window."
   ]
 }
