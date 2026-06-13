@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-06-12T23:45:54.219558+00:00",
+  "generated_at": "2026-06-13T04:33:13.608706+00:00",
   "status": "paper_trading_only_blocked_for_live",
   "world_class_stage": "advanced_shadow_trading_candidate",
-  "overall_score": 83.64,
+  "overall_score": 83.8,
   "overall_grade": "B",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
@@ -59,7 +59,7 @@
           "passed": true,
           "weight": 15,
           "details": {
-            "linked_game_count": 198
+            "linked_game_count": 210
           }
         }
       ],
@@ -81,13 +81,13 @@
           "name": "model_beats_market_brier",
           "passed": true,
           "weight": 15,
-          "details": 0.253325
+          "details": 0.254322
         },
         {
           "name": "model_beats_market_logloss",
           "passed": true,
           "weight": 15,
-          "details": 0.700369
+          "details": 0.70242
         },
         {
           "name": "avg_clv_positive",
@@ -105,7 +105,7 @@
           "name": "calibration_ready",
           "passed": false,
           "weight": 10,
-          "details": 198
+          "details": 210
         },
         {
           "name": "walkforward_ready",
@@ -123,11 +123,11 @@
           "name": "settled_samples_at_least_500",
           "passed": false,
           "weight": 5,
-          "details": 198
+          "details": 210
         }
       ],
       "blockers": [
-        "settled prediction samples < 500 (198)",
+        "settled prediction samples < 500 (210)",
         "rolling OOS predictions < 300 (0)",
         "calibration is not ready"
       ],
@@ -192,7 +192,7 @@
     "model_upgrade_path": {
       "name": "Layer 4 - Model Upgrade Path",
       "status": "blocked",
-      "score": 53.2,
+      "score": 54.0,
       "grade": "D",
       "signals": [
         {
@@ -200,7 +200,7 @@
           "passed": false,
           "weight": 20,
           "details": {
-            "sample_count": 198,
+            "sample_count": 210,
             "minimum": 300
           }
         },
@@ -214,13 +214,13 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 57
+          "details": 58
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
           "passed": true,
           "weight": 20,
-          "details": 0.7096774193548387
+          "details": 0.6935483870967742
         },
         {
           "name": "rolling_oos_started",
@@ -230,7 +230,7 @@
         }
       ],
       "blockers": [
-        "clean training samples below threshold: 198 < 300",
+        "clean training samples below threshold: 210 < 300",
         "model is not trained yet"
       ],
       "warnings": [
@@ -270,7 +270,7 @@
           "name": "artifact_retention_ok",
           "passed": true,
           "weight": 10,
-          "details": 98
+          "details": 99
         },
         {
           "name": "decision_audit_ok",
@@ -318,10 +318,10 @@
   },
   "critical_blockers": [],
   "blockers": [
-    "research_quality: settled prediction samples < 500 (198)",
+    "research_quality: settled prediction samples < 500 (210)",
     "research_quality: rolling OOS predictions < 300 (0)",
     "research_quality: calibration is not ready",
-    "model_upgrade_path: clean training samples below threshold: 198 < 300",
+    "model_upgrade_path: clean training samples below threshold: 210 < 300",
     "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
