@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-13T11:19:30.404396+00:00",
+  "generated_at": "2026-06-13T12:27:09.381921+00:00",
   "pipeline_version": "baseline_v2_clean",
   "sample_count": 213,
   "train_count": 149,
@@ -19,6 +19,9 @@
         "market_no_vig_home_prob"
       ],
       "experimental_features_used": [],
+      "calibration_method": "market_baseline",
+      "calibration_used": false,
+      "calibration_required": false,
       "brier": 0.32594472658402024,
       "logloss": 0.8921560451486026,
       "accuracy": 0.4375,
@@ -67,18 +70,21 @@
         "odds_available"
       ],
       "experimental_features_used": [],
-      "brier": 0.31922574448882446,
-      "logloss": 1.2300783551741221,
-      "accuracy": 0.625,
-      "auc": 0.5541666666666667,
-      "ece": 0.3252046701583863,
+      "calibration_method": "sigmoid",
+      "calibration_used": true,
+      "calibration_required": true,
+      "brier": 0.2913557879001181,
+      "logloss": 0.7803469963047229,
+      "accuracy": 0.4375,
+      "auc": 0.4458333333333333,
+      "ece": 0.23089532612568592,
       "beats_market_brier": true,
-      "beats_market_logloss": false,
-      "beats_market_accuracy": true,
+      "beats_market_logloss": true,
+      "beats_market_accuracy": false,
       "promotion_eligible": false,
       "promotion_blockers": [
         "insufficient_samples_for_promotion: 213 < 300",
-        "ece above candidate threshold: 0.3252 > 0.05"
+        "ece above candidate threshold: 0.2309 > 0.05"
       ],
       "warnings": [],
       "errors": []
@@ -114,18 +120,21 @@
         "odds_available"
       ],
       "experimental_features_used": [],
-      "brier": 0.2550245972828911,
-      "logloss": 0.7049167925217397,
+      "calibration_method": "sigmoid",
+      "calibration_used": true,
+      "calibration_required": true,
+      "brier": 0.24770626422747977,
+      "logloss": 0.6886720165513379,
       "accuracy": 0.625,
       "auc": 0.45833333333333337,
-      "ece": 0.13600202815872892,
+      "ece": 0.11423811274854934,
       "beats_market_brier": true,
       "beats_market_logloss": true,
       "beats_market_accuracy": true,
       "promotion_eligible": false,
       "promotion_blockers": [
         "insufficient_samples_for_promotion: 213 < 300",
-        "ece above candidate threshold: 0.1360 > 0.05"
+        "ece above candidate threshold: 0.1142 > 0.05"
       ],
       "warnings": [],
       "errors": []
@@ -161,18 +170,21 @@
         "odds_available"
       ],
       "experimental_features_used": [],
-      "brier": 0.2506634769785232,
-      "logloss": 0.6951357436767862,
-      "accuracy": 0.53125,
+      "calibration_method": "sigmoid",
+      "calibration_used": true,
+      "calibration_required": true,
+      "brier": 0.24753595205473394,
+      "logloss": 0.6882787839599411,
+      "accuracy": 0.5625,
       "auc": 0.47500000000000003,
-      "ece": 0.16613554302603006,
+      "ece": 0.08141215145587916,
       "beats_market_brier": true,
       "beats_market_logloss": true,
       "beats_market_accuracy": true,
       "promotion_eligible": false,
       "promotion_blockers": [
         "insufficient_samples_for_promotion: 213 < 300",
-        "ece above candidate threshold: 0.1661 > 0.05"
+        "ece above candidate threshold: 0.0814 > 0.05"
       ],
       "warnings": [],
       "errors": []
@@ -209,6 +221,9 @@
         "market_no_vig_home_prob"
       ],
       "experimental_features_used": [],
+      "calibration_method": "market_residual_uncalibrated",
+      "calibration_used": false,
+      "calibration_required": false,
       "brier": 0.28721986198295524,
       "logloss": 0.7810559532794549,
       "accuracy": 0.5,
@@ -238,7 +253,7 @@
   "market_probability_column": "market_no_vig_home_prob",
   "best_by_brier": "xgboost_classifier",
   "best_by_logloss": "xgboost_classifier",
-  "best_by_ece": "lightgbm_classifier",
+  "best_by_ece": "xgboost_classifier",
   "champion_candidate": null,
   "global_blockers": [
     "insufficient_samples_for_promotion: 213 < 300"
