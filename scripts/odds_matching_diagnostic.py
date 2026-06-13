@@ -11,6 +11,9 @@ from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
 
 
+ODDS_FETCH_DIAGNOSTIC_PATH = Path("report/odds_fetch_diagnostic.json")
+
+
 TEAM_ABBREV_MAP = {
     "la dodgers": "los angeles dodgers",
     "lad dodgers": "los angeles dodgers",
@@ -108,6 +111,41 @@ def _safe_read_json(path: Path) -> Tuple[Optional[Dict[str, Any]], str]:
         return None, f"Invalid JSON in {path}: {exc}"
     except Exception as exc:
         return None, f"Error reading {path}: {exc}"
+
+
+def _odds_fetch_diagnostic_summary() -> Dict[str, Any]:
+    data, error = _safe_read_json(ODDS_FETCH_DIAGNOSTIC_PATH)
+
+    if data is None:
+        return {
+            "exists": False,
+            "status": "",
+            "selected_attempt": "",
+            "final_event_count": 0,
+            "final_usable_row_count": 0,
+            "attempts": [],
+            "recommendations": [],
+            "error": error,
+        }
+
+    attempts = data.get("attempts", [])
+    if not isinstance(attempts, list):
+        attempts = []
+
+    recommendations = data.get("recommendations", [])
+    if not isinstance(recommendations, list):
+        recommendations = []
+
+    return {
+        "exists": True,
+        "status": data.get("status", ""),
+        "selected_attempt": data.get("selected_attempt", ""),
+        "final_event_count": data.get("final_event_count", 0),
+        "final_usable_row_count": data.get("final_usable_row_count", 0),
+        "attempts": attempts,
+        "recommendations": recommendations,
+        "error": "",
+    }
 
 
 def _safe_read_csv(path: Path) -> Tuple[Optional[pd.DataFrame], str]:
@@ -504,6 +542,26 @@ def _build_recommendations(
             "Candidate odds exist but home/away prices are incomplete. Check outcome side extraction in odds parser."
         )
 
+    if issue_counter.get("provider_returned_zero_events", 0) > 0:
+        recommendations.append(
+            "The Odds API returned zero events. Check ODDS_API_KEY, subscription, quota headers, baseball_mlb availability, and date window."
+        )
+
+    if issue_counter.get("parser_dropped_all_provider_events", 0) > 0:
+        recommendations.append(
+            "Provider returned events but parser produced zero usable rows. Inspect bookmaker market keys and h2h outcome parsing."
+        )
+
+    if issue_counter.get("schedule_matching_failed_after_fetch", 0) > 0:
+        recommendations.append(
+            "Usable odds rows exist but prediction games remain unavailable. Inspect model.attach_schedule_game_ids team/date matching."
+        )
+
+    if issue_counter.get("market_odds_history_not_persisted", 0) > 0:
+        recommendations.append(
+            "Odds are fetched but not persisted to data/market_odds_history.csv; inspect prediction.py market history writer."
+        )
+
     if not recommendations:
         recommendations.append(
             "No obvious odds matching issue detected by diagnostic. Inspect prediction.py gating logic next."
@@ -550,6 +608,7 @@ def build_odds_matching_diagnostic(
             "error": "",
             "total_rows": 0,
         },
+        "odds_fetch_diagnostic": _odds_fetch_diagnostic_summary(),
         "odds_quality_counts": {
             "OK": 0,
             "SUSPICIOUS": 0,
@@ -675,6 +734,35 @@ def build_odds_matching_diagnostic(
         for item in prediction_diagnostics
     )
 
+    odds_fetch_summary = diagnostic.get("odds_fetch_diagnostic", {})
+    if isinstance(odds_fetch_summary, dict) and odds_fetch_summary.get("exists"):
+        try:
+            final_event_count = int(odds_fetch_summary.get("final_event_count") or 0)
+        except Exception:
+            final_event_count = 0
+
+        try:
+            final_usable_row_count = int(
+                odds_fetch_summary.get("final_usable_row_count") or 0
+            )
+        except Exception:
+            final_usable_row_count = 0
+
+        if final_event_count == 0:
+            issue_counter["provider_returned_zero_events"] += 1
+
+        elif final_event_count > 0 and final_usable_row_count == 0:
+            issue_counter["parser_dropped_all_provider_events"] += 1
+
+        elif (
+            final_usable_row_count > 0
+            and diagnostic["odds_quality_counts"].get("OK", 0) == 0
+        ):
+            issue_counter["schedule_matching_failed_after_fetch"] += 1
+
+        if final_usable_row_count > 0 and not market_odds_has_rows:
+            issue_counter["market_odds_history_not_persisted"] += 1
+
     diagnostic["top_likely_issues"] = [
         {"issue": issue, "count": int(count)}
         for issue, count in issue_counter.most_common()
@@ -738,6 +826,7 @@ if __name__ == "__main__":
             "moneyline_rows": result["market_odds_history"]["moneyline_rows"],
             "closing_rows": result["market_odds_history"]["closing_rows"],
         },
+        "odds_fetch_diagnostic": result.get("odds_fetch_diagnostic", {}),
         "odds_quality_counts": result["odds_quality_counts"],
         "candidate_match_summary": result["candidate_match_summary"],
         "top_likely_issues": result["top_likely_issues"][:5],
