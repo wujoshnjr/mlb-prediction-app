@@ -69,6 +69,8 @@ TRACKED_FILES = [
     "report/daily_model_accuracy_report.json",
     "report/away_pick_diagnostic_report.json",
     "report/away_guardrail_impact_report.json",
+    "report/odds_fetch_diagnostic.json",
+    "report/odds_matching_diagnostic.json",
     "report/edge_sanity_guardrail_report.json",
     "report/signal_quality_report.json",
     "report/product_experience_report.json",
