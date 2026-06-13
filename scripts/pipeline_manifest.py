@@ -48,6 +48,7 @@ TRACKED_FILES = [
     "report/saas_readiness_report.json",
     "report/sample_state_report.json",
     "report/training_samples_report.json",
+    "report/outcome_linkage_diagnostic.json",
     "report/model_artifact_status_report.json",
     "report/data_contract_report.json",
     "report/pipeline_manifest.json",
