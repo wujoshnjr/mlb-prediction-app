@@ -149,6 +149,7 @@ jobs:
             scripts/away_guardrail_impact_report.py \
             scripts/odds_client.py \
             scripts/odds_matching_diagnostic.py \
+            scripts/outcome_linkage_diagnostic.py \
             scripts/training_samples_builder.py \
             scripts/model_artifact_status.py
             
@@ -163,6 +164,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build outcome linkage diagnostic
+        run: python scripts/outcome_linkage_diagnostic.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          
       - name: Build canonical training samples
         run: python scripts/training_samples_builder.py
         env:
@@ -636,6 +642,7 @@ jobs:
             report/rolling_walkforward_predictions.csv
             report/decision_audit.csv
             report/training_samples_report.json
+            report/outcome_linkage_diagnostic.json \
             report/model_artifact_status_report.json
             data/model_registry.json
             data/sample_state.json
