@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -94,39 +94,93 @@ except Exception as exc:
 
 TEAM_ALIASES = {
     "arizona diamondbacks": "dbacks",
+    "az diamondbacks": "dbacks",
+    "ari diamondbacks": "dbacks",
     "d-backs": "dbacks",
     "dbacks": "dbacks",
+
     "athletics": "athletics",
     "oakland athletics": "athletics",
+    "oakland a's": "athletics",
+    "oakland as": "athletics",
+
     "cleveland guardians": "guardians",
+
     "washington nationals": "nationals",
+    "wsh nationals": "nationals",
+
     "baltimore orioles": "orioles",
+
     "tampa bay rays": "rays",
+    "tb rays": "rays",
+    "tbr rays": "rays",
+
     "detroit tigers": "tigers",
+
     "los angeles angels": "angels",
+    "la angels": "angels",
+    "laa angels": "angels",
+
     "pittsburgh pirates": "pirates",
+
     "chicago cubs": "cubs",
+    "chi cubs": "cubs",
+
     "boston red sox": "redsox",
+
     "atlanta braves": "braves",
+
     "toronto blue jays": "bluejays",
+
     "miami marlins": "marlins",
+
     "new york yankees": "yankees",
+    "ny yankees": "yankees",
+    "nyy": "yankees",
+
     "houston astros": "astros",
+
     "philadelphia phillies": "phillies",
+
     "san francisco giants": "giants",
+    "sf giants": "giants",
+    "sfg giants": "giants",
+
     "chicago white sox": "whitesox",
+    "chi white sox": "whitesox",
+    "cws white sox": "whitesox",
+
     "kansas city royals": "royals",
+    "kc royals": "royals",
+    "kcr royals": "royals",
+
     "seattle mariners": "mariners",
+
     "minnesota twins": "twins",
+
     "new york mets": "mets",
+    "ny mets": "mets",
+    "nym": "mets",
+
     "milwaukee brewers": "brewers",
+
     "los angeles dodgers": "dodgers",
+    "la dodgers": "dodgers",
+    "lad dodgers": "dodgers",
+
     "san diego padres": "padres",
+    "sd padres": "padres",
+    "sdp padres": "padres",
+
     "texas rangers": "rangers",
+
     "colorado rockies": "rockies",
+
     "cincinnati reds": "reds",
+
     "st. louis cardinals": "cardinals",
     "st louis cardinals": "cardinals",
+    "stl cardinals": "cardinals",
 }
 
 
@@ -134,6 +188,62 @@ def normalize_team_key(value: Any) -> str:
     text = re.sub(r"[^a-z0-9 ]+", "", str(value or "").lower()).strip()
     text = re.sub(r"\s+", " ", text)
     return TEAM_ALIASES.get(text, text.replace(" ", ""))
+
+
+def _parse_utc_datetime(value: Any) -> datetime | None:
+    if value is None:
+        return None
+
+    text = str(value).strip()
+    if not text or text.lower() in {"nan", "none", "null"}:
+        return None
+
+    try:
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+
+        parsed = datetime.fromisoformat(text)
+
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+
+        return parsed.astimezone(timezone.utc)
+
+    except Exception:
+        try:
+            parsed_ts = pd.to_datetime(value, utc=True, errors="coerce")
+            if pd.isna(parsed_ts):
+                return None
+
+            return parsed_ts.to_pydatetime()
+
+        except Exception:
+            return None
+
+
+def _time_delta_hours(a: Any, b: Any) -> float | None:
+    left = _parse_utc_datetime(a)
+    right = _parse_utc_datetime(b)
+
+    if left is None or right is None:
+        return None
+
+    return abs((left - right).total_seconds()) / 3600.0
+
+
+def _schedule_time_value(game: dict[str, Any]) -> Any:
+    for key in (
+        "start_time",
+        "game_datetime",
+        "game_date",
+        "commence_time",
+        "official_date",
+    ):
+        value = game.get(key)
+        if value:
+            return value
+
+    return None
 
 
 def frame_to_records(value: Any) -> list[dict[str, Any]]:
@@ -159,31 +269,114 @@ def attach_schedule_game_ids(
     schedule_rows: list[dict[str, Any]],
     errors: list[str],
 ) -> list[dict[str, Any]]:
-    """Join aggregated odds to MLB schedule rows so prediction.py can select per game."""
-    schedule_index = {}
-    for game in schedule_rows:
-        pair = (
-            normalize_team_key(game.get("home_team")),
-            normalize_team_key(game.get("away_team")),
-        )
-        schedule_index[pair] = game.get("game_id")
+    """Join aggregated odds to MLB schedule rows so prediction.py can select per game.
 
-    matched = []
+    Matching layers:
+    1. direct home/away pair
+    2. swapped pair
+    3. team-set fallback
+    4. team + time-window fallback
+
+    The odds row's original home/away odds direction is preserved.
+    Only schedule game_id and audit fields are attached.
+    """
+    if not odds_rows:
+        return []
+
+    if not schedule_rows:
+        errors.append("No MLB schedule rows available for odds matching.")
+        return []
+
+    schedule_direct: dict[tuple[str, str], dict[str, Any]] = {}
+    schedule_team_sets: dict[frozenset[str], list[dict[str, Any]]] = {}
+
+    for game in schedule_rows:
+        home_key = normalize_team_key(game.get("home_team"))
+        away_key = normalize_team_key(game.get("away_team"))
+
+        if not home_key or not away_key:
+            continue
+
+        pair = (home_key, away_key)
+        team_set = frozenset({home_key, away_key})
+
+        schedule_direct[pair] = game
+        schedule_team_sets.setdefault(team_set, []).append(game)
+
+    matched: list[dict[str, Any]] = []
+
     for row in odds_rows:
-        pair = (
-            normalize_team_key(row.get("home_team")),
-            normalize_team_key(row.get("away_team")),
-        )
-        game_id = schedule_index.get(pair)
-        if game_id is None:
+        home_key = normalize_team_key(row.get("home_team"))
+        away_key = normalize_team_key(row.get("away_team"))
+
+        pair = (home_key, away_key)
+        swapped_pair = (away_key, home_key)
+        team_set = frozenset({home_key, away_key})
+
+        match_game: dict[str, Any] | None = None
+        match_type = ""
+        match_confidence = 0.0
+
+        if pair in schedule_direct:
+            match_game = schedule_direct[pair]
+            match_type = "direct_pair"
+            match_confidence = 1.0
+
+        elif swapped_pair in schedule_direct:
+            match_game = schedule_direct[swapped_pair]
+            match_type = "swapped_pair"
+            match_confidence = 0.8
+
+        else:
+            candidates = schedule_team_sets.get(team_set, [])
+
+            if len(candidates) == 1:
+                match_game = candidates[0]
+                match_type = "team_set"
+                match_confidence = 0.7
+
+            elif candidates:
+                row_time = row.get("commence_time")
+                best_candidate: dict[str, Any] | None = None
+                best_delta: float | None = None
+
+                for candidate in candidates:
+                    delta = _time_delta_hours(
+                        row_time,
+                        _schedule_time_value(candidate),
+                    )
+
+                    if delta is None:
+                        continue
+
+                    if best_delta is None or delta < best_delta:
+                        best_delta = delta
+                        best_candidate = candidate
+
+                if (
+                    best_candidate is not None
+                    and best_delta is not None
+                    and best_delta <= 6
+                ):
+                    match_game = best_candidate
+                    match_type = "team_time_window"
+                    match_confidence = 0.6
+
+        if match_game is None:
             errors.append(
                 "Odds matchup not found in MLB schedule: "
-                f"{row.get('away_team')} at {row.get('home_team')}"
+                f"{row.get('away_team')} at {row.get('home_team')}; "
+                f"normalized_pair=({away_key}, {home_key})"
             )
             continue
+
         completed = dict(row)
-        completed["game_id"] = game_id
+        completed["game_id"] = match_game.get("game_id")
+        completed["odds_schedule_match_type"] = match_type
+        completed["odds_schedule_match_confidence"] = match_confidence
+        completed["odds_provider_event_id"] = row.get("event_id")
         matched.append(completed)
+
     return matched
 
 
