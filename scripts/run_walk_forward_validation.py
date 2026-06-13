@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
@@ -14,6 +15,7 @@ from sklearn.preprocessing import StandardScaler
 
 from scripts.feature_schema import MODEL_FEATURES
 from scripts.model_training_common import (
+    FINALIZED_PATH,
     PIPELINE_VERSION,
     build_feature_matrix,
     build_training_frame,
@@ -30,6 +32,8 @@ MIN_TRAIN_SAMPLES = 80
 MIN_REQUIRED_OOS = 300
 VALIDATION_WINDOW_SIZE = 10
 STEP_SIZE = 10
+CALIBRATION_FRACTION = 0.15
+MIN_CALIBRATION_SAMPLES = 10
 
 
 def _utc_now() -> str:
@@ -49,6 +53,20 @@ def _empty_report(reason: str, warnings: Optional[List[str]] = None) -> Dict[str
         "max_model_oos_predictions": 0,
         "min_model_oos_predictions": 0,
         "per_model_ready": {},
+        "calibration_method_by_model": {
+            "logistic_baseline": "sigmoid",
+            "lightgbm_classifier": "sigmoid",
+            "xgboost_classifier": "sigmoid",
+            "market_no_vig_baseline": "market_baseline",
+            "market_residual_model": "market_residual_uncalibrated",
+        },
+        "calibration_used_by_model": {
+            "logistic_baseline": False,
+            "lightgbm_classifier": False,
+            "xgboost_classifier": False,
+            "market_no_vig_baseline": False,
+            "market_residual_model": False,
+        },
         "minimum_train_samples": MIN_TRAIN_SAMPLES,
         "minimum_required_oos_predictions": MIN_REQUIRED_OOS,
         "rolling_window_size": None,
@@ -88,16 +106,97 @@ def _model_names() -> List[str]:
     ]
 
 
+def _calibration_method_by_model() -> Dict[str, str]:
+    return {
+        "logistic_baseline": "sigmoid",
+        "lightgbm_classifier": "sigmoid",
+        "xgboost_classifier": "sigmoid",
+        "market_no_vig_baseline": "market_baseline",
+        "market_residual_model": "market_residual_uncalibrated",
+    }
+
+
+def _target_has_two_classes(values: np.ndarray) -> bool:
+    return len(np.unique(values)) >= 2
+
+
+def _make_sigmoid_calibrator(estimator: Any) -> CalibratedClassifierCV:
+    try:
+        from sklearn.frozen import FrozenEstimator
+
+        return CalibratedClassifierCV(
+            FrozenEstimator(estimator),
+            method="sigmoid",
+        )
+    except ImportError:
+        return CalibratedClassifierCV(
+            estimator=estimator,
+            method="sigmoid",
+            cv="prefit",
+        )
+
+
+def _inner_train_calibration_split(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+) -> Tuple[
+    Optional[np.ndarray],
+    Optional[np.ndarray],
+    Optional[np.ndarray],
+    Optional[np.ndarray],
+    List[str],
+]:
+    warnings: List[str] = []
+
+    train_count = int(len(y_train))
+    if train_count < MIN_CALIBRATION_SAMPLES * 2:
+        return None, None, None, None, [
+            (
+                "not enough rows for inner train/calibration split: "
+                f"{train_count} < {MIN_CALIBRATION_SAMPLES * 2}"
+            )
+        ]
+
+    calibration_count = max(
+        MIN_CALIBRATION_SAMPLES,
+        int(round(train_count * CALIBRATION_FRACTION)),
+    )
+    calibration_count = min(
+        calibration_count,
+        train_count - MIN_CALIBRATION_SAMPLES,
+    )
+
+    if calibration_count <= 0:
+        return None, None, None, None, ["calibration set is empty"]
+
+    base_train_count = train_count - calibration_count
+    if base_train_count <= 0:
+        return None, None, None, None, ["inner train set is empty"]
+
+    X_base_train = X_train[:base_train_count]
+    y_base_train = y_train[:base_train_count]
+    X_calibration = X_train[base_train_count:]
+    y_calibration = y_train[base_train_count:]
+
+    if not _target_has_two_classes(y_base_train):
+        warnings.append("inner train target contains one class")
+
+    if not _target_has_two_classes(y_calibration):
+        warnings.append("inner calibration target contains one class")
+
+    return X_base_train, y_base_train, X_calibration, y_calibration, warnings
+
+
 def _fit_predict(
     model_name: str,
     X_train: np.ndarray,
     y_train: np.ndarray,
     X_valid: np.ndarray,
-) -> Tuple[Optional[np.ndarray], List[str]]:
+) -> Tuple[Optional[np.ndarray], List[str], bool]:
     warnings: List[str] = []
 
-    if len(np.unique(y_train)) < 2:
-        return None, ["train target contains one class"]
+    if not _target_has_two_classes(y_train):
+        return None, ["train target contains one class"], False
 
     try:
         if model_name == "logistic_baseline":
@@ -120,7 +219,7 @@ def _fit_predict(
             try:
                 from lightgbm import LGBMClassifier
             except Exception as exc:
-                return None, [f"lightgbm import failed: {exc}"]
+                return None, [f"lightgbm import failed: {exc}"], False
 
             model = Pipeline(
                 [
@@ -148,7 +247,7 @@ def _fit_predict(
             try:
                 from xgboost import XGBClassifier
             except Exception as exc:
-                return None, [f"xgboost import failed: {exc}"]
+                return None, [f"xgboost import failed: {exc}"], False
 
             model = Pipeline(
                 [
@@ -174,14 +273,41 @@ def _fit_predict(
             )
 
         else:
-            return None, [f"unsupported model: {model_name}"]
+            return None, [f"unsupported model: {model_name}"], False
 
-        model.fit(X_train, y_train)
-        prob = model.predict_proba(X_valid)[:, 1]
-        return np.clip(np.asarray(prob, dtype=float), 0.01, 0.99), warnings
+        (
+            X_base_train,
+            y_base_train,
+            X_calibration,
+            y_calibration,
+            split_warnings,
+        ) = _inner_train_calibration_split(X_train, y_train)
+        warnings.extend(split_warnings)
+
+        if (
+            X_base_train is None
+            or y_base_train is None
+            or X_calibration is None
+            or y_calibration is None
+        ):
+            return None, warnings, False
+
+        if not _target_has_two_classes(y_base_train):
+            return None, warnings, False
+
+        if not _target_has_two_classes(y_calibration):
+            return None, warnings, False
+
+        model.fit(X_base_train, y_base_train)
+
+        calibrated_model = _make_sigmoid_calibrator(model)
+        calibrated_model.fit(X_calibration, y_calibration)
+
+        probability = calibrated_model.predict_proba(X_valid)[:, 1]
+        return np.clip(np.asarray(probability, dtype=float), 0.01, 0.99), warnings, True
 
     except Exception as exc:
-        return None, [str(exc)]
+        return None, [*warnings, str(exc)], False
 
 
 def _market_residual_predict(
@@ -407,7 +533,7 @@ def _brier_skill_score(model_brier: Any, market_brier: Any) -> Optional[float]:
 def build_report(
     *,
     snapshot_path: Path = Path("data/prediction_snapshots.csv"),
-    finalized_path: Path = Path("data/finalized_games.csv"),
+    finalized_path: Path = FINALIZED_PATH,
     report_path: Path = REPORT_PATH,
     predictions_path: Path = PREDICTIONS_PATH,
     minimum_train_samples: int = MIN_TRAIN_SAMPLES,
@@ -465,7 +591,11 @@ def build_report(
     market_column = find_market_probability_column(work)
     prediction_rows: List[Dict[str, Any]] = []
     model_warning_map: Dict[str, List[str]] = {name: [] for name in _model_names()}
-
+    calibration_method_by_model = _calibration_method_by_model()
+    calibration_used_by_model: Dict[str, bool] = {
+        name: False for name in _model_names()
+    }
+    
     for start in range(minimum_train_samples, sample_count, step_size):
         end = min(start + validation_window_size, sample_count)
         if end <= start:
@@ -478,8 +608,16 @@ def build_report(
         frame_valid = work.iloc[start:end].copy()
 
         for model_name in ("logistic_baseline", "lightgbm_classifier", "xgboost_classifier"):
-            prob, model_warnings = _fit_predict(model_name, X_train, y_train, X_valid)
+            prob, model_warnings, calibration_used = _fit_predict(
+                model_name,
+                X_train,
+                y_train,
+                X_valid,
+            )
             model_warning_map[model_name].extend(model_warnings)
+
+            if calibration_used:
+                calibration_used_by_model[model_name] = True
 
             if prob is None:
                 continue
@@ -648,6 +786,8 @@ def build_report(
         "max_model_oos_predictions": max_model_oos,
         "min_model_oos_predictions": min_model_oos,
         "per_model_ready": per_model_ready,
+        "calibration_method_by_model": calibration_method_by_model,
+        "calibration_used_by_model": calibration_used_by_model,
         "minimum_train_samples": minimum_train_samples,
         "minimum_required_oos_predictions": MIN_REQUIRED_OOS,
         "rolling_window_size": None,
