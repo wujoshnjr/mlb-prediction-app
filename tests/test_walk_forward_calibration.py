@@ -69,8 +69,7 @@ def test_build_report_outputs_calibration_used_by_model(tmp_path, monkeypatch):
     snapshot_path = tmp_path / "prediction_snapshots.csv"
     outcome_path = tmp_path / "finalized_snapshot_outcomes.csv"
     report_path = tmp_path / "report" / "walk_forward_validation_report.json"
-    predictions_path = tmp_path / "data" / "walk_forward_predictionsprediction_snapshots.csv"
-    outcome_path = tmp_path / "finalized_snapshot.csv"
+    predictions_path = tmp_path / "data" / "walk_forward_predictions.csv"
 
     report_path.parent.mkdir(parents=True, exist_ok=True)
     predictions_path.parent.mkdir(parents=True, exist_ok=True)
