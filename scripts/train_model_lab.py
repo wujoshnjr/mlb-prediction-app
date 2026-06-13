@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
@@ -20,6 +21,7 @@ except Exception:
     MODEL_FEATURES = []
 
 from scripts.model_training_common import (
+    FINALIZED_PATH,
     MARKET_PROBABILITY_COLUMNS,
     PIPELINE_VERSION,
     build_feature_matrix,
@@ -57,6 +59,9 @@ def _base_model_result(model_name: str) -> Dict[str, Any]:
         "feature_count": 0,
         "features_used": [],
         "experimental_features_used": [],
+        "calibration_method": None,
+        "calibration_used": False,
+        "calibration_required": False,
         "brier": None,
         "logloss": None,
         "accuracy": None,
@@ -78,6 +83,114 @@ def _probability_from_estimator(model: Any, X: np.ndarray) -> np.ndarray:
 
     prediction = model.predict(X)
     return np.asarray(prediction, dtype=float)
+
+
+def _target_has_two_classes(values: np.ndarray) -> bool:
+    return len(np.unique(values)) >= 2
+
+
+def _make_sigmoid_calibrator(estimator: Any) -> CalibratedClassifierCV:
+    try:
+        from sklearn.frozen import FrozenEstimator
+
+        return CalibratedClassifierCV(
+            FrozenEstimator(estimator),
+            method="sigmoid",
+        )
+    except ImportError:
+        return CalibratedClassifierCV(
+            estimator=estimator,
+            method="sigmoid",
+            cv="prefit",
+        )
+
+
+def _calibration_skip_reason(split: Dict[str, Any]) -> Optional[str]:
+    if not _target_has_two_classes(split["y_train"]):
+        return "train set contains only one target class"
+
+    if not _target_has_two_classes(split["y_calibration"]):
+        return "calibration set contains only one target class"
+
+    if not _target_has_two_classes(split["y_validation"]):
+        return "validation set contains only one target class"
+
+    if int(split.get("calibration_count") or 0) <= 0:
+        return "calibration set is empty"
+
+    return None
+
+
+def _fit_calibrated_classifier(
+    *,
+    model_name: str,
+    base_model: Any,
+    split: Dict[str, Any],
+    features_used: List[str],
+    experimental_features_used: List[str],
+    sample_count: int,
+    market_metrics: Optional[Dict[str, Any]],
+) -> Tuple[Dict[str, Any], Optional[Any]]:
+    result = _base_model_result(model_name)
+    result.update(
+        {
+            "skipped": False,
+            "train_count": int(split["train_count"]),
+            "calibration_count": int(split["calibration_count"]),
+            "validation_count": int(split["validation_count"]),
+            "feature_count": len(features_used),
+            "features_used": features_used,
+            "experimental_features_used": experimental_features_used,
+            "calibration_method": "sigmoid",
+            "calibration_used": False,
+            "calibration_required": True,
+        }
+    )
+
+    skip_reason = _calibration_skip_reason(split)
+    if skip_reason:
+        result["trained"] = False
+        result["skipped"] = True
+        result["skip_reason"] = skip_reason
+        result["promotion_blockers"] = [skip_reason]
+        return result, None
+
+    try:
+        base_model.fit(split["X_train"], split["y_train"])
+
+        calibrated_model = _make_sigmoid_calibrator(base_model)
+        calibrated_model.fit(split["X_calibration"], split["y_calibration"])
+
+        probability = _probability_from_estimator(
+            calibrated_model,
+            split["X_validation"],
+        )
+        metrics = classification_metrics(split["y_validation"], probability)
+
+        _copy_metrics(result, metrics)
+
+        result["trained"] = True
+        result["skipped"] = False
+        result["skip_reason"] = ""
+        result["calibration_used"] = True
+
+        _beats_market(result, market_metrics)
+        _apply_promotion_gate(
+            result,
+            sample_count=sample_count,
+            validation_y=split["y_validation"],
+            market_baseline_available=market_metrics is not None,
+        )
+
+        return result, calibrated_model
+
+    except Exception as exc:
+        result["trained"] = False
+        result["skipped"] = True
+        result["skip_reason"] = str(exc)
+        result["errors"].append(str(exc))
+        result["promotion_blockers"] = [result["skip_reason"]]
+        return result, None
 
 
 def _copy_metrics(target: Dict[str, Any], metrics: Dict[str, Any]) -> None:
@@ -166,62 +279,32 @@ def _fit_logistic(
     sample_count: int,
     market_metrics: Optional[Dict[str, Any]],
 ) -> Tuple[Dict[str, Any], Optional[Any]]:
-    result = _base_model_result("logistic_baseline")
-    result.update(
-        {
-            "skipped": False,
-            "train_count": int(split["train_count"]),
-            "calibration_count": int(split["calibration_count"]),
-            "validation_count": int(split["validation_count"]),
-            "feature_count": len(features_used),
-            "features_used": features_used,
-            "experimental_features_used": experimental_features_used,
-        }
+    base_model = Pipeline(
+        [
+            ("imputer", SimpleImputer(strategy="median", add_indicator=True)),
+            ("scaler", StandardScaler()),
+            (
+                "model",
+                LogisticRegression(
+                    penalty="l2",
+                    solver="lbfgs",
+                    max_iter=2000,
+                    random_state=42,
+                ),
+            ),
+        ]
     )
 
-    if len(np.unique(split["y_train"])) < 2:
-        result["skipped"] = True
-        result["skip_reason"] = "train set contains only one target class"
-        result["promotion_blockers"] = [result["skip_reason"]]
-        return result, None
-
-    try:
-        model = Pipeline(
-            [
-                ("imputer", SimpleImputer(strategy="median", add_indicator=True)),
-                ("scaler", StandardScaler()),
-                (
-                    "model",
-                    LogisticRegression(
-                        penalty="l2",
-                        solver="lbfgs",
-                        max_iter=2000,
-                        random_state=42,
-                    ),
-                ),
-            ]
-        )
-        model.fit(split["X_train"], split["y_train"])
-        prob = _probability_from_estimator(model, split["X_validation"])
-        metrics = classification_metrics(split["y_validation"], prob)
-        _copy_metrics(result, metrics)
-        result["trained"] = True
-        _beats_market(result, market_metrics)
-        _apply_promotion_gate(
-            result,
-            sample_count=sample_count,
-            validation_y=split["y_validation"],
-            market_baseline_available=market_metrics is not None,
-        )
-        return result, model
-    except Exception as exc:
-        result["skipped"] = True
-        result["trained"] = False
-        result["skip_reason"] = str(exc)
-        result["errors"].append(str(exc))
-        result["promotion_blockers"] = [result["skip_reason"]]
-        return result, None
-
+    return _fit_calibrated_classifier(
+        model_name="logistic_baseline",
+        base_model=base_model,
+        split=split,
+        features_used=features_used,
+        experimental_features_used=experimental_features_used,
+        sample_count=sample_count,
+        market_metrics=market_metrics,
+    )
+    
 
 def _fit_lightgbm_classifier(
     split: Dict[str, Any],
@@ -253,56 +336,37 @@ def _fit_lightgbm_classifier(
         result["promotion_blockers"] = [result["skip_reason"]]
         return result, None
 
-    if len(np.unique(split["y_train"])) < 2:
-        result["trained"] = False
-        result["skipped"] = True
-        result["skip_reason"] = "train set contains only one target class"
-        result["promotion_blockers"] = [result["skip_reason"]]
-        return result, None
-
-    try:
-        model = Pipeline(
-            [
-                ("imputer", SimpleImputer(strategy="median")),
-                (
-                    "model",
-                    LGBMClassifier(
-                        n_estimators=60,
-                        learning_rate=0.035,
-                        max_depth=2,
-                        num_leaves=7,
-                        min_child_samples=20,
-                        subsample=0.85,
-                        colsample_bytree=0.85,
-                        reg_alpha=0.25,
-                        reg_lambda=1.5,
-                        random_state=42,
-                        verbose=-1,
-                    ),
+    model = Pipeline(
+        [
+            ("imputer", SimpleImputer(strategy="median")),
+            (
+                "model",
+                LGBMClassifier(
+                    n_estimators=60,
+                    learning_rate=0.035,
+                    max_depth=2,
+                    num_leaves=7,
+                    min_child_samples=20,
+                    subsample=0.85,
+                    colsample_bytree=0.85,
+                    reg_alpha=0.25,
+                    reg_lambda=1.5,
+                    random_state=42,
+                    verbose=-1,
                 ),
-            ]
-        )
-        model.fit(split["X_train"], split["y_train"])
-        prob = _probability_from_estimator(model, split["X_validation"])
-        metrics = classification_metrics(split["y_validation"], prob)
-        _copy_metrics(result, metrics)
-        result["trained"] = True
-        result["skipped"] = False
-        _beats_market(result, market_metrics)
-        _apply_promotion_gate(
-            result,
-            sample_count=sample_count,
-            validation_y=split["y_validation"],
-            market_baseline_available=market_metrics is not None,
-        )
-        return result, model
-    except Exception as exc:
-        result["trained"] = False
-        result["skipped"] = True
-        result["skip_reason"] = str(exc)
-        result["errors"].append(str(exc))
-        result["promotion_blockers"] = [result["skip_reason"]]
-        return result, None
+            ),
+        ]
+    )
+
+    return _fit_calibrated_classifier(
+        model_name="lightgbm_classifier",
+        base_model=model,
+        split=split,
+        features_used=features_used,
+        experimental_features_used=experimental_features_used,
+        sample_count=sample_count,
+        market_metrics=market_metrics,
+    )
 
 
 def _fit_xgboost_classifier(
@@ -335,58 +399,39 @@ def _fit_xgboost_classifier(
         result["promotion_blockers"] = [result["skip_reason"]]
         return result, None
         
-    if len(np.unique(split["y_train"])) < 2:
-        result["trained"] = False
-        result["skipped"] = True
-        result["skip_reason"] = "train set contains only one target class"
-        result["promotion_blockers"] = [result["skip_reason"]]
-        return result, None
-
-    try:
-        model = Pipeline(
-            [
-                ("imputer", SimpleImputer(strategy="median")),
-                (
-                    "model",
-                    XGBClassifier(
-                        n_estimators=70,
-                        max_depth=2,
-                        learning_rate=0.035,
-                        subsample=0.85,
-                        colsample_bytree=0.85,
-                        min_child_weight=8,
-                        reg_alpha=0.25,
-                        reg_lambda=1.5,
-                        objective="binary:logistic",
-                        eval_metric="logloss",
-                        random_state=42,
-                        n_jobs=1,
-                    ),
+    model = Pipeline(
+        [
+            ("imputer", SimpleImputer(strategy="median")),
+            (
+                "model",
+                XGBClassifier(
+                    n_estimators=70,
+                    max_depth=2,
+                    learning_rate=0.035,
+                    subsample=0.85,
+                    colsample_bytree=0.85,
+                    min_child_weight=8,
+                    reg_alpha=0.25,
+                    reg_lambda=1.5,
+                    objective="binary:logistic",
+                    eval_metric="logloss",
+                    random_state=42,
+                    n_jobs=1,
                 ),
-            ]
-        )
-        model.fit(split["X_train"], split["y_train"])
-        prob = _probability_from_estimator(model, split["X_validation"])
-        metrics = classification_metrics(split["y_validation"], prob)
-        _copy_metrics(result, metrics)
-        result["trained"] = True
-        result["skipped"] = False
-        _beats_market(result, market_metrics)
-        _apply_promotion_gate(
-            result,
-            sample_count=sample_count,
-            validation_y=split["y_validation"],
-            market_baseline_available=market_metrics is not None,
-        )
-        return result, model
-    except Exception as exc:
-        result["trained"] = False
-        result["skipped"] = True
-        result["skip_reason"] = str(exc)
-        result["errors"].append(str(exc))
-        result["promotion_blockers"] = [result["skip_reason"]]
-        return result, None
+            ),
+        ]
+    )
 
+    return _fit_calibrated_classifier(
+        model_name="xgboost_classifier",
+        base_model=model,
+        split=split,
+        features_used=features_used,
+        experimental_features_used=experimental_features_used,
+        sample_count=sample_count,
+        market_metrics=market_metrics,
+    )
+    
 
 def _evaluate_market_baseline(frame_validation: pd.DataFrame, y_validation: np.ndarray) -> Tuple[Dict[str, Any], Optional[Dict[str, Any]], Optional[str]]:
     result = _base_model_result("market_no_vig_baseline")
@@ -394,6 +439,9 @@ def _evaluate_market_baseline(frame_validation: pd.DataFrame, y_validation: np.n
     result["train_count"] = 0
     result["calibration_count"] = 0
     result["validation_count"] = int(len(y_validation))
+    result["calibration_method"] = "market_baseline"
+    result["calibration_used"] = False
+    result["calibration_required"] = False
 
     column = find_market_probability_column(frame_validation)
     if column is None:
@@ -431,9 +479,12 @@ def _fit_lightgbm_market_residual(
             "feature_count": len(features_used) + (1 if market_column else 0),
             "features_used": features_used + ([market_column] if market_column else []),
             "experimental_features_used": experimental_features_used,
+            "calibration_method": "market_residual_uncalibrated",
+            "calibration_used": False,
+            "calibration_required": False,
         }
     )
-
+    
     if market_column is None:
         result["skip_reason"] = "market probability missing"
         result["promotion_blockers"] = [result["skip_reason"]]
@@ -582,7 +633,7 @@ def _best_model(models: List[Dict[str, Any]], metric: str, lower_is_better: bool
 def build_report(
     *,
     snapshot_path: Path = Path("data/prediction_snapshots.csv"),
-    finalized_path: Path = Path("data/finalized_games.csv"),
+    finalized_path: Path = FINALIZED_PATH,
     report_path: Path = REPORT_PATH,
     artifact_dir: Path = ARTIFACT_DIR,
 ) -> Dict[str, Any]:
