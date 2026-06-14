@@ -39,6 +39,7 @@ REQUIRED_JSON_REPORTS = {
     "model_artifact_status": DATA_DIR / "model_artifact_status.json",
     "model_artifact_status_report": REPORT_DIR / "model_artifact_status_report.json",
     "model_status_consistency": REPORT_DIR / "model_status_consistency_report.json",
+    "artifact_rebuild_readiness": REPORT_DIR / "artifact_rebuild_readiness_report.json",
     "daily_model_accuracy": REPORT_DIR / "daily_model_accuracy_report.json",
     "away_pick_diagnostic": REPORT_DIR / "away_pick_diagnostic_report.json",
     "away_guardrail_impact": REPORT_DIR / "away_guardrail_impact_report.json",
@@ -787,6 +788,60 @@ def _validate_model_status_consistency(
         )
 
 
+def _validate_artifact_rebuild_readiness(
+    report: Dict[str, Any],
+    errors: List[str],
+) -> None:
+    _validate_standard_report("artifact_rebuild_readiness", report, errors)
+
+    _require_keys(
+        report,
+        [
+            "report_type",
+            "training_samples_row_count",
+            "training_status_sample_count",
+            "minimum_clean_train_samples",
+            "minimum_promotion_samples",
+            "minimum_walk_forward_oos",
+            "artifact_rebuild_allowed",
+            "artifact_rebuild_status",
+            "artifact_quarantine_required",
+            "promotion_candidate_allowed",
+            "production_model_replacement_allowed",
+            "live_betting_allowed",
+            "automated_wagering_allowed",
+            "blockers",
+            "recommendations",
+        ],
+        errors,
+        "artifact_rebuild_readiness",
+    )
+
+    if report.get("report_type") != "artifact_rebuild_readiness_v1":
+        errors.append(
+            "artifact_rebuild_readiness: report_type must be artifact_rebuild_readiness_v1"
+        )
+
+    if report.get("production_model_replacement_allowed") is not False:
+        errors.append(
+            "artifact_rebuild_readiness: production_model_replacement_allowed must be false"
+        )
+
+    if report.get("live_betting_allowed") is not False:
+        errors.append("artifact_rebuild_readiness: live_betting_allowed must be false")
+
+    if report.get("automated_wagering_allowed") is not False:
+        errors.append(
+            "artifact_rebuild_readiness: automated_wagering_allowed must be false"
+        )
+
+    if not isinstance(report.get("blockers"), list):
+        errors.append("artifact_rebuild_readiness: blockers must be a list")
+
+    if not isinstance(report.get("recommendations"), list):
+        errors.append("artifact_rebuild_readiness: recommendations must be a list")
+
+
 def build_contract_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -898,6 +953,12 @@ def build_contract_report() -> Dict[str, Any]:
     if "model_status_consistency" in reports:
         _validate_model_status_consistency(
             reports["model_status_consistency"],
+            errors,
+        )
+
+    if "artifact_rebuild_readiness" in reports:
+        _validate_artifact_rebuild_readiness(
+            reports["artifact_rebuild_readiness"],
             errors,
         )
 
