@@ -40,6 +40,9 @@ REQUIRED_JSON_REPORTS = {
     "model_artifact_status_report": REPORT_DIR / "model_artifact_status_report.json",
     "model_status_consistency": REPORT_DIR / "model_status_consistency_report.json",
     "artifact_rebuild_readiness": REPORT_DIR / "artifact_rebuild_readiness_report.json",
+    "feature_contract": REPORT_DIR / "feature_contract_report.json",
+    "model_eval": REPORT_DIR / "model_eval_report.json",
+    "train_ensemble": REPORT_DIR / "train_ensemble_report.json",
     "daily_model_accuracy": REPORT_DIR / "daily_model_accuracy_report.json",
     "away_pick_diagnostic": REPORT_DIR / "away_pick_diagnostic_report.json",
     "away_guardrail_impact": REPORT_DIR / "away_guardrail_impact_report.json",
@@ -842,6 +845,124 @@ def _validate_artifact_rebuild_readiness(
         errors.append("artifact_rebuild_readiness: recommendations must be a list")
 
 
+def _validate_feature_contract(report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report("feature_contract", report, errors)
+
+    _require_keys(
+        report,
+        [
+            "report_type",
+            "core_model_features",
+            "core_feature_count",
+            "train_serving_consistent",
+            "live_betting_allowed",
+            "automated_wagering_allowed",
+            "production_model_replacement_allowed",
+        ],
+        errors,
+        "feature_contract",
+    )
+
+    if report.get("report_type") != "feature_contract_v1":
+        errors.append("feature_contract: report_type must be feature_contract_v1")
+
+    if report.get("live_betting_allowed") is not False:
+        errors.append("feature_contract: live_betting_allowed must be false")
+
+    if report.get("automated_wagering_allowed") is not False:
+        errors.append("feature_contract: automated_wagering_allowed must be false")
+
+    if report.get("production_model_replacement_allowed") is not False:
+        errors.append(
+            "feature_contract: production_model_replacement_allowed must be false"
+        )
+
+    if report.get("status") == "failed":
+        errors.append("feature_contract: status failed")
+
+
+def _validate_model_eval(report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report("model_eval", report, errors)
+
+    _require_keys(
+        report,
+        [
+            "report_type",
+            "manual",
+            "ml",
+            "final",
+            "market",
+            "slices",
+            "live_betting_allowed",
+            "automated_wagering_allowed",
+            "production_model_replacement_allowed",
+        ],
+        errors,
+        "model_eval",
+    )
+
+    if report.get("report_type") != "model_eval_v1":
+        errors.append("model_eval: report_type must be model_eval_v1")
+
+    if report.get("live_betting_allowed") is not False:
+        errors.append("model_eval: live_betting_allowed must be false")
+
+    if report.get("automated_wagering_allowed") is not False:
+        errors.append("model_eval: automated_wagering_allowed must be false")
+
+    if report.get("production_model_replacement_allowed") is not False:
+        errors.append("model_eval: production_model_replacement_allowed must be false")
+
+
+def _validate_train_ensemble_report(report: Dict[str, Any], errors: List[str]) -> None:
+    _validate_standard_report("train_ensemble", report, errors)
+
+    _require_keys(
+        report,
+        [
+            "report_type",
+            "training_source",
+            "sample_count",
+            "feature_schema_hash",
+            "production_model_replacement_allowed",
+            "live_betting_allowed",
+            "automated_wagering_allowed",
+        ],
+        errors,
+        "train_ensemble",
+    )
+
+    if report.get("report_type") != "train_ensemble_v2":
+        errors.append("train_ensemble: report_type must be train_ensemble_v2")
+
+    if report.get("training_source") != "data/training_samples.csv":
+        errors.append("train_ensemble: training_source must be data/training_samples.csv")
+
+    if report.get("live_betting_allowed") is not False:
+        errors.append("train_ensemble: live_betting_allowed must be false")
+
+    if report.get("automated_wagering_allowed") is not False:
+        errors.append("train_ensemble: automated_wagering_allowed must be false")
+
+    if report.get("production_model_replacement_allowed") is not False:
+        errors.append(
+            "train_ensemble: production_model_replacement_allowed must be false"
+        )
+
+    sample_count = report.get("sample_count")
+    try:
+        parsed_sample_count = int(sample_count)
+    except Exception:
+        parsed_sample_count = None
+
+    if parsed_sample_count is not None and parsed_sample_count < 300:
+        if report.get("trained") is not False:
+            errors.append("train_ensemble: trained must be false when sample_count < 300")
+
+    if report.get("status") == "trained" and report.get("artifact_written") is not True:
+        errors.append("train_ensemble: artifact_written must be true when status trained")
+
+
 def build_contract_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -962,6 +1083,15 @@ def build_contract_report() -> Dict[str, Any]:
             errors,
         )
 
+    if "feature_contract" in reports:
+        _validate_feature_contract(reports["feature_contract"], errors)
+
+    if "model_eval" in reports:
+        _validate_model_eval(reports["model_eval"], errors)
+
+    if "train_ensemble" in reports:
+        _validate_train_ensemble_report(reports["train_ensemble"], errors)
+        
     report = {
         "generated_at": _utc_now(),
         "status": "failed" if errors else "ok",
