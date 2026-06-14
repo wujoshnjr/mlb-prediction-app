@@ -315,11 +315,6 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Build artifact rebuild readiness report
-        run: python scripts/artifact_rebuild_readiness_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
       - name: Diagnose context readiness
         continue-on-error: true
         run: python scripts/context_diagnostic.py
@@ -549,6 +544,11 @@ jobs:
           
       - name: Build HTML report
         run: python scripts/html_report_builder.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build artifact rebuild readiness report
+        run: python scripts/artifact_rebuild_readiness_report.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
