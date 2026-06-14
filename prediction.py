@@ -27,9 +27,9 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from model import UnifiedSportsModel
 from scripts.feature_schema import (
+    CORE_MODEL_FEATURES,
     EXPECTED_FEATURES,
-    MODEL_FEATURES,
-    AVAILABILITY_FLAG_FEATURES,
+    get_model_feature_schema_hash,
 )
 from scripts.risk_guard import LiveBetRiskGuard
 
@@ -112,6 +112,171 @@ EVALUATION_CLV_DIAGNOSTIC_FILE = Path("report/evaluation_clv_diagnostic.json")
 SAMPLE_STATE_FILE = Path("data/sample_state.json")
 TRAINING_STATUS_FILE = Path("data/training_status.json")
 MODEL_ARTIFACT_STATUS_FILE = Path("data/model_artifact_status.json")
+MODEL_FEATURE_SCHEMA_HASH = get_model_feature_schema_hash()
+
+
+def _json_safe_runtime(value: Any) -> Any:
+    if value is None:
+        return None
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, int):
+        return value
+
+    if isinstance(value, float):
+        if not np.isfinite(value):
+            return None
+        return value
+
+    if isinstance(value, str):
+        return value
+
+    if isinstance(value, Path):
+        return str(value)
+
+    if isinstance(value, dict):
+        return {str(key): _json_safe_runtime(item) for key, item in value.items()}
+
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe_runtime(item) for item in value]
+
+    try:
+        if hasattr(value, "item"):
+            return _json_safe_runtime(value.item())
+    except Exception:
+        pass
+
+    return str(value)
+
+
+def _read_json_file(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        if isinstance(payload, dict):
+            return payload
+
+    except Exception:
+        return {}
+
+    return {}
+
+
+def _to_int_or_none(value: Any) -> int | None:
+    try:
+        if value is None:
+            return None
+
+        parsed = float(value)
+        if not np.isfinite(parsed):
+            return None
+
+        return int(parsed)
+
+    except Exception:
+        return None
+
+
+def _artifact_status_metadata(status: dict[str, Any]) -> dict[str, Any]:
+    metadata = status.get("metadata")
+
+    if isinstance(metadata, dict):
+        return metadata
+
+    return {}
+
+
+def read_model_artifact_gate_status() -> dict[str, Any]:
+    status = _read_json_file(MODEL_ARTIFACT_STATUS_FILE)
+    training_status = _read_json_file(TRAINING_STATUS_FILE)
+
+    metadata = _artifact_status_metadata(status)
+
+    training_sample_count = _to_int_or_none(
+        status.get("training_sample_count")
+        if "training_sample_count" in status
+        else metadata.get("training_sample_count")
+    )
+    training_status_sample_count = _to_int_or_none(
+        status.get("training_status_sample_count")
+        if "training_status_sample_count" in status
+        else training_status.get("sample_count")
+    )
+    artifact_feature_schema_hash = str(
+        status.get("feature_schema_hash")
+        or status.get("artifact_feature_schema_hash")
+        or metadata.get("feature_schema_hash")
+        or ""
+    )
+
+    valid = bool(status.get("valid", False))
+    active_model_allowed = bool(status.get("active_model_allowed", False))
+    sample_count_consistent = bool(status.get("sample_count_consistent", False))
+
+    reasons: list[str] = []
+
+    if not status:
+        reasons.append("model_artifact_status_missing")
+
+    if valid is not True:
+        reasons.append("artifact_status_not_valid")
+
+    if active_model_allowed is not True:
+        reasons.append("active_model_not_allowed")
+
+    if training_sample_count is None:
+        reasons.append("artifact_training_sample_count_missing")
+
+    if training_status_sample_count is None:
+        reasons.append("training_status_sample_count_missing")
+
+    if (
+        training_sample_count is not None
+        and training_status_sample_count is not None
+        and training_sample_count != training_status_sample_count
+    ):
+        reasons.append("sample_count_mismatch")
+
+    if sample_count_consistent is not True:
+        reasons.append("sample_count_not_consistent")
+
+    if artifact_feature_schema_hash != MODEL_FEATURE_SCHEMA_HASH:
+        reasons.append("feature_schema_hash_mismatch")
+
+    if not MODEL_FILE.exists():
+        reasons.append("artifact_file_missing")
+
+    should_load = len(reasons) == 0
+
+    return {
+        "should_load": should_load,
+        "model_artifact_valid": valid and should_load,
+        "active_model_allowed": active_model_allowed and should_load,
+        "ml_model_loaded": False,
+        "model_source": "trained_artifact" if should_load else "manual_baseline",
+        "artifact_gate_reasons": reasons,
+        "training_sample_count": training_sample_count,
+        "training_status_sample_count": training_status_sample_count,
+        "feature_schema_hash": MODEL_FEATURE_SCHEMA_HASH,
+        "artifact_feature_schema_hash": artifact_feature_schema_hash,
+        "live_betting_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_model_replacement_allowed": False,
+    }
+
+
+def should_load_ml_artifact(gate_status: dict[str, Any] | None = None) -> bool:
+    if gate_status is None:
+        gate_status = read_model_artifact_gate_status()
+
+    return bool(gate_status.get("should_load", False))
+
 
 DAILY_CONTEXT_FILE = Path("data/daily_game_context.csv")
 PROJECTED_LINEUP_CONTEXT_FILE = Path("data/projected_lineup_context.csv")
