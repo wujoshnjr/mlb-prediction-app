@@ -93,6 +93,8 @@ jobs:
             scripts/model_artifact_status.py \
             scripts/model_status_consistency_report.py \
             scripts/artifact_rebuild_readiness_report.py \
+            scripts/feature_contract_report.py \
+            scripts/model_eval_report.py \
             scripts/sample_state_builder.py \
             scripts/backfill_final_scores.py \
             scripts/rebuild_ratings.py \
@@ -552,7 +554,20 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build feature contract report
+        run: python scripts/feature_contract_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build model evaluation report
+        run: python scripts/model_eval_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Validate data contracts
+        run: python scripts/data_contract_validator.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: python scripts/data_contract_validator.py
         env:
           PYTHONPATH: ${{ github.workspace }}
@@ -656,6 +671,9 @@ jobs:
             report/model_artifact_status_report.json
             report/model_status_consistency_report.json
             report/artifact_rebuild_readiness_report.json
+            report/feature_contract_report.json
+            report/model_eval_report.json
+            report/train_ensemble_report.json
             data/model_registry.json
             data/sample_state.json
             data/training_samples.csv
@@ -720,6 +738,9 @@ jobs:
             report/model_artifact_status_report.json \
             report/model_status_consistency_report.json \
             report/artifact_rebuild_readiness_report.json \
+            report/feature_contract_report.json \
+            report/model_eval_report.json \
+            report/train_ensemble_report.json \
             report/sample_state_report.json \
             report/snapshot_sanitization_report.json \
             report/prediction_sanitization_report.json \
@@ -802,6 +823,10 @@ jobs:
             fi
           done
 
+          if [ -f data/oos_predictions_with_labels.csv ]; then
+            git add -f data/oos_predictions_with_labels.csv
+          fi
+          
           if [ -d data/historical ]; then
             git add -f data/historical/
           fi
