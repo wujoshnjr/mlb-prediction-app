@@ -2562,155 +2562,79 @@ def prepare_team_frame(raw_rows: Any) -> pd.DataFrame:
     return frame
 
 
-def load_ml_model() -> tuple[Any | None, list[str] | None, int, str]:
-    """Load only a sufficiently trained model for the active clean pipeline."""
-    artifact_status = read_json_object(MODEL_ARTIFACT_STATUS_FILE)
-    training_status = read_json_object(TRAINING_STATUS_FILE)
+def load_ml_model() -> dict[str, Any]:
+    gate_status = read_model_artifact_gate_status()
 
-    if artifact_status.get("valid") is not True:
-        return None, None, 0, (
-            "Model artifact status is not valid; using manual baseline. "
-            f"reason={artifact_status.get('reason') or 'unknown'}"
-        )
-
-    if artifact_status.get("active_model_allowed") is not True:
-        return None, None, 0, (
-            "Model artifact is not allowed for active ML use; using manual baseline. "
-            f"reason={artifact_status.get('reason') or 'unknown'}"
-        )
-
-    if training_status.get("trained") is not True:
-        return None, None, 0, "training_status.trained is false; using manual baseline."
-
-    if not MODEL_FILE.exists():
-        return None, None, 0, "Model artifact does not exist."
-
-    required_pipeline_version = getattr(
-        config,
-        "PIPELINE_VERSION",
-        "baseline_v2_clean",
-    )
-    minimum_clean_samples = int(
-        getattr(config, "MIN_CLEAN_TRAIN_SAMPLES", 300)
-    )
+    if not should_load_ml_artifact(gate_status):
+        gate_status["ml_model_loaded"] = False
+        return {
+            "model": None,
+            "features": list(CORE_MODEL_FEATURES),
+            "metadata": {},
+            "governance": gate_status,
+            "source": "manual_baseline",
+        }
 
     try:
         import joblib
 
         artifact = joblib.load(MODEL_FILE)
-        if not (
-            isinstance(artifact, dict)
-            and "model" in artifact
-            and "features" in artifact
-        ):
-            return None, None, 0, "Legacy model artifact is unsupported."
 
-        artifact_pipeline_version = artifact.get("pipeline_version")
-        training_sample_count = as_int(
-            artifact.get("training_sample_count"),
-            0,
-        )
+        if isinstance(artifact, dict):
+            model = artifact.get("model")
+            features = artifact.get("features") or artifact.get("feature_names")
+            metadata = artifact.get("metadata", {})
+        else:
+            model = artifact
+            features = getattr(artifact, "features", None)
+            metadata = getattr(artifact, "metadata", {})
 
-        artifact_status_sample_count = as_int(
-            artifact_status.get("training_sample_count"),
-            0,
-        )
-        training_status_sample_count = as_int(
-            training_status.get("sample_count"),
-            0,
-        )
+        if not isinstance(features, list):
+            features = list(CORE_MODEL_FEATURES)
 
-        if artifact_status_sample_count and training_sample_count != artifact_status_sample_count:
-            return (
-                None,
-                None,
-                training_sample_count,
-                (
-                    "Model artifact sample count conflicts with model_artifact_status: "
-                    f"artifact={training_sample_count}, "
-                    f"status={artifact_status_sample_count}."
-                ),
-            )
+        if list(features) != list(CORE_MODEL_FEATURES):
+            gate_status["artifact_gate_reasons"].append("artifact_feature_order_mismatch")
+            gate_status["ml_model_loaded"] = False
+            gate_status["model_artifact_valid"] = False
+            gate_status["active_model_allowed"] = False
+            gate_status["model_source"] = "manual_baseline"
 
-        if training_status_sample_count and training_sample_count != training_status_sample_count:
-            return (
-                None,
-                None,
-                training_sample_count,
-                (
-                    "Model artifact sample count conflicts with training_status: "
-                    f"artifact={training_sample_count}, "
-                    f"training_status={training_status_sample_count}."
-                ),
-            )
+            return {
+                "model": None,
+                "features": list(CORE_MODEL_FEATURES),
+                "metadata": metadata if isinstance(metadata, dict) else {},
+                "governance": gate_status,
+                "source": "manual_baseline",
+            }
 
-        expected_model_type = "calibrated_logistic_regression_with_imputer"
-        artifact_model_type = str(artifact.get("model_type", "")).strip()
+        gate_status["ml_model_loaded"] = model is not None
+        gate_status["model_artifact_valid"] = model is not None
+        gate_status["active_model_allowed"] = model is not None
+        gate_status["model_source"] = "trained_artifact" if model is not None else "manual_baseline"
 
-        if artifact_model_type != expected_model_type:
-            return (
-                None,
-                None,
-                training_sample_count,
-                (
-                    "Model artifact type mismatch: "
-                    f"expected {expected_model_type}, "
-                    f"found {artifact_model_type or 'missing'}."
-                ),
-            )
-
-        artifact_features = list(artifact.get("features") or [])
-        unexpected_features = sorted(set(artifact_features) - set(MODEL_FEATURES))
-        if unexpected_features:
-            return (
-                None,
-                None,
-                training_sample_count,
-                (
-                    "Model artifact contains non-model or tracking-only features: "
-                    + ",".join(unexpected_features[:12])
-                ),
-            )
-
-        if artifact_pipeline_version != required_pipeline_version:
-            found_version = artifact_pipeline_version or "missing"
-            return (
-                None,
-                None,
-                training_sample_count,
-                (
-                    "Model artifact pipeline version mismatch: "
-                    f"expected {required_pipeline_version}, "
-                    f"found {found_version}."
-                ),
-            )
-
-        if training_sample_count < minimum_clean_samples:
-            return (
-                None,
-                None,
-                training_sample_count,
-                (
-                    "Clean model artifact has insufficient training samples: "
-                    f"{training_sample_count} < {minimum_clean_samples}."
-                ),
-            )
-
-        print(
-            "Loaded ML model artifact for pipeline "
-            f"{required_pipeline_version} "
-            f"with samples={training_sample_count}."
-        )
-        return (
-            artifact["model"],
-            list(artifact["features"]),
-            training_sample_count,
-            "",
-        )
+        return {
+            "model": model,
+            "features": list(CORE_MODEL_FEATURES),
+            "metadata": metadata if isinstance(metadata, dict) else {},
+            "governance": gate_status,
+            "source": gate_status["model_source"],
+        }
 
     except Exception as exc:
-        return None, None, 0, str(exc)
+        gate_status["artifact_gate_reasons"].append(f"artifact_load_failed:{exc}")
+        gate_status["ml_model_loaded"] = False
+        gate_status["model_artifact_valid"] = False
+        gate_status["active_model_allowed"] = False
+        gate_status["model_source"] = "manual_baseline"
 
+        return {
+            "model": None,
+            "features": list(CORE_MODEL_FEATURES),
+            "metadata": {},
+            "governance": gate_status,
+            "source": "manual_baseline",
+        }
+        
 
 def load_nrfi_model() -> tuple[Any | None, bool]:
     """Load optional NRFI model.
