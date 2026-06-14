@@ -32,6 +32,10 @@ except Exception:
     MIN_CLEAN_TRAIN_SAMPLES = 300
     PIPELINE_VERSION = "baseline_v2_clean"
 
+from scripts.feature_schema import (
+    CORE_MODEL_FEATURES,
+    get_model_feature_schema_hash,
+)
 
 CALIBRATOR_PATH = Path("data/calibrator.pkl")
 MODEL_DIR_ARTIFACT_PATH = Path("data/models/baseline_v2_clean/model.joblib")
@@ -190,6 +194,10 @@ def _extract_metadata(artifact: Any) -> Dict[str, Any]:
             "training_sample_count",
             "sample_count",
             "n_samples",
+            "feature_schema_hash",
+            "feature_schema_version",
+            "core_model_features",
+            "core_feature_count",
             "feature_names",
             "features",
         ]:
@@ -212,6 +220,10 @@ def _extract_metadata(artifact: Any) -> Dict[str, Any]:
         "training_sample_count",
         "sample_count",
         "n_samples",
+        "feature_schema_hash",
+        "feature_schema_version",
+        "core_model_features",
+        "core_feature_count",
         "feature_names",
         "features",
     ]:
@@ -285,6 +297,13 @@ def build_model_artifact_status(
     artifact_version = metadata.get("artifact_version", metadata.get("version"))
     model_type = metadata.get("model_type")
     feature_names = _extract_feature_names(metadata)
+
+    feature_schema_hash = get_model_feature_schema_hash()
+    artifact_feature_schema_hash = str(metadata.get("feature_schema_hash") or "")
+    artifact_training_source = str(metadata.get("training_source") or "")
+    artifact_core_feature_count = _to_int(metadata.get("core_feature_count"))
+    expected_core_feature_count = len(CORE_MODEL_FEATURES)
+    feature_schema_match = artifact_feature_schema_hash == feature_schema_hash
 
     training_status_sample_count = _to_int(training_status.get("sample_count")) or 0
     training_sample_count = _extract_training_sample_count(metadata, training_status)
