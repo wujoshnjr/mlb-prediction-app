@@ -309,12 +309,15 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Diagnose context readiness
-        continue-on-error: true
-        run: python scripts/context_diagnostic.py
+      - name: Build model status consistency report
+        run: python scripts/model_status_consistency_report.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Diagnose context readiness
+        continue-on-error: true
+        run: python scripts/context_diagnostic.py
+        
       - name: Diagnose odds matching
         continue-on-error: true
         run: python scripts/odds_matching_diagnostic.py
