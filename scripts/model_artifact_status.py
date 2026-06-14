@@ -353,6 +353,12 @@ def build_model_artifact_status(
         reason = "invalid_pickle_or_joblib_artifact"
     elif sample_count_mismatch_reasons:
         reason = "sample_count_mismatch"
+    elif artifact_training_source != "data/training_samples.csv":
+        reason = "training_source_mismatch"
+    elif not feature_schema_match:
+        reason = "feature_schema_mismatch"
+    elif artifact_core_feature_count != expected_core_feature_count:
+        reason = "core_feature_count_mismatch"
     elif training_sample_count < min_clean_train_samples:
         reason = "insufficient_training_samples"
     elif not artifact_pipeline_version:
@@ -394,6 +400,12 @@ def build_model_artifact_status(
         "sample_count_mismatch_reasons": sample_count_mismatch_reasons,
         "trained": bool(trained),
         "model_type": model_type,
+        "feature_schema_hash": feature_schema_hash,
+        "artifact_feature_schema_hash": artifact_feature_schema_hash,
+        "feature_schema_match": bool(feature_schema_match),
+        "artifact_training_source": artifact_training_source,
+        "artifact_core_feature_count": artifact_core_feature_count,
+        "expected_core_feature_count": expected_core_feature_count,
         "feature_count": int(len(feature_names)),
         "feature_names": feature_names,
         "metadata": metadata,
