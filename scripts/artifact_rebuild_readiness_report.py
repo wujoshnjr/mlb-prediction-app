@@ -85,15 +85,7 @@ def read_json_safe(path: Path) -> tuple[Any, dict[str, Any]]:
     status: dict[str, Any] = {
         "path": str(path),
         "exists": path.exists(),
-        " path.parent.mkdir(parents=True, exist_ok=True)
-    safe_data = _json_safe(data)
-
-    with path.open("w", encoding="utf-8") as handle:
-        json.dump(
-            safe_data,
-            handle,
-            indent=2,
-           error": "",
+        "error": "",
         "type": "",
     }
 
