@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-06-14T01:07:39.009875+00:00",
+  "generated_at": "2026-06-14T08:24:27.752438+00:00",
   "status": "paper_trading_only_blocked_for_live",
   "world_class_stage": "advanced_shadow_trading_candidate",
-  "overall_score": 83.97,
+  "overall_score": 84.04,
   "overall_grade": "B",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
@@ -59,7 +59,7 @@
           "passed": true,
           "weight": 15,
           "details": {
-            "linked_game_count": 223
+            "linked_game_count": 228
           }
         }
       ],
@@ -81,13 +81,13 @@
           "name": "model_beats_market_brier",
           "passed": true,
           "weight": 15,
-          "details": 0.254611
+          "details": 0.253637
         },
         {
           "name": "model_beats_market_logloss",
           "passed": true,
           "weight": 15,
-          "details": 0.702893
+          "details": 0.700726
         },
         {
           "name": "avg_clv_positive",
@@ -105,7 +105,7 @@
           "name": "calibration_ready",
           "passed": false,
           "weight": 10,
-          "details": 223
+          "details": 228
         },
         {
           "name": "walkforward_ready",
@@ -123,11 +123,11 @@
           "name": "settled_samples_at_least_500",
           "passed": false,
           "weight": 5,
-          "details": 223
+          "details": 228
         }
       ],
       "blockers": [
-        "settled prediction samples < 500 (223)",
+        "settled prediction samples < 500 (228)",
         "rolling OOS predictions < 300 (0)",
         "calibration is not ready"
       ],
@@ -182,7 +182,7 @@
       ],
       "blockers": [],
       "warnings": [
-        "paper exposure is high for research stage: 22.5"
+        "paper exposure is high for research stage: 22.75"
       ],
       "recommendations": [
         "Keep live betting locked until governance, sample size, CLV, calibration, and risk gates explicitly allow a later shadow phase.",
@@ -192,7 +192,7 @@
     "model_upgrade_path": {
       "name": "Layer 4 - Model Upgrade Path",
       "status": "blocked",
-      "score": 54.87,
+      "score": 55.2,
       "grade": "D",
       "signals": [
         {
@@ -200,7 +200,7 @@
           "passed": false,
           "weight": 20,
           "details": {
-            "sample_count": 223,
+            "sample_count": 228,
             "minimum": 300
           }
         },
@@ -214,7 +214,7 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 66
+          "details": 67
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
@@ -230,7 +230,7 @@
         }
       ],
       "blockers": [
-        "clean training samples below threshold: 223 < 300",
+        "clean training samples below threshold: 228 < 300",
         "model is not trained yet"
       ],
       "warnings": [
@@ -270,7 +270,7 @@
           "name": "artifact_retention_ok",
           "passed": true,
           "weight": 10,
-          "details": 101
+          "details": 102
         },
         {
           "name": "decision_audit_ok",
@@ -282,7 +282,7 @@
           "name": "paper_ledger_ok",
           "passed": true,
           "weight": 10,
-          "details": 90
+          "details": 91
         },
         {
           "name": "risk_exposure_ok",
@@ -318,14 +318,14 @@
   },
   "critical_blockers": [],
   "blockers": [
-    "research_quality: settled prediction samples < 500 (223)",
+    "research_quality: settled prediction samples < 500 (228)",
     "research_quality: rolling OOS predictions < 300 (0)",
     "research_quality: calibration is not ready",
-    "model_upgrade_path: clean training samples below threshold: 223 < 300",
+    "model_upgrade_path: clean training samples below threshold: 228 < 300",
     "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
-    "risk_controls: paper exposure is high for research stage: 22.5",
+    "risk_controls: paper exposure is high for research stage: 22.75",
     "model_upgrade_path: rolling OOS evaluation has not started producing predictions"
   ],
   "input_files": {

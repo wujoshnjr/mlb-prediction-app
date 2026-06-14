@@ -15,16 +15,16 @@ code{background:#eee;padding:.1rem .25rem;border-radius:4px;}
 <body>
 <h1>MLB Prediction App Dashboard</h1>
 <div class='banner'><strong>Current status:</strong> experimental paper-trading only.<br><strong>Live betting:</strong> disabled by governance.<br>For research and educational use only. No guaranteed profit. Not financial or gambling advice.</div>
-<section class='section'><h2>Model Readiness</h2><p>Train-eligible samples: 223</p><p>Clean settled snapshots: 223</p><p>Minimum clean train samples: 300</p><p>Training allowed: False</p><p>Promotion sample ready: False</p><p>Walk-forward predictions: 0</p><p>Model trained: False</p><p>Model type: calibrated_logistic_regression_with_imputer</p></section>
+<section class='section'><h2>Model Readiness</h2><p>Train-eligible samples: 228</p><p>Clean settled snapshots: 228</p><p>Minimum clean train samples: 300</p><p>Training allowed: False</p><p>Promotion sample ready: False</p><p>Walk-forward predictions: 0</p><p>Model trained: False</p><p>Model type: calibrated_logistic_regression_with_imputer</p></section>
 <section class='section'><h2>Governance</h2><p>Mode: paper_trading_only</p><p>Live betting allowed: False</p><p>Shadow live allowed: False</p><h3>Block reasons</h3><ul><li>clean_model_sample_count_below_live_min:0&lt;500</li><li>clean_model_sample_count_below_train_min:0&lt;300</li><li>force_paper_trading_only_enabled</li><li>live_betting_locked_for_personal_research_engine</li><li>positive_clv_rate_below_threshold</li></ul></section>
 <section class='section'><h2>Data Quality</h2><p>Grade: C</p><p>Prediction allowed: True</p><p>Bet allowed: False</p><h3>Missing critical sources</h3><p class='muted'>None</p><h3>Missing important sources</h3><ul><li>confirmed_lineup</li><li>confirmed_starter</li></ul></section>
 <section class='section'><h2>Baseline Comparison</h2><table><tr><th>Baseline</th><th>Count</th><th>Brier</th><th>Logloss</th><th>Accuracy</th></tr>
-<tr><td>model</td><td>223</td><td>0.254611</td><td>0.702893</td><td>0.520179</td></tr>
+<tr><td>model</td><td>228</td><td>0.253637</td><td>0.700726</td><td>0.52193</td></tr>
 <tr><td>market_no_vig</td><td>194</td><td>0.275766</td><td>0.783352</td><td>0.536082</td></tr>
-<tr><td>elo</td><td>223</td><td>0.256673</td><td>0.707707</td><td>0.520179</td></tr>
-<tr><td>constant_50</td><td>223</td><td>0.25</td><td>0.693147</td><td>0.55157</td></tr>
-<tr><td>home_historical_rate</td><td>223</td><td>0.247636</td><td>0.688414</td><td>0.55157</td></tr>
-<tr><td>log5</td><td>223</td><td>0.414907</td><td>8.502967</td><td>0.493274</td></tr>
+<tr><td>elo</td><td>228</td><td>0.255954</td><td>0.706098</td><td>0.517544</td></tr>
+<tr><td>constant_50</td><td>228</td><td>0.25</td><td>0.693147</td><td>0.548246</td></tr>
+<tr><td>home_historical_rate</td><td>228</td><td>0.247883</td><td>0.688909</td><td>0.548246</td></tr>
+<tr><td>log5</td><td>228</td><td>0.411315</td><td>8.331663</td><td>0.491228</td></tr>
 </table></section>
 <section class='section'><h2>CLV Summary</h2><h3>Edge Bucket</h3>
 <table><tr><th>Slice</th><th>Count</th><th>Avg CLV</th><th>Positive CLV Rate</th><th>Block Live</th></tr>
@@ -50,47 +50,47 @@ code{background:#eee;padding:.1rem .25rem;border-radius:4px;}
 <tr><td>pending</td><td>75</td><td>0.238608</td><td>0.56</td><td>False</td></tr>
 <tr><td>unknown</td><td>111</td><td>0.304694</td><td>0.6306</td><td>False</td></tr>
 </table></section>
-<section class='section'><h2>Calibration Summary</h2><p>Total count: 223</p><p>Calibration ready: False</p><p>Weighted ECE: 0.094387</p>
+<section class='section'><h2>Calibration Summary</h2><p>Total count: 228</p><p>Calibration ready: False</p><p>Weighted ECE: 0.087471</p>
 <table><tr><th>Bin</th><th>Count</th><th>Avg Predicted</th><th>Actual Win Rate</th><th>Error</th></tr>
 <tr><td>0.35-0.40</td><td>33</td><td>0.373912</td><td>0.575758</td><td>0.201845</td></tr>
 <tr><td>0.40-0.45</td><td>18</td><td>0.425922</td><td>0.388889</td><td>0.037033</td></tr>
-<tr><td>0.45-0.50</td><td>37</td><td>0.480881</td><td>0.621622</td><td>0.140741</td></tr>
-<tr><td>0.50-0.55</td><td>38</td><td>0.524008</td><td>0.578947</td><td>0.054939</td></tr>
+<tr><td>0.45-0.50</td><td>40</td><td>0.480287</td><td>0.6</td><td>0.119713</td></tr>
+<tr><td>0.50-0.55</td><td>39</td><td>0.524021</td><td>0.564103</td><td>0.040082</td></tr>
 <tr><td>0.55-0.60</td><td>24</td><td>0.57005</td><td>0.5</td><td>0.07005</td></tr>
 <tr><td>0.60-0.65</td><td>29</td><td>0.621552</td><td>0.62069</td><td>0.000862</td></tr>
 <tr><td>0.65-0.70</td><td>8</td><td>0.665188</td><td>0.5</td><td>0.165188</td></tr>
 </table></section>
 <section class='section'><h2>Walk-forward Status</h2><p>Status: insufficient_samples</p><p>Ready: False</p><p>Total OOS predictions: 0</p></section>
-<section class='section'><h2>Feature Health</h2><p>Availability high risk features: []</p><p>Zero root cause still-zero features: []</p><p>Feature grade counts: {&#x27;A&#x27;: 43, &#x27;B&#x27;: 1, &#x27;C&#x27;: 2, &#x27;D&#x27;: 16}</p><p>Feature promotion candidates: 27</p><p>Ready for review: 0</p></section>
+<section class='section'><h2>Feature Health</h2><p>Availability high risk features: []</p><p>Zero root cause still-zero features: []</p><p>Feature grade counts: {&#x27;A&#x27;: 42, &#x27;B&#x27;: 2, &#x27;C&#x27;: 2, &#x27;D&#x27;: 16}</p><p>Feature promotion candidates: 27</p><p>Ready for review: 0</p></section>
 <section class='section'><h2>Risk Disclosure</h2><p>This project is for research and educational use only. It does not provide financial advice, gambling advice, guaranteed profit, or betting instructions. Sports betting is risky and markets can be highly efficient. Paper trading is the default and live betting is disabled by governance.</p></section>
 <section class='section'><h2>Engineering Grade Summary</h2><table><tr><th>Report</th><th>Status</th><th>Key Metric</th><th>Notes</th></tr>
 <tr><td>Settle Reliability</td><td>ok</td><td>settle_rate=0.0</td><td></td></tr>
-<tr><td>Settled Prediction Link</td><td>ok</td><td>linked_games=223; link_rate=0.910204</td><td>Use finalized_games.csv as the only trusted outcome source for baseline, calibration, ROI, and rolling OOS evaluation.</td></tr>
+<tr><td>Settled Prediction Link</td><td>ok</td><td>linked_games=228; link_rate=0.930612</td><td>Use finalized_games.csv as the only trusted outcome source for baseline, calibration, ROI, and rolling OOS evaluation.</td></tr>
 <tr><td>Rolling Walk-forward</td><td>insufficient_samples</td><td>oos=0</td><td>Need at least 300 settled rows for rolling walk-forward evaluation.</td></tr>
-<tr><td>Feature Promotion</td><td>ok</td><td>candidates=27; ready=0; sample=223</td><td>Do not move tracking-only features into MODEL_FEATURES directly.</td></tr>
+<tr><td>Feature Promotion</td><td>ok</td><td>candidates=27; ready=0; sample=228</td><td>Do not move tracking-only features into MODEL_FEATURES directly.</td></tr>
 <tr><td>Lineup / Starter Slice</td><td>insufficient_samples</td><td>-</td><td>Use these slices for research only; live betting remains blocked.</td></tr>
 <tr><td>Market Close</td><td>ok</td><td>-</td><td>Per-pick CLV is now derived from prediction snapshots joined to closing moneyline odds.</td></tr>
 <tr><td>Research Quality</td><td>ok</td><td>grade=C</td><td>Use this report for research readiness only; it must not enable live betting.</td></tr>
 <tr><td>Model Registry</td><td>ok</td><td>-</td><td>Registry records are for audit only; promotion remains blocked until promotion_gate_report allows it.</td></tr>
 <tr><td>Promotion Gate</td><td>insufficient_samples</td><td>promotion_allowed=False</td><td>Promotion gate is audit-only. Live betting remains disabled unless governance is explicitly changed.</td></tr>
 <tr><td>Decision Audit</td><td>ok</td><td>audit_count=15</td><td>Decision audit is for transparency only; it must not enable live betting.</td></tr>
-<tr><td>Paper Trading Ledger</td><td>ok</td><td>ledger_count=90</td><td>Ledger records paper trades only. Live stake remains zero.</td></tr>
-<tr><td>Risk Exposure</td><td>ok</td><td>open_units=22.5</td><td>Live exposure must remain zero. Paper exposure should stay small until model evidence improves.</td></tr>
+<tr><td>Paper Trading Ledger</td><td>ok</td><td>ledger_count=91</td><td>Ledger records paper trades only. Live stake remains zero.</td></tr>
+<tr><td>Risk Exposure</td><td>ok</td><td>open_units=22.75</td><td>Live exposure must remain zero. Paper exposure should stay small until model evidence improves.</td></tr>
 <tr><td>Artifact Retention</td><td>ok</td><td>-</td><td>Store large generated data outside git when possible.</td></tr>
-<tr><td>World-Class Trading System</td><td>paper_trading_only_blocked_for_live</td><td>score=83.97; stage=advanced_shadow_trading_candidate; grade=B</td><td>Keep live betting locked while building institutional-grade evidence.</td></tr>
+<tr><td>World-Class Trading System</td><td>paper_trading_only_blocked_for_live</td><td>score=84.04; stage=advanced_shadow_trading_candidate; grade=B</td><td>Keep live betting locked while building institutional-grade evidence.</td></tr>
 <tr><td>SaaS Readiness</td><td>partial</td><td>stage=research_platform; docs=100.0; governance=88.0; b2b_api_ready=False</td><td>Keep the current product positioned as a paper-trading research dashboard until OOS and sample evidence are stronger.</td></tr>
-<tr><td>Sample State</td><td>ok</td><td>train_eligible=223; clean_settled=223; walkforward=0</td><td>Promotion sample threshold not met: 223 &lt; 500.</td></tr>
+<tr><td>Sample State</td><td>ok</td><td>train_eligible=228; clean_settled=228; walkforward=0</td><td>Promotion sample threshold not met: 228 &lt; 500.</td></tr>
 <tr><td>Data Contract</td><td>ok</td><td>-</td><td></td></tr>
-<tr><td>Pipeline Manifest</td><td>ok</td><td>tracked=98</td><td>All tracked pipeline artifacts are present and readable.</td></tr>
-<tr><td>Walk-forward Validation</td><td>unavailable</td><td>oos=143; ready=False</td><td></td></tr>
-<tr><td>Calibration Diagnostics</td><td>ok</td><td>sample=223; ready=False; shrinkage=moderate</td><td></td></tr>
+<tr><td>Pipeline Manifest</td><td>ok</td><td>tracked=99</td><td>All tracked pipeline artifacts are present and readable.</td></tr>
+<tr><td>Walk-forward Validation</td><td>unavailable</td><td>oos=148; ready=False</td><td></td></tr>
+<tr><td>Calibration Diagnostics</td><td>ok</td><td>sample=228; ready=False; shrinkage=moderate</td><td></td></tr>
 <tr><td>Prediction Trust</td><td>ok</td><td>predictions=0; trust={}</td><td></td></tr>
-<tr><td>Model Comparison</td><td>ok</td><td>champion=unavailable; challenger=lightgbm_classifier</td><td></td></tr>
-<tr><td>Shadow Ensemble Stack</td><td>ok</td><td>sample=143; recommended=simple_average; promotion=False</td><td></td></tr>
-<tr><td>Finalized Linkage</td><td>ok</td><td>overlap=223; written=0; pending=7; failed=0</td><td>If overlap_count_after remains zero, inspect api_check_sample for not_found, team_mismatch, or pending statuses.</td></tr>
-<tr><td>Research Promotion Readiness</td><td>insufficient_evidence</td><td>status=insufficient_evidence; score=64.29; allowed=False; challenger=lightgbm_classifier</td><td></td></tr>
-<tr><td>Model Decision Guardrail</td><td>blocked</td><td>decision=NO_PROMOTION_SHADOW_ONLY; status=blocked; challenger=lightgbm_classifier</td><td></td></tr>
+<tr><td>Model Comparison</td><td>ok</td><td>champion=unavailable; challenger=lightgbm_market_residual</td><td></td></tr>
+<tr><td>Shadow Ensemble Stack</td><td>ok</td><td>sample=148; recommended=simple_average; promotion=False</td><td></td></tr>
+<tr><td>Finalized Linkage</td><td>ok</td><td>overlap=228; written=0; pending=17; failed=0</td><td>If overlap_count_after remains zero, inspect api_check_sample for not_found, team_mismatch, or pending statuses.</td></tr>
+<tr><td>Research Promotion Readiness</td><td>insufficient_evidence</td><td>status=insufficient_evidence; score=64.29; allowed=False; challenger=lightgbm_market_residual</td><td></td></tr>
+<tr><td>Model Decision Guardrail</td><td>blocked</td><td>decision=NO_PROMOTION_SHADOW_ONLY; status=blocked; challenger=lightgbm_market_residual</td><td></td></tr>
 </table></section>
-<footer><p class='muted'>Generated at 2026-06-14T01:07:32.282767+00:00</p></footer>
+<footer><p class='muted'>Generated at 2026-06-14T08:24:21.132176+00:00</p></footer>
 </body>
 </html>
