@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-13T14:54:24.007758+00:00",
+  "generated_at": "2026-06-14T00:48:12.862136+00:00",
   "exists": true,
   "path": "data/calibrator.pkl",
   "candidate_paths": {
@@ -8,14 +8,20 @@
   },
   "loadable": true,
   "valid": false,
-  "reason": "insufficient_training_samples",
+  "reason": "sample_count_mismatch",
   "action": "ignore_artifact_and_use_manual_baseline",
   "active_model_allowed": false,
   "artifact_version": null,
   "pipeline_version": "baseline_v2_clean",
   "expected_pipeline_version": "baseline_v2_clean",
   "training_sample_count": 109,
-  "training_status_sample_count": 213,
+  "training_status_sample_count": 223,
+  "training_samples_row_count": 223,
+  "sample_count_consistent": false,
+  "sample_count_mismatch_reasons": [
+    "artifact_training_sample_count_mismatch_training_status_sample_count",
+    "artifact_training_sample_count_mismatch_training_samples_row_count"
+  ],
   "trained": false,
   "model_type": "calibrated_logistic_regression_with_imputer",
   "feature_count": 9,
@@ -51,6 +57,12 @@
   "training_status_file": {
     "path": "data/training_status.json",
     "exists": true,
+    "error": ""
+  },
+  "training_samples_file": {
+    "path": "data/training_samples.csv",
+    "exists": true,
+    "rows": 223,
     "error": ""
   },
   "error": "",

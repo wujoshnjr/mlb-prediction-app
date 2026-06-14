@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-13T14:58:42.999585+00:00",
+  "generated_at": "2026-06-14T01:07:30.306427+00:00",
   "status": "ok",
   "product_summary": {
     "mode": "MLB_ONLY_PAPER_RESEARCH",
@@ -9,8 +9,8 @@
       "edge_5_plus is downgraded by edge sanity guardrail",
       "sample gate remains below research promotion threshold"
     ],
-    "sample_count": 213,
-    "overall_accuracy": 0.5211267605633803,
+    "sample_count": 223,
+    "overall_accuracy": 0.5201793721973094,
     "production_allowed": false,
     "live_betting_allowed": false,
     "automated_wagering_allowed": false
@@ -19,19 +19,19 @@
     {
       "card_id": "overall_accuracy",
       "label": "Overall Accuracy",
-      "value": 0.5211267605633803,
-      "display_value": "52.1%",
-      "sample_count": 213,
+      "value": 0.5201793721973094,
+      "display_value": "52.0%",
+      "sample_count": 223,
       "status": "neutral",
-      "caption": "213 settled samples",
+      "caption": "223 settled samples",
       "priority": 1
     },
     {
       "card_id": "sample_gate",
       "label": "Research Sample Gate",
-      "value": 213,
-      "display_value": "213 / 300",
-      "sample_count": 213,
+      "value": 223,
+      "display_value": "223 / 300",
+      "sample_count": 223,
       "status": "waiting",
       "caption": "Needed before research promotion opens",
       "priority": 2
@@ -65,10 +65,10 @@
       "display_status": "TRACKING ONLY",
       "ui_status": "waiting",
       "evidence": {
-        "favorite_accuracy": 0.53125,
-        "favorite_sample_count": 160,
-        "home_accuracy": 0.5784313725490197,
-        "home_sample_count": 102,
+        "favorite_accuracy": 0.5294117647058824,
+        "favorite_sample_count": 170,
+        "home_accuracy": 0.5769230769230769,
+        "home_sample_count": 104,
         "edge_3_to_5_accuracy": 0.7307692307692307,
         "edge_3_to_5_sample_count": 26,
         "odds_ok_accuracy": 0.5517241379310345,
@@ -161,11 +161,11 @@
     {
       "card_id": "favorite_pick",
       "label": "Favorite Pick",
-      "value": 0.53125,
-      "display_value": "53.1%",
-      "sample_count": 160,
+      "value": 0.5294117647058824,
+      "display_value": "52.9%",
+      "sample_count": 170,
       "status": "neutral",
-      "caption": "160 samples \u00b7 Market favorite model picks",
+      "caption": "170 samples \u00b7 Market favorite model picks",
       "priority": 1
     },
     {
@@ -181,21 +181,21 @@
     {
       "card_id": "home_pick",
       "label": "Home Pick",
-      "value": 0.5784313725490197,
-      "display_value": "57.8%",
-      "sample_count": 102,
+      "value": 0.5769230769230769,
+      "display_value": "57.7%",
+      "sample_count": 104,
       "status": "positive",
-      "caption": "102 samples \u00b7 Home side model picks",
+      "caption": "104 samples \u00b7 Home side model picks",
       "priority": 3
     },
     {
       "card_id": "away_pick",
       "label": "Away Pick",
-      "value": 0.46846846846846846,
-      "display_value": "46.8%",
-      "sample_count": 111,
+      "value": 0.47058823529411764,
+      "display_value": "47.1%",
+      "sample_count": 119,
       "status": "negative",
-      "caption": "111 samples \u00b7 Away side model picks",
+      "caption": "119 samples \u00b7 Away side model picks",
       "priority": 4
     },
     {
@@ -221,11 +221,11 @@
     {
       "card_id": "tracking_only",
       "label": "Tracking Only",
-      "value": 0.4583333333333333,
-      "display_value": "45.8%",
-      "sample_count": 72,
+      "value": 0.4634146341463415,
+      "display_value": "46.3%",
+      "sample_count": 82,
       "status": "negative",
-      "caption": "72 samples \u00b7 Non-entry tracking signals",
+      "caption": "82 samples \u00b7 Non-entry tracking signals",
       "priority": 7
     },
     {
@@ -251,21 +251,21 @@
     {
       "card_id": "confidence_55_60",
       "label": "Confidence 55\u201360%",
-      "value": 0.5128205128205128,
-      "display_value": "51.3%",
-      "sample_count": 39,
+      "value": 0.5365853658536586,
+      "display_value": "53.7%",
+      "sample_count": 41,
       "status": "neutral",
-      "caption": "39 samples \u00b7 Stable confidence range",
+      "caption": "41 samples \u00b7 Stable confidence range",
       "priority": 10
     },
     {
       "card_id": "confidence_60_65",
       "label": "Confidence 60\u201365%",
-      "value": 0.5423728813559322,
-      "display_value": "54.2%",
-      "sample_count": 59,
+      "value": 0.5238095238095238,
+      "display_value": "52.4%",
+      "sample_count": 63,
       "status": "neutral",
-      "caption": "59 samples \u00b7 Secondary confidence range",
+      "caption": "63 samples \u00b7 Secondary confidence range",
       "priority": 11
     },
     {
@@ -309,11 +309,9 @@
     {
       "risk_id": "confidence_language",
       "label": "Confidence Language",
-      "status": "capped",
-      "display_status": "CAPPED",
-      "reasons": [
-        "one or more high-confidence buckets are unsafe"
-      ],
+      "status": "allowed",
+      "display_status": "SHADOW_ONLY",
+      "reasons": [],
       "description": "High-confidence wording is governed separately from model probability.",
       "priority": 3
     },
@@ -323,8 +321,7 @@
       "status": "blocked",
       "display_status": "NO_PROMOTION_SHADOW_ONLY",
       "reasons": [
-        "high-confidence language is blocked by confidence guardrail",
-        "insufficient_samples_for_slice_promotion: 213 < 300",
+        "insufficient_samples_for_slice_promotion: 223 < 300",
         "underdog slice is not approved for paper entry upgrade"
       ],
       "description": "Promotion is blocked until minimum research sample is reached.",
@@ -333,11 +330,9 @@
     {
       "risk_id": "freshness",
       "label": "Data Freshness",
-      "status": "warning",
-      "display_status": "D",
-      "reasons": [
-        "prediction_snapshots"
-      ],
+      "status": "ok",
+      "display_status": "A",
+      "reasons": [],
       "description": "Fresh data improves interpretability of game-board signals.",
       "priority": 5
     },

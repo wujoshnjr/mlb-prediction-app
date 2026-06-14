@@ -1,0 +1,86 @@
+{
+  "generated_at": "2026-06-14T01:06:59.500297+00:00",
+  "status": "failed",
+  "report_type": "model_status_consistency_v1",
+  "input_files": {
+    "training_samples": {
+      "path": "data/training_samples.csv",
+      "exists": true,
+      "rows": 223,
+      "error": ""
+    },
+    "training_status": {
+      "path": "data/training_status.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "model_artifact_status": {
+      "path": "data/model_artifact_status.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "prediction_report": {
+      "path": "report/prediction.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "artifact": {
+      "path": "data/calibrator.pkl",
+      "exists": true,
+      "loadable": true,
+      "error": ""
+    }
+  },
+  "training_samples_row_count": 223,
+  "training_status_sample_count": 223,
+  "training_status_trained": false,
+  "training_status_reason": "insufficient_clean_training_samples:223<300",
+  "artifact_selected_path": "data/calibrator.pkl",
+  "artifact_exists": true,
+  "artifact_loadable": true,
+  "artifact_metadata_training_sample_count": 109,
+  "artifact_metadata_pipeline_version": "baseline_v2_clean",
+  "artifact_status_training_sample_count": 109,
+  "artifact_status_training_status_sample_count": 223,
+  "artifact_status_training_samples_row_count": 223,
+  "artifact_status_sample_count_consistent": false,
+  "prediction_loaded_artifact_sample_counts": [],
+  "active_model_allowed": false,
+  "trained": false,
+  "sample_count_consistent": false,
+  "mismatches": [
+    {
+      "field": "artifact_status_vs_training_status",
+      "left": 109,
+      "right": 223
+    },
+    {
+      "field": "artifact_metadata_vs_training_status",
+      "left": 109,
+      "right": 223
+    },
+    {
+      "field": "artifact_metadata_vs_training_samples",
+      "left": 109,
+      "right": 223
+    },
+    {
+      "field": "model_artifact_status_sample_count_consistent",
+      "left": false,
+      "right": true
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "recommendations": [
+    "Do not activate model artifact until sample-count mismatches are resolved.",
+    "Active model is not allowed; prediction.py should use manual baseline.",
+    "Training sample count is below minimum production training threshold."
+  ],
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false,
+  "production_model_replacement_allowed": false
+}
