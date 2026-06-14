@@ -3895,6 +3895,7 @@ def generate_predictions() -> dict[str, Any]:
         no_odds_prediction = manual_prediction
         model_source = "manual"
         model_error = model_load_error
+        ml_prediction: float | None = None
 
         if ml_model is not None and model_features:
             try:
@@ -4434,9 +4435,51 @@ def generate_predictions() -> dict[str, Any]:
             ),
             "missing_signal_flags": sorted(set(risk_flags)),
             "model_source": model_source,
+            "model_used": model_governance.get("model_source", model_source),
             "model_feature_count": len(model_features or []),
             "model_training_sample_count": clean_model_sample_count,
             "model_load_error": model_error,
+            "model_artifact_valid": bool(
+                model_governance.get("model_artifact_valid", False)
+            ),
+            "active_model_allowed": bool(
+                model_governance.get("active_model_allowed", False)
+            ),
+            "ml_model_loaded": bool(
+                model_governance.get("ml_model_loaded", False)
+            ),
+            "missing_core_features": [
+                feature
+                for feature in CORE_MODEL_FEATURES
+                if feature not in features
+            ],
+            "manual_prob_home": round(float(manual_prediction), 4),
+            "ml_prob_home": (
+                round(float(ml_prediction), 4)
+                if ml_prediction is not None
+                else None
+            ),
+            "final_prob_home": round(float(displayed_home_win_pct), 4),
+            "market_prob_home": (
+                round(float(market_probability), 4)
+                if market_probability is not None
+                else None
+            ),
+            "selected_side": moneyline_selected_side,
+            "selected_team": (
+                home_team
+                if moneyline_selected_side == "home"
+                else away_team
+                if moneyline_selected_side == "away"
+                else None
+            ),
+            "selected_probability": (
+                round(float(displayed_home_win_pct), 4)
+                if moneyline_selected_side == "home"
+                else round(float(1.0 - displayed_home_win_pct), 4)
+                if moneyline_selected_side == "away"
+                else None
+            ),
             "model_governance_status": model_governance_status,
             "live_betting_allowed": bool(
                 model_governance_status.get("live_betting_allowed", False)
@@ -4610,6 +4653,7 @@ def generate_predictions() -> dict[str, Any]:
             "PIPELINE_VERSION",
             "baseline_v2_clean",
         ),
+        "model_governance": model_governance,
         "schedule_fetch_ok": schedule_fetch_ok,
         "scheduled_game_count": scheduled_game_count,
         "snapshot_storage_summary": snapshot_storage_summary,
