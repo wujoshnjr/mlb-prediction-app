@@ -1,309 +1,260 @@
+# scripts/calibration_report.py
+"""Generate a probability calibration report from OOS predictions.
+
+Input:
+    data/oos_predictions_with_labels.csv
+
+Output:
+    report/calibration_report.json
+"""
+
 from __future__ import annotations
 
 import json
 import math
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
-
-REPORT_DIR = Path("report")
-DATA_DIR = Path("data")
-
-PREDICTION_JSON = REPORT_DIR / "prediction.json"
-SNAPSHOTS_CSV = DATA_DIR / "prediction_snapshots.csv"
-FINALIZED_CSV = DATA_DIR / "finalized_games.csv"
-
-OUTPUT_JSON = REPORT_DIR / "calibration_report.json"
-
-BINS = [
-    (0.35, 0.40),
-    (0.40, 0.45),
-    (0.45, 0.50),
-    (0.50, 0.55),
-    (0.55, 0.60),
-    (0.60, 0.65),
-    (0.65, 0.70),
-]
+OOS_PATH = Path("data/oos_predictions_with_labels.csv")
+REPORT_PATH = Path("report/calibration_report.json")
+N_BINS = 10
 
 
-def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+def utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
-def _safe_read_json(path: Path) -> Tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
-    status = {"path": str(path), "exists": path.exists(), "rows": None, "error": ""}
-    if not path.exists():
-        status["error"] = "file_missing"
-        return None, status
+def clean_json_value(value: Any) -> Any:
+    if value is None:
+        return None
 
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:
-        status["error"] = str(exc)
-        return None, status
+    if isinstance(value, bool):
+        return value
 
-    if not isinstance(data, dict):
-        status["error"] = "json_not_object"
-        return None, status
+    if isinstance(value, (int, np.integer)):
+        return int(value)
 
-    predictions = data.get("predictions") or data.get("today_predictions") or data.get("games") or []
-    status["rows"] = len(predictions) if isinstance(predictions, list) else None
-    return data, status
-
-
-def _safe_read_csv(path: Path) -> Tuple[Optional[pd.DataFrame], Dict[str, Any]]:
-    status = {"path": str(path), "exists": path.exists(), "rows": 0, "error": ""}
-    if not path.exists():
-        status["error"] = "file_missing"
-        return None, status
-
-    try:
-        frame = pd.read_csv(path)
-    except Exception as exc:
-        status["error"] = str(exc)
-        return None, status
-
-    status["rows"] = int(len(frame))
-    return frame, status
-
-
-def _as_float(value: Any, default: Optional[float] = None) -> Optional[float]:
-    try:
-        if value is None:
-            return default
+    if isinstance(value, (float, np.floating)):
         parsed = float(value)
-        if not math.isfinite(parsed):
-            return default
-        return parsed
-    except (TypeError, ValueError):
-        return default
+        return parsed if math.isfinite(parsed) else None
 
+    if isinstance(value, str):
+        return value
 
-def _as_int(value: Any, default: Optional[int] = None) -> Optional[int]:
-    parsed = _as_float(value)
-    if parsed is None:
-        return default
-    return int(parsed)
+    if isinstance(value, Path):
+        return str(value)
 
+    if isinstance(value, datetime):
+        return value.isoformat()
 
-def _probability(value: Any) -> Optional[float]:
-    parsed = _as_float(value)
-    if parsed is None:
+    if value is pd.NA:
         return None
-    if parsed > 1.0 and parsed <= 100.0:
-        parsed = parsed / 100.0
-    if parsed < 0.0 or parsed > 1.0:
-        return None
-    return float(parsed)
+
+    if isinstance(value, dict):
+        return {str(key): clean_json_value(child) for key, child in value.items()}
+
+    if isinstance(value, (list, tuple, set)):
+        return [clean_json_value(child) for child in value]
+
+    try:
+        if pd.isna(value):
+            return None
+    except Exception:
+        pass
+
+    try:
+        if hasattr(value, "item"):
+            return clean_json_value(value.item())
+    except Exception:
+        pass
+
+    return str(value)
 
 
-def _normalise_game_id(frame: pd.DataFrame) -> pd.DataFrame:
-    frame = frame.copy()
-    if "game_id" in frame.columns:
-        frame["game_id"] = frame["game_id"].astype(str)
-    return frame
-
-
-def _prepare_settled_predictions(
-    snapshots: Optional[pd.DataFrame],
-    finalized: Optional[pd.DataFrame],
-) -> List[Tuple[float, int]]:
-    if snapshots is None or snapshots.empty or "game_id" not in snapshots.columns:
-        return []
-
-    if finalized is None or finalized.empty or "game_id" not in finalized.columns:
-        return []
-
-    frame = _normalise_game_id(snapshots)
-    final = _normalise_game_id(finalized)
-
-    if "home_win" not in final.columns:
-        if {"home_score", "away_score"}.issubset(final.columns):
-            final["home_win"] = (
-                pd.to_numeric(final["home_score"], errors="coerce")
-                > pd.to_numeric(final["away_score"], errors="coerce")
-            ).astype("Int64")
-        else:
-            return []
-
-    final["home_win"] = pd.to_numeric(final["home_win"], errors="coerce")
-    final = final[final["home_win"].isin([0, 1])].copy()
-    if final.empty:
-        return []
-
-    leaked_snapshot_columns = [
-        column
-        for column in ["home_win", "home_score", "away_score"]
-        if column in frame.columns
-    ]
-    if leaked_snapshot_columns:
-        frame = frame.drop(columns=leaked_snapshot_columns)
-
-    frame = frame.merge(
-        final[["game_id", "home_win"]].drop_duplicates("game_id"),
-        on="game_id",
-        how="inner",
-    )
-
-    if frame.empty:
-        return []
-
-    if "snapshot_created_at" in frame.columns:
-        frame["_snapshot_dt"] = pd.to_datetime(
-            frame["snapshot_created_at"],
-            errors="coerce",
-            utc=True,
+def write_json_report(report: dict[str, Any], path: Path = REPORT_PATH) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(
+            clean_json_value(report),
+            handle,
+            indent=2,
+            ensure_ascii=False,
+            allow_nan=False,
         )
-        frame = frame.sort_values("_snapshot_dt").groupby("game_id", as_index=False).tail(1)
-
-    result: List[Tuple[float, int]] = []
-
-    probability_columns = [
-        "displayed_home_win_pct",
-        "predicted_home_win_pct",
-        "premarket_model_home_prob",
-        "model_prob",
-        "home_win_probability",
-    ]
-
-    for _, row in frame.iterrows():
-        prob = None
-        for column in probability_columns:
-            if column in row.index:
-                prob = _probability(row.get(column))
-                if prob is not None:
-                    break
-
-        outcome = _as_int(row.get("home_win"))
-        if prob is None or outcome not in (0, 1):
-            continue
-
-        result.append((prob, int(outcome)))
-
-    return result
-    
-
-def _empty_bins() -> List[Dict[str, Any]]:
-    return [
-        {
-            "bin": f"{low:.2f}-{high:.2f}",
-            "count": 0,
-            "avg_predicted": None,
-            "actual_win_rate": None,
-            "calibration_error": None,
-        }
-        for low, high in BINS
-    ]
 
 
-def build_calibration_report() -> Dict[str, Any]:
-    REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    generated_at = _utc_now()
-
-    _, prediction_status = _safe_read_json(PREDICTION_JSON)
-    snapshots, snapshots_status = _safe_read_csv(SNAPSHOTS_CSV)
-    finalized, finalized_status = _safe_read_csv(FINALIZED_CSV)
-
-    input_files = {
-        "prediction": prediction_status,
-        "prediction_snapshots": snapshots_status,
-        "finalized_games": finalized_status,
+def base_report() -> dict[str, Any]:
+    return {
+        "generated_at": utc_now(),
+        "report_type": "calibration_report",
+        "status": "skipped",
+        "input_path": str(OOS_PATH),
+        "sample_count": 0,
+        "valid_sample_count": 0,
+        "dropped_invalid_rows": 0,
+        "probability_column": "",
+        "target_column": "",
+        "brier": None,
+        "ece": None,
+        "mce": None,
+        "n_bins": N_BINS,
+        "reliability_table": [],
+        "warnings": [],
+        "errors": [],
+        "live_betting_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_model_replacement_allowed": False,
     }
 
-    settled = _prepare_settled_predictions(snapshots, finalized)
-    total_count = len(settled)
 
-    if total_count == 0:
-        report = {
-            "generated_at": generated_at,
-            "status": "insufficient_samples",
-            "input_files": input_files,
-            "calibration_ready": False,
-            "total_count": 0,
-            "bins": _empty_bins(),
-            "weighted_ece": None,
-            "max_calibration_error": None,
-            "min_recommended_samples": 500,
-            "recommendations": [
-                "No settled predictions with model probability and outcome were available."
-            ],
-        }
-        OUTPUT_JSON.write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
-        return report
+def skip_report(report: dict[str, Any], reason: str) -> dict[str, Any]:
+    report["status"] = "skipped"
+    report["errors"].append(reason)
+    write_json_report(report)
+    return report
 
-    bin_outputs: List[Dict[str, Any]] = []
-    weighted_errors: List[Tuple[int, float]] = []
 
-    for low, high in BINS:
-        values = [(prob, outcome) for prob, outcome in settled if low <= prob < high]
-        if not values:
-            bin_outputs.append(
+def error_report(report: dict[str, Any], reason: str) -> dict[str, Any]:
+    report["status"] = "error"
+    report["errors"].append(reason)
+    write_json_report(report)
+    return report
+
+
+def first_existing_column(frame: pd.DataFrame, candidates: list[str]) -> str | None:
+    for column in candidates:
+        if column in frame.columns:
+            return column
+    return None
+
+
+def calibration_bins(
+    y_true: np.ndarray,
+    y_prob: np.ndarray,
+    *,
+    n_bins: int = N_BINS,
+) -> tuple[list[dict[str, Any]], float, float]:
+    bin_edges = np.linspace(0.0, 1.0, n_bins + 1)
+    table: list[dict[str, Any]] = []
+    ece = 0.0
+    mce = 0.0
+    sample_count = len(y_true)
+
+    for index in range(n_bins):
+        start = float(bin_edges[index])
+        end = float(bin_edges[index + 1])
+
+        if index == n_bins - 1:
+            mask = (y_prob >= start) & (y_prob <= end)
+        else:
+            mask = (y_prob >= start) & (y_prob < end)
+
+        count = int(np.sum(mask))
+
+        if count == 0:
+            table.append(
                 {
-                    "bin": f"{low:.2f}-{high:.2f}",
+                    "bin_start": round(start, 6),
+                    "bin_end": round(end, 6),
                     "count": 0,
-                    "avg_predicted": None,
-                    "actual_win_rate": None,
-                    "calibration_error": None,
+                    "avg_predicted_probability": None,
+                    "observed_win_rate": None,
+                    "calibration_gap": None,
                 }
             )
             continue
 
-        probs = np.asarray([item[0] for item in values], dtype=float)
-        outcomes = np.asarray([item[1] for item in values], dtype=float)
-        avg_predicted = float(probs.mean())
-        actual_rate = float(outcomes.mean())
-        error = abs(avg_predicted - actual_rate)
+        avg_pred = float(np.mean(y_prob[mask]))
+        observed = float(np.mean(y_true[mask]))
+        gap = float(abs(avg_pred - observed))
 
-        weighted_errors.append((len(values), error))
+        ece += (count / sample_count) * gap
+        mce = max(mce, gap)
 
-        bin_outputs.append(
+        table.append(
             {
-                "bin": f"{low:.2f}-{high:.2f}",
-                "count": int(len(values)),
-                "avg_predicted": round(avg_predicted, 6),
-                "actual_win_rate": round(actual_rate, 6),
-                "calibration_error": round(float(error), 6),
+                "bin_start": round(start, 6),
+                "bin_end": round(end, 6),
+                "count": count,
+                "avg_predicted_probability": avg_pred,
+                "observed_win_rate": observed,
+                "calibration_gap": gap,
             }
         )
 
-    if weighted_errors:
-        weighted_ece = sum(count * err for count, err in weighted_errors) / sum(
-            count for count, _ in weighted_errors
-        )
-        max_error = max(err for _, err in weighted_errors)
-    else:
-        weighted_ece = None
-        max_error = None
+    return table, float(ece), float(mce)
 
-    calibration_ready = total_count >= 500
 
-    report = {
-        "generated_at": generated_at,
-        "status": "ok" if total_count >= 10 else "insufficient_samples",
-        "input_files": input_files,
-        "calibration_ready": bool(calibration_ready),
-        "total_count": int(total_count),
-        "bins": bin_outputs,
-        "weighted_ece": round(float(weighted_ece), 6) if weighted_ece is not None else None,
-        "max_calibration_error": round(float(max_error), 6) if max_error is not None else None,
-        "min_recommended_samples": 500,
-        "recommendations": []
-        if calibration_ready
-        else ["Need at least 500 settled predictions before calibration should be used for promotion."],
-    }
+def generate_report() -> dict[str, Any]:
+    report = base_report()
 
-    OUTPUT_JSON.write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
+    if not OOS_PATH.exists():
+        return skip_report(report, "oos_predictions_missing")
+
+    try:
+        frame = pd.read_csv(OOS_PATH)
+    except Exception as exc:
+        return error_report(report, f"unable_to_read_oos_predictions:{exc}")
+
+    report["sample_count"] = int(len(frame))
+
+    if frame.empty:
+        return skip_report(report, "oos_predictions_empty")
+
+    target_column = first_existing_column(frame, ["y_true", "home_win", "label"])
+    probability_column = first_existing_column(
+        frame,
+        ["y_prob", "final_prob_home", "predicted_home_win_pct", "displayed_home_win_pct"],
+    )
+
+    if target_column is None or probability_column is None:
+        return skip_report(report, "missing_target_or_probability_column")
+
+    report["target_column"] = target_column
+    report["probability_column"] = probability_column
+
+    y_true = pd.to_numeric(frame[target_column], errors="coerce")
+    y_prob = pd.to_numeric(frame[probability_column], errors="coerce")
+
+    valid = (
+        y_true.isin([0, 1])
+        & y_prob.notna()
+        & np.isfinite(y_prob.to_numpy(dtype=float, na_value=np.nan))
+        & (y_prob >= 0.0)
+        & (y_prob <= 1.0)
+    )
+
+    clean = frame.loc[valid].copy()
+    report["valid_sample_count"] = int(len(clean))
+    report["dropped_invalid_rows"] = int(len(frame) - len(clean))
+
+    if clean.empty:
+        return skip_report(report, "no_valid_calibration_rows")
+
+    y_true_array = pd.to_numeric(clean[target_column], errors="coerce").to_numpy(dtype=int)
+    y_prob_array = pd.to_numeric(clean[probability_column], errors="coerce").to_numpy(
+        dtype=float
+    )
+
+    table, ece, mce = calibration_bins(y_true_array, y_prob_array, n_bins=N_BINS)
+
+    report["status"] = "ok"
+    if report["dropped_invalid_rows"]:
+        report["status"] = "warning"
+        report["warnings"].append("some_invalid_rows_were_dropped")
+
+    report["brier"] = float(np.mean((y_prob_array - y_true_array) ** 2))
+    report["ece"] = ece
+    report["mce"] = mce
+    report["reliability_table"] = table
+
+    write_json_report(report)
     return report
 
 
-def main() -> None:
-    report = build_calibration_report()
-    print(json.dumps({"status": report["status"], "output_path": str(OUTPUT_JSON)}, indent=2))
-
-
 if __name__ == "__main__":
-    main()
+    generate_report()
