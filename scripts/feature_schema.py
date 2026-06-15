@@ -18,6 +18,7 @@ Do not bypass this file to promote features.
 
 from __future__ import annotations
 
+import builtins
 import hashlib
 import json
 from typing import Any
@@ -62,6 +63,14 @@ AVAILABILITY_FLAG_FEATURES = [
     "starter_context_available",
     "odds_available",
 ]
+
+# Backward-compatibility shim for prediction.py. The current prediction runtime
+# references AVAILABILITY_FLAG_FEATURES as an unqualified global inside
+# apply_feature_availability_flags(). Because prediction.py imports selected
+# symbols from this module instead of importing AVAILABILITY_FLAG_FEATURES
+# directly, expose the list through builtins so runtime generation cannot crash.
+# This does not promote availability flags into the active model feature set.
+builtins.AVAILABILITY_FLAG_FEATURES = list(AVAILABILITY_FLAG_FEATURES)
 
 
 MODEL_FEATURES = list(CORE_MODEL_FEATURES)
