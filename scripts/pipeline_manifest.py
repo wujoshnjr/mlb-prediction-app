@@ -85,6 +85,11 @@ TRACKED_FILES = [
     "report/edge_sanity_guardrail_report.json",
     "report/signal_quality_report.json",
     "report/product_experience_report.json",
+    "site/index.html",
+    "site/styles.css",
+    "site/app.js",
+    "site/data/public_dashboard.json",
+    "scripts/build_public_site_data.py",
     "data/lineup_quality_context.csv",
     "data/finalized_snapshot_outcomes.csv",
     "data/walk_forward_predictions.csv",
@@ -156,6 +161,7 @@ def _json_summary(path: Path) -> Dict[str, Any]:
         "research_grade",
         "risk_status",
         "feature_schema_hash",
+        "site_version",
     ):
         if key in data:
             summary[key] = data.get(key)
@@ -170,9 +176,14 @@ def _json_summary(path: Path) -> Dict[str, Any]:
     bins = data.get("bins") or data.get("reliability_table")
     if isinstance(bins, list):
         summary["bin_count"] = len(bins)
-    rows = data.get("rows") or data.get("features") or data.get("priorities") or data.get("issues")
+    rows = data.get("rows") or data.get("features") or data.get("priorities") or data.get("issues") or data.get("games")
     if isinstance(rows, list):
         summary["row_count_in_json"] = len(rows)
+    metrics = data.get("metrics")
+    if isinstance(metrics, dict):
+        for key in ("game_count", "repo_anomaly_errors", "data_contract_errors", "model_auc", "model_brier"):
+            if key in metrics:
+                summary[key] = metrics.get(key)
     for key in (
         "settled_prediction_count",
         "total_oos_predictions",
