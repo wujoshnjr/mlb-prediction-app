@@ -47,10 +47,12 @@ TRACKED_FILES = [
     "report/saas_readiness_report.json",
     "report/model_artifact_status_report.json",
     "report/model_status_consistency_report.json",
+    "report/artifact_quarantine_report.json",
     "report/artifact_rebuild_readiness_report.json",
     "report/feature_contract_report.json",
     "report/feature_missingness_report.json",
     "report/model_eval_report.json",
+    "report/prediction_collapse_report.json",
     "report/train_ensemble_report.json",
     "report/sample_state_report.json",
     "report/training_samples_report.json",
@@ -138,10 +140,8 @@ def _json_summary(path: Path) -> Dict[str, Any]:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
         return {"json_valid": False, "json_error": str(exc)}
-
     if not isinstance(data, dict):
         return {"json_valid": True, "json_type": type(data).__name__}
-
     summary: Dict[str, Any] = {"json_valid": True, "json_type": "dict"}
     for key in (
         "generated_at",
@@ -156,25 +156,20 @@ def _json_summary(path: Path) -> Dict[str, Any]:
     ):
         if key in data:
             summary[key] = data.get(key)
-
     predictions = data.get("predictions") or data.get("today_predictions") or data.get("games")
     if isinstance(predictions, list):
         summary["prediction_count"] = len(predictions)
-
     slices = data.get("slices")
     if isinstance(slices, list):
         summary["slice_count"] = len(slices)
     elif isinstance(slices, dict):
         summary["slice_group_count"] = len(slices)
-
     bins = data.get("bins") or data.get("reliability_table")
     if isinstance(bins, list):
         summary["bin_count"] = len(bins)
-
     rows = data.get("rows") or data.get("features")
     if isinstance(rows, list):
         summary["row_count_in_json"] = len(rows)
-
     for key in (
         "settled_prediction_count",
         "total_oos_predictions",
@@ -191,10 +186,11 @@ def _json_summary(path: Path) -> Dict[str, Any]:
         "live_betting_allowed",
         "automated_wagering_allowed",
         "production_model_replacement_allowed",
+        "quarantined",
+        "stale_sample_mismatch",
     ):
         if key in data:
             summary[key] = data.get(key)
-
     return summary
 
 
@@ -234,13 +230,11 @@ def build_manifest() -> Dict[str, Any]:
         for item in files
         if item["path"].endswith(".json") and item["exists"] and item.get("json_valid") is False
     ]
-
     status = "ok"
     if invalid_json_files:
         status = "failed"
     elif missing_files:
         status = "partial"
-
     recommendations = []
     if missing_files:
         recommendations.append(
@@ -252,7 +246,6 @@ def build_manifest() -> Dict[str, Any]:
         )
     if not recommendations:
         recommendations.append("All tracked pipeline artifacts are present and readable.")
-
     report = {
         "generated_at": _utc_now(),
         "status": status,
