@@ -15,7 +15,8 @@ REPORT_DIR = Path("report")
 DATA_DIR = Path("data")
 
 SNAPSHOTS_CSV = DATA_DIR / "prediction_snapshots.csv"
-FINALIZED_CSV = DATA_DIR / "finalized_games.csv"
+FINALIZED_SNAPSHOT_OUTCOMES_CSV = DATA_DIR / "finalized_snapshot_outcomes.csv"
+LEGACY_FINALIZED_GAMES_CSV = DATA_DIR / "finalized_games.csv"
 
 OUTPUT_JSON = REPORT_DIR / "walkforward_evaluation.json"
 OUTPUT_CSV = REPORT_DIR / "walkforward_predictions.csv"
@@ -36,6 +37,14 @@ CSV_COLUMNS = [
     "outcome",
     "clv",
     "status",
+]
+
+MODEL_PROBABILITY_CANDIDATES = [
+    "predicted_home_win_pct",
+    "premarket_model_home_prob",
+    "displayed_home_win_pct",
+    "model_prob",
+    "home_win_probability",
 ]
 
 
@@ -126,77 +135,139 @@ def _safe_round(value: Optional[float], digits: int = 6) -> Optional[float]:
     return round(float(value), digits)
 
 
-def _estimate_available_oos_predictions(snapshots: Optional[pd.DataFrame]) -> int:
-    if snapshots is None or snapshots.empty:
-        return 0
-    required = {"game_id", "snapshot_created_at"}
-    if not required.issubset(set(snapshots.columns)):
-        return 0
-    frame = snapshots.copy()
-    if "home_win" in frame.columns:
-        frame["home_win"] = pd.to_numeric(frame["home_win"], errors="coerce")
-        frame = frame[frame["home_win"].isin([0, 1])]
-    if frame.empty:
-        return 0
-    return int(frame["game_id"].astype(str).nunique())
+def _normalize_game_id_value(value: Any) -> str:
+    if value is None:
+        return ""
+    try:
+        if pd.isna(value):
+            return ""
+    except Exception:
+        pass
+    text = str(value).strip()
+    if not text:
+        return ""
+    try:
+        parsed = float(text)
+        if math.isfinite(parsed) and parsed.is_integer():
+            return str(int(parsed))
+    except Exception:
+        pass
+    return text
 
 
 def _normalise_game_id(frame: pd.DataFrame) -> pd.DataFrame:
     frame = frame.copy()
     if "game_id" in frame.columns:
-        frame["game_id"] = frame["game_id"].astype(str)
+        frame["game_id"] = frame["game_id"].apply(_normalize_game_id_value)
     return frame
+
+
+def _attach_model_probability(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
+    frame = frame.copy()
+    diagnostics: dict[str, Any] = {"candidate_columns": [], "used_columns": [], "valid_model_probability_count": 0}
+    frame["model_prob"] = np.nan
+    for column in MODEL_PROBABILITY_CANDIDATES:
+        if column not in frame.columns:
+            continue
+        candidate = frame[column].apply(_clip_probability)
+        valid_count = int(candidate.notna().sum())
+        diagnostics["candidate_columns"].append({"column": column, "valid_count": valid_count})
+        before = int(frame["model_prob"].notna().sum())
+        frame["model_prob"] = frame["model_prob"].where(frame["model_prob"].notna(), candidate)
+        after = int(frame["model_prob"].notna().sum())
+        if after > before:
+            diagnostics["used_columns"].append(column)
+    diagnostics["valid_model_probability_count"] = int(frame["model_prob"].notna().sum())
+    return frame, diagnostics
+
+
+def _estimate_available_oos_predictions(snapshots: Optional[pd.DataFrame]) -> int:
+    if snapshots is None or snapshots.empty or "game_id" not in snapshots.columns:
+        return 0
+    frame = _normalise_game_id(snapshots)
+    frame = frame[frame["game_id"] != ""].copy()
+    if frame.empty:
+        return 0
+    frame, _ = _attach_model_probability(frame)
+    frame = frame[frame["model_prob"].notna()].copy()
+    if frame.empty:
+        return 0
+    return int(frame["game_id"].astype(str).nunique())
+
+
+def _prepare_outcome_frame(finalized: Optional[pd.DataFrame]) -> pd.DataFrame:
+    if finalized is None or finalized.empty or "game_id" not in finalized.columns:
+        return pd.DataFrame(columns=["game_id", "home_win"])
+    final = _normalise_game_id(finalized)
+    final = final[final["game_id"] != ""].copy()
+    if final.empty:
+        return pd.DataFrame(columns=["game_id", "home_win"])
+    if "home_win" not in final.columns and {"home_score", "away_score"}.issubset(final.columns):
+        final["home_win"] = (
+            pd.to_numeric(final["home_score"], errors="coerce")
+            > pd.to_numeric(final["away_score"], errors="coerce")
+        ).astype("Int64")
+    if "home_win" not in final.columns:
+        return pd.DataFrame(columns=["game_id", "home_win"])
+    final["home_win"] = pd.to_numeric(final["home_win"], errors="coerce")
+    final = final[final["home_win"].isin([0, 1])].copy()
+    if final.empty:
+        return pd.DataFrame(columns=["game_id", "home_win"])
+    final = final.drop_duplicates("game_id", keep="last").copy()
+    final["home_win"] = final["home_win"].astype(int)
+    return final[["game_id", "home_win"]].copy()
 
 
 def _prepare_settled_snapshots(
     snapshots: Optional[pd.DataFrame],
     finalized: Optional[pd.DataFrame],
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    diagnostics: dict[str, Any] = {
+        "snapshot_rows": 0,
+        "snapshot_unique_games": 0,
+        "outcome_rows": 0,
+        "outcome_unique_games": 0,
+        "linked_rows_before_probability_filter": 0,
+        "linked_unique_games_before_probability_filter": 0,
+        "settled_rows_after_probability_filter": 0,
+        "missing_outcome_rows": 0,
+        "probability_diagnostics": {},
+    }
     if snapshots is None or snapshots.empty or "game_id" not in snapshots.columns:
-        return pd.DataFrame()
+        return pd.DataFrame(), diagnostics
+
     frame = _normalise_game_id(snapshots)
+    frame = frame[frame["game_id"] != ""].copy()
+    diagnostics["snapshot_rows"] = int(len(frame))
+    diagnostics["snapshot_unique_games"] = int(frame["game_id"].nunique()) if not frame.empty else 0
+
     if "snapshot_created_at" in frame.columns:
         frame["_snapshot_dt"] = pd.to_datetime(frame["snapshot_created_at"], errors="coerce", utc=True)
     else:
         frame["_snapshot_dt"] = pd.NaT
 
-    if "home_win" not in frame.columns and finalized is not None and "game_id" in finalized.columns:
-        final = _normalise_game_id(finalized)
-        if "home_win" not in final.columns and {"home_score", "away_score"}.issubset(final.columns):
-            final["home_win"] = (
-                pd.to_numeric(final["home_score"], errors="coerce")
-                > pd.to_numeric(final["away_score"], errors="coerce")
-            ).astype("Int64")
-        if "home_win" in final.columns:
-            final["home_win"] = pd.to_numeric(final["home_win"], errors="coerce")
-            frame = frame.merge(final[["game_id", "home_win"]].drop_duplicates("game_id"), on="game_id", how="left")
+    outcomes = _prepare_outcome_frame(finalized)
+    diagnostics["outcome_rows"] = int(len(outcomes))
+    diagnostics["outcome_unique_games"] = int(outcomes["game_id"].nunique()) if not outcomes.empty else 0
+    if outcomes.empty:
+        return pd.DataFrame(), diagnostics
 
-    if "home_win" not in frame.columns:
-        return pd.DataFrame()
-    frame["home_win"] = pd.to_numeric(frame["home_win"], errors="coerce")
+    frame = frame.merge(outcomes, on="game_id", how="left")
+    diagnostics["missing_outcome_rows"] = int(frame["home_win"].isna().sum())
     frame = frame[frame["home_win"].isin([0, 1])].copy()
+    diagnostics["linked_rows_before_probability_filter"] = int(len(frame))
+    diagnostics["linked_unique_games_before_probability_filter"] = int(frame["game_id"].nunique()) if not frame.empty else 0
     if frame.empty:
-        return frame
+        return frame, diagnostics
 
     frame = frame.sort_values("_snapshot_dt").groupby("game_id", as_index=False).tail(1).copy()
-
-    model_candidates = [
-        "predicted_home_win_pct",
-        "premarket_model_home_prob",
-        "displayed_home_win_pct",
-        "model_prob",
-        "home_win_probability",
-    ]
-    frame["model_prob"] = None
-    for column in model_candidates:
-        if column in frame.columns:
-            candidate = frame[column].apply(_clip_probability)
-            frame["model_prob"] = frame["model_prob"].where(frame["model_prob"].notna(), candidate)
+    frame, probability_diagnostics = _attach_model_probability(frame)
+    diagnostics["probability_diagnostics"] = probability_diagnostics
 
     if "market_no_vig_home_prob" in frame.columns:
         frame["market_prob"] = frame["market_no_vig_home_prob"].apply(_clip_probability)
     else:
-        frame["market_prob"] = None
+        frame["market_prob"] = np.nan
 
     frame["constant_50_prob"] = 0.5
     frame["outcome"] = frame["home_win"].astype(int)
@@ -207,7 +278,8 @@ def _prepare_settled_snapshots(
 
     frame = frame[frame["model_prob"].notna()].copy()
     frame = frame.sort_values(["_snapshot_dt", "game_id"]).reset_index(drop=True)
-    return frame
+    diagnostics["settled_rows_after_probability_filter"] = int(len(frame))
+    return frame, diagnostics
 
 
 def _folds(frame: pd.DataFrame) -> list[pd.DataFrame]:
@@ -305,17 +377,36 @@ def _write_empty_predictions_csv() -> None:
         writer.writerow(CSV_COLUMNS)
 
 
+def _choose_outcome_source(
+    trusted_outcomes: Optional[pd.DataFrame],
+    trusted_status: Dict[str, Any],
+    legacy_finalized: Optional[pd.DataFrame],
+    legacy_status: Dict[str, Any],
+) -> tuple[Optional[pd.DataFrame], str]:
+    if trusted_outcomes is not None and not trusted_outcomes.empty and not trusted_status.get("error"):
+        return trusted_outcomes, "finalized_snapshot_outcomes"
+    return legacy_finalized, "finalized_games"
+
+
 def build_walkforward_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     generated_at = _utc_now()
     snapshots, snapshots_status = _safe_read_csv(SNAPSHOTS_CSV)
-    finalized, finalized_status = _safe_read_csv(FINALIZED_CSV)
+    trusted_outcomes, trusted_outcomes_status = _safe_read_csv(FINALIZED_SNAPSHOT_OUTCOMES_CSV)
+    legacy_finalized, legacy_finalized_status = _safe_read_csv(LEGACY_FINALIZED_GAMES_CSV)
+    outcome_frame, outcome_source = _choose_outcome_source(
+        trusted_outcomes,
+        trusted_outcomes_status,
+        legacy_finalized,
+        legacy_finalized_status,
+    )
     input_files = {
         "prediction_snapshots": snapshots_status,
-        "finalized_games": finalized_status,
+        "finalized_snapshot_outcomes": trusted_outcomes_status,
+        "legacy_finalized_games": legacy_finalized_status,
     }
     total_oos = _estimate_available_oos_predictions(snapshots)
-    settled = _prepare_settled_snapshots(snapshots, finalized)
+    settled, linkage_diagnostics = _prepare_settled_snapshots(snapshots, outcome_frame)
 
     if settled.empty:
         report = {
@@ -323,6 +414,8 @@ def build_walkforward_report() -> Dict[str, Any]:
             "report_type": "walkforward_evaluation_report",
             "status": "insufficient_samples",
             "input_files": input_files,
+            "outcome_source": outcome_source,
+            "linkage_diagnostics": linkage_diagnostics,
             "min_required_oos_predictions": MIN_REQUIRED_OOS_PREDICTIONS,
             "total_oos_predictions": int(total_oos),
             "settled_oos_predictions": 0,
@@ -369,6 +462,8 @@ def build_walkforward_report() -> Dict[str, Any]:
         "report_type": "walkforward_evaluation_report",
         "status": status,
         "input_files": input_files,
+        "outcome_source": outcome_source,
+        "linkage_diagnostics": linkage_diagnostics,
         "min_required_oos_predictions": MIN_REQUIRED_OOS_PREDICTIONS,
         "min_fold_size": MIN_FOLD_SIZE,
         "target_fold_count": TARGET_FOLD_COUNT,
