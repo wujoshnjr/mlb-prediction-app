@@ -101,56 +101,44 @@ def clean_json_value(value: Any) -> Any:
     """Return a JSON-safe value with no NaN or Infinity."""
     if value is None:
         return None
-
     if isinstance(value, bool):
         return value
-
     if isinstance(value, (int, np.integer)):
         return int(value)
-
     if isinstance(value, (float, np.floating)):
         parsed = float(value)
         return parsed if math.isfinite(parsed) else None
-
     if isinstance(value, str):
         return value
-
     if isinstance(value, Path):
         return str(value)
-
     if isinstance(value, datetime):
         return value.isoformat()
-
     if isinstance(value, pd.Timestamp):
         return None if pd.isna(value) else value.isoformat()
-
     if value is pd.NA:
         return None
-
     if isinstance(value, dict):
         return {str(key): clean_json_value(child) for key, child in value.items()}
-
     if isinstance(value, (list, tuple, set)):
         return [clean_json_value(child) for child in value]
-
     try:
         if pd.isna(value):
             return None
     except Exception:
         pass
-
     try:
         if hasattr(value, "item"):
             return clean_json_value(value.item())
     except Exception:
         pass
-
     return str(value)
 
 
-def write_json_report(report: dict[str, Any], path: Path = REPORT_JSON_PATH) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
+def write_json_report(report: dict[str, Any], path: Path | None = None) -> None:
+    output_path = path if path is not None else REPORT_JSON_PATH
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as handle:
         json.dump(
             clean_json_value(report),
             handle,
@@ -227,36 +215,29 @@ def make_calibrator(estimator: Any) -> Any:
 def load_clean_training_samples(report: dict[str, Any]) -> tuple[pd.DataFrame, str | None]:
     if not DATA_PATH.exists():
         return pd.DataFrame(), None
-
     try:
         frame = pd.read_csv(DATA_PATH)
     except Exception as exc:
         report["errors"].append(f"unable_to_read_training_samples:{exc}")
         return pd.DataFrame(), None
-
     if frame.empty:
         report["errors"].append("training_samples_empty")
         return pd.DataFrame(), None
-
     label_column = find_label_column(frame)
     if label_column is None:
         report["errors"].append("training_samples_missing_label_column")
         return pd.DataFrame(), None
-
     frame = frame.copy()
     frame[label_column] = pd.to_numeric(frame[label_column], errors="coerce")
     frame = frame[frame[label_column].isin([0, 1])].copy()
     frame[label_column] = frame[label_column].astype(int)
-
     if "game_id" in frame.columns:
         frame["game_id"] = frame["game_id"].astype(str).str.strip()
         frame = frame[frame["game_id"] != ""].copy()
         frame = frame.drop_duplicates("game_id", keep="first")
-
     pipeline_version = str(getattr(config, "PIPELINE_VERSION", "baseline_v2_clean"))
     if "pipeline_version" in frame.columns:
         frame = frame[frame["pipeline_version"].astype(str) == pipeline_version].copy()
-
     missing_core_features = [
         feature for feature in CORE_MODEL_FEATURES if feature not in frame.columns
     ]
@@ -264,37 +245,24 @@ def load_clean_training_samples(report: dict[str, Any]) -> tuple[pd.DataFrame, s
         report["errors"].append("missing_core_features")
         report["missing_core_features"] = missing_core_features
         return pd.DataFrame(), label_column
-
     if frame.empty:
         report["errors"].append("no_clean_training_samples_after_contract_filters")
         return pd.DataFrame(), label_column
-
     return frame.reset_index(drop=True), label_column
 
 
 def sort_for_time_order(frame: pd.DataFrame) -> pd.DataFrame:
     work = frame.copy()
-
     if "snapshot_created_at" in work.columns:
-        work["_eval_sort_time"] = pd.to_datetime(
-            work["snapshot_created_at"],
-            errors="coerce",
-            utc=True,
-        )
+        work["_eval_sort_time"] = pd.to_datetime(work["snapshot_created_at"], errors="coerce", utc=True)
     elif "game_date" in work.columns:
-        work["_eval_sort_time"] = pd.to_datetime(
-            work["game_date"],
-            errors="coerce",
-            utc=True,
-        )
+        work["_eval_sort_time"] = pd.to_datetime(work["game_date"], errors="coerce", utc=True)
     else:
         work["_eval_sort_time"] = pd.NaT
-
     if work["_eval_sort_time"].notna().any():
         work = work.sort_values(["_eval_sort_time"]).reset_index(drop=True)
     else:
         work = work.reset_index(drop=True)
-
     return work
 
 
@@ -322,17 +290,12 @@ def generate_report() -> dict[str, Any]:
     report["sample_count"] = sample_count
 
     if sample_count < MIN_TOTAL_SAMPLES:
-        return skip_report(
-            report,
-            f"insufficient_samples:{sample_count}<{MIN_TOTAL_SAMPLES}",
-        )
+        return skip_report(report, f"insufficient_samples:{sample_count}<{MIN_TOTAL_SAMPLES}")
 
     for feature in CORE_MODEL_FEATURES:
         frame[feature] = pd.to_numeric(frame[feature], errors="coerce")
 
-    matrix = frame[CORE_MODEL_FEATURES].replace([np.inf, -np.inf], np.nan).to_numpy(
-        dtype=float
-    )
+    matrix = frame[CORE_MODEL_FEATURES].replace([np.inf, -np.inf], np.nan).to_numpy(dtype=float)
     target = frame[label_column].to_numpy(dtype=int)
 
     row_count = len(frame)
@@ -347,27 +310,17 @@ def generate_report() -> dict[str, Any]:
     report["calibration_sample_count"] = int(calibration_count)
     report["test_sample_count"] = int(test_count)
 
-    if (
-        train_count < MIN_TRAIN_SAMPLES
-        or calibration_count < MIN_CALIBRATION_SAMPLES
-        or test_count < MIN_TEST_SAMPLES
-    ):
+    if train_count < MIN_TRAIN_SAMPLES or calibration_count < MIN_CALIBRATION_SAMPLES or test_count < MIN_TEST_SAMPLES:
         return skip_report(report, "not_enough_samples_after_train_calibration_test_split")
 
     x_train = matrix[:train_end]
     y_train = target[:train_end]
-
     x_calib = matrix[train_end:calibration_end]
     y_calib = target[train_end:calibration_end]
-
     x_test = matrix[calibration_end:]
     y_test = target[calibration_end:]
 
-    for name, subset in (
-        ("train", y_train),
-        ("calibration", y_calib),
-        ("test", y_test),
-    ):
+    for name, subset in (("train", y_train), ("calibration", y_calib), ("test", y_test)):
         if len(np.unique(subset)) < 2:
             return skip_report(report, f"{name}_set_contains_only_one_target_class")
 
@@ -414,11 +367,9 @@ def generate_report() -> dict[str, Any]:
         "logloss": float(log_loss(y_test, y_prob, labels=[0, 1])),
     }
 
-    cm = confusion_matrix(y_test, y_pred, labels=[0, 1]).tolist()
-
     report["status"] = "ok"
     report["metrics"] = metrics
-    report["confusion_matrix"] = cm
+    report["confusion_matrix"] = confusion_matrix(y_test, y_pred, labels=[0, 1]).tolist()
 
     manual_prob_col = first_existing_column(
         frame,
@@ -428,7 +379,6 @@ def generate_report() -> dict[str, Any]:
         frame,
         ["final_prob_home", "predicted_home_win_pct", "displayed_home_win_pct"],
     )
-
     metadata_columns = [
         "game_id",
         "game_date",
@@ -439,45 +389,28 @@ def generate_report() -> dict[str, Any]:
         "odds_quality_status",
         "model_source",
     ]
-
     test_rows = frame.iloc[calibration_end:].copy()
     records: list[dict[str, Any]] = []
-
     for position, (_, row) in enumerate(test_rows.iterrows()):
+        manual_value = pd.to_numeric(row.get(manual_prob_col), errors="coerce") if manual_prob_col else np.nan
+        final_value = pd.to_numeric(row.get(final_prob_col), errors="coerce") if final_prob_col else np.nan
         record: dict[str, Any] = {
             "game_id": row.get("game_id"),
-            "game_date": (
-                str(row.get("game_date"))[:10]
-                if "game_date" in row and pd.notna(row.get("game_date"))
-                else None
-            ),
+            "game_date": str(row.get("game_date"))[:10] if "game_date" in row and pd.notna(row.get("game_date")) else None,
             "y_true": int(y_test[position]),
             "y_prob": float(y_prob[position]),
             "y_pred": int(y_pred[position]),
-            "manual_prob_home": (
-                float(row.get(manual_prob_col))
-                if manual_prob_col
-                and pd.notna(pd.to_numeric(row.get(manual_prob_col), errors="coerce"))
-                else None
-            ),
-            "final_prob_home": (
-                float(row.get(final_prob_col))
-                if final_prob_col
-                and pd.notna(pd.to_numeric(row.get(final_prob_col), errors="coerce"))
-                else None
-            ),
+            "manual_prob_home": float(manual_value) if pd.notna(manual_value) else None,
+            "final_prob_home": float(final_value) if pd.notna(final_value) else None,
             "model_eval_source": "temporary_time_ordered_logistic_eval",
         }
-
         for column in metadata_columns:
             if column not in record:
                 record[column] = row.get(column) if column in test_rows.columns else None
-
         records.append(record)
 
     OOS_CSV_PATH.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(records).to_csv(OOS_CSV_PATH, index=False, encoding="utf-8")
-
     write_json_report(report)
     return report
 
