@@ -1,0 +1,681 @@
+{
+  "generated_at": "2026-06-15T14:02:51.646025Z",
+  "report_type": "model_data_root_cause_report",
+  "status": "blocked",
+  "root_causes": [
+    "active_serving_is_manual_baseline_not_ml_artifact",
+    "baseline_quality_gate_blocks_promotion",
+    "evaluation_model_collapse_no_discrimination_power",
+    "many_availability_or_context_features_missing_historical_coverage",
+    "many_tracking_features_are_all_zero_or_sparse",
+    "model_artifact_quarantined_due_sample_mismatch",
+    "single_class_prediction_collapse",
+    "walkforward_linkage_or_probability_extraction_empty"
+  ],
+  "active_serving_state": {
+    "model_source": "manual_baseline",
+    "model_family": "manual_market_adjusted_baseline",
+    "is_ml_model": false,
+    "model_artifact_valid": false,
+    "model_artifact_allowed": false,
+    "model_artifact_reason": "sample_count_mismatch",
+    "loaded_artifact_sample_count": 109,
+    "training_status_sample_count": 242,
+    "clean_settled_sample_count": 242
+  },
+  "model_eval_state": {
+    "sample_count": 242,
+    "test_sample_count": 37,
+    "roc_auc": 0.4411764705882353,
+    "balanced_accuracy": 0.5,
+    "brier": 0.26131417111514366,
+    "logloss": 0.7174385687190009,
+    "predicted_positive_rate": 1.0,
+    "predicted_negative_rate": 0.0,
+    "collapse_status": "failed",
+    "collapse_reasons": [
+      "balanced_accuracy_near_random",
+      "single_class_positive_prediction_collapse",
+      "brier_near_random_0_25",
+      "test_sample_count_too_small_for_stable_claims"
+    ],
+    "do_not_promote": true
+  },
+  "baseline_gate_state": {
+    "status": "blocked",
+    "promotion_allowed": false,
+    "minimum_production_settled_samples": 300,
+    "reasons": [
+      "model_does_not_beat_constant_50_brier",
+      "model_does_not_beat_constant_50_logloss",
+      "model_does_not_beat_home_historical_rate_brier",
+      "model_does_not_beat_home_historical_rate_logloss",
+      "settled_sample_count_below_300"
+    ]
+  },
+  "walkforward_state": {
+    "status": "insufficient_samples",
+    "prediction_snapshot_rows": 255,
+    "finalized_games_rows": 1037,
+    "total_oos_predictions": 0,
+    "settled_oos_predictions": 0,
+    "walkforward_ready": false,
+    "recommendations": [
+      "No settled prediction snapshots with valid model probabilities are available."
+    ]
+  },
+  "feature_data_state": {
+    "feature_count": 62,
+    "active_core_healthy_count": 7,
+    "all_zero_count": 13,
+    "high_zero_count": 26,
+    "high_missing_count": 15,
+    "tracking_only_nonzero_count": 18,
+    "top_all_zero_features": [
+      {
+        "feature": "barrel_bb_pct_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "catcher_era_diff",
+        "feature_group": "lineup",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "cs_diff",
+        "feature_group": "lineup",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "csw_diff",
+        "feature_group": "ungrouped",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "injury_diff",
+        "feature_group": "injuries",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "k_rate",
+        "feature_group": "ungrouped",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "odds_change",
+        "feature_group": "market",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "pitch_movement_diff",
+        "feature_group": "starting_pitcher",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "pitch_type_matchup_score",
+        "feature_group": "starting_pitcher",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "platoon_ops_diff",
+        "feature_group": "lineup",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "sprint_speed_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "swing_miss_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "zone_size",
+        "feature_group": "ungrouped",
+        "zero_rate": 1.0,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      }
+    ],
+    "top_high_zero_features": [
+      {
+        "feature": "dynamic_pythag_diff",
+        "feature_group": "core_strength",
+        "zero_rate": 0.938,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.062,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "rest_diff",
+        "feature_group": "rest_travel",
+        "zero_rate": 0.938,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.062,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "precip_effect",
+        "feature_group": "park_weather",
+        "zero_rate": 0.905,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.095,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "back2back_diff",
+        "feature_group": "rest_travel",
+        "zero_rate": 0.9008,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.0992,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "temp_effect",
+        "feature_group": "park_weather",
+        "zero_rate": 0.8926,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.1074,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "wind_effect",
+        "feature_group": "park_weather",
+        "zero_rate": 0.8264,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.1736,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "avg_bat_speed_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "barrel_pa_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "hardhit_pa_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "statcast_barrel_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "statcast_hard_hit_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "statcast_launch_speed_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "statcast_woba_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "top3_woba_diff",
+        "feature_group": "lineup",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "is_day_game",
+        "feature_group": "park_weather",
+        "zero_rate": 0.6198,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3802,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      }
+    ],
+    "top_high_missing_features": [
+      {
+        "feature": "lineup_context_available",
+        "feature_group": "lineup",
+        "zero_rate": 0.4876,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "games_last_3d_diff",
+        "feature_group": "rest_travel",
+        "zero_rate": 0.1942,
+        "missing_rate": 0.5702,
+        "non_zero_rate": 0.2355,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "odds_available",
+        "feature_group": "availability",
+        "zero_rate": 0.1612,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.3264,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "games_last_7d_diff",
+        "feature_group": "rest_travel",
+        "zero_rate": 0.124,
+        "missing_rate": 0.5702,
+        "non_zero_rate": 0.3058,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "starter_context_available",
+        "feature_group": "availability",
+        "zero_rate": 0.1198,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.3678,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "rest_pressure_diff",
+        "feature_group": "rest_travel",
+        "zero_rate": 0.0826,
+        "missing_rate": 0.5702,
+        "non_zero_rate": 0.3471,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "bullpen_context_available",
+        "feature_group": "availability",
+        "zero_rate": 0.0,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.4876,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "pitcher_advanced_available",
+        "feature_group": "availability",
+        "zero_rate": 0.0,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.4876,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "sp_csw_diff_available",
+        "feature_group": "availability",
+        "zero_rate": 0.0,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.4876,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "sp_fip_diff_available",
+        "feature_group": "availability",
+        "zero_rate": 0.0,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.4876,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "sp_stuff_plus_diff_available",
+        "feature_group": "availability",
+        "zero_rate": 0.0,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.4876,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "statcast_woba_available",
+        "feature_group": "availability",
+        "zero_rate": 0.0,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.4876,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "team_form_available",
+        "feature_group": "availability",
+        "zero_rate": 0.0,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.4876,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "top3_woba_available",
+        "feature_group": "availability",
+        "zero_rate": 0.0,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.4876,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "weather_available",
+        "feature_group": "availability",
+        "zero_rate": 0.0,
+        "missing_rate": 0.5124,
+        "non_zero_rate": 0.4876,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": false,
+        "recommended_action": "track_only_do_not_promote"
+      }
+    ],
+    "top_tracking_only_nonzero_features": [
+      {
+        "feature": "lag30_winrate_diff",
+        "feature_group": "rest_travel",
+        "zero_rate": 0.4876,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.5124,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "lag30_runs_diff",
+        "feature_group": "rest_travel",
+        "zero_rate": 0.5124,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.4876,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "bullpen_availability_diff",
+        "feature_group": "bullpen",
+        "zero_rate": 0.5455,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.4545,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "k_pct_diff",
+        "feature_group": "starting_pitcher",
+        "zero_rate": 0.5537,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.4463,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "bullpen_ip_diff",
+        "feature_group": "bullpen",
+        "zero_rate": 0.5579,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.4421,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "bb_pct_diff",
+        "feature_group": "starting_pitcher",
+        "zero_rate": 0.562,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.438,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "sp_fip_diff",
+        "feature_group": "starting_pitcher",
+        "zero_rate": 0.5702,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.4298,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "sp_csw_diff",
+        "feature_group": "starting_pitcher",
+        "zero_rate": 0.5702,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.4298,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "sp_stuff_plus_diff",
+        "feature_group": "starting_pitcher",
+        "zero_rate": 0.5702,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.4298,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "avg_bat_speed_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "barrel_pa_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "hardhit_pa_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "top3_woba_diff",
+        "feature_group": "lineup",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "statcast_woba_diff",
+        "feature_group": "statcast_batting",
+        "zero_rate": 0.6281,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.3719,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      },
+      {
+        "feature": "wind_effect",
+        "feature_group": "park_weather",
+        "zero_rate": 0.8264,
+        "missing_rate": 0.0,
+        "non_zero_rate": 0.1736,
+        "allow_in_main_model": false,
+        "allow_in_shadow_model": true,
+        "recommended_action": "track_only_do_not_promote"
+      }
+    ]
+  },
+  "official_record_state": {
+    "sample_count": 242,
+    "accuracy": 0.512396694214876,
+    "brier": 0.25612396772727275,
+    "logloss": 0.7058101160387322,
+    "source": "trusted_finalized_snapshot_outcomes"
+  },
+  "next_actions": [
+    "Keep public website labels as Projected side / Value lean / Tracking only until model collapse is fixed.",
+    "Fix walkforward linkage/probability extraction first because settled OOS predictions are currently zero.",
+    "Generate the standalone prediction_collapse_report.json or stop declaring it as a separate expected artifact.",
+    "Backfill high-impact tracking-only features before promoting them into the active model schema.",
+    "Do not load or promote the stale model artifact until artifact sample counts and model-quality gates pass."
+  ],
+  "promotion_allowed": false,
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false,
+  "production_model_replacement_allowed": false
+}
