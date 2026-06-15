@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-15T14:02:51.646025Z",
+  "generated_at": "2026-06-15T15:35:47.377814Z",
   "report_type": "model_data_root_cause_report",
   "status": "blocked",
   "root_causes": [
@@ -9,8 +9,7 @@
     "many_availability_or_context_features_missing_historical_coverage",
     "many_tracking_features_are_all_zero_or_sparse",
     "model_artifact_quarantined_due_sample_mismatch",
-    "single_class_prediction_collapse",
-    "walkforward_linkage_or_probability_extraction_empty"
+    "single_class_prediction_collapse"
   ],
   "active_serving_state": {
     "model_source": "manual_baseline",
@@ -56,12 +55,14 @@
   "walkforward_state": {
     "status": "insufficient_samples",
     "prediction_snapshot_rows": 255,
-    "finalized_games_rows": 1037,
-    "total_oos_predictions": 0,
-    "settled_oos_predictions": 0,
+    "finalized_games_rows": null,
+    "total_oos_predictions": 255,
+    "settled_oos_predictions": 242,
     "walkforward_ready": false,
     "recommendations": [
-      "No settled prediction snapshots with valid model probabilities are available."
+      "Walk-forward sample count is below 300; do not use these metrics for promotion.",
+      "One or more walk-forward folds show prediction collapse; keep model in tracking-only mode.",
+      "Use this report as a time-ordered diagnostic only; no live betting or model promotion is allowed from this report alone."
     ]
   },
   "feature_data_state": {
