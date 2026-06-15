@@ -3227,12 +3227,60 @@ def generate_predictions() -> dict[str, Any]:
         "errors": [],
     }
 
-    (
-        ml_model,
-        model_features,
-        clean_model_sample_count,
-        model_load_error,
-    ) = load_ml_model()
+    model_bundle = load_ml_model()
+    if not isinstance(model_bundle, dict):
+        model_bundle = {}
+
+    ml_model = model_bundle.get("model")
+
+    raw_model_features = model_bundle.get("features")
+    if isinstance(raw_model_features, (list, tuple)):
+        model_features = list(raw_model_features)
+    else:
+        model_features = list(CORE_MODEL_FEATURES)
+
+    if not model_features:
+        model_features = list(CORE_MODEL_FEATURES)
+
+    model_metadata = model_bundle.get("metadata")
+    if not isinstance(model_metadata, dict):
+        model_metadata = {}
+
+    model_governance = model_bundle.get("governance")
+    if not isinstance(model_governance, dict):
+        model_governance = read_model_artifact_gate_status()
+
+    # Hard safety override. This script must never enable live betting,
+    # automated wagering, or production model replacement.
+    model_governance["live_betting_allowed"] = False
+    model_governance["automated_wagering_allowed"] = False
+    model_governance["production_model_replacement_allowed"] = False
+
+    clean_model_sample_count = 0
+    for raw_sample_count in (
+        model_metadata.get("training_sample_count"),
+        model_metadata.get("sample_count"),
+        model_governance.get("training_sample_count"),
+        model_governance.get("training_status_sample_count"),
+        0,
+    ):
+        parsed_sample_count = as_int(raw_sample_count, -1)
+        if parsed_sample_count >= 0:
+            clean_model_sample_count = parsed_sample_count
+            break
+
+    artifact_gate_reasons = model_governance.get("artifact_gate_reasons") or []
+    if isinstance(artifact_gate_reasons, (list, tuple, set)):
+        model_load_error = "; ".join(
+            str(reason)
+            for reason in artifact_gate_reasons
+            if str(reason).strip()
+        )
+    elif artifact_gate_reasons:
+        model_load_error = str(artifact_gate_reasons)
+    else:
+        model_load_error = ""
+
     if model_load_error:
         print(f"ML model unavailable: {model_load_error}")
 
@@ -4653,7 +4701,8 @@ def generate_predictions() -> dict[str, Any]:
             "PIPELINE_VERSION",
             "baseline_v2_clean",
         ),
-        "model_governance": model_governance,
+        "model_governance": model_governance_status,
+        "model_artifact_governance": model_governance,
         "schedule_fetch_ok": schedule_fetch_ok,
         "scheduled_game_count": scheduled_game_count,
         "snapshot_storage_summary": snapshot_storage_summary,
