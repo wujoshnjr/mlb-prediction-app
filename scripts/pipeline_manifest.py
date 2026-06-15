@@ -18,6 +18,7 @@ TRACKED_FILES = [
     "report/feature_availability_diagnostic.json",
     "report/feature_zero_root_cause_diagnostic.json",
     "report/feature_grade_report.json",
+    "report/feature_priority_report.json",
     "report/baseline_comparison_report.json",
     "report/clv_by_edge_bucket.json",
     "report/clv_by_side.json",
@@ -167,7 +168,7 @@ def _json_summary(path: Path) -> Dict[str, Any]:
     bins = data.get("bins") or data.get("reliability_table")
     if isinstance(bins, list):
         summary["bin_count"] = len(bins)
-    rows = data.get("rows") or data.get("features")
+    rows = data.get("rows") or data.get("features") or data.get("priorities")
     if isinstance(rows, list):
         summary["row_count_in_json"] = len(rows)
     for key in (
@@ -179,6 +180,9 @@ def _json_summary(path: Path) -> Dict[str, Any]:
         "tracked_file_count",
         "missing_file_count",
         "core_feature_count",
+        "feature_count",
+        "p0_core_issue_count",
+        "p1_high_impact_data_gap_count",
         "sample_count",
         "valid_sample_count",
         "promotion_allowed",
