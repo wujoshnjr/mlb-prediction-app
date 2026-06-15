@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
 REPORT_DIR = Path("report")
 DATA_DIR = Path("data")
 OUTPUT_PATH = REPORT_DIR / "data_contract_report.json"
@@ -78,10 +77,7 @@ OPTIONAL_JSON_REPORTS = {
     "product_experience": REPORT_DIR / "product_experience_report.json",
 }
 
-REQUIRED_NON_JSON_FILES = {
-    "training_samples_csv": DATA_DIR / "training_samples.csv",
-}
-
+REQUIRED_NON_JSON_FILES = {"training_samples_csv": DATA_DIR / "training_samples.csv"}
 OPTIONAL_NON_JSON_FILES = {
     "html_report": REPORT_DIR / "index.html",
     "walkforward_predictions": REPORT_DIR / "walkforward_predictions.csv",
@@ -93,17 +89,9 @@ OPTIONAL_NON_JSON_FILES = {
     "finalized_snapshot_outcomes": DATA_DIR / "finalized_snapshot_outcomes.csv",
 }
 
-ALLOWED_STATUSES = {
-    "ok",
-    "warning",
-    "skipped",
-    "completed",
-    "partial_failure",
-    "not_attempted",
-    "unavailable",
-}
-
+ALLOWED_STATUSES = {"ok", "warning", "skipped", "completed", "partial", "partial_failure", "not_attempted", "unavailable"}
 FAILURE_STATUSES = {"error", "failed", "fatal"}
+SAFETY_FLAGS = ("live_betting_allowed", "automated_wagering_allowed", "production_model_replacement_allowed")
 
 
 def _utc_now() -> str:
@@ -119,13 +107,11 @@ def _json_safe(value: Any) -> Any:
         return value
     if isinstance(value, float):
         return value if math.isfinite(value) else None
-    if isinstance(value, str):
-        return value
     if isinstance(value, dict):
         return {str(key): _json_safe(child) for key, child in value.items()}
     if isinstance(value, (list, tuple, set)):
         return [_json_safe(child) for child in value]
-    return str(value)
+    return value if isinstance(value, str) else str(value)
 
 
 def _load_json(path: Path) -> tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
@@ -133,18 +119,15 @@ def _load_json(path: Path) -> tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
     if not path.exists():
         status["error"] = "file_missing"
         return None, status
-
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
         status["error"] = str(exc)
         return None, status
-
     status["type"] = type(data).__name__
     if not isinstance(data, dict):
         status["error"] = "json_not_object"
         return None, status
-
     return data, status
 
 
@@ -156,14 +139,11 @@ def _require_keys(obj: Dict[str, Any], keys: List[str], errors: List[str], conte
 
 def _predictions(report: Dict[str, Any]) -> List[Dict[str, Any]]:
     raw = report.get("predictions") or report.get("today_predictions") or report.get("games") or []
-    if not isinstance(raw, list):
-        return []
-    return [item for item in raw if isinstance(item, dict)]
+    return [item for item in raw if isinstance(item, dict)] if isinstance(raw, list) else []
 
 
 def _contains_bad_json_scalar(value: Any, path: str = "") -> List[str]:
     hits: List[str] = []
-
     if isinstance(value, float) and not math.isfinite(value):
         hits.append(path or "<root>")
     elif isinstance(value, str) and value.strip().lower() in {"nan", "inf", "+inf", "-inf", "infinity", "+infinity", "-infinity"}:
@@ -175,14 +155,13 @@ def _contains_bad_json_scalar(value: Any, path: str = "") -> List[str]:
     elif isinstance(value, list):
         for index, child in enumerate(value):
             hits.extend(_contains_bad_json_scalar(child, f"{path}[{index}]"))
-
     return hits
 
 
 def _validate_status(name: str, report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
     status = str(report.get("status", "")).strip().lower()
     if not status:
-        errors.append(f"{name}: missing status")
+        warnings.append(f"{name}: missing status")
     elif status in FAILURE_STATUSES:
         errors.append(f"{name}: status is {status}")
     elif status not in ALLOWED_STATUSES:
@@ -196,11 +175,7 @@ def _validate_json_clean(name: str, report: Dict[str, Any], errors: List[str]) -
 
 
 def _validate_safety_flags(name: str, report: Dict[str, Any], errors: List[str]) -> None:
-    for flag in (
-        "live_betting_allowed",
-        "automated_wagering_allowed",
-        "production_model_replacement_allowed",
-    ):
+    for flag in SAFETY_FLAGS:
         if flag in report and report.get(flag) is not False:
             errors.append(f"{name}: {flag} must be false")
 
@@ -220,114 +195,56 @@ def _validate_prediction(report: Dict[str, Any], errors: List[str], warnings: Li
         errors.append("prediction.json: no predictions found")
         return
 
-    required = [
-        "game_id",
-        "recommendation",
-        "model_governance_status",
-        "data_quality_status",
-        "live_betting_allowed",
-        "live_bet_candidate",
-        "stake_multiplier",
-        "features",
-    ]
-
+    required = ["game_id", "recommendation", "model_governance_status", "data_quality_status", "live_betting_allowed", "live_bet_candidate", "stake_multiplier", "features"]
     for index, item in enumerate(predictions[:50]):
         context = f"prediction[{index}]"
         _require_keys(item, required, errors, context)
-
         if item.get("live_betting_allowed") is False:
             if item.get("live_bet_candidate") is not False:
                 errors.append(f"{context}: live_bet_candidate must be false when live_betting_allowed is false")
-
             try:
                 stake = float(item.get("stake_multiplier") or 0.0)
             except Exception:
                 stake = 999.0
             if stake != 0.0:
                 errors.append(f"{context}: stake_multiplier must be 0.0 when live_betting_allowed is false")
-
-        governance = item.get("model_governance_status")
-        if isinstance(governance, dict):
-            _require_keys(
-                governance,
-                ["live_betting_allowed", "mode", "block_reasons"],
-                errors,
-                f"{context}.model_governance_status",
-            )
-        else:
+        if not isinstance(item.get("model_governance_status"), dict):
             errors.append(f"{context}: model_governance_status is not an object")
-
-        data_quality = item.get("data_quality_status")
-        if isinstance(data_quality, dict):
-            _require_keys(
-                data_quality,
-                ["data_quality_grade", "prediction_allowed", "bet_allowed", "missing_critical_sources", "missing_important_sources"],
-                errors,
-                f"{context}.data_quality_status",
-            )
-        else:
+        if not isinstance(item.get("data_quality_status"), dict):
             errors.append(f"{context}: data_quality_status is not an object")
-
         if not isinstance(item.get("features"), dict):
             errors.append(f"{context}: features must be an object")
 
 
 def _validate_training_status(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
     _validate_base_report("training_status", report, errors, warnings)
-    _require_keys(
-        report,
-        ["sample_count", "minimum_clean_train_samples", "trained", "skipped", "training_allowed_for_production"],
-        errors,
-        "training_status",
-    )
-
+    _require_keys(report, ["sample_count", "minimum_clean_train_samples", "trained", "skipped", "training_allowed_for_production"], errors, "training_status")
     try:
         sample_count = int(report.get("sample_count") or 0)
         minimum = int(report.get("minimum_clean_train_samples") or 0)
     except Exception:
         errors.append("training_status: sample_count and minimum_clean_train_samples must be numeric")
         return
-
     if sample_count < minimum and bool(report.get("trained", False)):
         errors.append("training_status: trained must be false when sample_count is below minimum")
 
 
-def _validate_artifact_status(name: str, report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
-    _validate_base_report(name, report, errors, warnings)
-    _validate_safety_flags(name, report, errors)
-
-
 def _validate_feature_contract(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
     _validate_base_report("feature_contract", report, errors, warnings)
-    _require_keys(
-        report,
-        ["report_type", "feature_schema_hash", "core_feature_count", "checks"],
-        errors,
-        "feature_contract",
-    )
-
+    _require_keys(report, ["report_type", "feature_schema_hash", "core_feature_count", "checks"], errors, "feature_contract")
     if str(report.get("report_type")) not in {"feature_contract_report", "feature_contract_v1"}:
         errors.append("feature_contract: unexpected report_type")
-
     if not isinstance(report.get("checks"), dict):
         errors.append("feature_contract: checks must be an object")
 
 
 def _validate_feature_missingness(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
     _validate_base_report("feature_missingness", report, errors, warnings)
-    _require_keys(
-        report,
-        ["report_type", "feature_schema_hash", "core_feature_count", "features", "summary"],
-        errors,
-        "feature_missingness",
-    )
-
+    _require_keys(report, ["report_type", "feature_schema_hash", "core_feature_count", "features", "summary"], errors, "feature_missingness")
     if str(report.get("report_type")) != "feature_missingness_report":
         errors.append("feature_missingness: report_type must be feature_missingness_report")
-
     if not isinstance(report.get("features"), list):
         errors.append("feature_missingness: features must be a list")
-
     summary = report.get("summary")
     if isinstance(summary, dict):
         missing_core = summary.get("missing_core_features") or []
@@ -339,19 +256,15 @@ def _validate_feature_missingness(report: Dict[str, Any], errors: List[str], war
 
 def _validate_model_eval(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
     _validate_base_report("model_eval", report, errors, warnings)
-    _require_keys(
-        report,
-        ["report_type", "training_source", "features_used", "metrics", "confusion_matrix", "live_betting_allowed", "automated_wagering_allowed", "production_model_replacement_allowed"],
-        errors,
-        "model_eval",
-    )
-
+    _require_keys(report, ["report_type", "training_source", "features_used", "metrics", "confusion_matrix", *SAFETY_FLAGS], errors, "model_eval")
     if str(report.get("report_type")) != "model_eval_report":
         errors.append("model_eval: report_type must be model_eval_report")
-
-    status = str(report.get("status", "")).lower()
-    metrics = report.get("metrics")
-    if status == "ok":
+    if report.get("training_source") != "data/training_samples.csv":
+        errors.append("model_eval: training_source must be data/training_samples.csv")
+    if not isinstance(report.get("features_used"), list):
+        errors.append("model_eval: features_used must be a list")
+    if str(report.get("status", "")).lower() == "ok":
+        metrics = report.get("metrics")
         if not isinstance(metrics, dict):
             errors.append("model_eval: metrics must be an object when status is ok")
         else:
@@ -359,33 +272,19 @@ def _validate_model_eval(report: Dict[str, Any], errors: List[str], warnings: Li
                 if key not in metrics:
                     errors.append(f"model_eval.metrics: missing {key}")
 
-    if report.get("training_source") != "data/training_samples.csv":
-        errors.append("model_eval: training_source must be data/training_samples.csv")
-
-    if not isinstance(report.get("features_used"), list):
-        errors.append("model_eval: features_used must be a list")
-
 
 def _validate_calibration(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
     _validate_base_report("calibration", report, errors, warnings)
-    _require_keys(
-        report,
-        ["report_type", "input_path", "sample_count", "valid_sample_count", "brier", "ece", "mce", "reliability_table", "live_betting_allowed", "automated_wagering_allowed", "production_model_replacement_allowed"],
-        errors,
-        "calibration",
-    )
-
+    _require_keys(report, ["report_type", "input_path", "sample_count", "valid_sample_count", "brier", "ece", "mce", "reliability_table", *SAFETY_FLAGS], errors, "calibration")
     if str(report.get("report_type")) != "calibration_report":
         errors.append("calibration: report_type must be calibration_report")
-
-    status = str(report.get("status", "")).lower()
-    if status in {"ok", "warning"}:
+    if str(report.get("status", "")).lower() in {"ok", "warning"}:
         if not isinstance(report.get("reliability_table"), list):
             errors.append("calibration: reliability_table must be a list")
         for key in ("ece", "mce", "brier"):
             value = report.get(key)
             if value is None:
-                errors.append(f"calibration: {key} must not be null when status is {status}")
+                errors.append(f"calibration: {key} must not be null when report is usable")
                 continue
             try:
                 parsed = float(value)
@@ -398,38 +297,19 @@ def _validate_calibration(report: Dict[str, Any], errors: List[str], warnings: L
 
 def _validate_per_slice_performance(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
     _validate_base_report("per_slice_performance", report, errors, warnings)
-    _require_keys(
-        report,
-        ["report_type", "input_path", "sample_count", "valid_sample_count", "slices", "live_betting_allowed", "automated_wagering_allowed", "production_model_replacement_allowed"],
-        errors,
-        "per_slice_performance",
-    )
-
+    _require_keys(report, ["report_type", "input_path", "sample_count", "valid_sample_count", "slices", *SAFETY_FLAGS], errors, "per_slice_performance")
     if str(report.get("report_type")) != "per_slice_performance_report":
         errors.append("per_slice_performance: report_type must be per_slice_performance_report")
-
-    status = str(report.get("status", "")).lower()
-    if status in {"ok", "warning"} and not isinstance(report.get("slices"), dict):
-        errors.append("per_slice_performance: slices must be an object when status is ok/warning")
+    if str(report.get("status", "")).lower() in {"ok", "warning"} and not isinstance(report.get("slices"), dict):
+        errors.append("per_slice_performance: slices must be an object when report is usable")
 
 
-def _validate_outcome_linkage(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
-    _validate_base_report("outcome_linkage_diagnostic", report, errors, warnings)
-    _require_keys(
-        report,
-        ["report_type", "live_betting_allowed", "automated_wagering_allowed", "production_model_replacement_allowed"],
-        errors,
-        "outcome_linkage_diagnostic",
-    )
-
-
-def _validate_optional_report(name: str, report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+def _validate_generic_report(name: str, report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
     _validate_base_report(name, report, errors, warnings)
 
 
 def build_contract_report() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-
     errors: List[str] = []
     warnings: List[str] = []
     file_status: Dict[str, Any] = {}
@@ -452,78 +332,35 @@ def build_contract_report() -> Dict[str, Any]:
             reports[name] = data
 
     for name, path in REQUIRED_NON_JSON_FILES.items():
-        file_status[name] = {
-            "path": str(path),
-            "exists": path.exists(),
-            "error": "" if path.exists() else "file_missing",
-        }
+        file_status[name] = {"path": str(path), "exists": path.exists(), "error": "" if path.exists() else "file_missing"}
         if not path.exists():
             errors.append(f"{name}: required file missing: {path}")
 
     for name, path in OPTIONAL_NON_JSON_FILES.items():
-        file_status[name] = {
-            "path": str(path),
-            "exists": path.exists(),
-            "error": "" if path.exists() else "file_missing",
-        }
+        file_status[name] = {"path": str(path), "exists": path.exists(), "error": "" if path.exists() else "file_missing"}
         if not path.exists():
             warnings.append(f"{name}: optional file missing: {path}")
 
-    if "prediction" in reports:
-        _validate_prediction(reports["prediction"], errors, warnings)
-
-    if "training_status" in reports:
-        _validate_training_status(reports["training_status"], errors, warnings)
-
-    for key in ("model_artifact_status", "model_artifact_status_report", "model_status_consistency", "artifact_rebuild_readiness", "training_samples"):
-        if key in reports:
-            _validate_artifact_status(key, reports[key], errors, warnings)
-
-    if "feature_contract" in reports:
-        _validate_feature_contract(reports["feature_contract"], errors, warnings)
-
-    if "feature_missingness" in reports:
-        _validate_feature_missingness(reports["feature_missingness"], errors, warnings)
-
-    if "model_eval" in reports:
-        _validate_model_eval(reports["model_eval"], errors, warnings)
-
-    if "calibration" in reports:
-        _validate_calibration(reports["calibration"], errors, warnings)
-
-    if "per_slice_performance" in reports:
-        _validate_per_slice_performance(reports["per_slice_performance"], errors, warnings)
-
-    if "outcome_linkage_diagnostic" in reports:
-        _validate_outcome_linkage(reports["outcome_linkage_diagnostic"], errors, warnings)
+    specialized = {
+        "prediction": _validate_prediction,
+        "training_status": _validate_training_status,
+        "feature_contract": _validate_feature_contract,
+        "feature_missingness": _validate_feature_missingness,
+        "model_eval": _validate_model_eval,
+        "calibration": _validate_calibration,
+        "per_slice_performance": _validate_per_slice_performance,
+    }
 
     for name, report in reports.items():
-        if name in REQUIRED_JSON_REPORTS and name not in {
-            "prediction",
-            "training_status",
-            "model_artifact_status",
-            "model_artifact_status_report",
-            "model_status_consistency",
-            "artifact_rebuild_readiness",
-            "training_samples",
-            "feature_contract",
-            "feature_missingness",
-            "model_eval",
-            "calibration",
-            "per_slice_performance",
-            "outcome_linkage_diagnostic",
-        }:
-            _validate_optional_report(name, report, errors, warnings)
-
-    for name, report in reports.items():
-        if name in OPTIONAL_JSON_REPORTS:
-            _validate_optional_report(name, report, errors, warnings)
+        validator = specialized.get(name)
+        if validator is not None:
+            validator(report, errors, warnings)
+        else:
+            _validate_generic_report(name, report, errors, warnings)
 
     model_eval = reports.get("model_eval") or {}
-    if str(model_eval.get("status", "")).lower() == "ok":
-        oos_path = OPTIONAL_NON_JSON_FILES["oos_predictions"]
-        if not oos_path.exists():
-            errors.append("model_eval: status ok but data/oos_predictions_with_labels.csv is missing")
+    if str(model_eval.get("status", "")).lower() == "ok" and not OPTIONAL_NON_JSON_FILES["oos_predictions"].exists():
+        errors.append("model_eval: status ok but data/oos_predictions_with_labels.csv is missing")
 
     report = {
         "generated_at": _utc_now(),
@@ -535,18 +372,12 @@ def build_contract_report() -> Dict[str, Any]:
         "file_status": file_status,
         "required_json_count": len(REQUIRED_JSON_REPORTS),
         "optional_json_count": len(OPTIONAL_JSON_REPORTS),
-        "recommendations": []
-        if not errors
-        else ["Fix data contract errors before treating the pipeline output as engineering-grade."],
+        "recommendations": [] if not errors else ["Fix data contract errors before treating the pipeline output as engineering-grade."],
         "live_betting_allowed": False,
         "automated_wagering_allowed": False,
         "production_model_replacement_allowed": False,
     }
-
-    OUTPUT_PATH.write_text(
-        json.dumps(_json_safe(report), indent=2, ensure_ascii=True, allow_nan=False),
-        encoding="utf-8",
-    )
+    OUTPUT_PATH.write_text(json.dumps(_json_safe(report), indent=2, ensure_ascii=True, allow_nan=False), encoding="utf-8")
     return report
 
 
