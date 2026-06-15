@@ -144,6 +144,10 @@ SHADOW_CANDIDATE_FEATURES = [
     "lineup_context_available",
 ]
 
+# Legacy name used by scripts/feature_promotion_report.py and older tests.
+# Keep it as an alias, not a separate source of truth.
+CANDIDATE_SHADOW_FEATURES = list(SHADOW_CANDIDATE_FEATURES)
+
 
 EXPECTED_FEATURES = CORE_MODEL_FEATURES + [
     feature for feature in TRACKING_ONLY_FEATURES if feature not in CORE_MODEL_FEATURES
@@ -339,6 +343,7 @@ FEATURE_GOVERNANCE_NOTES = {
     "MODEL_FEATURES": "Backward-compatible alias for CORE_MODEL_FEATURES.",
     "TRACKING_ONLY_FEATURES": "Tracked but excluded from active model.",
     "SHADOW_CANDIDATE_FEATURES": "May be used only by shadow model lab and feature promotion research.",
+    "CANDIDATE_SHADOW_FEATURES": "Backward-compatible alias for SHADOW_CANDIDATE_FEATURES.",
     "FEATURE_METADATA": "Governance metadata for feature review, leakage risk and promotion controls.",
 }
 
