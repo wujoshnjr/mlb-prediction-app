@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-06-15T05:34:16.299618+00:00",
+  "generated_at": "2026-06-15T08:01:58.105626+00:00",
   "status": "insufficient_evidence",
-  "readiness_score": 64.29,
+  "readiness_score": 57.14,
   "research_promotion_allowed": false,
   "official_model_replacement_allowed": false,
   "production_model_replacement_allowed": false,
@@ -22,7 +22,7 @@
     "clean_settled_samples": 242,
     "train_eligible_samples": 242,
     "linked_games": 242,
-    "pending_not_final": 3,
+    "pending_not_final": 13,
     "model_lab_sample_count": 242,
     "walkforward_oos_predictions": 162,
     "calibration_sample_count": 242,
@@ -65,7 +65,7 @@
       "passed": true,
       "current": {
         "linked_games": 242,
-        "pending_not_final": 3,
+        "pending_not_final": 13,
         "api_not_found_or_failed": 0
       },
       "required": "linked_games > 0 and api_not_found_or_failed == 0",
@@ -213,10 +213,10 @@
     },
     {
       "name": "data_contract_gate",
-      "passed": true,
-      "current": "ok",
+      "passed": false,
+      "current": "failed",
       "required": "ok",
-      "blocker": "",
+      "blocker": "data contract report is not ok",
       "warning": "",
       "details": {}
     },
@@ -224,7 +224,7 @@
       "name": "pipeline_manifest_gate",
       "passed": true,
       "current": {
-        "tracked_file_count": 99,
+        "tracked_file_count": 105,
         "exists": true
       },
       "required": "pipeline manifest exists and tracks outputs",
@@ -245,6 +245,7 @@
   "blockers": [
     "calibration sample count, readiness, or ECE threshold not satisfied",
     "clean settled samples below promotion threshold: 242 < 500",
+    "data contract report is not ok",
     "model lab does not have enough samples or no challenger model",
     "train eligible samples below threshold: 242 < 300",
     "walk-forward OOS predictions below threshold: 162 < 300"

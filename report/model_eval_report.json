@@ -1,9 +1,10 @@
 {
-  "generated_at": "2026-06-15T05:34:18.104736Z",
+  "generated_at": "2026-06-15T08:01:59.875325Z",
   "report_type": "model_eval_report",
   "status": "ok",
   "training_source": "data/training_samples.csv",
   "oos_prediction_output": "data/oos_predictions_with_labels.csv",
+  "collapse_report_output": "report/prediction_collapse_report.json",
   "pipeline_version": "baseline_v2_clean",
   "feature_schema_version": "core_v4_canonical_training_samples",
   "feature_schema_hash": "96648eff8ef44ed996d40e7a84d16d67305d831de227e200d0d93819283df1ed",
@@ -23,26 +24,177 @@
   "calibration_sample_count": 36,
   "test_sample_count": 37,
   "metrics": {
-    "accuracy": 0.5675675675675675,
+    "accuracy": 0.5405405405405406,
     "balanced_accuracy": 0.5,
-    "precision": 0.5675675675675675,
+    "precision": 0.5405405405405406,
     "recall": 1.0,
-    "f1": 0.7241379310344828,
-    "roc_auc": 0.4970238095238095,
-    "brier": 0.24975421128031522,
-    "logloss": 0.6930818905569318
+    "f1": 0.7017543859649122,
+    "roc_auc": 0.4411764705882353,
+    "brier": 0.26131417111514366,
+    "logloss": 0.7174385687190009,
+    "predicted_positive_rate": 1.0,
+    "predicted_negative_rate": 0.0,
+    "probability_mean": 0.6391538158998908,
+    "probability_std": 0.024962395529488684,
+    "probability_min": 0.5919098974560445,
+    "probability_max": 0.6883804506412975
+  },
+  "baseline_metrics": {
+    "constant_0_5": {
+      "accuracy": 0.5405405405405406,
+      "balanced_accuracy": 0.5,
+      "precision": 0.5405405405405406,
+      "recall": 1.0,
+      "f1": 0.7017543859649122,
+      "roc_auc": 0.5,
+      "brier": 0.25,
+      "logloss": 0.6931471805599451,
+      "predicted_positive_rate": 1.0,
+      "predicted_negative_rate": 0.0,
+      "probability_mean": 0.5,
+      "probability_std": 0.0,
+      "probability_min": 0.5,
+      "probability_max": 0.5,
+      "baseline_name": "constant_0_5",
+      "constant_probability": 0.5
+    },
+    "base_rate_train_calibration": {
+      "accuracy": 0.5405405405405406,
+      "balanced_accuracy": 0.5,
+      "precision": 0.5405405405405406,
+      "recall": 1.0,
+      "f1": 0.7017543859649122,
+      "roc_auc": 0.5,
+      "brier": 0.24839011527887198,
+      "logloss": 0.6899243356382125,
+      "predicted_positive_rate": 1.0,
+      "predicted_negative_rate": 0.0,
+      "probability_mean": 0.5463414634146343,
+      "probability_std": 1.1102230246251565e-16,
+      "probability_min": 0.5463414634146342,
+      "probability_max": 0.5463414634146342,
+      "baseline_name": "base_rate_train_calibration",
+      "constant_probability": 0.5463414634146342
+    },
+    "always_home": {
+      "accuracy": 0.5405405405405406,
+      "balanced_accuracy": 0.5,
+      "precision": 0.5405405405405406,
+      "recall": 1.0,
+      "f1": 0.7017543859649122,
+      "roc_auc": 0.5,
+      "brier": 0.4594585405415404,
+      "logloss": 6.347667553646319,
+      "predicted_positive_rate": 1.0,
+      "predicted_negative_rate": 0.0,
+      "probability_mean": 0.9999990000000002,
+      "probability_std": 2.220446049250313e-16,
+      "probability_min": 0.999999,
+      "probability_max": 0.999999,
+      "baseline_name": "always_home",
+      "constant_probability": 0.999999
+    },
+    "always_away": {
+      "accuracy": 0.4594594594594595,
+      "balanced_accuracy": 0.5,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "roc_auc": 0.5,
+      "brier": 0.5405394594604592,
+      "logloss": 7.467844004305244,
+      "predicted_positive_rate": 0.0,
+      "predicted_negative_rate": 1.0,
+      "probability_mean": 9.999999999999995e-07,
+      "probability_std": 4.235164736271502e-22,
+      "probability_min": 1e-06,
+      "probability_max": 1e-06,
+      "baseline_name": "always_away",
+      "constant_probability": 1e-06
+    }
+  },
+  "model_vs_baselines": {
+    "constant_0_5": {
+      "delta_brier": 0.011314171115143656,
+      "beats_brier": false,
+      "delta_logloss": 0.02429138815905585,
+      "beats_logloss": false,
+      "delta_roc_auc": -0.05882352941176472,
+      "beats_roc_auc": false
+    },
+    "base_rate_train_calibration": {
+      "delta_brier": 0.01292405583627168,
+      "beats_brier": false,
+      "delta_logloss": 0.027514233080788375,
+      "beats_logloss": false,
+      "delta_roc_auc": -0.05882352941176472,
+      "beats_roc_auc": false
+    },
+    "always_home": {
+      "delta_brier": -0.19814436942639674,
+      "beats_brier": true,
+      "delta_logloss": -5.630228984927318,
+      "beats_logloss": true,
+      "delta_roc_auc": -0.05882352941176472,
+      "beats_roc_auc": false
+    },
+    "always_away": {
+      "delta_brier": -0.27922528834531557,
+      "beats_brier": true,
+      "delta_logloss": -6.750405435586242,
+      "beats_logloss": true,
+      "delta_roc_auc": -0.05882352941176472,
+      "beats_roc_auc": false
+    }
+  },
+  "collapse_guardrail": {
+    "status": "failed",
+    "model_has_no_discrimination_power": true,
+    "do_not_promote": true,
+    "collapse_reasons": [
+      "balanced_accuracy_near_random",
+      "single_class_positive_prediction_collapse",
+      "brier_near_random_0_25",
+      "test_sample_count_too_small_for_stable_claims"
+    ],
+    "thresholds": {
+      "auc_random_band_low": 0.48,
+      "auc_random_band_high": 0.52,
+      "balanced_accuracy_random_band_low": 0.48,
+      "balanced_accuracy_random_band_high": 0.52,
+      "max_single_class_prediction_rate": 0.85,
+      "min_probability_std": 0.02,
+      "brier_random_reference": 0.25,
+      "logloss_random_reference": 0.6931471805599453
+    },
+    "confusion_matrix": [
+      [
+        0,
+        17
+      ],
+      [
+        0,
+        20
+      ]
+    ],
+    "live_betting_allowed": false,
+    "automated_wagering_allowed": false,
+    "production_model_replacement_allowed": false
   },
   "confusion_matrix": [
     [
       0,
-      16
+      17
     ],
     [
       0,
-      21
+      20
     ]
   ],
-  "warnings": [],
+  "warnings": [
+    "model_has_no_discrimination_power",
+    "model_does_not_beat_all_brier_baselines"
+  ],
   "errors": [],
   "live_betting_allowed": false,
   "automated_wagering_allowed": false,
