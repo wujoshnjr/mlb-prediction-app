@@ -43,6 +43,7 @@ jobs:
           python -m py_compile \
             scripts/artifact_quarantine_report.py \
             scripts/feature_priority_report.py \
+            scripts/repo_anomaly_report.py \
             scripts/pipeline_manifest.py \
             scripts/data_contract_validator.py
 
@@ -61,6 +62,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build repository anomaly report
+        run: python scripts/repo_anomaly_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Refresh pipeline manifest
         run: python scripts/pipeline_manifest.py
         env:
@@ -75,6 +81,7 @@ jobs:
             report/feature_missingness_report.json \
             report/feature_priority_report.json \
             report/artifact_quarantine_report.json \
+            report/repo_anomaly_report.json \
             report/pipeline_manifest.json; do
             if [ -f "$path" ]; then
               git add -f "$path"
