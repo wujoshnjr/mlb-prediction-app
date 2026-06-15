@@ -1,6 +1,7 @@
 {
-  "generated_at": "2026-06-15T08:01:36.213083+00:00",
-  "status": "ok",
+  "generated_at": "2026-06-15T10:46:25.398384Z",
+  "report_type": "baseline_comparison_report",
+  "status": "warning",
   "input_files": {
     "prediction": {
       "path": "report/prediction.json",
@@ -23,7 +24,7 @@
     "market_odds_history": {
       "path": "data/market_odds_history.csv",
       "exists": true,
-      "rows": 38928,
+      "rows": 38988,
       "error": ""
     }
   },
@@ -34,54 +35,130 @@
       "count": 242,
       "brier": 0.256124,
       "logloss": 0.70581,
-      "accuracy": 0.508264
+      "accuracy": 0.508264,
+      "probability_mean": 0.484386,
+      "probability_std": 0.120194
     },
     "market_no_vig": {
       "name": "market_no_vig",
       "count": 208,
       "brier": 0.27599,
       "logloss": 0.781262,
-      "accuracy": 0.528846
+      "accuracy": 0.528846,
+      "probability_mean": 0.508033,
+      "probability_std": 0.162714
     },
     "elo": {
       "name": "elo",
       "count": 242,
       "brier": 0.259133,
       "logloss": 0.712878,
-      "accuracy": 0.504132
+      "accuracy": 0.504132,
+      "probability_mean": 0.512258,
+      "probability_std": 0.123255
     },
     "constant_50": {
       "name": "constant_50",
       "count": 242,
       "brier": 0.25,
       "logloss": 0.693147,
-      "accuracy": 0.545455
+      "accuracy": 0.545455,
+      "probability_mean": 0.5,
+      "probability_std": 0.0
     },
     "home_historical_rate": {
       "name": "home_historical_rate",
       "count": 242,
       "brier": 0.248082,
       "logloss": 0.689308,
-      "accuracy": 0.545455
+      "accuracy": 0.545455,
+      "probability_mean": 0.533269,
+      "probability_std": 0.0
     },
     "log5": {
       "name": "log5",
       "count": 242,
       "brier": 0.403912,
       "logloss": 7.893963,
-      "accuracy": 0.491736
+      "accuracy": 0.491736,
+      "probability_mean": 0.219625,
+      "probability_std": 0.24062
     }
   },
   "comparison": {
-    "model_brier": 0.256124,
-    "market_brier": 0.27599,
-    "model_logloss": 0.70581,
-    "market_logloss": 0.781262,
-    "model_beats_market_brier": true,
-    "model_beats_market_logloss": true
+    "status": "ok",
+    "comparisons": {
+      "market_no_vig": {
+        "delta_brier": -0.019866,
+        "beats_brier": true,
+        "delta_logloss": -0.075452,
+        "beats_logloss": true,
+        "delta_accuracy": -0.020582,
+        "beats_accuracy": false
+      },
+      "elo": {
+        "delta_brier": -0.003009,
+        "beats_brier": true,
+        "delta_logloss": -0.007068,
+        "beats_logloss": true,
+        "delta_accuracy": 0.004132,
+        "beats_accuracy": true
+      },
+      "constant_50": {
+        "delta_brier": 0.006124,
+        "beats_brier": false,
+        "delta_logloss": 0.012663,
+        "beats_logloss": false,
+        "delta_accuracy": -0.037191,
+        "beats_accuracy": false
+      },
+      "home_historical_rate": {
+        "delta_brier": 0.008042,
+        "beats_brier": false,
+        "delta_logloss": 0.016502,
+        "beats_logloss": false,
+        "delta_accuracy": -0.037191,
+        "beats_accuracy": false
+      },
+      "log5": {
+        "delta_brier": -0.147788,
+        "beats_brier": true,
+        "delta_logloss": -7.188153,
+        "beats_logloss": true,
+        "delta_accuracy": 0.016528,
+        "beats_accuracy": true
+      }
+    },
+    "reasons": []
+  },
+  "quality_gate": {
+    "status": "blocked",
+    "promotion_allowed": false,
+    "production_model_replacement_allowed": false,
+    "live_betting_allowed": false,
+    "automated_wagering_allowed": false,
+    "minimum_production_settled_samples": 300,
+    "required_promotion_baselines": [
+      "constant_50",
+      "home_historical_rate",
+      "market_no_vig"
+    ],
+    "reasons": [
+      "model_does_not_beat_constant_50_brier",
+      "model_does_not_beat_constant_50_logloss",
+      "model_does_not_beat_home_historical_rate_brier",
+      "model_does_not_beat_home_historical_rate_logloss",
+      "settled_sample_count_below_300"
+    ],
+    "warnings": []
   },
   "skipped_baselines": [],
   "recommendations": [
-    "Settled sample count is below 300; baseline comparisons are not production-reliable."
-  ]
+    "Settled sample count is below 300; baseline comparisons are not production-reliable.",
+    "Do not promote model until it beats required baselines on Brier and logloss."
+  ],
+  "promotion_allowed": false,
+  "production_model_replacement_allowed": false,
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false
 }
