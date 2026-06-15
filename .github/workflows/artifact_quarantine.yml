@@ -1,0 +1,60 @@
+name: Artifact Quarantine Diagnostic
+
+on:
+  workflow_run:
+    workflows: [Hourly Prediction Update]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: artifact-quarantine-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-artifact-quarantine-report:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull latest generated reports
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git pull --rebase origin "${GITHUB_REF_NAME:-main}"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - name: Compile artifact quarantine diagnostic
+        run: python -m py_compile scripts/artifact_quarantine_report.py
+
+      - name: Build artifact quarantine report
+        run: python scripts/artifact_quarantine_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Commit artifact quarantine report
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [ -f report/artifact_quarantine_report.json ]; then
+            git add -f report/artifact_quarantine_report.json
+          fi
+
+          git commit -m "Update artifact quarantine report [skip ci]" || echo "No changes"
+          git pull --rebase origin "${GITHUB_REF_NAME:-main}"
+          git push origin "HEAD:${GITHUB_REF_NAME:-main}"
