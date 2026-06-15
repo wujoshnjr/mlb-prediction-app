@@ -211,6 +211,17 @@ def check_quality_statuses(paths: list[Path]) -> tuple[list[dict[str, Any]], lis
     return issues, model_quality_blocks
 
 
+def _match_assignment_value(line: str) -> str | None:
+    match = re.search(r"=\s*['\"]([^'\"]+)['\"]", line)
+    return match.group(1) if match else None
+
+
+def _is_env_var_placeholder(value: str | None) -> bool:
+    if not value:
+        return False
+    return bool(re.fullmatch(r"[A-Z][A-Z0-9_]{3,}", value))
+
+
 def check_text_patterns(paths: list[Path]) -> list[dict[str, Any]]:
     issues = []
     for path in paths:
@@ -219,9 +230,13 @@ def check_text_patterns(paths: list[Path]) -> list[dict[str, Any]]:
         text = read_text(path)
         if not text:
             continue
+        lines = text.splitlines()
         for pattern_name, pattern in SUSPICIOUS_TEXT_PATTERNS.items():
             for match in re.finditer(pattern, text):
                 line_no = text.count("\n", 0, match.start()) + 1
+                line_text = lines[line_no - 1] if 0 <= line_no - 1 < len(lines) else ""
+                if pattern_name == "potential_secret_literal" and _is_env_var_placeholder(_match_assignment_value(line_text)):
+                    continue
                 severity = "warning"
                 if pattern_name == "potential_secret_literal":
                     severity = "error"
