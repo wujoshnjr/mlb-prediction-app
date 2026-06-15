@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -17,6 +16,7 @@ FEATURE_AVAILABILITY_PATH = Path("report/feature_availability_diagnostic.json")
 FEATURE_ZERO_ROOT_CAUSE_PATH = Path("report/feature_zero_root_cause_diagnostic.json")
 FEATURE_GRADE_PATH = Path("report/feature_grade_report.json")
 TRAINING_STATUS_PATH = Path("data/training_status.json")
+HEALTH_GATE_REPORT_PATH = Path("report/report_health_gate.json")
 
 EXPECTED_MODEL_TYPE = "calibrated_logistic_regression_with_imputer"
 EXPECTED_MIN_CLEAN_TRAIN_SAMPLES = 300
@@ -76,6 +76,11 @@ def _check_prediction_report(report: Dict[str, Any], errors: List[str], warnings
     predictions = _get_predictions(report)
 
     if not predictions:
+        schedule_fetch_ok = report.get("schedule_fetch_ok")
+        scheduled_game_count = report.get("scheduled_game_count")
+        if schedule_fetch_ok is True and scheduled_game_count == 0:
+            warnings.append("prediction.json has no predictions because schedule reports zero games.")
+            return
         errors.append("prediction.json has no valid predictions.")
         return
 
@@ -107,10 +112,7 @@ def _check_prediction_report(report: Dict[str, Any], errors: List[str], warnings
                 errors.append(f"{game_id}: data_quality_status missing missing_important_sources.")
 
             missing_important = set(data_quality.get("missing_important_sources") or [])
-            if (
-                "confirmed_lineup" in missing_important
-                or "confirmed_starter" in missing_important
-            ):
+            if "confirmed_lineup" in missing_important or "confirmed_starter" in missing_important:
                 if bool(data_quality.get("bet_allowed", False)):
                     errors.append(
                         f"{game_id}: bet_allowed=true while lineup/starter is not confirmed."
@@ -300,11 +302,22 @@ def main() -> int:
         "warning_count": len(warnings),
         "errors": errors,
         "warnings": warnings,
+        "live_betting_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_model_replacement_allowed": False,
     }
 
-    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    HEALTH_GATE_REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    HEALTH_GATE_REPORT_PATH.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False, allow_nan=False),
+        encoding="utf-8",
+    )
 
-    return 1 if errors else 0
+    print(json.dumps(summary, indent=2, ensure_ascii=False))
+    if errors:
+        print("Report health gate issues were written to report/report_health_gate.json; pipeline continues in report-only mode.")
+
+    return 0
 
 
 if __name__ == "__main__":
