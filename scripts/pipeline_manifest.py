@@ -7,10 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-
 REPORT_DIR = Path("report")
 OUTPUT_PATH = REPORT_DIR / "pipeline_manifest.json"
-
 
 TRACKED_FILES = [
     "report/prediction.json",
@@ -26,6 +24,7 @@ TRACKED_FILES = [
     "report/clv_by_odds_range.json",
     "report/clv_by_lineup_status.json",
     "report/calibration_report.json",
+    "report/per_slice_performance_report.json",
     "report/walkforward_evaluation.json",
     "report/rolling_walkforward_evaluation.json",
     "report/rolling_walkforward_predictions.csv",
@@ -50,6 +49,7 @@ TRACKED_FILES = [
     "report/model_status_consistency_report.json",
     "report/artifact_rebuild_readiness_report.json",
     "report/feature_contract_report.json",
+    "report/feature_missingness_report.json",
     "report/model_eval_report.json",
     "report/train_ensemble_report.json",
     "report/sample_state_report.json",
@@ -120,18 +120,16 @@ TRACKED_FILES = [
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _sha256(path: Path) -> Optional[str]:
     if not path.exists() or not path.is_file():
         return None
-
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
-
     return digest.hexdigest()
 
 
@@ -139,50 +137,41 @@ def _json_summary(path: Path) -> Dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception as exc:
-        return {
-            "json_valid": False,
-            "json_error": str(exc),
-        }
+        return {"json_valid": False, "json_error": str(exc)}
 
     if not isinstance(data, dict):
-        return {
-            "json_valid": True,
-            "json_type": type(data).__name__,
-        }
+        return {"json_valid": True, "json_type": type(data).__name__}
 
-    summary: Dict[str, Any] = {
-        "json_valid": True,
-        "json_type": "dict",
-    }
-
+    summary: Dict[str, Any] = {"json_valid": True, "json_type": "dict"}
     for key in (
         "generated_at",
+        "timestamp",
         "status",
+        "report_type",
         "error_count",
         "warning_count",
         "research_grade",
         "risk_status",
+        "feature_schema_hash",
     ):
         if key in data:
             summary[key] = data.get(key)
 
-    predictions = (
-        data.get("predictions")
-        or data.get("today_predictions")
-        or data.get("games")
-    )
+    predictions = data.get("predictions") or data.get("today_predictions") or data.get("games")
     if isinstance(predictions, list):
         summary["prediction_count"] = len(predictions)
 
     slices = data.get("slices")
     if isinstance(slices, list):
         summary["slice_count"] = len(slices)
+    elif isinstance(slices, dict):
+        summary["slice_group_count"] = len(slices)
 
-    bins = data.get("bins")
+    bins = data.get("bins") or data.get("reliability_table")
     if isinstance(bins, list):
         summary["bin_count"] = len(bins)
 
-    rows = data.get("rows")
+    rows = data.get("rows") or data.get("features")
     if isinstance(rows, list):
         summary["row_count_in_json"] = len(rows)
 
@@ -194,8 +183,14 @@ def _json_summary(path: Path) -> Dict[str, Any]:
         "file_count",
         "tracked_file_count",
         "missing_file_count",
+        "core_feature_count",
+        "sample_count",
+        "valid_sample_count",
         "promotion_allowed",
         "production_allowed",
+        "live_betting_allowed",
+        "automated_wagering_allowed",
+        "production_model_replacement_allowed",
     ):
         if key in data:
             summary[key] = data.get(key)
@@ -210,7 +205,6 @@ def _csv_row_count(path: Path) -> Optional[int]:
             rows = sum(1 for _ in reader)
     except Exception:
         return None
-
     return max(0, rows - 1)
 
 
@@ -218,40 +212,27 @@ def _file_record(path_text: str) -> Dict[str, Any]:
     path = Path(path_text)
     exists = path.exists()
     size_bytes = path.stat().st_size if exists and path.is_file() else 0
-
     record: Dict[str, Any] = {
         "path": path_text,
         "exists": exists,
         "size_bytes": size_bytes,
         "sha256": _sha256(path),
     }
-
     if path.suffix.lower() == ".json" and exists:
         record.update(_json_summary(path))
-
     if path.suffix.lower() == ".csv" and exists:
         record["row_count"] = _csv_row_count(path)
-
     return record
 
 
 def build_manifest() -> Dict[str, Any]:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-
     files = [_file_record(path) for path in TRACKED_FILES]
-
-    missing_files = [
-        item["path"]
-        for item in files
-        if not item["exists"]
-    ]
-
+    missing_files = [item["path"] for item in files if not item["exists"]]
     invalid_json_files = [
         item["path"]
         for item in files
-        if item["path"].endswith(".json")
-        and item["exists"]
-        and item.get("json_valid") is False
+        if item["path"].endswith(".json") and item["exists"] and item.get("json_valid") is False
     ]
 
     status = "ok"
@@ -282,13 +263,11 @@ def build_manifest() -> Dict[str, Any]:
         "invalid_json_files": invalid_json_files,
         "files": files,
         "recommendations": recommendations,
+        "live_betting_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_model_replacement_allowed": False,
     }
-
-    OUTPUT_PATH.write_text(
-        json.dumps(report, indent=2, ensure_ascii=True),
-        encoding="utf-8",
-    )
-
+    OUTPUT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
     return report
 
 
