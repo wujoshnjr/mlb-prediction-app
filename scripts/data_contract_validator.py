@@ -28,6 +28,7 @@ REQUIRED_JSON_REPORTS = {
 
 OPTIONAL_JSON_REPORTS = {
     "baseline_comparison": REPORT_DIR / "baseline_comparison_report.json",
+    "artifact_quarantine": REPORT_DIR / "artifact_quarantine_report.json",
     "clv_by_edge_bucket": REPORT_DIR / "clv_by_edge_bucket.json",
     "clv_by_side": REPORT_DIR / "clv_by_side.json",
     "clv_by_odds_range": REPORT_DIR / "clv_by_odds_range.json",
@@ -98,6 +99,9 @@ ALLOWED_STATUSES = {
     "partial_failure",
     "not_attempted",
     "unavailable",
+    "quarantined",
+    "needs_review",
+    "missing_source",
 }
 FAILURE_STATUSES = {"error", "failed", "fatal"}
 SAFETY_FLAGS = (
@@ -217,7 +221,6 @@ def _validate_prediction(report: Dict[str, Any], errors: List[str], warnings: Li
     if not predictions:
         errors.append("prediction.json: no predictions found")
         return
-
     required = [
         "game_id",
         "recommendation",
