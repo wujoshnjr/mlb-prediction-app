@@ -47,6 +47,7 @@ jobs:
             scripts/report_health_gate.py \
             scripts/data_contract_validator.py \
             scripts/repo_anomaly_report.py \
+            scripts/model_data_root_cause_report.py \
             scripts/html_report_builder.py \
             scripts/build_public_site_data.py \
             scripts/pipeline_manifest.py
@@ -81,6 +82,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build model data root cause report
+        run: python scripts/model_data_root_cause_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Build governance HTML report
         run: python scripts/html_report_builder.py
         env:
@@ -108,6 +114,7 @@ jobs:
             report/report_health_gate.json \
             report/data_contract_report.json \
             report/repo_anomaly_report.json \
+            report/model_data_root_cause_report.json \
             report/index.html \
             report/pipeline_manifest.json \
             site/data/public_dashboard.json; do
