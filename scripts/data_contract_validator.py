@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -8,17 +9,30 @@ from typing import Any, Dict, List, Optional
 
 REPORT_DIR = Path("report")
 DATA_DIR = Path("data")
-
 OUTPUT_PATH = REPORT_DIR / "data_contract_report.json"
 
 REQUIRED_JSON_REPORTS = {
     "prediction": REPORT_DIR / "prediction.json",
+    "training_samples": REPORT_DIR / "training_samples_report.json",
+    "training_status": DATA_DIR / "training_status.json",
+    "model_artifact_status": DATA_DIR / "model_artifact_status.json",
+    "model_artifact_status_report": REPORT_DIR / "model_artifact_status_report.json",
+    "model_status_consistency": REPORT_DIR / "model_status_consistency_report.json",
+    "artifact_rebuild_readiness": REPORT_DIR / "artifact_rebuild_readiness_report.json",
+    "feature_contract": REPORT_DIR / "feature_contract_report.json",
+    "feature_missingness": REPORT_DIR / "feature_missingness_report.json",
+    "model_eval": REPORT_DIR / "model_eval_report.json",
+    "calibration": REPORT_DIR / "calibration_report.json",
+    "per_slice_performance": REPORT_DIR / "per_slice_performance_report.json",
+    "outcome_linkage_diagnostic": REPORT_DIR / "outcome_linkage_diagnostic.json",
+}
+
+OPTIONAL_JSON_REPORTS = {
     "baseline_comparison": REPORT_DIR / "baseline_comparison_report.json",
     "clv_by_edge_bucket": REPORT_DIR / "clv_by_edge_bucket.json",
     "clv_by_side": REPORT_DIR / "clv_by_side.json",
     "clv_by_odds_range": REPORT_DIR / "clv_by_odds_range.json",
     "clv_by_lineup_status": REPORT_DIR / "clv_by_lineup_status.json",
-    "calibration": REPORT_DIR / "calibration_report.json",
     "walkforward": REPORT_DIR / "walkforward_evaluation.json",
     "rolling_walkforward": REPORT_DIR / "rolling_walkforward_evaluation.json",
     "lineup_starter_slice": REPORT_DIR / "lineup_starter_slice_report.json",
@@ -27,34 +41,17 @@ REQUIRED_JSON_REPORTS = {
     "settle_reliability": REPORT_DIR / "settle_reliability_report.json",
     "settled_prediction_link": REPORT_DIR / "settled_prediction_link_report.json",
     "snapshot_sanitization": REPORT_DIR / "snapshot_sanitization_report.json",
+    "prediction_sanitization": REPORT_DIR / "prediction_sanitization_report.json",
     "feature_availability": REPORT_DIR / "feature_availability_diagnostic.json",
     "feature_zero_root_cause": REPORT_DIR / "feature_zero_root_cause_diagnostic.json",
     "feature_grade": REPORT_DIR / "feature_grade_report.json",
-    "training_status": DATA_DIR / "training_status.json",
-    "sample_state": DATA_DIR / "sample_state.json",
-    "sample_state_report": REPORT_DIR / "sample_state_report.json",
-    "edge_sanity_guardrail": REPORT_DIR / "edge_sanity_guardrail_report.json",
-    "signal_quality": REPORT_DIR / "signal_quality_report.json",
-    "training_samples": REPORT_DIR / "training_samples_report.json",
-    "model_artifact_status": DATA_DIR / "model_artifact_status.json",
-    "model_artifact_status_report": REPORT_DIR / "model_artifact_status_report.json",
-    "model_status_consistency": REPORT_DIR / "model_status_consistency_report.json",
-    "artifact_rebuild_readiness": REPORT_DIR / "artifact_rebuild_readiness_report.json",
-    "feature_contract": REPORT_DIR / "feature_contract_report.json",
-    "model_eval": REPORT_DIR / "model_eval_report.json",
-    "train_ensemble": REPORT_DIR / "train_ensemble_report.json",
     "daily_model_accuracy": REPORT_DIR / "daily_model_accuracy_report.json",
     "away_pick_diagnostic": REPORT_DIR / "away_pick_diagnostic_report.json",
     "away_guardrail_impact": REPORT_DIR / "away_guardrail_impact_report.json",
     "odds_fetch_diagnostic": REPORT_DIR / "odds_fetch_diagnostic.json",
-    "outcome_linkage_diagnostic": REPORT_DIR / "outcome_linkage_diagnostic.json",
-}
-
-OPTIONAL_JSON_REPORTS = {
     "model_lab": REPORT_DIR / "model_lab_report.json",
     "feature_promotion": REPORT_DIR / "feature_promotion_report.json",
     "finalized_linkage_diagnostic": REPORT_DIR / "finalized_linkage_diagnostic_report.json",
-    "prediction_sanitization": REPORT_DIR / "prediction_sanitization_report.json",
     "model_registry_report": REPORT_DIR / "model_registry_report.json",
     "promotion_gate": REPORT_DIR / "promotion_gate_report.json",
     "decision_audit": REPORT_DIR / "decision_audit_report.json",
@@ -76,26 +73,59 @@ OPTIONAL_JSON_REPORTS = {
     "feature_freshness": REPORT_DIR / "feature_freshness_report.json",
     "lineup_quality": REPORT_DIR / "lineup_quality_report.json",
     "model_correctness": REPORT_DIR / "model_correctness_report.json",
+    "edge_sanity_guardrail": REPORT_DIR / "edge_sanity_guardrail_report.json",
+    "signal_quality": REPORT_DIR / "signal_quality_report.json",
     "product_experience": REPORT_DIR / "product_experience_report.json",
 }
 
 REQUIRED_NON_JSON_FILES = {
-    "html_report": REPORT_DIR / "index.html",
-    "walkforward_predictions": REPORT_DIR / "walkforward_predictions.csv",
-    "rolling_walkforward_predictions": REPORT_DIR / "rolling_walkforward_predictions.csv",
-    "training_samples": DATA_DIR / "training_samples.csv",
+    "training_samples_csv": DATA_DIR / "training_samples.csv",
 }
 
 OPTIONAL_NON_JSON_FILES = {
+    "html_report": REPORT_DIR / "index.html",
+    "walkforward_predictions": REPORT_DIR / "walkforward_predictions.csv",
+    "rolling_walkforward_predictions": REPORT_DIR / "rolling_walkforward_predictions.csv",
+    "oos_predictions": DATA_DIR / "oos_predictions_with_labels.csv",
     "decision_audit_csv": REPORT_DIR / "decision_audit.csv",
     "paper_trading_ledger_csv": DATA_DIR / "paper_trading_ledger.csv",
     "lineup_quality_context": DATA_DIR / "lineup_quality_context.csv",
     "finalized_snapshot_outcomes": DATA_DIR / "finalized_snapshot_outcomes.csv",
 }
 
+ALLOWED_STATUSES = {
+    "ok",
+    "warning",
+    "skipped",
+    "completed",
+    "partial_failure",
+    "not_attempted",
+    "unavailable",
+}
+
+FAILURE_STATUSES = {"error", "failed", "fatal"}
+
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _json_safe(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        return {str(key): _json_safe(child) for key, child in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(child) for child in value]
+    return str(value)
 
 
 def _load_json(path: Path) -> tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
@@ -118,6 +148,12 @@ def _load_json(path: Path) -> tuple[Optional[Dict[str, Any]], Dict[str, Any]]:
     return data, status
 
 
+def _require_keys(obj: Dict[str, Any], keys: List[str], errors: List[str], context: str) -> None:
+    for key in keys:
+        if key not in obj:
+            errors.append(f"{context}: missing key '{key}'")
+
+
 def _predictions(report: Dict[str, Any]) -> List[Dict[str, Any]]:
     raw = report.get("predictions") or report.get("today_predictions") or report.get("games") or []
     if not isinstance(raw, list):
@@ -125,13 +161,60 @@ def _predictions(report: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [item for item in raw if isinstance(item, dict)]
 
 
-def _require_keys(obj: Dict[str, Any], keys: List[str], errors: List[str], context: str) -> None:
-    for key in keys:
-        if key not in obj:
-            errors.append(f"{context}: missing key '{key}'")
+def _contains_bad_json_scalar(value: Any, path: str = "") -> List[str]:
+    hits: List[str] = []
+
+    if isinstance(value, float) and not math.isfinite(value):
+        hits.append(path or "<root>")
+    elif isinstance(value, str) and value.strip().lower() in {"nan", "inf", "+inf", "-inf", "infinity", "+infinity", "-infinity"}:
+        hits.append(path or "<root>")
+    elif isinstance(value, dict):
+        for key, child in value.items():
+            child_path = f"{path}.{key}" if path else str(key)
+            hits.extend(_contains_bad_json_scalar(child, child_path))
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            hits.extend(_contains_bad_json_scalar(child, f"{path}[{index}]"))
+
+    return hits
 
 
-def _validate_prediction(report: Dict[str, Any], errors: List[str]) -> None:
+def _validate_status(name: str, report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    status = str(report.get("status", "")).strip().lower()
+    if not status:
+        errors.append(f"{name}: missing status")
+    elif status in FAILURE_STATUSES:
+        errors.append(f"{name}: status is {status}")
+    elif status not in ALLOWED_STATUSES:
+        warnings.append(f"{name}: uncommon status '{status}'")
+
+
+def _validate_json_clean(name: str, report: Dict[str, Any], errors: List[str]) -> None:
+    bad_paths = _contains_bad_json_scalar(report)
+    if bad_paths:
+        errors.append(f"{name}: JSON contains NaN/Infinity-like values at {', '.join(bad_paths[:12])}")
+
+
+def _validate_safety_flags(name: str, report: Dict[str, Any], errors: List[str]) -> None:
+    for flag in (
+        "live_betting_allowed",
+        "automated_wagering_allowed",
+        "production_model_replacement_allowed",
+    ):
+        if flag in report and report.get(flag) is not False:
+            errors.append(f"{name}: {flag} must be false")
+
+
+def _validate_base_report(name: str, report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    if "generated_at" not in report and "timestamp" not in report:
+        warnings.append(f"{name}: missing generated_at/timestamp")
+    _validate_status(name, report, errors, warnings)
+    _validate_json_clean(name, report, errors)
+    _validate_safety_flags(name, report, errors)
+
+
+def _validate_prediction(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    _validate_base_report("prediction", report, errors, warnings)
     predictions = _predictions(report)
     if not predictions:
         errors.append("prediction.json: no predictions found")
@@ -154,813 +237,194 @@ def _validate_prediction(report: Dict[str, Any], errors: List[str]) -> None:
 
         if item.get("live_betting_allowed") is False:
             if item.get("live_bet_candidate") is not False:
-                errors.append(
-                    f"{context}: live_bet_candidate must be false when live_betting_allowed is false"
-                )
+                errors.append(f"{context}: live_bet_candidate must be false when live_betting_allowed is false")
 
             try:
                 stake = float(item.get("stake_multiplier") or 0.0)
             except Exception:
                 stake = 999.0
-
             if stake != 0.0:
-                errors.append(
-                    f"{context}: stake_multiplier must be 0.0 when live_betting_allowed is false"
-                )
-
-        data_quality = item.get("data_quality_status")
-        if isinstance(data_quality, dict):
-            _require_keys(
-                data_quality,
-                [
-                    "data_quality_grade",
-                    "prediction_allowed",
-                    "bet_allowed",
-                    "missing_critical_sources",
-                    "missing_important_sources",
-                ],
-                errors,
-                f"{context}.data_quality_status",
-            )
-        else:
-            errors.append(f"{context}: data_quality_status is not an object")
+                errors.append(f"{context}: stake_multiplier must be 0.0 when live_betting_allowed is false")
 
         governance = item.get("model_governance_status")
         if isinstance(governance, dict):
             _require_keys(
                 governance,
-                [
-                    "live_betting_allowed",
-                    "mode",
-                    "block_reasons",
-                    "clean_model_sample_count",
-                    "min_clean_train_samples",
-                ],
+                ["live_betting_allowed", "mode", "block_reasons"],
                 errors,
                 f"{context}.model_governance_status",
             )
         else:
             errors.append(f"{context}: model_governance_status is not an object")
 
+        data_quality = item.get("data_quality_status")
+        if isinstance(data_quality, dict):
+            _require_keys(
+                data_quality,
+                ["data_quality_grade", "prediction_allowed", "bet_allowed", "missing_critical_sources", "missing_important_sources"],
+                errors,
+                f"{context}.data_quality_status",
+            )
+        else:
+            errors.append(f"{context}: data_quality_status is not an object")
 
-def _validate_standard_report(name: str, report: Dict[str, Any], errors: List[str]) -> None:
-    _require_keys(report, ["generated_at", "status", "recommendations"], errors, name)
+        if not isinstance(item.get("features"), dict):
+            errors.append(f"{context}: features must be an object")
 
 
-def _validate_baseline(report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report("baseline_comparison_report", report, errors)
+def _validate_training_status(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    _validate_base_report("training_status", report, errors, warnings)
     _require_keys(
         report,
-        ["settled_prediction_count", "baselines", "comparison", "skipped_baselines"],
-        errors,
-        "baseline_comparison_report",
-    )
-
-
-def _validate_clv(name: str, report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report(name, report, errors)
-    _require_keys(report, ["slice_type", "slices"], errors, name)
-
-    slices = report.get("slices")
-    if not isinstance(slices, list):
-        errors.append(f"{name}: slices must be a list")
-        return
-
-    for index, item in enumerate(slices[:50]):
-        if not isinstance(item, dict):
-            errors.append(f"{name}.slices[{index}]: slice item is not object")
-            continue
-
-        _require_keys(
-            item,
-            [
-                "slice",
-                "count",
-                "avg_clv",
-                "positive_clv_rate",
-                "paper_bet_count",
-                "live_bet_candidate_count",
-                "block_live_bet",
-            ],
-            errors,
-            f"{name}.slices[{index}]",
-        )
-
-
-def _validate_calibration(report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report("calibration_report", report, errors)
-    _require_keys(
-        report,
-        [
-            "calibration_ready",
-            "total_count",
-            "bins",
-            "weighted_ece",
-            "max_calibration_error",
-            "min_recommended_samples",
-        ],
-        errors,
-        "calibration_report",
-    )
-
-
-def _validate_walkforward(report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report("walkforward_evaluation", report, errors)
-    _require_keys(
-        report,
-        [
-            "min_required_oos_predictions",
-            "total_oos_predictions",
-            "walkforward_ready",
-            "fold_count",
-        ],
-        errors,
-        "walkforward_evaluation",
-    )
-
-
-def _validate_feature_reports(reports: Dict[str, Dict[str, Any]], errors: List[str]) -> None:
-    feature_availability = reports.get("feature_availability") or {}
-    if "high_risk_features" not in feature_availability:
-        errors.append("feature_availability_diagnostic: missing high_risk_features")
-    if "non_blocking_features" not in feature_availability:
-        errors.append("feature_availability_diagnostic: missing non_blocking_features")
-
-    feature_zero = reports.get("feature_zero_root_cause") or {}
-    if "still_zero_features" not in feature_zero:
-        errors.append("feature_zero_root_cause_diagnostic: missing still_zero_features")
-
-    feature_grade = reports.get("feature_grade") or {}
-    if "grade_counts" not in feature_grade:
-        errors.append("feature_grade_report: missing grade_counts")
-
-
-def _validate_training_status(report: Dict[str, Any], errors: List[str]) -> None:
-    _require_keys(
-        report,
-        [
-            "sample_count",
-            "minimum_clean_train_samples",
-            "trained",
-            "skipped",
-            "training_allowed_for_production",
-        ],
+        ["sample_count", "minimum_clean_train_samples", "trained", "skipped", "training_allowed_for_production"],
         errors,
         "training_status",
     )
 
+    try:
+        sample_count = int(report.get("sample_count") or 0)
+        minimum = int(report.get("minimum_clean_train_samples") or 0)
+    except Exception:
+        errors.append("training_status: sample_count and minimum_clean_train_samples must be numeric")
+        return
 
-def _validate_daily_model_accuracy(report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report("daily_model_accuracy", report, errors)
+    if sample_count < minimum and bool(report.get("trained", False)):
+        errors.append("training_status: trained must be false when sample_count is below minimum")
 
+
+def _validate_artifact_status(name: str, report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    _validate_base_report(name, report, errors, warnings)
+    _validate_safety_flags(name, report, errors)
+
+
+def _validate_feature_contract(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    _validate_base_report("feature_contract", report, errors, warnings)
     _require_keys(
         report,
-        [
-            "pipeline_version",
-            "official_accuracy",
-            "daily_accuracy",
-            "rolling_windows",
-            "slices",
-            "pending_predictions",
-            "clv_metrics",
-            "prediction_probability_metrics",
-            "interpretation",
-            "live_betting_allowed",
-            "automated_wagering_allowed",
-            "production_model_replacement_allowed",
-        ],
-        errors,
-        "daily_model_accuracy",
-    )
-
-    if report.get("live_betting_allowed") is not False:
-        errors.append("daily_model_accuracy: live_betting_allowed must be false")
-    if report.get("automated_wagering_allowed") is not False:
-        errors.append("daily_model_accuracy: automated_wagering_allowed must be false")
-    if report.get("production_model_replacement_allowed") is not False:
-        errors.append("daily_model_accuracy: production_model_replacement_allowed must be false")
-
-    official = report.get("official_accuracy")
-    if isinstance(official, dict):
-        _require_keys(
-            official,
-            ["sample_count", "correct", "accuracy", "brier", "logloss", "source"],
-            errors,
-            "daily_model_accuracy.official_accuracy",
-        )
-    else:
-        errors.append("daily_model_accuracy: official_accuracy is not an object")
-
-    clv_metrics = report.get("clv_metrics")
-    if isinstance(clv_metrics, dict):
-        note = str(clv_metrics.get("note") or "").lower()
-        if "not win/loss accuracy" not in note:
-            errors.append("daily_model_accuracy.clv_metrics: must clearly say CLV is not win/loss accuracy")
-    else:
-        errors.append("daily_model_accuracy: clv_metrics is not an object")
-
-    interpretation = report.get("interpretation")
-    if isinstance(interpretation, dict):
-        if interpretation.get("do_not_mix_with_clv") is not True:
-            errors.append("daily_model_accuracy.interpretation: do_not_mix_with_clv must be true")
-    else:
-        errors.append("daily_model_accuracy: interpretation is not an object")
-
-
-def _validate_away_pick_diagnostic(report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report("away_pick_diagnostic", report, errors)
-
-    _require_keys(
-        report,
-        [
-            "pipeline_version",
-            "report_type",
-            "betting_mode",
-            "input_files",
-            "sample_summary",
-            "official_accuracy",
-            "away_segments",
-            "away_by_edge_bucket",
-            "away_by_market_prob_bucket",
-            "clv_summary",
-            "recommended_guardrails",
-            "interpretation",
-            "live_betting_allowed",
-            "automated_wagering_allowed",
-            "production_model_replacement_allowed",
-        ],
-        errors,
-        "away_pick_diagnostic",
-    )
-
-    if report.get("report_type") != "away_pick_diagnostic_v1":
-        errors.append("away_pick_diagnostic: report_type must be away_pick_diagnostic_v1")
-
-    if report.get("betting_mode") != "paper_research":
-        errors.append("away_pick_diagnostic: betting_mode must be paper_research")
-
-    if report.get("live_betting_allowed") is not False:
-        errors.append("away_pick_diagnostic: live_betting_allowed must be false")
-    if report.get("automated_wagering_allowed") is not False:
-        errors.append("away_pick_diagnostic: automated_wagering_allowed must be false")
-    if report.get("production_model_replacement_allowed") is not False:
-        errors.append("away_pick_diagnostic: production_model_replacement_allowed must be false")
-
-    metadata = report.get("metadata")
-    if isinstance(metadata, dict):
-        if metadata.get("live_betting_allowed") is not False:
-            errors.append("away_pick_diagnostic.metadata: live_betting_allowed must be false")
-        if metadata.get("automated_wagering_allowed") is not False:
-            errors.append("away_pick_diagnostic.metadata: automated_wagering_allowed must be false")
-        if metadata.get("production_model_replacement_allowed") is not False:
-            errors.append("away_pick_diagnostic.metadata: production_model_replacement_allowed must be false")
-    else:
-        errors.append("away_pick_diagnostic: metadata is not an object")
-
-    sample_summary = report.get("sample_summary")
-    if isinstance(sample_summary, dict):
-        _require_keys(
-            sample_summary,
-            [
-                "total_predictions",
-                "settled_predictions",
-                "pending_predictions",
-                "home_pick_count",
-                "away_pick_count",
-                "away_pick_settled_count",
-                "away_pick_pending_count",
-                "away_pick_rate",
-            ],
-            errors,
-            "away_pick_diagnostic.sample_summary",
-        )
-    else:
-        errors.append("away_pick_diagnostic: sample_summary is not an object")
-
-    official = report.get("official_accuracy")
-    if isinstance(official, dict):
-        for key in ("all_picks", "home_picks", "away_picks"):
-            bucket = official.get(key)
-            if isinstance(bucket, dict):
-                _require_keys(
-                    bucket,
-                    ["sample_count", "correct", "accuracy", "brier"],
-                    errors,
-                    f"away_pick_diagnostic.official_accuracy.{key}",
-                )
-            else:
-                errors.append(f"away_pick_diagnostic.official_accuracy: {key} is not an object")
-    else:
-        errors.append("away_pick_diagnostic: official_accuracy is not an object")
-
-    away_segments = report.get("away_segments")
-    if isinstance(away_segments, dict):
-        for key in (
-            "away_favorites",
-            "away_underdogs",
-            "away_high_edge",
-            "away_low_edge",
-            "away_confirmed_context",
-            "away_unconfirmed_context",
-        ):
-            if key not in away_segments:
-                errors.append(f"away_pick_diagnostic.away_segments: missing {key}")
-    else:
-        errors.append("away_pick_diagnostic: away_segments is not an object")
-
-    clv_summary = report.get("clv_summary")
-    if isinstance(clv_summary, dict):
-        note = str(clv_summary.get("note") or "").lower()
-        if "not win/loss accuracy" not in note:
-            errors.append("away_pick_diagnostic.clv_summary: must clearly say CLV is not win/loss accuracy")
-    else:
-        errors.append("away_pick_diagnostic: clv_summary is not an object")
-
-    interpretation = report.get("interpretation")
-    if isinstance(interpretation, dict):
-        _require_keys(
-            interpretation,
-            [
-                "official_accuracy_note",
-                "pending_note",
-                "clv_note",
-                "recommended_use",
-            ],
-            errors,
-            "away_pick_diagnostic.interpretation",
-        )
-    else:
-        errors.append("away_pick_diagnostic: interpretation is not an object")
-
-
-def _validate_away_guardrail_impact(report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report("away_guardrail_impact", report, errors)
-
-    _require_keys(
-        report,
-        [
-            "report_type",
-            "pipeline_version",
-            "betting_mode",
-            "input_files",
-            "summary",
-            "reason_counts",
-            "guardrail_status_counts",
-            "downgraded_examples",
-            "interpretation",
-            "live_betting_allowed",
-            "automated_wagering_allowed",
-            "production_model_replacement_allowed",
-        ],
-        errors,
-        "away_guardrail_impact",
-    )
-
-    if report.get("report_type") != "away_guardrail_impact_v1":
-        errors.append("away_guardrail_impact: report_type must be away_guardrail_impact_v1")
-
-    if report.get("betting_mode") != "paper_research":
-        errors.append("away_guardrail_impact: betting_mode must be paper_research")
-
-    if report.get("live_betting_allowed") is not False:
-        errors.append("away_guardrail_impact: live_betting_allowed must be false")
-    if report.get("automated_wagering_allowed") is not False:
-        errors.append("away_guardrail_impact: automated_wagering_allowed must be false")
-    if report.get("production_model_replacement_allowed") is not False:
-        errors.append("away_guardrail_impact: production_model_replacement_allowed must be false")
-
-    summary = report.get("summary")
-    if isinstance(summary, dict):
-        _require_keys(
-            summary,
-            [
-                "prediction_count",
-                "away_candidate_count",
-                "away_guardrail_applied_count",
-                "away_guardrail_applied_rate",
-                "retained_away_paper_signal_count",
-                "downgraded_away_tracking_only_count",
-                "home_candidate_count",
-            ],
-            errors,
-            "away_guardrail_impact.summary",
-        )
-    else:
-        errors.append("away_guardrail_impact: summary is not an object")
-
-    if not isinstance(report.get("reason_counts"), dict):
-        errors.append("away_guardrail_impact: reason_counts is not an object")
-
-    if not isinstance(report.get("guardrail_status_counts"), dict):
-        errors.append("away_guardrail_impact: guardrail_status_counts is not an object")
-
-    if not isinstance(report.get("downgraded_examples"), list):
-        errors.append("away_guardrail_impact: downgraded_examples is not a list")
-
-    interpretation = report.get("interpretation")
-    if isinstance(interpretation, dict):
-        _require_keys(
-            interpretation,
-            [
-                "guardrail_note",
-                "paper_only_note",
-                "recommended_use",
-            ],
-            errors,
-            "away_guardrail_impact.interpretation",
-        )
-    else:
-        errors.append("away_guardrail_impact: interpretation is not an object")
-
-
-def _validate_odds_fetch_diagnostic(report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report("odds_fetch_diagnostic", report, errors)
-
-    _require_keys(
-        report,
-        [
-            "status",
-            "sport_key",
-            "endpoint",
-            "requested_date",
-            "attempts",
-            "selected_attempt",
-            "final_event_count",
-            "final_usable_row_count",
-            "live_betting_allowed",
-            "automated_wagering_allowed",
-            "production_model_replacement_allowed",
-            "errors",
-            "warnings",
-            "recommendations",
-        ],
-        errors,
-        "odds_fetch_diagnostic",
-    )
-
-    if report.get("live_betting_allowed") is not False:
-        errors.append("odds_fetch_diagnostic: live_betting_allowed must be false")
-
-    if report.get("automated_wagering_allowed") is not False:
-        errors.append("odds_fetch_diagnostic: automated_wagering_allowed must be false")
-
-    if report.get("production_model_replacement_allowed") is not False:
-        errors.append(
-            "odds_fetch_diagnostic: production_model_replacement_allowed must be false"
-        )
-
-    if not isinstance(report.get("attempts"), list):
-        errors.append("odds_fetch_diagnostic: attempts must be a list")
-
-    for index, attempt in enumerate(report.get("attempts") or []):
-        if not isinstance(attempt, dict):
-            errors.append(f"odds_fetch_diagnostic.attempts[{index}]: must be an object")
-            continue
-
-        _require_keys(
-            attempt,
-            [
-                "attempt_name",
-                "params",
-                "status_code",
-                "event_count",
-                "usable_row_count",
-                "quality_counts",
-                "request_headers",
-                "error",
-            ],
-            errors,
-            f"odds_fetch_diagnostic.attempts[{index}]",
-        )
-
-        params = attempt.get("params")
-        if isinstance(params, dict):
-            api_key_value = str(params.get("apiKey") or "")
-            if api_key_value and api_key_value != "***REDACTED***":
-                errors.append(
-                    f"odds_fetch_diagnostic.attempts[{index}]: apiKey must be redacted"
-                )
-        else:
-            errors.append(
-                f"odds_fetch_diagnostic.attempts[{index}]: params must be an object"
-            )
-
-    for numeric_key in ("final_event_count", "final_usable_row_count"):
-        try:
-            int(report.get(numeric_key) or 0)
-        except Exception:
-            errors.append(f"odds_fetch_diagnostic: {numeric_key} must be numeric")
-
-
-def _validate_outcome_linkage_diagnostic(
-    report: Dict[str, Any],
-    errors: List[str],
-) -> None:
-    _validate_standard_report("outcome_linkage_diagnostic", report, errors)
-
-    _require_keys(
-        report,
-        [
-            "report_type",
-            "pipeline_version",
-            "snapshot_path",
-            "outcome_path",
-            "input_files",
-            "raw_snapshot_rows",
-            "valid_snapshot_rows",
-            "raw_outcome_rows",
-            "valid_outcome_rows",
-            "snapshot_game_count",
-            "outcome_game_count",
-            "overlap_game_count",
-            "overlap_rate_vs_snapshots",
-            "overlap_rate_vs_outcomes",
-            "snapshot_pipeline_versions",
-            "dropped_pipeline_mismatch_rows",
-            "missing_outcome_snapshot_examples",
-            "outcome_without_snapshot_examples",
-            "live_betting_allowed",
-            "automated_wagering_allowed",
-            "production_model_replacement_allowed",
-        ],
-        errors,
-        "outcome_linkage_diagnostic",
-    )
-
-    if report.get("report_type") != "outcome_linkage_diagnostic_v1":
-        errors.append(
-            "outcome_linkage_diagnostic: report_type must be outcome_linkage_diagnostic_v1"
-        )
-
-    if report.get("live_betting_allowed") is not False:
-        errors.append("outcome_linkage_diagnostic: live_betting_allowed must be false")
-
-    if report.get("automated_wagering_allowed") is not False:
-        errors.append(
-            "outcome_linkage_diagnostic: automated_wagering_allowed must be false"
-        )
-
-    if report.get("production_model_replacement_allowed") is not False:
-        errors.append(
-            "outcome_linkage_diagnostic: production_model_replacement_allowed must be false"
-        )
-
-    for numeric_key in [
-        "raw_snapshot_rows",
-        "valid_snapshot_rows",
-        "raw_outcome_rows",
-        "valid_outcome_rows",
-        "snapshot_game_count",
-        "outcome_game_count",
-        "overlap_game_count",
-        "dropped_pipeline_mismatch_rows",
-    ]:
-        try:
-            int(report.get(numeric_key) or 0)
-        except Exception:
-            errors.append(f"outcome_linkage_diagnostic: {numeric_key} must be numeric")
-
-    if not isinstance(report.get("snapshot_pipeline_versions"), dict):
-        errors.append(
-            "outcome_linkage_diagnostic: snapshot_pipeline_versions must be an object"
-        )
-
-    if not isinstance(report.get("missing_outcome_snapshot_examples"), list):
-        errors.append(
-            "outcome_linkage_diagnostic: missing_outcome_snapshot_examples must be a list"
-        )
-
-    if not isinstance(report.get("outcome_without_snapshot_examples"), list):
-        errors.append(
-            "outcome_linkage_diagnostic: outcome_without_snapshot_examples must be a list"
-        )
-
-
-def _validate_model_status_consistency(
-    report: Dict[str, Any],
-    errors: List[str],
-) -> None:
-    _validate_standard_report("model_status_consistency", report, errors)
-
-    _require_keys(
-        report,
-        [
-            "report_type",
-            "training_samples_row_count",
-            "training_status_sample_count",
-            "artifact_status_training_sample_count",
-            "artifact_status_training_status_sample_count",
-            "artifact_metadata_training_sample_count",
-            "prediction_loaded_artifact_sample_counts",
-            "sample_count_consistent",
-            "mismatches",
-            "active_model_allowed",
-            "trained",
-            "live_betting_allowed",
-            "automated_wagering_allowed",
-            "production_model_replacement_allowed",
-        ],
-        errors,
-        "model_status_consistency",
-    )
-
-    if report.get("report_type") != "model_status_consistency_v1":
-        errors.append(
-            "model_status_consistency: report_type must be model_status_consistency_v1"
-        )
-
-    if report.get("live_betting_allowed") is not False:
-        errors.append("model_status_consistency: live_betting_allowed must be false")
-
-    if report.get("automated_wagering_allowed") is not False:
-        errors.append(
-            "model_status_consistency: automated_wagering_allowed must be false"
-        )
-
-    if report.get("production_model_replacement_allowed") is not False:
-        errors.append(
-            "model_status_consistency: production_model_replacement_allowed must be false"
-        )
-
-    if not isinstance(report.get("mismatches"), list):
-        errors.append("model_status_consistency: mismatches must be a list")
-
-    if not isinstance(report.get("prediction_loaded_artifact_sample_counts"), list):
-        errors.append(
-            "model_status_consistency: prediction_loaded_artifact_sample_counts must be a list"
-        )
-
-
-def _validate_artifact_rebuild_readiness(
-    report: Dict[str, Any],
-    errors: List[str],
-) -> None:
-    _validate_standard_report("artifact_rebuild_readiness", report, errors)
-
-    _require_keys(
-        report,
-        [
-            "report_type",
-            "training_samples_row_count",
-            "training_status_sample_count",
-            "minimum_clean_train_samples",
-            "minimum_promotion_samples",
-            "minimum_walk_forward_oos",
-            "artifact_rebuild_allowed",
-            "artifact_rebuild_status",
-            "artifact_quarantine_required",
-            "promotion_candidate_allowed",
-            "production_model_replacement_allowed",
-            "live_betting_allowed",
-            "automated_wagering_allowed",
-            "blockers",
-            "recommendations",
-        ],
-        errors,
-        "artifact_rebuild_readiness",
-    )
-
-    if report.get("report_type") != "artifact_rebuild_readiness_v1":
-        errors.append(
-            "artifact_rebuild_readiness: report_type must be artifact_rebuild_readiness_v1"
-        )
-
-    if report.get("production_model_replacement_allowed") is not False:
-        errors.append(
-            "artifact_rebuild_readiness: production_model_replacement_allowed must be false"
-        )
-
-    if report.get("live_betting_allowed") is not False:
-        errors.append("artifact_rebuild_readiness: live_betting_allowed must be false")
-
-    if report.get("automated_wagering_allowed") is not False:
-        errors.append(
-            "artifact_rebuild_readiness: automated_wagering_allowed must be false"
-        )
-
-    if not isinstance(report.get("blockers"), list):
-        errors.append("artifact_rebuild_readiness: blockers must be a list")
-
-    if not isinstance(report.get("recommendations"), list):
-        errors.append("artifact_rebuild_readiness: recommendations must be a list")
-
-
-def _validate_feature_contract(report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report("feature_contract", report, errors)
-
-    _require_keys(
-        report,
-        [
-            "report_type",
-            "core_model_features",
-            "core_feature_count",
-            "train_serving_consistent",
-            "live_betting_allowed",
-            "automated_wagering_allowed",
-            "production_model_replacement_allowed",
-        ],
+        ["report_type", "feature_schema_hash", "core_feature_count", "checks"],
         errors,
         "feature_contract",
     )
 
-    if report.get("report_type") != "feature_contract_v1":
-        errors.append("feature_contract: report_type must be feature_contract_v1")
+    if str(report.get("report_type")) not in {"feature_contract_report", "feature_contract_v1"}:
+        errors.append("feature_contract: unexpected report_type")
 
-    if report.get("live_betting_allowed") is not False:
-        errors.append("feature_contract: live_betting_allowed must be false")
-
-    if report.get("automated_wagering_allowed") is not False:
-        errors.append("feature_contract: automated_wagering_allowed must be false")
-
-    if report.get("production_model_replacement_allowed") is not False:
-        errors.append(
-            "feature_contract: production_model_replacement_allowed must be false"
-        )
-
-    if report.get("status") == "failed":
-        errors.append("feature_contract: status failed")
+    if not isinstance(report.get("checks"), dict):
+        errors.append("feature_contract: checks must be an object")
 
 
-def _validate_model_eval(report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report("model_eval", report, errors)
-
+def _validate_feature_missingness(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    _validate_base_report("feature_missingness", report, errors, warnings)
     _require_keys(
         report,
-        [
-            "report_type",
-            "manual",
-            "ml",
-            "final",
-            "market",
-            "slices",
-            "live_betting_allowed",
-            "automated_wagering_allowed",
-            "production_model_replacement_allowed",
-        ],
+        ["report_type", "feature_schema_hash", "core_feature_count", "features", "summary"],
+        errors,
+        "feature_missingness",
+    )
+
+    if str(report.get("report_type")) != "feature_missingness_report":
+        errors.append("feature_missingness: report_type must be feature_missingness_report")
+
+    if not isinstance(report.get("features"), list):
+        errors.append("feature_missingness: features must be a list")
+
+    summary = report.get("summary")
+    if isinstance(summary, dict):
+        missing_core = summary.get("missing_core_features") or []
+        if missing_core:
+            errors.append("feature_missingness: missing core model features: " + ", ".join(map(str, missing_core[:20])))
+    else:
+        errors.append("feature_missingness: summary must be an object")
+
+
+def _validate_model_eval(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    _validate_base_report("model_eval", report, errors, warnings)
+    _require_keys(
+        report,
+        ["report_type", "training_source", "features_used", "metrics", "confusion_matrix", "live_betting_allowed", "automated_wagering_allowed", "production_model_replacement_allowed"],
         errors,
         "model_eval",
     )
 
-    if report.get("report_type") != "model_eval_v1":
-        errors.append("model_eval: report_type must be model_eval_v1")
+    if str(report.get("report_type")) != "model_eval_report":
+        errors.append("model_eval: report_type must be model_eval_report")
 
-    if report.get("live_betting_allowed") is not False:
-        errors.append("model_eval: live_betting_allowed must be false")
-
-    if report.get("automated_wagering_allowed") is not False:
-        errors.append("model_eval: automated_wagering_allowed must be false")
-
-    if report.get("production_model_replacement_allowed") is not False:
-        errors.append("model_eval: production_model_replacement_allowed must be false")
-
-
-def _validate_train_ensemble_report(report: Dict[str, Any], errors: List[str]) -> None:
-    _validate_standard_report("train_ensemble", report, errors)
-
-    _require_keys(
-        report,
-        [
-            "report_type",
-            "training_source",
-            "sample_count",
-            "feature_schema_hash",
-            "production_model_replacement_allowed",
-            "live_betting_allowed",
-            "automated_wagering_allowed",
-        ],
-        errors,
-        "train_ensemble",
-    )
-
-    if report.get("report_type") != "train_ensemble_v2":
-        errors.append("train_ensemble: report_type must be train_ensemble_v2")
+    status = str(report.get("status", "")).lower()
+    metrics = report.get("metrics")
+    if status == "ok":
+        if not isinstance(metrics, dict):
+            errors.append("model_eval: metrics must be an object when status is ok")
+        else:
+            for key in ("accuracy", "balanced_accuracy", "precision", "recall", "f1", "brier", "logloss"):
+                if key not in metrics:
+                    errors.append(f"model_eval.metrics: missing {key}")
 
     if report.get("training_source") != "data/training_samples.csv":
-        errors.append("train_ensemble: training_source must be data/training_samples.csv")
+        errors.append("model_eval: training_source must be data/training_samples.csv")
 
-    if report.get("live_betting_allowed") is not False:
-        errors.append("train_ensemble: live_betting_allowed must be false")
+    if not isinstance(report.get("features_used"), list):
+        errors.append("model_eval: features_used must be a list")
 
-    if report.get("automated_wagering_allowed") is not False:
-        errors.append("train_ensemble: automated_wagering_allowed must be false")
 
-    if report.get("production_model_replacement_allowed") is not False:
-        errors.append(
-            "train_ensemble: production_model_replacement_allowed must be false"
-        )
+def _validate_calibration(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    _validate_base_report("calibration", report, errors, warnings)
+    _require_keys(
+        report,
+        ["report_type", "input_path", "sample_count", "valid_sample_count", "brier", "ece", "mce", "reliability_table", "live_betting_allowed", "automated_wagering_allowed", "production_model_replacement_allowed"],
+        errors,
+        "calibration",
+    )
 
-    sample_count = report.get("sample_count")
-    try:
-        parsed_sample_count = int(sample_count)
-    except Exception:
-        parsed_sample_count = None
+    if str(report.get("report_type")) != "calibration_report":
+        errors.append("calibration: report_type must be calibration_report")
 
-    if parsed_sample_count is not None and parsed_sample_count < 300:
-        if report.get("trained") is not False:
-            errors.append("train_ensemble: trained must be false when sample_count < 300")
+    status = str(report.get("status", "")).lower()
+    if status in {"ok", "warning"}:
+        if not isinstance(report.get("reliability_table"), list):
+            errors.append("calibration: reliability_table must be a list")
+        for key in ("ece", "mce", "brier"):
+            value = report.get(key)
+            if value is None:
+                errors.append(f"calibration: {key} must not be null when status is {status}")
+                continue
+            try:
+                parsed = float(value)
+            except Exception:
+                errors.append(f"calibration: {key} must be numeric")
+                continue
+            if not 0.0 <= parsed <= 1.0:
+                errors.append(f"calibration: {key} must be between 0 and 1")
 
-    if report.get("status") == "trained" and report.get("artifact_written") is not True:
-        errors.append("train_ensemble: artifact_written must be true when status trained")
+
+def _validate_per_slice_performance(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    _validate_base_report("per_slice_performance", report, errors, warnings)
+    _require_keys(
+        report,
+        ["report_type", "input_path", "sample_count", "valid_sample_count", "slices", "live_betting_allowed", "automated_wagering_allowed", "production_model_replacement_allowed"],
+        errors,
+        "per_slice_performance",
+    )
+
+    if str(report.get("report_type")) != "per_slice_performance_report":
+        errors.append("per_slice_performance: report_type must be per_slice_performance_report")
+
+    status = str(report.get("status", "")).lower()
+    if status in {"ok", "warning"} and not isinstance(report.get("slices"), dict):
+        errors.append("per_slice_performance: slices must be an object when status is ok/warning")
+
+
+def _validate_outcome_linkage(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    _validate_base_report("outcome_linkage_diagnostic", report, errors, warnings)
+    _require_keys(
+        report,
+        ["report_type", "live_betting_allowed", "automated_wagering_allowed", "production_model_replacement_allowed"],
+        errors,
+        "outcome_linkage_diagnostic",
+    )
+
+
+def _validate_optional_report(name: str, report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
+    _validate_base_report(name, report, errors, warnings)
 
 
 def build_contract_report() -> Dict[str, Any]:
@@ -1004,94 +468,63 @@ def build_contract_report() -> Dict[str, Any]:
         }
         if not path.exists():
             warnings.append(f"{name}: optional file missing: {path}")
-            
+
     if "prediction" in reports:
-        _validate_prediction(reports["prediction"], errors)
-
-    if "baseline_comparison" in reports:
-        _validate_baseline(reports["baseline_comparison"], errors)
-
-    for key in (
-        "clv_by_edge_bucket",
-        "clv_by_side",
-        "clv_by_odds_range",
-        "clv_by_lineup_status",
-    ):
-        if key in reports:
-            _validate_clv(key, reports[key], errors)
-
-    if "calibration" in reports:
-        _validate_calibration(reports["calibration"], errors)
-
-    if "walkforward" in reports:
-        _validate_walkforward(reports["walkforward"], errors)
-
-    for standard_name in (
-        "rolling_walkforward",
-        "lineup_starter_slice",
-        "market_close",
-        "research_quality",
-        "settle_reliability",
-        "settled_prediction_link",
-        "snapshot_sanitization",
-        "model_registry_report",
-        "promotion_gate",
-        "decision_audit",
-        "paper_trading_ledger_report",
-        "risk_exposure",
-        "artifact_retention",
-        "world_class_trading_system",
-        "saas_readiness",
-        "sample_state",
-        "sample_state_report",
-    ):
-        if standard_name in reports:
-            _validate_standard_report(standard_name, reports[standard_name], errors)
-
-    _validate_feature_reports(reports, errors)
+        _validate_prediction(reports["prediction"], errors, warnings)
 
     if "training_status" in reports:
-        _validate_training_status(reports["training_status"], errors)
+        _validate_training_status(reports["training_status"], errors, warnings)
 
-    if "daily_model_accuracy" in reports:
-        _validate_daily_model_accuracy(reports["daily_model_accuracy"], errors)
-
-    if "away_pick_diagnostic" in reports:
-        _validate_away_pick_diagnostic(reports["away_pick_diagnostic"], errors)
-
-    if "away_guardrail_impact" in reports:
-        _validate_away_guardrail_impact(reports["away_guardrail_impact"], errors)
-
-    if "odds_fetch_diagnostic" in reports:
-        _validate_odds_fetch_diagnostic(reports["odds_fetch_diagnostic"], errors)
-
-    if "outcome_linkage_diagnostic" in reports:
-        _validate_outcome_linkage_diagnostic(
-            reports["outcome_linkage_diagnostic"],
-            errors,
-        )
-
-    if "model_status_consistency" in reports:
-        _validate_model_status_consistency(
-            reports["model_status_consistency"],
-            errors,
-        )
-
-    if "artifact_rebuild_readiness" in reports:
-        _validate_artifact_rebuild_readiness(
-            reports["artifact_rebuild_readiness"],
-            errors,
-        )
+    for key in ("model_artifact_status", "model_artifact_status_report", "model_status_consistency", "artifact_rebuild_readiness", "training_samples"):
+        if key in reports:
+            _validate_artifact_status(key, reports[key], errors, warnings)
 
     if "feature_contract" in reports:
-        _validate_feature_contract(reports["feature_contract"], errors)
+        _validate_feature_contract(reports["feature_contract"], errors, warnings)
+
+    if "feature_missingness" in reports:
+        _validate_feature_missingness(reports["feature_missingness"], errors, warnings)
 
     if "model_eval" in reports:
-        _validate_model_eval(reports["model_eval"], errors)
+        _validate_model_eval(reports["model_eval"], errors, warnings)
 
-    if "train_ensemble" in reports:
-        _validate_train_ensemble_report(reports["train_ensemble"], errors)
-        
+    if "calibration" in reports:
+        _validate_calibration(reports["calibration"], errors, warnings)
+
+    if "per_slice_performance" in reports:
+        _validate_per_slice_performance(reports["per_slice_performance"], errors, warnings)
+
+    if "outcome_linkage_diagnostic" in reports:
+        _validate_outcome_linkage(reports["outcome_linkage_diagnostic"], errors, warnings)
+
+    for name, report in reports.items():
+        if name in REQUIRED_JSON_REPORTS and name not in {
+            "prediction",
+            "training_status",
+            "model_artifact_status",
+            "model_artifact_status_report",
+            "model_status_consistency",
+            "artifact_rebuild_readiness",
+            "training_samples",
+            "feature_contract",
+            "feature_missingness",
+            "model_eval",
+            "calibration",
+            "per_slice_performance",
+            "outcome_linkage_diagnostic",
+        }:
+            _validate_optional_report(name, report, errors, warnings)
+
+    for name, report in reports.items():
+        if name in OPTIONAL_JSON_REPORTS:
+            _validate_optional_report(name, report, errors, warnings)
+
+    model_eval = reports.get("model_eval") or {}
+    if str(model_eval.get("status", "")).lower() == "ok":
+        oos_path = OPTIONAL_NON_JSON_FILES["oos_predictions"]
+        if not oos_path.exists():
+            errors.append("model_eval: status ok but data/oos_predictions_with_labels.csv is missing")
+
     report = {
         "generated_at": _utc_now(),
         "status": "failed" if errors else "ok",
@@ -1100,18 +533,26 @@ def build_contract_report() -> Dict[str, Any]:
         "errors": errors,
         "warnings": warnings,
         "file_status": file_status,
+        "required_json_count": len(REQUIRED_JSON_REPORTS),
+        "optional_json_count": len(OPTIONAL_JSON_REPORTS),
         "recommendations": []
         if not errors
         else ["Fix data contract errors before treating the pipeline output as engineering-grade."],
+        "live_betting_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_model_replacement_allowed": False,
     }
 
-    OUTPUT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=True), encoding="utf-8")
+    OUTPUT_PATH.write_text(
+        json.dumps(_json_safe(report), indent=2, ensure_ascii=True, allow_nan=False),
+        encoding="utf-8",
+    )
     return report
 
 
 def main() -> int:
     report = build_contract_report()
-    print(json.dumps(report, indent=2, ensure_ascii=True))
+    print(json.dumps(_json_safe(report), indent=2, ensure_ascii=True, allow_nan=False))
     return 1 if report["error_count"] else 0
 
 
