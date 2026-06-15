@@ -1,13 +1,103 @@
 {
-  "generated_at": "2026-06-14T12:22:33.774395+00:00",
-  "status": "ok",
-  "error_count": 0,
-  "warning_count": 0,
-  "errors": [],
-  "warnings": [],
+  "generated_at": "2026-06-15T05:34:20.847088Z",
+  "status": "failed",
+  "error_count": 1,
+  "warning_count": 15,
+  "errors": [
+    "model_status_consistency: status is failed"
+  ],
+  "warnings": [
+    "prediction: missing status",
+    "training_status: missing status",
+    "artifact_rebuild_readiness: uncommon status 'blocked'",
+    "walkforward: uncommon status 'insufficient_samples'",
+    "rolling_walkforward: uncommon status 'insufficient_samples'",
+    "lineup_starter_slice: uncommon status 'insufficient_samples'",
+    "feature_availability: missing status",
+    "feature_zero_root_cause: missing status",
+    "feature_grade: missing status",
+    "model_lab: missing status",
+    "promotion_gate: uncommon status 'insufficient_samples'",
+    "world_class_trading_system: uncommon status 'paper_trading_only_blocked_for_live'",
+    "walk_forward_validation: missing status",
+    "model_decision_guardrail: uncommon status 'blocked'",
+    "research_promotion_readiness: uncommon status 'insufficient_evidence'"
+  ],
   "file_status": {
     "prediction": {
       "path": "report/prediction.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "training_samples": {
+      "path": "report/training_samples_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "training_status": {
+      "path": "data/training_status.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "model_artifact_status": {
+      "path": "data/model_artifact_status.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "model_artifact_status_report": {
+      "path": "report/model_artifact_status_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "model_status_consistency": {
+      "path": "report/model_status_consistency_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "artifact_rebuild_readiness": {
+      "path": "report/artifact_rebuild_readiness_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "feature_contract": {
+      "path": "report/feature_contract_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "feature_missingness": {
+      "path": "report/feature_missingness_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "model_eval": {
+      "path": "report/model_eval_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "calibration": {
+      "path": "report/calibration_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "per_slice_performance": {
+      "path": "report/per_slice_performance_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "outcome_linkage_diagnostic": {
+      "path": "report/outcome_linkage_diagnostic.json",
       "exists": true,
       "error": "",
       "type": "dict"
@@ -38,12 +128,6 @@
     },
     "clv_by_lineup_status": {
       "path": "report/clv_by_lineup_status.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "calibration": {
-      "path": "report/calibration_report.json",
       "exists": true,
       "error": "",
       "type": "dict"
@@ -96,6 +180,12 @@
       "error": "",
       "type": "dict"
     },
+    "prediction_sanitization": {
+      "path": "report/prediction_sanitization_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
     "feature_availability": {
       "path": "report/feature_availability_diagnostic.json",
       "exists": true,
@@ -110,65 +200,6 @@
     },
     "feature_grade": {
       "path": "report/feature_grade_report.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "training_status": {
-      "path": "data/training_status.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "sample_state": {
-      "path": "data/sample_state.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "sample_state_report": {
-      "path": "report/sample_state_report.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "edge_sanity_guardrail": {
-      "path": "report/edge_sanity_guardrail_report.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "signal_quality": {
-      "path": "report/signal_quality_report.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "training_samples": {
-      "path": "data/training_samples.csv",
-      "exists": true,
-      "error": ""
-    },
-    "model_artifact_status": {
-      "path": "data/model_artifact_status.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "model_artifact_status_report": {
-      "path": "report/model_artifact_status_report.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "model_status_consistency": {
-      "path": "report/model_status_consistency_report.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "artifact_rebuild_readiness": {
-      "path": "report/artifact_rebuild_readiness_report.json",
       "exists": true,
       "error": "",
       "type": "dict"
@@ -197,12 +228,6 @@
       "error": "",
       "type": "dict"
     },
-    "outcome_linkage_diagnostic": {
-      "path": "report/outcome_linkage_diagnostic.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
     "model_lab": {
       "path": "report/model_lab_report.json",
       "exists": true,
@@ -217,12 +242,6 @@
     },
     "finalized_linkage_diagnostic": {
       "path": "report/finalized_linkage_diagnostic_report.json",
-      "exists": true,
-      "error": "",
-      "type": "dict"
-    },
-    "prediction_sanitization": {
-      "path": "report/prediction_sanitization_report.json",
       "exists": true,
       "error": "",
       "type": "dict"
@@ -353,11 +372,28 @@
       "error": "",
       "type": "dict"
     },
+    "edge_sanity_guardrail": {
+      "path": "report/edge_sanity_guardrail_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
+    "signal_quality": {
+      "path": "report/signal_quality_report.json",
+      "exists": true,
+      "error": "",
+      "type": "dict"
+    },
     "product_experience": {
       "path": "report/product_experience_report.json",
       "exists": true,
       "error": "",
       "type": "dict"
+    },
+    "training_samples_csv": {
+      "path": "data/training_samples.csv",
+      "exists": true,
+      "error": ""
     },
     "html_report": {
       "path": "report/index.html",
@@ -371,6 +407,11 @@
     },
     "rolling_walkforward_predictions": {
       "path": "report/rolling_walkforward_predictions.csv",
+      "exists": true,
+      "error": ""
+    },
+    "oos_predictions": {
+      "path": "data/oos_predictions_with_labels.csv",
       "exists": true,
       "error": ""
     },
@@ -395,5 +436,12 @@
       "error": ""
     }
   },
-  "recommendations": []
+  "required_json_count": 13,
+  "optional_json_count": 48,
+  "recommendations": [
+    "Fix data contract errors before treating the pipeline output as engineering-grade."
+  ],
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false,
+  "production_model_replacement_allowed": false
 }

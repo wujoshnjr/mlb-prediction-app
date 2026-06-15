@@ -1,15 +1,15 @@
 {
-  "generated_at": "2026-06-14T12:22:28.256501+00:00",
+  "generated_at": "2026-06-15T05:34:12.654479+00:00",
   "status": "ok",
-  "sample_count": 228,
+  "sample_count": 242,
   "buckets": {
     "50_55": {
-      "sample_count": 79,
-      "correct": 38,
-      "accuracy": 0.4810126582278481,
-      "brier": 0.2518878335443038,
-      "logloss": 0.6969337769921924,
-      "ece": 0.08040126582278476,
+      "sample_count": 86,
+      "correct": 40,
+      "accuracy": 0.46511627906976744,
+      "brier": 0.25322034197674426,
+      "logloss": 0.6996025738752935,
+      "ece": 0.0677546511627907,
       "unsafe": true,
       "insufficient_sample": false,
       "reasons": [
@@ -17,37 +17,39 @@
       ]
     },
     "55_60": {
-      "sample_count": 41,
-      "correct": 22,
-      "accuracy": 0.5365853658536586,
-      "brier": 0.24798423317073168,
-      "logloss": 0.689082818516829,
-      "ece": 0.04750731707317076,
+      "sample_count": 43,
+      "correct": 23,
+      "accuracy": 0.5348837209302325,
+      "brier": 0.24884649023255812,
+      "logloss": 0.6908313947715488,
+      "ece": 0.042367441860465135,
       "unsafe": false,
       "insufficient_sample": false,
       "reasons": []
     },
     "60_65": {
-      "sample_count": 63,
-      "correct": 33,
-      "accuracy": 0.5238095238095238,
-      "brier": 0.2601108271428571,
-      "logloss": 0.7142255530720285,
-      "ece": 0.1124746031746032,
+      "sample_count": 67,
+      "correct": 34,
+      "accuracy": 0.5074626865671642,
+      "brier": 0.2640205195522388,
+      "logloss": 0.7222045853288522,
+      "ece": 0.1276223880597015,
       "unsafe": false,
       "insufficient_sample": false,
       "reasons": []
     },
     "65_70": {
-      "sample_count": 26,
+      "sample_count": 27,
       "correct": 14,
-      "accuracy": 0.5384615384615384,
-      "brier": 0.2649586880769231,
-      "logloss": 0.7254752353420497,
-      "ece": 0.13555769230769232,
-      "unsafe": false,
+      "accuracy": 0.5185185185185185,
+      "brier": 0.27142573666666664,
+      "logloss": 0.7388899432415952,
+      "ece": 0.15509259259259262,
+      "unsafe": true,
       "insufficient_sample": false,
-      "reasons": []
+      "reasons": [
+        "ece above 0.15"
+      ]
     },
     "70_plus": {
       "sample_count": 19,
@@ -64,13 +66,16 @@
     }
   },
   "global_policy": {
-    "recommended_max_display_confidence": 0.75,
-    "block_high_confidence_language": false,
-    "default_shrink_alpha": 0.85,
-    "reason": []
+    "recommended_max_display_confidence": 0.65,
+    "block_high_confidence_language": true,
+    "default_shrink_alpha": 0.7,
+    "reason": [
+      "one or more high-confidence buckets are unsafe"
+    ]
   },
   "unsafe_buckets": [
-    "50_55"
+    "50_55",
+    "65_70"
   ],
   "warnings": [],
   "errors": [],
