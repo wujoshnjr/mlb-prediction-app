@@ -50,6 +50,7 @@ TRACKED_FILES = [
     "report/model_status_consistency_report.json",
     "report/artifact_quarantine_report.json",
     "report/repo_anomaly_report.json",
+    "report/report_health_gate.json",
     "report/artifact_rebuild_readiness_report.json",
     "report/feature_contract_report.json",
     "report/feature_missingness_report.json",
