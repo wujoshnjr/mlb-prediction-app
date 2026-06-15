@@ -1,9 +1,6 @@
 name: Artifact Quarantine Diagnostic
 
 on:
-  workflow_run:
-    workflows: [Hourly Prediction Update]
-    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -20,7 +17,6 @@ concurrency:
 jobs:
   build-artifact-quarantine-report:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Checkout repository
