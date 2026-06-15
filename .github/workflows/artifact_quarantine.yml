@@ -1,4 +1,4 @@
-name: Artifact Quarantine Diagnostic
+name: Model Governance Diagnostics
 
 on:
   workflow_dispatch:
@@ -11,11 +11,11 @@ defaults:
     shell: bash
 
 concurrency:
-  group: artifact-quarantine-${{ github.ref }}
+  group: model-governance-diagnostics-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-artifact-quarantine-report:
+  build-model-governance-reports:
     runs-on: ubuntu-latest
 
     steps:
@@ -33,24 +33,54 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.10'
+          cache: 'pip'
 
-      - name: Compile artifact quarantine diagnostic
-        run: python -m py_compile scripts/artifact_quarantine_report.py
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Compile model governance diagnostics
+        run: |
+          python -m py_compile \
+            scripts/artifact_quarantine_report.py \
+            scripts/feature_priority_report.py \
+            scripts/pipeline_manifest.py \
+            scripts/data_contract_validator.py
+
+      - name: Build feature missingness source report
+        run: python scripts/feature_missingness_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build feature priority report
+        run: python scripts/feature_priority_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
 
       - name: Build artifact quarantine report
         run: python scripts/artifact_quarantine_report.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
-      - name: Commit artifact quarantine report
+      - name: Refresh pipeline manifest
+        run: python scripts/pipeline_manifest.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Commit model governance reports
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          if [ -f report/artifact_quarantine_report.json ]; then
-            git add -f report/artifact_quarantine_report.json
-          fi
+          for path in \
+            report/feature_missingness_report.json \
+            report/feature_priority_report.json \
+            report/artifact_quarantine_report.json \
+            report/pipeline_manifest.json; do
+            if [ -f "$path" ]; then
+              git add -f "$path"
+            fi
+          done
 
-          git commit -m "Update artifact quarantine report [skip ci]" || echo "No changes"
+          git commit -m "Update model governance diagnostics [skip ci]" || echo "No changes"
           git pull --rebase origin "${GITHUB_REF_NAME:-main}"
           git push origin "HEAD:${GITHUB_REF_NAME:-main}"
