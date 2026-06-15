@@ -47,6 +47,15 @@ MODEL_PROBABILITY_CANDIDATES = [
     "home_win_probability",
 ]
 
+SNAPSHOT_OUTCOME_COLUMNS = [
+    "home_win",
+    "home_score",
+    "away_score",
+    "settled_at",
+    "actual_winner",
+    "actual_result",
+]
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
@@ -197,25 +206,25 @@ def _estimate_available_oos_predictions(snapshots: Optional[pd.DataFrame]) -> in
 
 def _prepare_outcome_frame(finalized: Optional[pd.DataFrame]) -> pd.DataFrame:
     if finalized is None or finalized.empty or "game_id" not in finalized.columns:
-        return pd.DataFrame(columns=["game_id", "home_win"])
+        return pd.DataFrame(columns=["game_id", "trusted_home_win"])
     final = _normalise_game_id(finalized)
     final = final[final["game_id"] != ""].copy()
     if final.empty:
-        return pd.DataFrame(columns=["game_id", "home_win"])
+        return pd.DataFrame(columns=["game_id", "trusted_home_win"])
     if "home_win" not in final.columns and {"home_score", "away_score"}.issubset(final.columns):
         final["home_win"] = (
             pd.to_numeric(final["home_score"], errors="coerce")
             > pd.to_numeric(final["away_score"], errors="coerce")
         ).astype("Int64")
     if "home_win" not in final.columns:
-        return pd.DataFrame(columns=["game_id", "home_win"])
-    final["home_win"] = pd.to_numeric(final["home_win"], errors="coerce")
-    final = final[final["home_win"].isin([0, 1])].copy()
+        return pd.DataFrame(columns=["game_id", "trusted_home_win"])
+    final["trusted_home_win"] = pd.to_numeric(final["home_win"], errors="coerce")
+    final = final[final["trusted_home_win"].isin([0, 1])].copy()
     if final.empty:
-        return pd.DataFrame(columns=["game_id", "home_win"])
+        return pd.DataFrame(columns=["game_id", "trusted_home_win"])
     final = final.drop_duplicates("game_id", keep="last").copy()
-    final["home_win"] = final["home_win"].astype(int)
-    return final[["game_id", "home_win"]].copy()
+    final["trusted_home_win"] = final["trusted_home_win"].astype(int)
+    return final[["game_id", "trusted_home_win"]].copy()
 
 
 def _prepare_settled_snapshots(
@@ -225,6 +234,7 @@ def _prepare_settled_snapshots(
     diagnostics: dict[str, Any] = {
         "snapshot_rows": 0,
         "snapshot_unique_games": 0,
+        "dropped_snapshot_outcome_columns": [],
         "outcome_rows": 0,
         "outcome_unique_games": 0,
         "linked_rows_before_probability_filter": 0,
@@ -241,6 +251,11 @@ def _prepare_settled_snapshots(
     diagnostics["snapshot_rows"] = int(len(frame))
     diagnostics["snapshot_unique_games"] = int(frame["game_id"].nunique()) if not frame.empty else 0
 
+    dropped = [column for column in SNAPSHOT_OUTCOME_COLUMNS if column in frame.columns]
+    diagnostics["dropped_snapshot_outcome_columns"] = dropped
+    if dropped:
+        frame = frame.drop(columns=dropped)
+
     if "snapshot_created_at" in frame.columns:
         frame["_snapshot_dt"] = pd.to_datetime(frame["snapshot_created_at"], errors="coerce", utc=True)
     else:
@@ -253,8 +268,8 @@ def _prepare_settled_snapshots(
         return pd.DataFrame(), diagnostics
 
     frame = frame.merge(outcomes, on="game_id", how="left")
-    diagnostics["missing_outcome_rows"] = int(frame["home_win"].isna().sum())
-    frame = frame[frame["home_win"].isin([0, 1])].copy()
+    diagnostics["missing_outcome_rows"] = int(frame["trusted_home_win"].isna().sum())
+    frame = frame[frame["trusted_home_win"].isin([0, 1])].copy()
     diagnostics["linked_rows_before_probability_filter"] = int(len(frame))
     diagnostics["linked_unique_games_before_probability_filter"] = int(frame["game_id"].nunique()) if not frame.empty else 0
     if frame.empty:
@@ -270,7 +285,7 @@ def _prepare_settled_snapshots(
         frame["market_prob"] = np.nan
 
     frame["constant_50_prob"] = 0.5
-    frame["outcome"] = frame["home_win"].astype(int)
+    frame["outcome"] = frame["trusted_home_win"].astype(int)
     if "clv_home_moneyline" in frame.columns:
         frame["clv"] = pd.to_numeric(frame["clv_home_moneyline"], errors="coerce")
     else:
