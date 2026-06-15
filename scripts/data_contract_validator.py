@@ -29,6 +29,9 @@ REQUIRED_JSON_REPORTS = {
 OPTIONAL_JSON_REPORTS = {
     "baseline_comparison": REPORT_DIR / "baseline_comparison_report.json",
     "artifact_quarantine": REPORT_DIR / "artifact_quarantine_report.json",
+    "feature_priority": REPORT_DIR / "feature_priority_report.json",
+    "repo_anomaly": REPORT_DIR / "repo_anomaly_report.json",
+    "report_health_gate": REPORT_DIR / "report_health_gate.json",
     "clv_by_edge_bucket": REPORT_DIR / "clv_by_edge_bucket.json",
     "clv_by_side": REPORT_DIR / "clv_by_side.json",
     "clv_by_odds_range": REPORT_DIR / "clv_by_odds_range.json",
@@ -102,8 +105,13 @@ ALLOWED_STATUSES = {
     "quarantined",
     "needs_review",
     "missing_source",
+    "blocked",
+    "insufficient_samples",
+    "paper_trading_only_blocked_for_live",
+    "insufficient_evidence",
 }
 FAILURE_STATUSES = {"error", "failed", "fatal"}
+QUALITY_FAILURE_AS_WARNING = {"model_status_consistency"}
 SAFETY_FLAGS = (
     "live_betting_allowed",
     "automated_wagering_allowed",
@@ -187,6 +195,8 @@ def _validate_status(name: str, report: Dict[str, Any], errors: List[str], warni
     status = str(report.get("status", "")).strip().lower()
     if not status:
         warnings.append(f"{name}: missing status")
+    elif status in FAILURE_STATUSES and name in QUALITY_FAILURE_AS_WARNING:
+        warnings.append(f"{name}: governance/quality status is {status}; promotion remains locked")
     elif status in FAILURE_STATUSES:
         errors.append(f"{name}: status is {status}")
     elif status not in ALLOWED_STATUSES:
