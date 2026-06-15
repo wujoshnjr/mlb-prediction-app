@@ -31,53 +31,42 @@ def utc_now() -> str:
 def clean_json_value(value: Any) -> Any:
     if value is None:
         return None
-
     if isinstance(value, bool):
         return value
-
     if isinstance(value, (int, np.integer)):
         return int(value)
-
     if isinstance(value, (float, np.floating)):
         parsed = float(value)
         return parsed if math.isfinite(parsed) else None
-
     if isinstance(value, str):
         return value
-
     if isinstance(value, Path):
         return str(value)
-
     if isinstance(value, datetime):
         return value.isoformat()
-
     if value is pd.NA:
         return None
-
     if isinstance(value, dict):
         return {str(key): clean_json_value(child) for key, child in value.items()}
-
     if isinstance(value, (list, tuple, set)):
         return [clean_json_value(child) for child in value]
-
     try:
         if pd.isna(value):
             return None
     except Exception:
         pass
-
     try:
         if hasattr(value, "item"):
             return clean_json_value(value.item())
     except Exception:
         pass
-
     return str(value)
 
 
-def write_json_report(report: dict[str, Any], path: Path = REPORT_PATH) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
+def write_json_report(report: dict[str, Any], path: Path | None = None) -> None:
+    output_path = path if path is not None else REPORT_PATH
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as handle:
         json.dump(
             clean_json_value(report),
             handle,
@@ -147,14 +136,11 @@ def calibration_bins(
     for index in range(n_bins):
         start = float(bin_edges[index])
         end = float(bin_edges[index + 1])
-
         if index == n_bins - 1:
             mask = (y_prob >= start) & (y_prob <= end)
         else:
             mask = (y_prob >= start) & (y_prob < end)
-
         count = int(np.sum(mask))
-
         if count == 0:
             table.append(
                 {
@@ -167,14 +153,11 @@ def calibration_bins(
                 }
             )
             continue
-
         avg_pred = float(np.mean(y_prob[mask]))
         observed = float(np.mean(y_true[mask]))
         gap = float(abs(avg_pred - observed))
-
         ece += (count / sample_count) * gap
         mce = max(mce, gap)
-
         table.append(
             {
                 "bin_start": round(start, 6),
@@ -185,41 +168,31 @@ def calibration_bins(
                 "calibration_gap": gap,
             }
         )
-
     return table, float(ece), float(mce)
 
 
 def generate_report() -> dict[str, Any]:
     report = base_report()
-
     if not OOS_PATH.exists():
         return skip_report(report, "oos_predictions_missing")
-
     try:
         frame = pd.read_csv(OOS_PATH)
     except Exception as exc:
         return error_report(report, f"unable_to_read_oos_predictions:{exc}")
-
     report["sample_count"] = int(len(frame))
-
     if frame.empty:
         return skip_report(report, "oos_predictions_empty")
-
     target_column = first_existing_column(frame, ["y_true", "home_win", "label"])
     probability_column = first_existing_column(
         frame,
         ["y_prob", "final_prob_home", "predicted_home_win_pct", "displayed_home_win_pct"],
     )
-
     if target_column is None or probability_column is None:
         return skip_report(report, "missing_target_or_probability_column")
-
     report["target_column"] = target_column
     report["probability_column"] = probability_column
-
     y_true = pd.to_numeric(frame[target_column], errors="coerce")
     y_prob = pd.to_numeric(frame[probability_column], errors="coerce")
-
     valid = (
         y_true.isin([0, 1])
         & y_prob.notna()
@@ -227,31 +200,22 @@ def generate_report() -> dict[str, Any]:
         & (y_prob >= 0.0)
         & (y_prob <= 1.0)
     )
-
     clean = frame.loc[valid].copy()
     report["valid_sample_count"] = int(len(clean))
     report["dropped_invalid_rows"] = int(len(frame) - len(clean))
-
     if clean.empty:
         return skip_report(report, "no_valid_calibration_rows")
-
     y_true_array = pd.to_numeric(clean[target_column], errors="coerce").to_numpy(dtype=int)
-    y_prob_array = pd.to_numeric(clean[probability_column], errors="coerce").to_numpy(
-        dtype=float
-    )
-
+    y_prob_array = pd.to_numeric(clean[probability_column], errors="coerce").to_numpy(dtype=float)
     table, ece, mce = calibration_bins(y_true_array, y_prob_array, n_bins=N_BINS)
-
     report["status"] = "ok"
     if report["dropped_invalid_rows"]:
         report["status"] = "warning"
         report["warnings"].append("some_invalid_rows_were_dropped")
-
     report["brier"] = float(np.mean((y_prob_array - y_true_array) ** 2))
     report["ece"] = ece
     report["mce"] = mce
     report["reliability_table"] = table
-
     write_json_report(report)
     return report
 
