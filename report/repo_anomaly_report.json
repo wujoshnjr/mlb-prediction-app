@@ -1,0 +1,122 @@
+{
+  "generated_at": "2026-06-15T10:48:10.236110Z",
+  "report_type": "repo_anomaly_report",
+  "status": "failed",
+  "scanned_file_count": 297,
+  "error_count": 2,
+  "warning_count": 11,
+  "model_quality_block_count": 4,
+  "issues": [
+    {
+      "severity": "warning",
+      "path": "report/prediction_collapse_report.json",
+      "issue": "quality_report_missing"
+    },
+    {
+      "severity": "warning",
+      "path": "main.py",
+      "issue": "placeholder_ellipsis",
+      "line": 834
+    },
+    {
+      "severity": "warning",
+      "path": "model.py",
+      "issue": "placeholder_ellipsis",
+      "line": 421
+    },
+    {
+      "severity": "warning",
+      "path": "prediction.py",
+      "issue": "placeholder_ellipsis",
+      "line": 55
+    },
+    {
+      "severity": "error",
+      "path": "scripts/apisports_diagnostic.py",
+      "issue": "potential_secret_literal",
+      "line": 15
+    },
+    {
+      "severity": "error",
+      "path": "scripts/apisports_lineup_client.py",
+      "issue": "potential_secret_literal",
+      "line": 14
+    },
+    {
+      "severity": "warning",
+      "path": "scripts/feature_selection.py",
+      "issue": "placeholder_ellipsis",
+      "line": 74
+    },
+    {
+      "severity": "warning",
+      "path": "scripts/mlb_game_feed_client.py",
+      "issue": "placeholder_ellipsis",
+      "line": 216
+    },
+    {
+      "severity": "warning",
+      "path": "scripts/player_ratings.py",
+      "issue": "placeholder_ellipsis",
+      "line": 11
+    },
+    {
+      "severity": "warning",
+      "path": "scripts/repair_finalized_linkage.py",
+      "issue": "placeholder_ellipsis",
+      "line": 313
+    },
+    {
+      "severity": "warning",
+      "path": "scripts/shap_explainer.py",
+      "issue": "placeholder_ellipsis",
+      "line": 65
+    },
+    {
+      "severity": "warning",
+      "path": "scripts/top3_player_source_client.py",
+      "issue": "placeholder_ellipsis",
+      "line": 339
+    },
+    {
+      "severity": "warning",
+      "path": "scripts/train_nrfi_model.py",
+      "issue": "placeholder_ellipsis",
+      "line": 4
+    }
+  ],
+  "model_quality_blocks": [
+    {
+      "path": "report/artifact_quarantine_report.json",
+      "status": "quarantined",
+      "promotion_allowed": false,
+      "do_not_promote": null
+    },
+    {
+      "path": "report/walkforward_evaluation.json",
+      "status": "insufficient_samples",
+      "promotion_allowed": false,
+      "do_not_promote": null
+    },
+    {
+      "path": "report/baseline_comparison_report.json",
+      "status": "warning",
+      "promotion_allowed": false,
+      "do_not_promote": null
+    },
+    {
+      "path": "report/feature_priority_report.json",
+      "status": "warning",
+      "promotion_allowed": false,
+      "do_not_promote": null
+    }
+  ],
+  "recommendations": [
+    "Fix repository anomaly errors before treating the pipeline as stable.",
+    "Review warnings; some may be expected for model-quality or optional-report states.",
+    "Model-quality blocks should keep promotion and betting locked, but should not be confused with pipeline crashes."
+  ],
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false,
+  "production_model_replacement_allowed": false
+}

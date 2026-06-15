@@ -1,0 +1,31 @@
+{
+  "generated_at": "2026-06-15T10:48:09.350999Z",
+  "report_type": "artifact_quarantine_report",
+  "status": "quarantined",
+  "source_path": "report/model_status_consistency_report.json",
+  "artifact_path": "data/calibrator.pkl",
+  "artifact_exists": true,
+  "artifact_loadable": true,
+  "artifact_training_sample_count": 109,
+  "current_training_sample_count": 242,
+  "minimum_production_training_samples": 300,
+  "current_samples_below_minimum": true,
+  "stale_sample_mismatch": true,
+  "safely_locked_out": true,
+  "quarantined": true,
+  "mismatch_count": 4,
+  "mismatch_fields": [
+    "artifact_metadata_vs_training_samples",
+    "artifact_metadata_vs_training_status",
+    "artifact_status_vs_training_status",
+    "model_artifact_status_sample_count_consistent"
+  ],
+  "promotion_allowed": false,
+  "production_model_replacement_allowed": false,
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false,
+  "recommendations": [
+    "Keep the stale artifact for auditability, but do not use it as the active model.",
+    "Retrain only after sample-count and model-quality gates pass."
+  ]
+}
