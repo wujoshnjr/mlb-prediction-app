@@ -48,6 +48,7 @@ jobs:
             scripts/data_contract_validator.py \
             scripts/repo_anomaly_report.py \
             scripts/html_report_builder.py \
+            scripts/build_public_site_data.py \
             scripts/pipeline_manifest.py
 
       - name: Build feature missingness source report
@@ -85,6 +86,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
 
+      - name: Build public site data
+        run: python scripts/build_public_site_data.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
       - name: Refresh pipeline manifest
         run: python scripts/pipeline_manifest.py
         env:
@@ -103,7 +109,8 @@ jobs:
             report/data_contract_report.json \
             report/repo_anomaly_report.json \
             report/index.html \
-            report/pipeline_manifest.json; do
+            report/pipeline_manifest.json \
+            site/data/public_dashboard.json; do
             if [ -f "$path" ]; then
               git add -f "$path"
             fi
