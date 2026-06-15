@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-06-15T10:48:10.236110Z",
+  "generated_at": "2026-06-15T11:38:31.560346Z",
   "report_type": "repo_anomaly_report",
-  "status": "failed",
-  "scanned_file_count": 297,
-  "error_count": 2,
+  "status": "warning",
+  "scanned_file_count": 298,
+  "error_count": 0,
   "warning_count": 11,
   "model_quality_block_count": 4,
   "issues": [
@@ -29,18 +29,6 @@
       "path": "prediction.py",
       "issue": "placeholder_ellipsis",
       "line": 55
-    },
-    {
-      "severity": "error",
-      "path": "scripts/apisports_diagnostic.py",
-      "issue": "potential_secret_literal",
-      "line": 15
-    },
-    {
-      "severity": "error",
-      "path": "scripts/apisports_lineup_client.py",
-      "issue": "potential_secret_literal",
-      "line": 14
     },
     {
       "severity": "warning",
@@ -87,12 +75,6 @@
   ],
   "model_quality_blocks": [
     {
-      "path": "report/artifact_quarantine_report.json",
-      "status": "quarantined",
-      "promotion_allowed": false,
-      "do_not_promote": null
-    },
-    {
       "path": "report/walkforward_evaluation.json",
       "status": "insufficient_samples",
       "promotion_allowed": false,
@@ -105,6 +87,12 @@
       "do_not_promote": null
     },
     {
+      "path": "report/artifact_quarantine_report.json",
+      "status": "quarantined",
+      "promotion_allowed": false,
+      "do_not_promote": null
+    },
+    {
       "path": "report/feature_priority_report.json",
       "status": "warning",
       "promotion_allowed": false,
@@ -112,7 +100,6 @@
     }
   ],
   "recommendations": [
-    "Fix repository anomaly errors before treating the pipeline as stable.",
     "Review warnings; some may be expected for model-quality or optional-report states.",
     "Model-quality blocks should keep promotion and betting locked, but should not be confused with pipeline crashes."
   ],
