@@ -7,11 +7,43 @@ function text(value, fallback = "--") {
   return String(value);
 }
 
-function percent(value) {
-  if (value === null || value === undefined || value === "") return "--";
+function numeric(value) {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return "--";
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function percent(value) {
+  const parsed = numeric(value);
+  if (parsed === null) return "--";
   return `${parsed.toFixed(1)}%`;
+}
+
+function signedPercent(value) {
+  const parsed = numeric(value);
+  if (parsed === null) return "--";
+  const sign = parsed > 0 ? "+" : "";
+  return `${sign}${parsed.toFixed(1)}%`;
+}
+
+function sideContext(game) {
+  const homeProb = numeric(game.home_win_probability_pct);
+  const awayProb = homeProb === null ? null : 100 - homeProb;
+  const homeEdge = numeric(game.model_edge_home_pct);
+  const awayEdge = homeEdge === null ? null : -homeEdge;
+
+  const projectedSide = homeProb === null
+    ? null
+    : homeProb >= 50
+      ? { team: game.home_team, side: "Home", prob: homeProb }
+      : { team: game.away_team, side: "Away", prob: awayProb };
+
+  const valueLean = homeEdge === null
+    ? null
+    : homeEdge >= 0
+      ? { team: game.home_team, side: "Home", edge: homeEdge }
+      : { team: game.away_team, side: "Away", edge: awayEdge };
+
+  return { homeProb, awayProb, homeEdge, awayEdge, projectedSide, valueLean };
 }
 
 function classForStatus(value) {
@@ -75,6 +107,16 @@ function renderGames(games = []) {
       const statusClass = classForStatus(`${game.recommendation_status} ${game.risk_profile}`);
       const flags = (game.risk_flags || []).slice(0, 4).map((flag) => `<span class="tag">${flag}</span>`).join("");
       const note = (game.public_notes || [])[0] || "Tracking only. No betting recommendation.";
+      const side = sideContext(game);
+      const projectedLabel = side.projectedSide
+        ? `${text(side.projectedSide.team)} ${percent(side.projectedSide.prob)}`
+        : "--";
+      const valueLabel = side.valueLean
+        ? `${text(side.valueLean.team)} ${signedPercent(side.valueLean.edge)}`
+        : "--";
+      const homeAwayLine = `Home ${percent(side.homeProb)} · Away ${percent(side.awayProb)}`;
+      const valueLine = `Value lean is not a bet. Home edge ${signedPercent(side.homeEdge)} · Away edge ${signedPercent(side.awayEdge)}.`;
+
       return `
         <article class="game-card">
           <div class="game-top">
@@ -83,11 +125,12 @@ function renderGames(games = []) {
           </div>
           <h3>${text(game.away_team)} <span>@</span> ${text(game.home_team)}</h3>
           <div class="prob-row">
-            <div class="prob-box"><strong>${percent(game.home_win_probability_pct)}</strong><span>Home win</span></div>
-            <div class="prob-box"><strong>${percent(game.model_edge_home_pct)}</strong><span>Model edge</span></div>
+            <div class="prob-box"><strong>${projectedLabel}</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>${valueLabel}</strong><span>Value lean vs market</span></div>
           </div>
-          <p class="game-note">${note}</p>
+          <p class="game-note">${note}<br><small>${homeAwayLine}</small><br><small>${valueLine}</small></p>
           <div class="tag-row">
+            <span class="tag">No bet</span>
             <span class="tag">Grade ${text(game.data_quality_grade)}</span>
             <span class="tag">${text(game.lineup_status, "lineup unknown")}</span>
             <span class="tag">${text(game.pitcher_status, "pitcher unknown")}</span>
