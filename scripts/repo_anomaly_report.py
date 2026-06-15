@@ -15,6 +15,7 @@ OUTPUT_PATH = REPORT_DIR / "repo_anomaly_report.json"
 SCAN_EXTENSIONS = {".py", ".yml", ".yaml", ".json", ".html", ".md", ".txt"}
 SKIP_DIRS = {".git", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", "node_modules", ".venv", "venv"}
 MAX_FILE_SIZE_BYTES = 2_500_000
+SELF_PATH = Path("scripts/repo_anomaly_report.py")
 
 CRITICAL_PATHS = [
     "main.py",
@@ -51,7 +52,7 @@ SAFETY_FLAGS = (
 SUSPICIOUS_TEXT_PATTERNS = {
     "conversation_artifact_marker": r"Skipped \d+ messages?|Citation Marker|Resource uri:",
     "copied_markdown_url_in_code": r"\]\(https?://",
-    "placeholder_ellipsis": r"TODO|FIXME|pass  #|\.\.\." ,
+    "placeholder_ellipsis": r"TODO|FIXME|pass  #|\.\.\.",
     "raw_tilde_separator": r"~{8,}",
     "potential_secret_literal": r"(?i)(api[_-]?key|secret|token|password)\s*=\s*['\"][^'\"]{8,}",
 }
@@ -158,7 +159,7 @@ def check_json_files(paths: list[Path]) -> list[dict[str, Any]]:
 def check_safety_flags(paths: list[Path]) -> list[dict[str, Any]]:
     issues = []
     for path in paths:
-        if path.suffix.lower() != ".json" or not str(path).startswith("report") and not str(path).startswith("data"):
+        if path.suffix.lower() != ".json" or (not str(path).startswith("report") and not str(path).startswith("data")):
             continue
         text = read_text(path)
         if not text:
@@ -213,6 +214,8 @@ def check_quality_statuses(paths: list[Path]) -> tuple[list[dict[str, Any]], lis
 def check_text_patterns(paths: list[Path]) -> list[dict[str, Any]]:
     issues = []
     for path in paths:
+        if path == SELF_PATH:
+            continue
         text = read_text(path)
         if not text:
             continue
