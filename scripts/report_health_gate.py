@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -9,7 +10,6 @@ try:
 except Exception:
     MODEL_FEATURES = []
     TRACKING_ONLY_FEATURES = []
-
 
 PREDICTION_PATH = Path("report/prediction.json")
 FEATURE_AVAILABILITY_PATH = Path("report/feature_availability_diagnostic.json")
@@ -31,6 +31,10 @@ EXPECTED_MODEL_TYPE = "calibrated_logistic_regression_with_imputer"
 EXPECTED_MIN_CLEAN_TRAIN_SAMPLES = 300
 QUALITY_BLOCK_STATUSES = {"failed", "blocked", "warning", "quarantined", "needs_review", "insufficient_samples"}
 PIPELINE_FAILURE_STATUSES = {"error", "fatal"}
+
+
+def _utc_now() -> str:
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 def _load_json(path: Path, errors: List[str]) -> Dict[str, Any]:
@@ -64,12 +68,7 @@ def _load_optional_json(path: Path, warnings: List[str]) -> Dict[str, Any]:
 
 
 def _get_predictions(prediction_report: Dict[str, Any]) -> List[Dict[str, Any]]:
-    candidates = (
-        prediction_report.get("predictions")
-        or prediction_report.get("today_predictions")
-        or prediction_report.get("games")
-        or []
-    )
+    candidates = prediction_report.get("predictions") or prediction_report.get("today_predictions") or prediction_report.get("games") or []
     if not isinstance(candidates, list):
         return []
     return [item for item in candidates if isinstance(item, dict)]
@@ -94,41 +93,33 @@ def _contains_literal_nan(value: Any, path: str = "") -> List[str]:
 def _check_prediction_report(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
     predictions = _get_predictions(report)
     if not predictions:
-        schedule_fetch_ok = report.get("schedule_fetch_ok")
-        scheduled_game_count = report.get("scheduled_game_count")
-        if schedule_fetch_ok is True and scheduled_game_count == 0:
+        if report.get("schedule_fetch_ok") is True and report.get("scheduled_game_count") == 0:
             warnings.append("prediction.json has no predictions because schedule reports zero games.")
             return
         errors.append("prediction.json has no valid predictions.")
         return
+
     for index, prediction in enumerate(predictions):
         game_id = str(prediction.get("game_id", f"index_{index}"))
         governance = prediction.get("model_governance_status")
         if not isinstance(governance, dict):
             errors.append(f"{game_id}: missing model_governance_status.")
         else:
-            if "live_betting_allowed" not in governance:
-                errors.append(f"{game_id}: model_governance_status missing live_betting_allowed.")
-            if "mode" not in governance:
-                errors.append(f"{game_id}: model_governance_status missing mode.")
-            if "block_reasons" not in governance:
-                errors.append(f"{game_id}: model_governance_status missing block_reasons.")
+            for key in ("live_betting_allowed", "mode", "block_reasons"):
+                if key not in governance:
+                    errors.append(f"{game_id}: model_governance_status missing {key}.")
+
         data_quality = prediction.get("data_quality_status")
         if not isinstance(data_quality, dict):
             errors.append(f"{game_id}: missing data_quality_status.")
         else:
-            if "data_quality_grade" not in data_quality:
-                errors.append(f"{game_id}: data_quality_status missing data_quality_grade.")
-            if "bet_allowed" not in data_quality:
-                errors.append(f"{game_id}: data_quality_status missing bet_allowed.")
-            if "missing_critical_sources" not in data_quality:
-                errors.append(f"{game_id}: data_quality_status missing missing_critical_sources.")
-            if "missing_important_sources" not in data_quality:
-                errors.append(f"{game_id}: data_quality_status missing missing_important_sources.")
+            for key in ("data_quality_grade", "bet_allowed", "missing_critical_sources", "missing_important_sources"):
+                if key not in data_quality:
+                    errors.append(f"{game_id}: data_quality_status missing {key}.")
             missing_important = set(data_quality.get("missing_important_sources") or [])
-            if "confirmed_lineup" in missing_important or "confirmed_starter" in missing_important:
-                if bool(data_quality.get("bet_allowed", False)):
-                    errors.append(f"{game_id}: bet_allowed=true while lineup/starter is not confirmed.")
+            if {"confirmed_lineup", "confirmed_starter"} & missing_important and bool(data_quality.get("bet_allowed", False)):
+                errors.append(f"{game_id}: bet_allowed=true while lineup/starter is not confirmed.")
+
         live_allowed = bool(prediction.get("live_betting_allowed", False))
         live_candidate = bool(prediction.get("live_bet_candidate", False))
         stake_multiplier = float(prediction.get("stake_multiplier") or 0.0)
@@ -136,23 +127,18 @@ def _check_prediction_report(report: Dict[str, Any], errors: List[str], warnings
             errors.append(f"{game_id}: live_bet_candidate=true while live_betting_allowed=false.")
         if live_allowed is False and stake_multiplier != 0.0:
             errors.append(f"{game_id}: stake_multiplier={stake_multiplier} while live_betting_allowed=false.")
+
         literal_nan_paths = _contains_literal_nan(prediction)
         if literal_nan_paths:
-            errors.append(
-                f"{game_id}: prediction contains literal 'nan' strings at: "
-                + ", ".join(literal_nan_paths[:12])
-            )
-    generated_at = report.get("generated_at")
-    if not generated_at:
+            errors.append(f"{game_id}: prediction contains literal 'nan' strings at: " + ", ".join(literal_nan_paths[:12]))
+
+    if not report.get("generated_at"):
         warnings.append("prediction.json missing generated_at.")
 
 
 def _check_feature_availability(report: Dict[str, Any], errors: List[str], warnings: List[str]) -> None:
     if "non_blocking_features" not in report:
-        errors.append(
-            "feature_availability_diagnostic.json missing non_blocking_features. "
-            "This usually means the report was generated by old diagnostic code."
-        )
+        errors.append("feature_availability_diagnostic.json missing non_blocking_features. This usually means the report was generated by old diagnostic code.")
     high_risk_features = report.get("high_risk_features") or []
     if not isinstance(high_risk_features, list):
         errors.append("feature_availability_diagnostic.json high_risk_features is not a list.")
@@ -163,6 +149,7 @@ def _check_feature_availability(report: Dict[str, Any], errors: List[str], warni
         errors.append("Tracking-only features should not be high risk: " + ", ".join(bad_tracking_high_risk[:20]))
     if "dynamic_pythag_diff" in high_risk_features:
         errors.append("dynamic_pythag_diff is tracking-only and must not be high risk.")
+
     group_summary = report.get("group_summary") or {}
     if isinstance(group_summary, dict):
         for group_name, group_info in group_summary.items():
@@ -269,6 +256,7 @@ def main() -> int:
     warnings.extend(model_quality_notes)
 
     summary = {
+        "generated_at": _utc_now(),
         "status": "failed" if errors else "ok",
         "pipeline_health_status": "failed" if errors else "ok",
         "model_quality_status": "blocked" if model_quality_blocks else "not_blocked_by_quality_reports",
