@@ -111,7 +111,7 @@ ALLOWED_STATUSES = {
     "insufficient_evidence",
 }
 FAILURE_STATUSES = {"error", "failed", "fatal"}
-QUALITY_FAILURE_AS_WARNING = {"model_status_consistency"}
+QUALITY_FAILURE_AS_WARNING = {"model_status_consistency", "repo_anomaly"}
 SAFETY_FLAGS = (
     "live_betting_allowed",
     "automated_wagering_allowed",
