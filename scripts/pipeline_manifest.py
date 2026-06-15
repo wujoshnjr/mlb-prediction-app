@@ -49,6 +49,7 @@ TRACKED_FILES = [
     "report/model_artifact_status_report.json",
     "report/model_status_consistency_report.json",
     "report/artifact_quarantine_report.json",
+    "report/repo_anomaly_report.json",
     "report/artifact_rebuild_readiness_report.json",
     "report/feature_contract_report.json",
     "report/feature_missingness_report.json",
@@ -168,7 +169,7 @@ def _json_summary(path: Path) -> Dict[str, Any]:
     bins = data.get("bins") or data.get("reliability_table")
     if isinstance(bins, list):
         summary["bin_count"] = len(bins)
-    rows = data.get("rows") or data.get("features") or data.get("priorities")
+    rows = data.get("rows") or data.get("features") or data.get("priorities") or data.get("issues")
     if isinstance(rows, list):
         summary["row_count_in_json"] = len(rows)
     for key in (
@@ -179,6 +180,8 @@ def _json_summary(path: Path) -> Dict[str, Any]:
         "file_count",
         "tracked_file_count",
         "missing_file_count",
+        "scanned_file_count",
+        "model_quality_block_count",
         "core_feature_count",
         "feature_count",
         "p0_core_issue_count",
