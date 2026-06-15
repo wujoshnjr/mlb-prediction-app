@@ -79,6 +79,7 @@ except ImportError:  # pragma: no cover
 DATA_PATH = Path("data/training_samples.csv")
 OOS_CSV_PATH = Path("data/oos_predictions_with_labels.csv")
 REPORT_JSON_PATH = Path("report/model_eval_report.json")
+COLLAPSE_REPORT_PATH = Path("report/prediction_collapse_report.json")
 
 LABEL_COLUMNS = [
     "home_win",
@@ -91,6 +92,18 @@ MIN_TOTAL_SAMPLES = 30
 MIN_TRAIN_SAMPLES = 20
 MIN_CALIBRATION_SAMPLES = 5
 MIN_TEST_SAMPLES = 5
+
+# Guardrail thresholds. These are intentionally conservative and report-only.
+AUC_RANDOM_BAND_LOW = 0.48
+AUC_RANDOM_BAND_HIGH = 0.52
+BALANCED_ACCURACY_RANDOM_BAND_LOW = 0.48
+BALANCED_ACCURACY_RANDOM_BAND_HIGH = 0.52
+MAX_SINGLE_CLASS_PREDICTION_RATE = 0.85
+MIN_PROBABILITY_STD = 0.02
+BRIER_RANDOM_REFERENCE = 0.25
+LOGLOSS_RANDOM_REFERENCE = 0.6931471805599453
+BRIER_RANDOM_TOLERANCE = 0.015
+LOGLOSS_RANDOM_TOLERANCE = 0.02
 
 
 def utc_now() -> str:
@@ -135,17 +148,27 @@ def clean_json_value(value: Any) -> Any:
     return str(value)
 
 
-def write_json_report(report: dict[str, Any], path: Path | None = None) -> None:
-    output_path = path if path is not None else REPORT_JSON_PATH
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as handle:
+def write_json_payload(payload: dict[str, Any], path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
         json.dump(
-            clean_json_value(report),
+            clean_json_value(payload),
             handle,
             indent=2,
             ensure_ascii=False,
             allow_nan=False,
         )
+
+
+def write_json_report(report: dict[str, Any], path: Path | None = None) -> None:
+    output_path = path if path is not None else REPORT_JSON_PATH
+    write_json_payload(report, output_path)
+
+
+def get_collapse_report_path() -> Path:
+    if REPORT_JSON_PATH != Path("report/model_eval_report.json"):
+        return REPORT_JSON_PATH.parent / "prediction_collapse_report.json"
+    return COLLAPSE_REPORT_PATH
 
 
 def base_report() -> dict[str, Any]:
@@ -155,6 +178,7 @@ def base_report() -> dict[str, Any]:
         "status": "skipped",
         "training_source": str(DATA_PATH),
         "oos_prediction_output": str(OOS_CSV_PATH),
+        "collapse_report_output": str(get_collapse_report_path()),
         "pipeline_version": str(getattr(config, "PIPELINE_VERSION", "baseline_v2_clean")),
         "feature_schema_version": MODEL_FEATURE_VERSION,
         "feature_schema_hash": get_model_feature_schema_hash(),
@@ -166,6 +190,9 @@ def base_report() -> dict[str, Any]:
         "calibration_sample_count": 0,
         "test_sample_count": 0,
         "metrics": {},
+        "baseline_metrics": {},
+        "model_vs_baselines": {},
+        "collapse_guardrail": {},
         "confusion_matrix": [],
         "warnings": [],
         "errors": [],
@@ -210,6 +237,187 @@ def make_calibrator(estimator: Any) -> Any:
         return CalibratedClassifierCV(FrozenEstimator(estimator), method="sigmoid")
     except Exception:
         return CalibratedClassifierCV(estimator=estimator, method="sigmoid", cv="prefit")
+
+
+def safe_roc_auc(y_true: np.ndarray, y_prob: np.ndarray) -> float | None:
+    try:
+        if len(np.unique(y_true)) < 2:
+            return None
+        return float(roc_auc_score(y_true, y_prob))
+    except Exception:
+        return None
+
+
+def probability_metrics(y_true: np.ndarray, y_prob: np.ndarray) -> dict[str, Any]:
+    clipped = np.clip(np.asarray(y_prob, dtype=float), 1e-6, 1 - 1e-6)
+    y_pred = (clipped >= 0.5).astype(int)
+    return {
+        "accuracy": float(accuracy_score(y_true, y_pred)),
+        "balanced_accuracy": float(balanced_accuracy_score(y_true, y_pred)),
+        "precision": float(precision_score(y_true, y_pred, zero_division=0)),
+        "recall": float(recall_score(y_true, y_pred, zero_division=0)),
+        "f1": float(f1_score(y_true, y_pred, zero_division=0)),
+        "roc_auc": safe_roc_auc(y_true, clipped),
+        "brier": float(brier_score_loss(y_true, clipped)),
+        "logloss": float(log_loss(y_true, clipped, labels=[0, 1])),
+        "predicted_positive_rate": float(np.mean(y_pred)) if len(y_pred) else None,
+        "predicted_negative_rate": float(1.0 - np.mean(y_pred)) if len(y_pred) else None,
+        "probability_mean": float(np.mean(clipped)) if len(clipped) else None,
+        "probability_std": float(np.std(clipped)) if len(clipped) else None,
+        "probability_min": float(np.min(clipped)) if len(clipped) else None,
+        "probability_max": float(np.max(clipped)) if len(clipped) else None,
+    }
+
+
+def constant_probability_baseline(
+    y_true: np.ndarray,
+    probability: float,
+    name: str,
+) -> dict[str, Any]:
+    y_prob = np.full_like(y_true, fill_value=float(probability), dtype=float)
+    metrics = probability_metrics(y_true, y_prob)
+    metrics["baseline_name"] = name
+    metrics["constant_probability"] = float(probability)
+    return metrics
+
+
+def build_baseline_metrics(
+    y_train: np.ndarray,
+    y_calib: np.ndarray,
+    y_test: np.ndarray,
+) -> dict[str, Any]:
+    reference_target = np.concatenate([y_train, y_calib]) if len(y_calib) else y_train
+    base_rate = float(np.mean(reference_target)) if len(reference_target) else 0.5
+    return {
+        "constant_0_5": constant_probability_baseline(y_test, 0.5, "constant_0_5"),
+        "base_rate_train_calibration": constant_probability_baseline(
+            y_test,
+            base_rate,
+            "base_rate_train_calibration",
+        ),
+        "always_home": constant_probability_baseline(y_test, 1.0 - 1e-6, "always_home"),
+        "always_away": constant_probability_baseline(y_test, 1e-6, "always_away"),
+    }
+
+
+def compare_model_to_baselines(
+    model_metrics: dict[str, Any],
+    baseline_metrics: dict[str, Any],
+) -> dict[str, Any]:
+    comparisons: dict[str, Any] = {}
+    for name, baseline in baseline_metrics.items():
+        comparison: dict[str, Any] = {}
+        for key in ("brier", "logloss"):
+            model_value = model_metrics.get(key)
+            baseline_value = baseline.get(key)
+            if model_value is not None and baseline_value is not None:
+                comparison[f"delta_{key}"] = float(model_value) - float(baseline_value)
+                comparison[f"beats_{key}"] = float(model_value) < float(baseline_value)
+        model_auc = model_metrics.get("roc_auc")
+        baseline_auc = baseline.get("roc_auc")
+        if model_auc is not None and baseline_auc is not None:
+            comparison["delta_roc_auc"] = float(model_auc) - float(baseline_auc)
+            comparison["beats_roc_auc"] = float(model_auc) > float(baseline_auc)
+        comparisons[name] = comparison
+    return comparisons
+
+
+def build_collapse_guardrail(
+    metrics: dict[str, Any],
+    confusion: list[list[int]],
+    test_sample_count: int,
+) -> dict[str, Any]:
+    reasons: list[str] = []
+    auc = metrics.get("roc_auc")
+    balanced_accuracy = metrics.get("balanced_accuracy")
+    predicted_positive_rate = metrics.get("predicted_positive_rate")
+    predicted_negative_rate = metrics.get("predicted_negative_rate")
+    probability_std = metrics.get("probability_std")
+    brier = metrics.get("brier")
+    logloss = metrics.get("logloss")
+
+    if auc is not None and AUC_RANDOM_BAND_LOW <= float(auc) <= AUC_RANDOM_BAND_HIGH:
+        reasons.append("roc_auc_near_random")
+    if (
+        balanced_accuracy is not None
+        and BALANCED_ACCURACY_RANDOM_BAND_LOW <= float(balanced_accuracy) <= BALANCED_ACCURACY_RANDOM_BAND_HIGH
+    ):
+        reasons.append("balanced_accuracy_near_random")
+    if predicted_positive_rate is not None and float(predicted_positive_rate) >= MAX_SINGLE_CLASS_PREDICTION_RATE:
+        reasons.append("single_class_positive_prediction_collapse")
+    if predicted_negative_rate is not None and float(predicted_negative_rate) >= MAX_SINGLE_CLASS_PREDICTION_RATE:
+        reasons.append("single_class_negative_prediction_collapse")
+    if probability_std is not None and float(probability_std) < MIN_PROBABILITY_STD:
+        reasons.append("probability_distribution_too_narrow")
+    if brier is not None and abs(float(brier) - BRIER_RANDOM_REFERENCE) <= BRIER_RANDOM_TOLERANCE:
+        reasons.append("brier_near_random_0_25")
+    if logloss is not None and abs(float(logloss) - LOGLOSS_RANDOM_REFERENCE) <= LOGLOSS_RANDOM_TOLERANCE:
+        reasons.append("logloss_near_random_0_693")
+    if test_sample_count < 50:
+        reasons.append("test_sample_count_too_small_for_stable_claims")
+
+    collapsed = any(
+        reason
+        in {
+            "roc_auc_near_random",
+            "balanced_accuracy_near_random",
+            "single_class_positive_prediction_collapse",
+            "single_class_negative_prediction_collapse",
+            "probability_distribution_too_narrow",
+        }
+        for reason in reasons
+    )
+
+    return {
+        "status": "failed" if collapsed else "ok",
+        "model_has_no_discrimination_power": bool(collapsed),
+        "do_not_promote": bool(collapsed),
+        "collapse_reasons": reasons,
+        "thresholds": {
+            "auc_random_band_low": AUC_RANDOM_BAND_LOW,
+            "auc_random_band_high": AUC_RANDOM_BAND_HIGH,
+            "balanced_accuracy_random_band_low": BALANCED_ACCURACY_RANDOM_BAND_LOW,
+            "balanced_accuracy_random_band_high": BALANCED_ACCURACY_RANDOM_BAND_HIGH,
+            "max_single_class_prediction_rate": MAX_SINGLE_CLASS_PREDICTION_RATE,
+            "min_probability_std": MIN_PROBABILITY_STD,
+            "brier_random_reference": BRIER_RANDOM_REFERENCE,
+            "logloss_random_reference": LOGLOSS_RANDOM_REFERENCE,
+        },
+        "confusion_matrix": confusion,
+        "live_betting_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_model_replacement_allowed": False,
+    }
+
+
+def write_collapse_report(
+    model_eval_report: dict[str, Any],
+    collapse_guardrail: dict[str, Any],
+) -> None:
+    payload = {
+        "generated_at": utc_now(),
+        "report_type": "prediction_collapse_report",
+        "status": collapse_guardrail.get("status", "unknown"),
+        "model_has_no_discrimination_power": collapse_guardrail.get("model_has_no_discrimination_power", False),
+        "do_not_promote": collapse_guardrail.get("do_not_promote", True),
+        "collapse_reasons": collapse_guardrail.get("collapse_reasons", []),
+        "source_model_eval_report": str(REPORT_JSON_PATH),
+        "sample_count": model_eval_report.get("sample_count"),
+        "test_sample_count": model_eval_report.get("test_sample_count"),
+        "metrics": model_eval_report.get("metrics", {}),
+        "baseline_metrics": model_eval_report.get("baseline_metrics", {}),
+        "model_vs_baselines": model_eval_report.get("model_vs_baselines", {}),
+        "confusion_matrix": model_eval_report.get("confusion_matrix", []),
+        "recommendations": [
+            "Keep model in tracking-only mode until OOS discrimination and calibration beat simple baselines.",
+            "Investigate feature quality and expand finalized samples before artifact promotion.",
+            "Do not use hit rate alone; require Brier/logloss/AUC improvement over baselines.",
+        ],
+        "live_betting_allowed": False,
+        "automated_wagering_allowed": False,
+        "production_model_replacement_allowed": False,
+    }
+    write_json_payload(payload, get_collapse_report_path())
 
 
 def load_clean_training_samples(report: dict[str, Any]) -> tuple[pd.DataFrame, str | None]:
@@ -351,25 +559,26 @@ def generate_report() -> dict[str, Any]:
     y_prob = np.clip(np.asarray(y_prob, dtype=float), 1e-6, 1 - 1e-6)
     y_pred = (y_prob >= 0.5).astype(int)
 
-    try:
-        roc_auc = float(roc_auc_score(y_test, y_prob))
-    except Exception:
-        roc_auc = None
-
-    metrics = {
-        "accuracy": float(accuracy_score(y_test, y_pred)),
-        "balanced_accuracy": float(balanced_accuracy_score(y_test, y_pred)),
-        "precision": float(precision_score(y_test, y_pred, zero_division=0)),
-        "recall": float(recall_score(y_test, y_pred, zero_division=0)),
-        "f1": float(f1_score(y_test, y_pred, zero_division=0)),
-        "roc_auc": roc_auc,
-        "brier": float(brier_score_loss(y_test, y_prob)),
-        "logloss": float(log_loss(y_test, y_prob, labels=[0, 1])),
-    }
+    metrics = probability_metrics(y_test, y_prob)
+    baseline_metrics = build_baseline_metrics(y_train, y_calib, y_test)
+    model_vs_baselines = compare_model_to_baselines(metrics, baseline_metrics)
+    confusion = confusion_matrix(y_test, y_pred, labels=[0, 1]).tolist()
+    collapse_guardrail = build_collapse_guardrail(metrics, confusion, test_count)
 
     report["status"] = "ok"
     report["metrics"] = metrics
-    report["confusion_matrix"] = confusion_matrix(y_test, y_pred, labels=[0, 1]).tolist()
+    report["baseline_metrics"] = baseline_metrics
+    report["model_vs_baselines"] = model_vs_baselines
+    report["collapse_guardrail"] = collapse_guardrail
+    report["confusion_matrix"] = confusion
+
+    if collapse_guardrail.get("model_has_no_discrimination_power"):
+        report["warnings"].append("model_has_no_discrimination_power")
+    if any(
+        comparison.get("delta_brier") is not None and comparison.get("delta_brier") >= 0
+        for comparison in model_vs_baselines.values()
+    ):
+        report["warnings"].append("model_does_not_beat_all_brier_baselines")
 
     manual_prob_col = first_existing_column(
         frame,
@@ -412,6 +621,7 @@ def generate_report() -> dict[str, Any]:
     OOS_CSV_PATH.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(records).to_csv(OOS_CSV_PATH, index=False, encoding="utf-8")
     write_json_report(report)
+    write_collapse_report(report, collapse_guardrail)
     return report
 
 
