@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="MLB Intelligence Cloud research dashboard: paper-only MLB AI predictions, governance, data quality, and feature roadmap." />
-  <title>MLB Intelligence Cloud</title>
+  <meta name="description" content="MLB Intelligence Cloud: paper-only MLB prediction board, model governance, settlement record, and data quality diagnostics." />
+  <title>MLB Intelligence Cloud · Paper Board</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -14,7 +14,7 @@
         <span class="brand-mark">MLB</span>
         <span>
           <strong>MLB Intelligence Cloud</strong>
-          <small>Paper-only research board</small>
+          <small>Paper-only prediction board</small>
         </span>
       </a>
       <div id="navLinks" class="nav-links"></div>
@@ -22,19 +22,21 @@
   </header>
 
   <main id="top" class="page-shell">
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">AI Research · Model Governance · Daily MLB Board</p>
-        <h1 id="heroTitle">Loading MLB Intelligence Cloud</h1>
-        <p id="heroSubtitle" class="hero-subtitle">Reading the latest public dashboard data…</p>
+    <section class="hero-board">
+      <div class="hero-main card-shell">
+        <p class="eyebrow">AI Research · Daily MLB Board · Governance Locked</p>
+        <h1 id="heroTitle">MLB Paper Prediction Board</h1>
+        <p id="heroSubtitle" class="hero-subtitle">Loading the latest paper-only MLB board…</p>
         <div class="hero-actions">
           <a href="#games" class="button primary">今日賽事</a>
-          <a href="#governance" class="button secondary">模型治理</a>
+          <a href="#record" class="button secondary">預測戰績</a>
+          <a href="#governance" class="button ghost">模型治理</a>
         </div>
       </div>
-      <aside class="hero-status" aria-label="System status">
+
+      <aside class="hero-side card-shell" aria-label="System status">
         <span id="primaryStatus" class="status-pill neutral">Loading</span>
-        <dl class="status-list">
+        <dl class="quick-status">
           <div><dt>Pipeline</dt><dd id="pipelineStatus">--</dd></div>
           <div><dt>Model</dt><dd id="modelStatus">--</dd></div>
           <div><dt>Data Contract</dt><dd id="contractStatus">--</dd></div>
@@ -48,22 +50,45 @@
       <span id="publicDisclaimer">Research dashboard only. No betting advice, no automated wagering, and no live-betting enablement.</span>
     </section>
 
-    <section class="metric-grid" aria-label="Dashboard metrics">
-      <article class="metric-card"><span>今日場次</span><strong id="gameCount">--</strong><small>scheduled games</small></article>
-      <article class="metric-card"><span>樣本數</span><strong id="sampleCount">--</strong><small>clean settled samples</small></article>
-      <article class="metric-card"><span>CLV+</span><strong id="positiveClv">--</strong><small>positive CLV rate</small></article>
-      <article class="metric-card"><span>Repo errors</span><strong id="repoErrors">--</strong><small>anomaly scanner</small></article>
+    <section class="score-strip" aria-label="Daily board metrics">
+      <article><span>今日場次</span><strong id="gameCount">--</strong><small>scheduled games</small></article>
+      <article><span>Paper signals</span><strong id="paperSignalCount">--</strong><small>tracking-only leans</small></article>
+      <article><span>No Bet</span><strong id="noBetCount">--</strong><small>blocked / watch only</small></article>
+      <article><span>已結算樣本</span><strong id="sampleCount">--</strong><small>trusted outcomes</small></article>
+      <article><span>30日命中率</span><strong id="rolling30Accuracy">--</strong><small>settled only</small></article>
+      <article><span>CLV+</span><strong id="positiveClv">--</strong><small>price movement</small></article>
     </section>
 
     <section id="games" class="section-block">
       <div class="section-heading">
         <div>
           <p class="eyebrow">Today</p>
-          <h2>AI 賽事預測</h2>
+          <h2>今日 MLB 預測</h2>
         </div>
-        <span class="section-note">全部為 tracking-only，不提供下注指令。</span>
+        <span class="section-note">全部為 paper / tracking-only，不提供下注指令。</span>
       </div>
-      <div id="gameGrid" class="game-grid"></div>
+      <div id="gameGrid" class="game-list"></div>
+    </section>
+
+    <section id="record" class="section-block two-column">
+      <div class="panel">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Record</p>
+            <h2>預測戰績</h2>
+          </div>
+        </div>
+        <div id="recordBoard" class="record-board"></div>
+      </div>
+      <div class="panel">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Performance</p>
+            <h2>模型品質</h2>
+          </div>
+        </div>
+        <div id="performanceGrid" class="performance-grid"></div>
+      </div>
     </section>
 
     <section id="governance" class="section-block two-column">
@@ -76,14 +101,14 @@
         </div>
         <div id="governanceTimeline" class="timeline"></div>
       </div>
-      <div class="panel">
+      <div class="panel artifact-card">
         <div class="section-heading compact">
           <div>
             <p class="eyebrow">Artifact</p>
-            <h2>模型 Artifact</h2>
+            <h2>模型 Artifact 鎖定</h2>
           </div>
         </div>
-        <div id="artifactCard" class="artifact-card"></div>
+        <div id="artifactCard"></div>
       </div>
     </section>
 
@@ -91,21 +116,19 @@
       <div class="section-heading">
         <div>
           <p class="eyebrow">Roadmap</p>
-          <h2>資料源優先修補</h2>
+          <h2>資料源修補優先順序</h2>
         </div>
-        <span class="section-note">先補高價值資料缺口，再談 promotion。</span>
+        <span class="section-note">先修資料，不急著升級模型。</span>
       </div>
       <div id="roadmapGrid" class="roadmap-grid"></div>
     </section>
 
-    <section id="about" class="section-block panel about-panel">
+    <section id="about" class="section-block about-panel panel">
       <p class="eyebrow">About</p>
-      <h2>這不是下注網站，是模型研究控制台</h2>
+      <h2>關於這個預測板</h2>
       <p>
-        這個前台固定讀取 GitHub Actions / Render pipeline 產出的 JSON。資料更新後，網站自動顯示最新狀態；不需要每次查看時重新跑 reader。
-      </p>
-      <p>
-        Live betting、automated wagering、production model replacement 都由治理層強制鎖住。
+        本頁參考每日賽事整理網站的閱讀節奏，改造成 MLB paper-only 研究看板。
+        所有訊號只用於追蹤與研究，模型未通過 baseline、walk-forward、collapse 與資料品質 gate 前，不會升級為正式模型，也不會啟用自動下注或即時下注。
       </p>
     </section>
   </main>
