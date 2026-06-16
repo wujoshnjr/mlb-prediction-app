@@ -106,7 +106,9 @@ body::before {
 .game-card,
 .roadmap-card,
 .record-item,
-.performance-item {
+.performance-item,
+.root-summary-card,
+.root-cause-card {
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: var(--shadow);
@@ -231,7 +233,8 @@ body::before {
 }
 .score-strip span,
 .record-item span,
-.performance-item span {
+.performance-item span,
+.root-summary-card span {
   display: block;
   color: var(--muted);
   font-size: .72rem;
@@ -241,7 +244,8 @@ body::before {
 }
 .score-strip strong,
 .record-item strong,
-.performance-item strong {
+.performance-item strong,
+.root-summary-card strong {
   display: block;
   margin-top: 10px;
   font-size: 1.8rem;
@@ -249,7 +253,8 @@ body::before {
 }
 .score-strip small,
 .record-item small,
-.performance-item small { display: block; color: var(--muted-2); margin-top: 5px; }
+.performance-item small,
+.root-summary-card small { display: block; color: var(--muted-2); margin-top: 5px; }
 
 .section-block { margin-top: 32px; }
 .section-heading {
@@ -296,6 +301,24 @@ body::before {
 .performance-item { border-radius: 18px; padding: 16px; box-shadow: none; }
 .record-wide { grid-column: 1 / -1; }
 
+.root-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.root-summary-card { border-radius: 18px; padding: 16px; box-shadow: none; background: rgba(255,255,255,.035); }
+.root-cause-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.root-cause-card { border-radius: 22px; padding: 16px; box-shadow: none; background: linear-gradient(180deg, rgba(17,31,47,.95), rgba(8,15,24,.90)); }
+.root-cause-card.danger { border-color: rgba(255,107,107,.36); }
+.root-cause-card.warning { border-color: rgba(255,209,102,.30); }
+.root-cause-card.ok { border-color: rgba(83,224,143,.30); }
+.root-cause-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.root-cause-top small { color: var(--muted-2); text-align: right; }
+.root-cause-card strong { display: block; font-size: 1.1rem; letter-spacing: -0.025em; }
+.root-cause-card ul { margin: 10px 0; padding-left: 18px; color: var(--muted); }
+.root-cause-card p { color: var(--muted); line-height: 1.55; margin: 10px 0 0; }
+.root-detail-row { margin-top: 14px; }
+.mini-list { display: grid; gap: 8px; }
+.mini-row { display: flex; justify-content: space-between; gap: 12px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.035); padding: 12px; border-radius: 14px; }
+.mini-row strong { letter-spacing: -0.02em; }
+.mini-row span { color: var(--muted); text-align: right; }
+
 .timeline { display: grid; gap: 10px; }
 .timeline-item { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; padding: 12px; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; background: rgba(255,255,255,.045); }
 .timeline-dot { width: 12px; height: 12px; margin-top: 6px; border-radius: 50%; background: var(--blue); }
@@ -327,7 +350,8 @@ body::before {
 
 @media (max-width: 1040px) {
   .hero-board, .two-column, .game-mainline { grid-template-columns: 1fr; }
-  .score-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .score-strip, .root-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .root-cause-grid { grid-template-columns: 1fr; }
   .roadmap-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
@@ -336,8 +360,10 @@ body::before {
   .nav-links { justify-content: flex-start; }
   .page-shell { padding: 16px 12px 42px; }
   .hero-main, .hero-side { border-radius: 24px; }
-  .score-strip, .record-board, .performance-grid, .roadmap-grid { grid-template-columns: 1fr; }
+  .score-strip, .record-board, .performance-grid, .roadmap-grid, .root-summary-grid { grid-template-columns: 1fr; }
   .section-heading { align-items: flex-start; flex-direction: column; }
   .notice { align-items: flex-start; flex-direction: column; }
   .prob-row { grid-template-columns: 1fr; }
+  .mini-row { align-items: flex-start; flex-direction: column; }
+  .mini-row span { text-align: left; }
 }
