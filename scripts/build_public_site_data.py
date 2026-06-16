@@ -20,6 +20,7 @@ FEATURE_PRIORITY_PATH = REPORT_DIR / "feature_priority_report.json"
 BASELINE_COMPARISON_PATH = REPORT_DIR / "baseline_comparison_report.json"
 MODEL_EVAL_PATH = REPORT_DIR / "model_eval_report.json"
 DAILY_ACCURACY_PATH = REPORT_DIR / "daily_model_accuracy_report.json"
+ACCURACY_ROOT_CAUSE_PATH = REPORT_DIR / "accuracy_root_cause_report.json"
 
 
 def _utc_now() -> str:
@@ -194,6 +195,7 @@ def build_public_dashboard() -> dict[str, Any]:
     baseline = _read_json(BASELINE_COMPARISON_PATH)
     model_eval = _read_json(MODEL_EVAL_PATH)
     daily_accuracy = _read_json(DAILY_ACCURACY_PATH)
+    accuracy_root_cause = _read_json(ACCURACY_ROOT_CAUSE_PATH)
 
     games = [_build_game_card(item) for item in _predictions(prediction)]
     governance = prediction.get("model_governance") if isinstance(prediction.get("model_governance"), dict) else {}
@@ -242,6 +244,7 @@ def build_public_dashboard() -> dict[str, Any]:
             "daily_accuracy_status": daily_accuracy.get("status"),
         },
         "performance": performance,
+        "accuracy_root_cause": accuracy_root_cause,
         "governance_summary": {
             "block_reasons": [str(reason) for reason in (governance.get("block_reasons") or [])[:8]],
             "model_quality_blocks": [str(item) for item in (report_health.get("model_quality_blocks") or [])[:10]],
@@ -268,6 +271,7 @@ def build_public_dashboard() -> dict[str, Any]:
         "navigation": [
             {"label": "Today", "href": "#games"},
             {"label": "Record", "href": "#record"},
+            {"label": "Root Cause", "href": "#accuracy-root-cause"},
             {"label": "Governance", "href": "#governance"},
             {"label": "Roadmap", "href": "#roadmap"},
             {"label": "About", "href": "#about"},
