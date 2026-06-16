@@ -47,6 +47,7 @@ jobs:
             scripts/feature_promotion_candidate_report.py \
             scripts/shadow_feature_experiment_report.py \
             scripts/shadow_feature_decision_report.py \
+            scripts/shadow_feature_ablation_report.py \
             scripts/feature_priority_report.py \
             scripts/walkforward_evaluation.py \
             scripts/report_health_gate.py \
@@ -79,6 +80,11 @@ jobs:
 
       - name: Build shadow feature decision report
         run: python scripts/shadow_feature_decision_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build shadow feature ablation report
+        run: python scripts/shadow_feature_ablation_report.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -144,6 +150,8 @@ jobs:
             report/shadow_feature_experiment_report.json \
             report/shadow_feature_experiment_rows.csv \
             report/shadow_feature_decision_report.json \
+            report/shadow_feature_ablation_report.json \
+            report/shadow_feature_ablation_rows.csv \
             report/feature_priority_report.json \
             report/artifact_quarantine_report.json \
             report/walkforward_evaluation.json \
