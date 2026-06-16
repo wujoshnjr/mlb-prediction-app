@@ -30,7 +30,7 @@
         <div class="hero-actions">
           <a href="#games" class="button primary">今日賽事</a>
           <a href="#record" class="button secondary">預測戰績</a>
-          <a href="#governance" class="button ghost">模型治理</a>
+          <a href="#accuracy-root-cause" class="button ghost">下滑原因</a>
         </div>
       </div>
 
@@ -88,6 +88,32 @@
           </div>
         </div>
         <div id="performanceGrid" class="performance-grid"></div>
+      </div>
+    </section>
+
+    <section id="accuracy-root-cause" class="section-block">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Accuracy Root Cause</p>
+          <h2>準確率下滑原因</h2>
+        </div>
+        <span class="section-note">把下滑拆成日期、切片、模型、baseline、資料源。</span>
+      </div>
+      <div id="accuracySummary" class="root-summary-grid"></div>
+      <div id="rootCauseGrid" class="root-cause-grid"></div>
+      <div class="two-column root-detail-row">
+        <div class="panel">
+          <div class="section-heading compact">
+            <div><p class="eyebrow">Weak Days</p><h2>近期低命中日</h2></div>
+          </div>
+          <div id="degradedDays" class="mini-list"></div>
+        </div>
+        <div class="panel">
+          <div class="section-heading compact">
+            <div><p class="eyebrow">Weak Slices</p><h2>弱勢切片</h2></div>
+          </div>
+          <div id="weakSlices" class="mini-list"></div>
+        </div>
       </div>
     </section>
 
