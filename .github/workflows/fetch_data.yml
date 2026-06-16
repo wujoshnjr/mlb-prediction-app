@@ -92,6 +92,7 @@ jobs:
             scripts/sanitize_prediction_report.py
             scripts/sanitize_prediction_snapshots.py
             scripts/html_report_builder.py
+            scripts/build_public_site_data.py
             scripts/baseline_comparison_report.py
             scripts/clv_slice_report.py
             scripts/walkforward_evaluation.py
@@ -265,8 +266,9 @@ jobs:
           run_if_exists_optional scripts/saas_readiness_report.py
           run_if_exists_optional scripts/html_report_builder.py
           run_if_exists_required scripts/data_contract_validator.py
-          run_if_exists_required scripts/pipeline_manifest.py
           run_if_exists_required scripts/report_health_gate.py
+          run_if_exists_required scripts/build_public_site_data.py
+          run_if_exists_required scripts/pipeline_manifest.py
           run_if_exists_required scripts/sanitize_prediction_snapshots.py
 
       - name: Run tests
