@@ -1,0 +1,1090 @@
+{
+  "generated_at": "2026-06-16T02:10:04.023740Z",
+  "report_type": "feature_promotion_candidate_report",
+  "status": "warning",
+  "source_reports": {
+    "feature_source_coverage": "report/feature_source_coverage_report.json",
+    "walkforward": "report/walkforward_evaluation.json",
+    "model_data_root_cause": "report/model_data_root_cause_report.json",
+    "baseline_comparison": "report/baseline_comparison_report.json"
+  },
+  "promotion_policy": {
+    "active_model_promotion_allowed": false,
+    "shadow_evaluation_allowed": true,
+    "reason": "Candidates may enter shadow evaluation only; active model promotion requires passing walk-forward, baseline, and root-cause gates.",
+    "active_promotion_blockers": [
+      "baseline_quality_gate_blocks_promotion",
+      "model_data_root_cause_status_blocked",
+      "walkforward_collapse_detected",
+      "walkforward_sample_count_below_required_threshold"
+    ],
+    "minimum_shadow_non_zero_rate": 0.3,
+    "maximum_shadow_missing_rate": 0.1
+  },
+  "summary": {
+    "evaluated_feature_count": 62,
+    "already_active_core_count": 7,
+    "shadow_candidate_now_count": 2,
+    "shadow_candidate_after_backfill_count": 11,
+    "blocked_candidate_count": 41,
+    "recommended_shadow_set_count": 12
+  },
+  "recommended_shadow_set": [
+    {
+      "feature": "k_pct_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 22.4745,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5537,
+      "non_zero_rate": 0.4463,
+      "unique_count": 107,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "bb_pct_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 22.19,
+      "missing_rate": 0.0,
+      "zero_rate": 0.562,
+      "non_zero_rate": 0.438,
+      "unique_count": 103,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "sp_fip_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 22.147,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5702,
+      "non_zero_rate": 0.4298,
+      "unique_count": 105,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "sp_stuff_plus_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 22.107,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5702,
+      "non_zero_rate": 0.4298,
+      "unique_count": 104,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "lag30_winrate_diff",
+      "feature_group": "rest_travel",
+      "source_category": "feature_disabled_with_signal",
+      "promotion_status": "shadow_candidate_now",
+      "candidate_score": 20.864,
+      "missing_rate": 0.0,
+      "zero_rate": 0.4876,
+      "non_zero_rate": 0.5124,
+      "unique_count": 106,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked"
+      ]
+    },
+    {
+      "feature": "bullpen_availability_diff",
+      "feature_group": "bullpen",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_now",
+      "candidate_score": 20.0375,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5455,
+      "non_zero_rate": 0.4545,
+      "unique_count": 93,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked"
+      ]
+    },
+    {
+      "feature": "avg_bat_speed_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.5185,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 86,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "bullpen_ip_diff",
+      "feature_group": "bullpen",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.4915,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5579,
+      "non_zero_rate": 0.4421,
+      "unique_count": 84,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "statcast_woba_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.3985,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 83,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "top3_woba_diff",
+      "feature_group": "lineup",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.3985,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 83,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "hardhit_pa_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.3585,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 82,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "barrel_pa_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.1585,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 77,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    }
+  ],
+  "shadow_candidate_now": [
+    {
+      "feature": "lag30_winrate_diff",
+      "feature_group": "rest_travel",
+      "source_category": "feature_disabled_with_signal",
+      "promotion_status": "shadow_candidate_now",
+      "candidate_score": 20.864,
+      "missing_rate": 0.0,
+      "zero_rate": 0.4876,
+      "non_zero_rate": 0.5124,
+      "unique_count": 106,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked"
+      ]
+    },
+    {
+      "feature": "bullpen_availability_diff",
+      "feature_group": "bullpen",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_now",
+      "candidate_score": 20.0375,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5455,
+      "non_zero_rate": 0.4545,
+      "unique_count": 93,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked"
+      ]
+    }
+  ],
+  "shadow_candidate_after_backfill": [
+    {
+      "feature": "k_pct_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 22.4745,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5537,
+      "non_zero_rate": 0.4463,
+      "unique_count": 107,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "bb_pct_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 22.19,
+      "missing_rate": 0.0,
+      "zero_rate": 0.562,
+      "non_zero_rate": 0.438,
+      "unique_count": 103,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "sp_fip_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 22.147,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5702,
+      "non_zero_rate": 0.4298,
+      "unique_count": 105,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "sp_stuff_plus_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 22.107,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5702,
+      "non_zero_rate": 0.4298,
+      "unique_count": 104,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "sp_csw_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 21.907,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5702,
+      "non_zero_rate": 0.4298,
+      "unique_count": 99,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "avg_bat_speed_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.5185,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 86,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "bullpen_ip_diff",
+      "feature_group": "bullpen",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.4915,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5579,
+      "non_zero_rate": 0.4421,
+      "unique_count": 84,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "statcast_woba_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.3985,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 83,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "top3_woba_diff",
+      "feature_group": "lineup",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.3985,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 83,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "hardhit_pa_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.3585,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 82,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    },
+    {
+      "feature": "barrel_pa_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "shadow_candidate_after_backfill",
+      "candidate_score": 19.1585,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 77,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature has non-zero signal and low missingness",
+        "promotion is limited to shadow evaluation; active model remains locked",
+        "coverage is partial, so require backfill/monitoring before stronger promotion"
+      ]
+    }
+  ],
+  "blocked_candidates": [
+    {
+      "feature": "statcast_launch_speed_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "high_zero_needs_review",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 15.5185,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 86,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "statcast_hard_hit_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "high_zero_needs_review",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 15.3585,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 82,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "statcast_barrel_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "high_zero_needs_review",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 15.1585,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 77,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "elo_momentum_30d",
+      "feature_group": "core_strength",
+      "source_category": "high_zero_needs_review",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 14.934,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5124,
+      "non_zero_rate": 0.4876,
+      "unique_count": 103,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "log5_prob",
+      "feature_group": "core_strength",
+      "source_category": "high_zero_needs_review",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 14.614,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5124,
+      "non_zero_rate": 0.4876,
+      "unique_count": 95,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "elo_momentum_7d",
+      "feature_group": "core_strength",
+      "source_category": "high_zero_needs_review",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 13.3975,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5455,
+      "non_zero_rate": 0.4545,
+      "unique_count": 77,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "pitch_movement_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 9.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "pitch_type_matchup_score",
+      "feature_group": "starting_pitcher",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 9.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "platoon_ops_diff",
+      "feature_group": "lineup",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 8.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "swing_miss_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 8.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "is_day_game",
+      "feature_group": "park_weather",
+      "source_category": "true_zero_or_context_sparse",
+      "promotion_status": "blocked_schema_not_shadow_allowed",
+      "candidate_score": 8.283,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6198,
+      "non_zero_rate": 0.3802,
+      "unique_count": 2,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "feature is not allowed by current shadow schema"
+      ]
+    },
+    {
+      "feature": "odds_change",
+      "feature_group": "market",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 7.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "wind_effect",
+      "feature_group": "park_weather",
+      "source_category": "true_zero_or_context_sparse",
+      "promotion_status": "blocked_signal_too_sparse",
+      "candidate_score": 7.224,
+      "missing_rate": 0.0,
+      "zero_rate": 0.8264,
+      "non_zero_rate": 0.1736,
+      "unique_count": 3,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "non-zero coverage is below minimum shadow threshold"
+      ]
+    },
+    {
+      "feature": "barrel_bb_pct_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 6.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "catcher_era_diff",
+      "feature_group": "lineup",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 6.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "cs_diff",
+      "feature_group": "lineup",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 6.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "sprint_speed_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 6.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "temp_effect",
+      "feature_group": "park_weather",
+      "source_category": "true_zero_or_context_sparse",
+      "promotion_status": "blocked_signal_too_sparse",
+      "candidate_score": 6.191,
+      "missing_rate": 0.0,
+      "zero_rate": 0.8926,
+      "non_zero_rate": 0.1074,
+      "unique_count": 2,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "non-zero coverage is below minimum shadow threshold"
+      ]
+    },
+    {
+      "feature": "rest_diff",
+      "feature_group": "rest_travel",
+      "source_category": "true_zero_or_context_sparse",
+      "promotion_status": "blocked_signal_too_sparse",
+      "candidate_score": 6.05,
+      "missing_rate": 0.0,
+      "zero_rate": 0.938,
+      "non_zero_rate": 0.062,
+      "unique_count": 3,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "non-zero coverage is below minimum shadow threshold"
+      ]
+    },
+    {
+      "feature": "precip_effect",
+      "feature_group": "park_weather",
+      "source_category": "true_zero_or_context_sparse",
+      "promotion_status": "blocked_signal_too_sparse",
+      "candidate_score": 6.005,
+      "missing_rate": 0.0,
+      "zero_rate": 0.905,
+      "non_zero_rate": 0.095,
+      "unique_count": 2,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "non-zero coverage is below minimum shadow threshold"
+      ]
+    },
+    {
+      "feature": "dynamic_pythag_diff",
+      "feature_group": "core_strength",
+      "source_category": "high_zero_needs_review",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 4.91,
+      "missing_rate": 0.0,
+      "zero_rate": 0.938,
+      "non_zero_rate": 0.062,
+      "unique_count": 12,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "back2back_diff",
+      "feature_group": "rest_travel",
+      "source_category": "true_zero_or_context_sparse",
+      "promotion_status": "blocked_schema_not_shadow_allowed",
+      "candidate_score": 4.608,
+      "missing_rate": 0.0,
+      "zero_rate": 0.9008,
+      "non_zero_rate": 0.0992,
+      "unique_count": 3,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "feature is not allowed by current shadow schema"
+      ]
+    },
+    {
+      "feature": "lineup_context_available",
+      "feature_group": "lineup",
+      "source_category": "source_missing_or_not_backfilled",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 3.354,
+      "missing_rate": 0.5124,
+      "zero_rate": 0.4876,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "rest_pressure_diff",
+      "feature_group": "rest_travel",
+      "source_category": "source_missing_or_not_backfilled",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 1.778,
+      "missing_rate": 0.5702,
+      "zero_rate": 0.0826,
+      "non_zero_rate": 0.3471,
+      "unique_count": 34,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "injury_diff",
+      "feature_group": "injuries",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 1.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "bullpen_context_available",
+      "feature_group": "availability",
+      "source_category": "source_missing_or_not_backfilled",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 0.73,
+      "missing_rate": 0.5124,
+      "zero_rate": 0.0,
+      "non_zero_rate": 0.4876,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "pitcher_advanced_available",
+      "feature_group": "availability",
+      "source_category": "source_missing_or_not_backfilled",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 0.73,
+      "missing_rate": 0.5124,
+      "zero_rate": 0.0,
+      "non_zero_rate": 0.4876,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "sp_csw_diff_available",
+      "feature_group": "availability",
+      "source_category": "source_missing_or_not_backfilled",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 0.73,
+      "missing_rate": 0.5124,
+      "zero_rate": 0.0,
+      "non_zero_rate": 0.4876,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "sp_fip_diff_available",
+      "feature_group": "availability",
+      "source_category": "source_missing_or_not_backfilled",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 0.73,
+      "missing_rate": 0.5124,
+      "zero_rate": 0.0,
+      "non_zero_rate": 0.4876,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    },
+    {
+      "feature": "sp_stuff_plus_diff_available",
+      "feature_group": "availability",
+      "source_category": "source_missing_or_not_backfilled",
+      "promotion_status": "blocked_source_or_review_first",
+      "candidate_score": 0.73,
+      "missing_rate": 0.5124,
+      "zero_rate": 0.0,
+      "non_zero_rate": 0.4876,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "source coverage or all-zero review must be fixed before shadow promotion"
+      ]
+    }
+  ],
+  "already_active_core": [
+    {
+      "feature": "bt_strength_diff",
+      "feature_group": "core_strength",
+      "source_category": "active_core_healthy",
+      "promotion_status": "already_active_core",
+      "candidate_score": -77.921,
+      "missing_rate": 0.0,
+      "zero_rate": 0.0041,
+      "non_zero_rate": 0.9959,
+      "unique_count": 103,
+      "allow_in_main_model": true,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature is already allowed in active model schema"
+      ]
+    },
+    {
+      "feature": "dynamic_park_factor",
+      "feature_group": "park_weather",
+      "source_category": "active_core_healthy",
+      "promotion_status": "already_active_core",
+      "candidate_score": -82.08,
+      "missing_rate": 0.0,
+      "zero_rate": 0.0,
+      "non_zero_rate": 1.0,
+      "unique_count": 23,
+      "allow_in_main_model": true,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature is already allowed in active model schema"
+      ]
+    },
+    {
+      "feature": "elo_diff",
+      "feature_group": "core_strength",
+      "source_category": "active_core_healthy",
+      "promotion_status": "already_active_core",
+      "candidate_score": -77.0,
+      "missing_rate": 0.0,
+      "zero_rate": 0.0,
+      "non_zero_rate": 1.0,
+      "unique_count": 174,
+      "allow_in_main_model": true,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature is already allowed in active model schema"
+      ]
+    },
+    {
+      "feature": "pitcher_rating_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "active_core_healthy",
+      "promotion_status": "already_active_core",
+      "candidate_score": -75.314,
+      "missing_rate": 0.0,
+      "zero_rate": 0.2314,
+      "non_zero_rate": 0.7686,
+      "unique_count": 155,
+      "allow_in_main_model": true,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature is already allowed in active model schema"
+      ]
+    },
+    {
+      "feature": "sp_era_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "active_core_healthy",
+      "promotion_status": "already_active_core",
+      "candidate_score": -73.124,
+      "missing_rate": 0.0,
+      "zero_rate": 0.0124,
+      "non_zero_rate": 0.9876,
+      "unique_count": 198,
+      "allow_in_main_model": true,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature is already allowed in active model schema"
+      ]
+    },
+    {
+      "feature": "timezone_diff",
+      "feature_group": "rest_travel",
+      "source_category": "active_core_healthy",
+      "promotion_status": "already_active_core",
+      "candidate_score": -86.27,
+      "missing_rate": 0.0,
+      "zero_rate": 0.405,
+      "non_zero_rate": 0.595,
+      "unique_count": 7,
+      "allow_in_main_model": true,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature is already allowed in active model schema"
+      ]
+    },
+    {
+      "feature": "winrate_diff",
+      "feature_group": "core_strength",
+      "source_category": "active_core_healthy",
+      "promotion_status": "already_active_core",
+      "candidate_score": -77.289,
+      "missing_rate": 0.0,
+      "zero_rate": 0.0289,
+      "non_zero_rate": 0.9711,
+      "unique_count": 182,
+      "allow_in_main_model": true,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature is already allowed in active model schema"
+      ]
+    }
+  ],
+  "next_actions": [
+    "Run shadow-only evaluation for recommended_shadow_set without changing public predictions.",
+    "Add missing indicators before any numeric imputation for promoted shadow candidates.",
+    "Backfill source-missing all-zero features before considering them as candidates.",
+    "Keep active model locked until walk-forward sample size, collapse, and baseline gates pass."
+  ],
+  "promotion_allowed": false,
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false,
+  "production_model_replacement_allowed": false
+}
