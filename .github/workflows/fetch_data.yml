@@ -113,6 +113,7 @@ jobs:
             scripts/research_promotion_readiness_report.py
             scripts/daily_model_accuracy_report.py
             scripts/accuracy_root_cause_report.py
+            scripts/feature_source_freshness_audit.py
             scripts/away_pick_diagnostic_report.py
             scripts/away_guardrail_impact_report.py
             scripts/signal_quality_report.py
@@ -242,6 +243,7 @@ jobs:
           run_if_exists_optional scripts/model_correctness_report.py
           run_if_exists_optional scripts/daily_model_accuracy_report.py
           run_if_exists_optional scripts/accuracy_root_cause_report.py
+          run_if_exists_optional scripts/feature_source_freshness_audit.py
           run_if_exists_optional scripts/away_pick_diagnostic_report.py
           run_if_exists_optional scripts/away_guardrail_impact_report.py
           run_if_exists_optional scripts/signal_quality_report.py
@@ -259,6 +261,7 @@ jobs:
           run_if_exists_required scripts/per_slice_performance_report.py
           run_if_exists_required scripts/data_contract_validator.py
           run_if_exists_optional scripts/accuracy_root_cause_report.py
+          run_if_exists_optional scripts/feature_source_freshness_audit.py
           run_if_exists_required scripts/pipeline_manifest.py
           run_if_exists_optional scripts/promotion_gate.py
           run_if_exists_optional scripts/decision_audit_report.py
