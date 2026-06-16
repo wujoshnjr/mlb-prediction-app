@@ -1,45 +1,394 @@
 <!doctype html>
-<html lang='zh-Hant'>
+<html lang="zh-Hant">
 <head>
-<meta charset='utf-8'>
-<meta name='viewport' content='width=device-width, initial-scale=1'>
-<title>MLB Intelligence Cloud · Research Dashboard</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MLB Paper Prediction Board</title>
 <style>
-:root{color-scheme:dark;--bg:#07100d;--panel:#0f1f1a;--panel2:#132821;--text:#f3fff9;--muted:#a7c7b8;--line:#2c4b40;--ok:#41e69f;--warn:#f6c453;--bad:#ff7b93;--neutral:#91c8ff;--shadow:0 18px 50px rgba(0,0,0,.38);}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,rgba(65,230,159,.18),transparent 34%),linear-gradient(180deg,#07100d,#050806);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,Arial,sans-serif;font-variant-numeric:tabular-nums;line-height:1.5}
-.shell{max-width:1280px;margin:0 auto;padding:22px 16px 44px}.hero{border:1px solid var(--line);background:linear-gradient(135deg,rgba(19,40,33,.96),rgba(8,18,15,.96));box-shadow:var(--shadow);border-radius:28px;padding:28px;margin-bottom:16px}.eyebrow{color:var(--ok);font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;font-weight:850}.hero h1{font-size:clamp(2rem,5vw,4rem);letter-spacing:-.065em;line-height:1;margin:.4rem 0}.hero p{max-width:820px;color:var(--muted);margin:.5rem 0 0}.status-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;font-size:.72rem;font-weight:850;text-transform:uppercase;border:1px solid var(--line);background:#0b1713;color:var(--muted)}.badge.ok{color:#06120d;background:var(--ok);border-color:var(--ok)}.badge.warn{color:#1d1300;background:var(--warn);border-color:var(--warn)}.badge.bad{color:#2d0007;background:var(--bad);border-color:var(--bad)}.badge.neutral{color:#061427;background:var(--neutral);border-color:var(--neutral)}
-.panel{border:1px solid var(--line);background:rgba(15,31,26,.88);border-radius:22px;padding:18px;margin:14px 0;box-shadow:0 12px 32px rgba(0,0,0,.22)}.section-title{display:flex;justify-content:space-between;gap:12px;align-items:end;margin-bottom:12px}.section-title h2{margin:0;font-size:1.15rem}.section-title span{color:var(--muted);font-size:.78rem}.metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.metric-card{background:#0b1713;border:1px solid var(--line);border-radius:18px;padding:14px;min-height:112px}.metric-card.ok{border-color:rgba(65,230,159,.5)}.metric-card.warn{border-color:rgba(246,196,83,.55)}.metric-card.bad{border-color:rgba(255,123,147,.6)}.metric-label{color:var(--muted);font-size:.67rem;text-transform:uppercase;letter-spacing:.12em;font-weight:850}.metric-value{font-size:1.45rem;font-weight:920;margin-top:6px}.metric-caption{color:var(--muted);font-size:.72rem;margin-top:4px}
-.details{border:1px solid var(--line);border-radius:16px;margin-top:10px;background:rgba(5,10,8,.45);padding:0}.details summary{cursor:pointer;padding:12px 14px;font-weight:850;color:var(--text)}.details>*:not(summary){padding:0 14px 14px}.clean-list{margin:.25rem 0 0;padding-left:1.2rem;color:var(--muted)}.muted{color:var(--muted)}.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px;margin-top:10px}table{width:100%;border-collapse:collapse;min-width:720px}th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);text-align:left;font-size:.82rem}th{background:#132821;color:#dffff2;text-transform:uppercase;font-size:.68rem;letter-spacing:.1em}td{color:#e8fff5}
-.action-grid,.game-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}.action-card,.game-card{background:#0b1713;border:1px solid var(--line);border-radius:16px;padding:14px}.action-card p,.game-card p{color:var(--muted);margin:.45rem 0}.action-card small,.game-card small{color:#89ac9e}.card-top{display:flex;justify-content:space-between;gap:10px;align-items:center;color:var(--muted);font-size:.72rem}.game-card h3{margin:.7rem 0 .4rem;font-size:1rem}.game-card h3 span{color:var(--muted)}.prob{font-size:1.55rem;font-weight:920}.prob small{display:block;font-size:.65rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}footer{color:var(--muted);text-align:center;margin-top:24px;font-size:.75rem}@media(max-width:980px){.metric-grid,.action-grid,.game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:640px){.shell{padding:12px}.hero{padding:20px;border-radius:20px}.metric-grid,.action-grid,.game-grid{grid-template-columns:1fr}.section-title{display:block}table{min-width:620px}}
-</style>
+:root{color-scheme:dark;--bg:#071019;--panel:rgba(14,25,38,.92);--line:rgba(135,166,210,.18);--text:#f8fbff;--muted:#a7b6c9;--muted2:#6f8196;--blue:#74c0fc;--green:#53e08f;--yellow:#ffd166;--red:#ff6b6b;--shadow:0 24px 80px rgba(0,0,0,.34)}*{box-sizing:border-box}body{margin:0;color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-variant-numeric:tabular-nums;background:radial-gradient(circle at 18% -8%,rgba(83,224,143,.18),transparent 30%),radial-gradient(circle at 88% 6%,rgba(116,192,252,.20),transparent 34%),linear-gradient(180deg,#071019,#0b121d 55%,#05080d)}.shell{max-width:1180px;margin:0 auto;padding:24px 18px 58px}.hero{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(290px,.6fr);gap:16px}.card,.panel,.notice,.metric-card,.game-card,.roadmap-card{border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow)}.hero-main{min-height:360px;border-radius:34px;padding:clamp(26px,6vw,56px);display:flex;flex-direction:column;justify-content:center;background:linear-gradient(140deg,rgba(17,34,52,.96),rgba(9,18,28,.90))}.hero-side{border-radius:34px;padding:22px;background:linear-gradient(180deg,rgba(18,32,48,.98),rgba(8,15,24,.94));display:flex;flex-direction:column;justify-content:space-between}.eyebrow{margin:0 0 10px;color:var(--green);text-transform:uppercase;font-size:.74rem;font-weight:900;letter-spacing:.16em}.hero h1{margin:0;font-size:clamp(2.4rem,7vw,5.45rem);line-height:.94;letter-spacing:-.075em}.hero-subtitle{color:var(--muted);font-size:1.05rem;line-height:1.7;margin:20px 0 0}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:30px}.button{display:inline-flex;min-height:44px;align-items:center;justify-content:center;padding:0 16px;border-radius:999px;text-decoration:none;font-weight:900}.button.primary{background:var(--text);color:#08111d}.button.secondary{background:rgba(83,224,143,.14);color:var(--green);border:1px solid rgba(83,224,143,.34)}.button.ghost{color:var(--text);border:1px solid var(--line);background:rgba(255,255,255,.055)}.status-pill{display:inline-flex;width:max-content;padding:9px 12px;border-radius:999px;font-weight:950;font-size:.76rem;text-transform:uppercase;letter-spacing:.08em}.status-pill.ok{background:rgba(83,224,143,.16);color:var(--green);border:1px solid rgba(83,224,143,.35)}.status-pill.warning{background:rgba(255,209,102,.16);color:var(--yellow);border:1px solid rgba(255,209,102,.35)}.status-pill.danger{background:rgba(255,107,107,.16);color:var(--red);border:1px solid rgba(255,107,107,.35)}.status-pill.neutral{background:rgba(116,192,252,.16);color:var(--blue);border:1px solid rgba(116,192,252,.35)}.quick-status{margin:28px 0 0;display:grid;gap:10px}.quick-status div{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08)}.quick-status dt{color:var(--muted)}.quick-status dd{margin:0;font-weight:900;text-align:right}.notice{margin:16px 0;border-radius:18px;padding:14px 16px;display:flex;gap:10px;color:var(--muted)}.notice strong{color:var(--yellow)}.score-strip{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin:16px 0 26px}.metric-card{min-height:116px;border-radius:20px;padding:16px;background:linear-gradient(180deg,rgba(17,31,47,.94),rgba(9,16,26,.90))}.metric-card span,.record-item span,.performance-item span{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;font-weight:900}.metric-card strong,.record-item strong,.performance-item strong{display:block;margin-top:10px;font-size:1.8rem;letter-spacing:-.035em}.metric-card small,.record-item small,.performance-item small{display:block;color:var(--muted2);margin-top:5px}.section{margin-top:32px}.section-heading{display:flex;justify-content:space-between;align-items:end;gap:14px;margin-bottom:14px}.section-heading h2{margin:0;font-size:clamp(1.45rem,3vw,2.2rem);letter-spacing:-.045em}.section-note{color:var(--muted);font-size:.9rem}.game-list{display:grid;gap:12px}.game-card{border-radius:22px;padding:16px;background:linear-gradient(180deg,rgba(17,31,47,.95),rgba(8,15,24,.90))}.game-mainline{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr);gap:14px}.game-top{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--muted);font-size:.82rem}.game-card h3{margin:14px 0 8px;font-size:1.35rem;letter-spacing:-.03em}.game-card h3 span{color:var(--muted2);font-weight:500}.match-meta,.game-note{color:var(--muted);line-height:1.55}.prob-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.prob-box{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:12px}.prob-box strong{display:block;font-size:1.45rem;letter-spacing:-.035em}.prob-box span{color:var(--muted);font-size:.75rem}.tag-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.tag{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.055);color:var(--muted);padding:6px 8px;border-radius:999px;font-size:.75rem}.tag.strong{color:var(--green);border-color:rgba(83,224,143,.25);background:rgba(83,224,143,.1)}.two-column{display:grid;grid-template-columns:1fr 1fr;gap:14px}.panel{border-radius:24px;padding:20px}.record-board,.performance-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.record-item,.performance-item{border:1px solid var(--line);background:rgba(255,255,255,.035);border-radius:18px;padding:16px}.record-wide{grid-column:1/-1}.roadmap-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.roadmap-card{border-radius:22px;padding:18px;box-shadow:none}.roadmap-card p{color:var(--muted);line-height:1.55}.roadmap-card ul{margin:12px 0 0;padding-left:18px;color:var(--muted)}@media(max-width:1040px){.hero,.two-column,.game-mainline{grid-template-columns:1fr}.score-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.roadmap-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:680px){.shell{padding:16px 12px 42px}.hero-main,.hero-side{border-radius:24px}.score-strip,.record-board,.performance-grid,.roadmap-grid{grid-template-columns:1fr}.section-heading{align-items:flex-start;flex-direction:column}.notice{flex-direction:column}.prob-row{grid-template-columns:1fr}}
+    </style>
 </head>
-<body><main class='shell'>
-<section class='hero'>
-<div class='eyebrow'>MLB Intelligence Cloud · Paper-only research dashboard</div>
-<h1>Research mode · promotion locked</h1>
-<p>先看模型是否可信，再看單場預測。這個介面把 pipeline 健康、模型品質、baseline、artifact quarantine、feature roadmap 分開顯示，避免把『模型不能升級』誤看成『程式壞掉』。</p>
-<div class='status-row'><span class='badge neutral'>Research mode · promotion locked</span><span class='badge ok'>Live betting locked</span><span class='badge ok'>No automated wagering</span><span class='badge neutral'>Generated 2026-06-16T07:28:07.634618Z</span></div>
-<ul class='clean-list'><li>model collapse guardrail active</li><li>model has not cleared baseline promotion gate</li><li>model_does_not_beat_constant_50_brier</li><li>model_does_not_beat_constant_50_logloss</li><li>model_does_not_beat_home_historical_rate_brier</li><li>model_does_not_beat_home_historical_rate_logloss</li><li>stale artifact quarantined</li></ul>
-</section>
-<section class='panel'><div class='section-title'><h2>Executive Snapshot</h2><span>Most important information first</span></div><div class='metric-grid'><article class='metric-card neutral'><div class='metric-label'>Predictions</div><div class='metric-value'>15</div><div class='metric-caption'>today board size</div></article><article class='metric-card neutral'><div class='metric-label'>Promotion</div><div class='metric-value'>No</div><div class='metric-caption'>baseline quality gate</div></article><article class='metric-card warn'><div class='metric-label'>Model Quality</div><div class='metric-value'>blocked</div><div class='metric-caption'>quality blocks are not pipeline crashes</div></article><article class='metric-card neutral'><div class='metric-label'>Feature Gaps</div><div class='metric-value'>10</div><div class='metric-caption'>P1 high-impact data gaps</div></article></div></section>
-<section class='panel'><div class='section-title'><h2>Governance & Safety</h2><span>Why the system is locked or allowed</span></div><div class='metric-grid'><article class='metric-card ok'><div class='metric-label'>Live Betting</div><div class='metric-value'>No</div><div class='metric-caption'>must remain disabled</div></article><article class='metric-card neutral'><div class='metric-label'>Model Mode</div><div class='metric-value'>paper_trading_only</div><div class='metric-caption'>active serving policy</div></article><article class='metric-card warn'><div class='metric-label'>Artifact</div><div class='metric-value'>quarantined</div><div class='metric-caption'>stale artifact quarantine</div></article><article class='metric-card ok'><div class='metric-label'>Pipeline</div><div class='metric-value'>ok</div><div class='metric-caption'>health gate</div></article><article class='metric-card ok'><div class='metric-label'>Data Contract</div><div class='metric-value'>ok</div><div class='metric-caption'>errors=0 warnings=8</div></article><article class='metric-card neutral'><div class='metric-label'>Training</div><div class='metric-value'>No</div><div class='metric-caption'>samples=252 min=300</div></article></div><details class='details' open><summary>Governance block reasons</summary><ul class='clean-list'><li>clean_model_sample_count_below_live_min:109&lt;500</li><li>clean_model_sample_count_below_train_min:109&lt;300</li><li>force_paper_trading_only_enabled</li><li>live_betting_locked_for_personal_research_engine</li><li>positive_clv_rate_below_threshold</li></ul></details><details class='details'><summary>Missing critical sources</summary><p class='muted'>None</p></details><details class='details'><summary>Missing important sources</summary><ul class='clean-list'><li>confirmed_lineup</li><li>confirmed_starter</li></ul></details><details class='details'><summary>Model quality blocks</summary><ul class='clean-list'><li>artifact_quarantine: promotion_allowed=false</li><li>artifact_quarantine: status=quarantined</li><li>baseline_comparison: promotion_allowed=false</li><li>baseline_comparison: status=warning</li><li>feature_priority: promotion_allowed=false</li><li>feature_priority: status=warning</li><li>prediction_collapse: do_not_promote=true</li><li>prediction_collapse: status=failed</li><li>walkforward: promotion_allowed=false</li><li>walkforward: status=insufficient_samples</li></ul></details></section>
-<section class='panel'><div class='section-title'><h2>Model Quality</h2><span>Probability, baseline and collapse gates</span></div><div class='metric-grid'><article class='metric-card neutral'><div class='metric-label'>AUC</div><div class='metric-value'>0.5126050420168067</div><div class='metric-caption'>discrimination; 0.50 is random</div></article><article class='metric-card neutral'><div class='metric-label'>Brier</div><div class='metric-value'>0.25881946503179776</div><div class='metric-caption'>lower is better; 0.25 is random-ish</div></article><article class='metric-card neutral'><div class='metric-label'>Logloss</div><div class='metric-value'>0.7116405965174837</div><div class='metric-caption'>lower is better; 0.693 is 50/50</div></article><article class='metric-card bad'><div class='metric-label'>Collapse</div><div class='metric-value'>failed</div><div class='metric-caption'>prediction collapse guardrail</div></article><article class='metric-card warn'><div class='metric-label'>Baseline Gate</div><div class='metric-value'>blocked</div><div class='metric-caption'>must beat 50%, history, and market</div></article><article class='metric-card warn'><div class='metric-label'>Walk-forward</div><div class='metric-value'>insufficient_samples</div><div class='metric-caption'>folds=5 collapse=4</div></article></div><details class='details'><summary>Collapse reasons</summary><ul class='clean-list'><li>roc_auc_near_random</li><li>balanced_accuracy_near_random</li><li>single_class_positive_prediction_collapse</li><li>brier_near_random_0_25</li><li>logloss_near_random_0_693</li><li>test_sample_count_too_small_for_stable_claims</li></ul></details><details class='details'><summary>Baseline comparison</summary><div class='table-wrap'><table><tr><th>Baseline</th><th>Count</th><th>Brier</th><th>Logloss</th><th>Accuracy</th></tr>
-<tr><td>model</td><td>252</td><td>0.254493</td><td>0.702463</td><td>0.515873</td></tr>
-<tr><td>market_no_vig</td><td>212</td><td>0.274114</td><td>0.776785</td><td>0.537736</td></tr>
-<tr><td>elo</td><td>252</td><td>0.258007</td><td>0.710539</td><td>0.511905</td></tr>
-<tr><td>constant_50</td><td>252</td><td>0.25</td><td>0.693147</td><td>0.555556</td></tr>
-<tr><td>home_historical_rate</td><td>252</td><td>0.247303</td><td>0.687747</td><td>0.555556</td></tr>
-<tr><td>log5</td><td>252</td><td>0.397941</td><td>7.608411</td><td>0.492063</td></tr>
-</table></div></details><details class='details'><summary>Walk-forward fold summary</summary><div class='table-wrap'><table><tr><th>Fold</th><th>Samples</th><th>Brier</th><th>Logloss</th><th>Collapse</th><th>Reasons</th></tr>
-<tr><td>1</td><td>51</td><td>0.265472</td><td>0.727975</td><td>True</td><td>model_does_not_beat_constant_50_brier</td></tr>
-<tr><td>2</td><td>51</td><td>0.226983</td><td>0.644919</td><td>False</td><td></td></tr>
-<tr><td>3</td><td>50</td><td>0.256436</td><td>0.704856</td><td>True</td><td>balanced_accuracy_near_random, model_does_not_beat_constant_50_brier</td></tr>
-<tr><td>4</td><td>50</td><td>0.265446</td><td>0.725835</td><td>True</td><td>balanced_accuracy_near_random, model_does_not_beat_constant_50_brier</td></tr>
-<tr><td>5</td><td>50</td><td>0.25846</td><td>0.709369</td><td>True</td><td>balanced_accuracy_near_random, model_does_not_beat_constant_50_brier, model_does_not_beat_market_brier</td></tr>
-</table></div></details></section>
-<section class='panel'><div class='section-title'><h2>Feature Roadmap</h2><span>Which data source to fix first</span></div><div class='metric-grid'><article class='metric-card warn'><div class='metric-label'>Features</div><div class='metric-value'>62</div><div class='metric-caption'>tracked in priority report</div></article><article class='metric-card neutral'><div class='metric-label'>P1 Data Gaps</div><div class='metric-value'>10</div><div class='metric-caption'>highest impact missing/zero gaps</div></article><article class='metric-card neutral'><div class='metric-label'>P1 Ready</div><div class='metric-value'>17</div><div class='metric-caption'>shadow research candidates</div></article><article class='metric-card neutral'><div class='metric-label'>Promotion</div><div class='metric-value'>No</div><div class='metric-caption'>always locked by this diagnostic</div></article></div><div class='action-grid'><article class='action-card'><strong>starting_pitcher</strong><p>Starting pitcher quality, pitch traits, strikeout/walk profile and matchup context are high-leverage MLB signals.</p><small>pitch_movement_diff, pitch_type_matchup_score, pitcher_rating_diff, sp_csw_diff, sp_fip_diff</small></article><article class='action-card'><strong>bullpen</strong><p>Bullpen availability and workload affect late-game win probability, especially after starter exits.</p><small>bullpen_ip_diff, bullpen_availability_diff</small></article><article class='action-card'><strong>market</strong><p>Market no-vig probability and odds movement are essential baselines; model promotion should not occur without beating them.</p><small>odds_change</small></article><article class='action-card'><strong>injuries</strong><p>Injury context is important but must be carefully timestamped to avoid stale or post-game leakage.</p><small>injury_diff</small></article><article class='action-card'><strong>lineup</strong><p>Confirmed lineup and top-order hitter context affect actual game strength and should be tracked before model promotion.</p><small>platoon_ops_diff, top3_woba_diff, lineup_context_available, catcher_era_diff, cs_diff</small></article><article class='action-card'><strong>statcast_batting</strong><p>Statcast batting quality measures contact quality and batter skill signals that are closer to process than final score outcomes.</p><small>swing_miss_diff, avg_bat_speed_diff, barrel_pa_diff, hardhit_pa_diff, statcast_woba_diff</small></article></div><div class='table-wrap'><table><tr><th>Feature</th><th>Tier</th><th>Group</th><th>Score</th><th>Action</th></tr><tr><td>pitch_movement_diff</td><td>P1_HIGH_IMPACT_DATA_GAP</td><td>starting_pitcher</td><td>6.65</td><td>prioritize_data_source_or_feature_bridge</td></tr><tr><td>pitch_type_matchup_score</td><td>P1_HIGH_IMPACT_DATA_GAP</td><td>starting_pitcher</td><td>6.65</td><td>prioritize_data_source_or_feature_bridge</td></tr><tr><td>swing_miss_diff</td><td>P1_HIGH_IMPACT_DATA_GAP</td><td>statcast_batting</td><td>6.3</td><td>prioritize_data_source_or_feature_bridge</td></tr><tr><td>platoon_ops_diff</td><td>P1_HIGH_IMPACT_DATA_GAP</td><td>lineup</td><td>5.95</td><td>prioritize_data_source_or_feature_bridge</td></tr><tr><td>pitcher_rating_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>starting_pitcher</td><td>5.0346</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr><tr><td>sp_csw_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>starting_pitcher</td><td>5.0169</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr><tr><td>sp_fip_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>starting_pitcher</td><td>5.0169</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr><tr><td>sp_stuff_plus_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>starting_pitcher</td><td>5.0169</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr><tr><td>bb_pct_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>starting_pitcher</td><td>4.9855</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr><tr><td>avg_bat_speed_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>statcast_batting</td><td>4.9612</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr><tr><td>barrel_pa_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>statcast_batting</td><td>4.9612</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr><tr><td>hardhit_pa_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>statcast_batting</td><td>4.9612</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr><tr><td>statcast_woba_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>statcast_batting</td><td>4.9612</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr><tr><td>k_pct_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>starting_pitcher</td><td>4.9541</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr><tr><td>top3_woba_diff</td><td>P1_HIGH_IMPACT_READY_FOR_RESEARCH</td><td>lineup</td><td>4.6855</td><td>evaluate_in_shadow_model_and_permutation_importance</td></tr></table></div></section>
-<section class='panel'><div class='section-title'><h2>Game Board Preview</h2><span>Today's cards, still paper-only</span></div><div class='game-grid'><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-16</span></div><h3>Marlins <span>@</span> Phillies</h3><div class='prob'>0.5697<small>home win probability</small></div><p>Marlins ML</p><small>Data grade: C</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-16</span></div><h3>Royals <span>@</span> Nationals</h3><div class='prob'>0.562<small>home win probability</small></div><p>NO BET</p><small>Data grade: C</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-16</span></div><h3>Blue Jays <span>@</span> Red Sox</h3><div class='prob'>0.4961<small>home win probability</small></div><p>NO BET</p><small>Data grade: C</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>PAPER_BET</span><span>2026-06-16</span></div><h3>White Sox <span>@</span> Yankees</h3><div class='prob'>0.6249<small>home win probability</small></div><p>Yankees ML</p><small>Data grade: C</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-16</span></div><h3>Mets <span>@</span> Reds</h3><div class='prob'>0.455<small>home win probability</small></div><p>NO BET</p><small>Data grade: C</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-16</span></div><h3>Giants <span>@</span> Braves</h3><div class='prob'>0.6176<small>home win probability</small></div><p>NO BET</p><small>Data grade: C</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-16</span></div><h3>Guardians <span>@</span> Brewers</h3><div class='prob'>0.5093<small>home win probability</small></div><p>Guardians ML</p><small>Data grade: C</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-16</span></div><h3>Padres <span>@</span> Cardinals</h3><div class='prob'>0.5207<small>home win probability</small></div><p>NO BET</p><small>Data grade: C</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-17</span></div><h3>Rockies <span>@</span> Cubs</h3><div class='prob'>0.6946<small>home win probability</small></div><p>NO BET</p><small>Data grade: D</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-17</span></div><h3>Twins <span>@</span> Rangers</h3><div class='prob'>0.6543<small>home win probability</small></div><p>NO BET</p><small>Data grade: D</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-17</span></div><h3>Tigers <span>@</span> Astros</h3><div class='prob'>0.5577<small>home win probability</small></div><p>NO BET</p><small>Data grade: D</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-17</span></div><h3>Angels <span>@</span> D-backs</h3><div class='prob'>0.5539<small>home win probability</small></div><p>NO BET</p><small>Data grade: D</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-17</span></div><h3>Pirates <span>@</span> Athletics</h3><div class='prob'>0.5658<small>home win probability</small></div><p>NO BET</p><small>Data grade: D</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-17</span></div><h3>Orioles <span>@</span> Mariners</h3><div class='prob'>0.5337<small>home win probability</small></div><p>NO BET</p><small>Data grade: D</small></article><article class='game-card'><div class='card-top'><span class='badge neutral'>TRACKING_ONLY</span><span>2026-06-17</span></div><h3>Rays <span>@</span> Dodgers</h3><div class='prob'>0.7188<small>home win probability</small></div><p>NO BET</p><small>Data grade: D</small></article></div></section>
-<section class='panel'><div class='section-title'><h2>Risk Disclosure</h2><span>Required safety copy</span></div><p class='muted'>This project is for research and educational use only. It does not provide financial advice, gambling advice, guaranteed profit, or betting instructions. Sports betting is risky and markets can be highly efficient. Paper trading is the default and live betting is disabled by governance.</p></section>
-<footer>Generated at 2026-06-16T07:28:07.634618Z · Model promotion, live betting and automated wagering remain disabled.</footer>
-</main></body></html>
+<body>
+<main class="shell">
+  <section class="hero">
+    <div class="hero-main card">
+      <p class="eyebrow">AI Research · Daily MLB Board · Governance Locked</p>
+      <h1>MLB Paper Prediction Board</h1>
+      <p class="hero-subtitle">每日 MLB 賽事重點整理、paper-only 訊號、已結算戰績與模型治理狀態。</p>
+      <div class="actions"><a href="#games" class="button primary">今日賽事</a><a href="#record" class="button secondary">預測戰績</a><a href="#governance" class="button ghost">模型治理</a></div>
+    </div>
+    <aside class="hero-side card">
+      <span class="status-pill warning">Research mode · tracking only</span>
+      <dl class="quick-status"><div><dt>Pipeline</dt><dd>ok</dd></div><div><dt>Model</dt><dd>blocked</dd></div><div><dt>Data Contract</dt><dd>ok</dd></div><div><dt>Updated</dt><dd>2026-06-16T07:27:31.397832Z</dd></div></dl>
+    </aside>
+  </section>
+  <section class="notice"><strong>安全聲明</strong><span>Research dashboard only. No betting advice, no automated wagering, and no live-betting enablement.</span></section>
+  <section class="score-strip">
+    
+    <article class="metric-card">
+      <span>今日場次</span>
+      <strong>15</strong>
+      <small>scheduled games</small>
+    </article>
+    
+    
+    <article class="metric-card">
+      <span>Paper signals</span>
+      <strong>3</strong>
+      <small>tracking-only leans</small>
+    </article>
+    
+    
+    <article class="metric-card">
+      <span>No Bet</span>
+      <strong>12</strong>
+      <small>blocked / watch only</small>
+    </article>
+    
+    
+    <article class="metric-card">
+      <span>已結算樣本</span>
+      <strong>252</strong>
+      <small>trusted outcomes</small>
+    </article>
+    
+    
+    <article class="metric-card">
+      <span>30日命中率</span>
+      <strong>51.6%</strong>
+      <small>settled only</small>
+    </article>
+    
+    
+    <article class="metric-card">
+      <span>CLV+</span>
+      <strong>54.2%</strong>
+      <small>price movement</small>
+    </article>
+    
+  </section>
+  <section id="games" class="section"><div class="section-heading"><div><p class="eyebrow">Today</p><h2>今日 MLB 預測</h2></div><span class="section-note">全部為 paper / tracking-only，不提供下注指令。</span></div><div class="game-list">
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-16T22:40:00Z</span></div>
+          <h3>Marlins <span>@</span> Phillies</h3>
+          <p class="match-meta">Tyler Phillips vs Jesús Luzardo<br>TRACKING_ONLY_AWAY_GUARDRAIL</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Phillies 57.0%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>Marlins +4.4%</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Missing critical fields: home_lineup_confirmed, away_lineup_confirmed<br><small>Home 57.0% · Away 43.0%</small><br><small>Market home 61.4% · Home edge -4.4%</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">Marlins ML</span><span class="tag">Grade C</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>closer_high_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>lineup_not_confirmed</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-16T22:45:00Z</span></div>
+          <h3>Royals <span>@</span> Nationals</h3>
+          <p class="match-meta">Michael Wacha vs Foster Griffin<br>TRACKING_ONLY_EDGE_BELOW_THRESHOLD</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Nationals 56.2%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>Nationals +1.3%</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Best edge 1.3% is below required 3.0%.<br><small>Home 56.2% · Away 43.8%</small><br><small>Market home 54.9% · Home edge +1.3%</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade C</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>closer_high_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_below_threshold</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-16T22:45:00Z</span></div>
+          <h3>Blue Jays <span>@</span> Red Sox</h3>
+          <p class="match-meta">Away pitcher TBD vs Payton Tolle<br>TRACKING_ONLY_EDGE_BELOW_THRESHOLD</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Blue Jays 50.4%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>Red Sox +1.8%</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Best edge 1.8% is below required 3.0%.<br><small>Home 49.6% · Away 50.4%</small><br><small>Market home 47.8% · Home edge +1.8%</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade C</span><span class="tag">pending</span><span class="tag">mixed_probable</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_below_threshold</span><span class='tag'>lineup_not_confirmed</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-16T23:05:00Z</span></div>
+          <h3>White Sox <span>@</span> Yankees</h3>
+          <p class="match-meta">Davis Martin vs Gerrit Cole<br>PAPER_BET_EDGE_PASSED</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Yankees 62.5%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>Yankees +5.9%</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Selected edge 5.9% passed threshold 3.0%.<br><small>Home 62.5% · Away 37.5%</small><br><small>Market home 56.6% · Home edge +5.9%</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">Yankees ML</span><span class="tag">Grade C</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>closer_high_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>lineup_not_confirmed</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-16T23:10:00Z</span></div>
+          <h3>Mets <span>@</span> Reds</h3>
+          <p class="match-meta">Kodai Senga vs Brady Singer<br>TRACKING_ONLY_EDGE_BELOW_THRESHOLD</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Mets 54.5%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>Mets +1.1%</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Best edge 1.1% is below required 3.0%.<br><small>Home 45.5% · Away 54.5%</small><br><small>Market home 46.6% · Home edge -1.1%</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade C</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>closer_high_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_below_threshold</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-16T23:15:00Z</span></div>
+          <h3>Giants <span>@</span> Braves</h3>
+          <p class="match-meta">Adrian Houser vs Grant Holmes<br>TRACKING_ONLY_EDGE_BELOW_THRESHOLD</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Braves 61.8%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>Braves +2.6%</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Best edge 2.6% is below required 3.0%.<br><small>Home 61.8% · Away 38.2%</small><br><small>Market home 59.2% · Home edge +2.6%</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade C</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_below_threshold</span><span class='tag'>lineup_not_confirmed</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-16T23:40:00Z</span></div>
+          <h3>Guardians <span>@</span> Brewers</h3>
+          <p class="match-meta">Slade Cecconi vs Robert Gasser<br>TRACKING_ONLY_AWAY_GUARDRAIL</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Brewers 50.9%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>Guardians +6.9%</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Missing critical fields: home_lineup_confirmed, away_lineup_confirmed, away_bullpen_data_available, away_closer_available_known<br><small>Home 50.9% · Away 49.1%</small><br><small>Market home 57.8% · Home edge -6.9%</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">Guardians ML</span><span class="tag">Grade C</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>bullpen_not_available</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>lineup_not_confirmed</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-16T23:45:00Z</span></div>
+          <h3>Padres <span>@</span> Cardinals</h3>
+          <p class="match-meta">Michael King vs Andre Pallante<br>TRACKING_ONLY_EDGE_BELOW_THRESHOLD</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Cardinals 52.1%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>Cardinals +1.0%</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Best edge 1.0% is below required 3.0%.<br><small>Home 52.1% · Away 47.9%</small><br><small>Market home 51.0% · Home edge +1.0%</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade C</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>closer_high_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_below_threshold</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-17T00:05:00Z</span></div>
+          <h3>Rockies <span>@</span> Cubs</h3>
+          <p class="match-meta">Ryan Feltner vs Edward Cabrera<br>TRACKING_ONLY_ODDS_UNAVAILABLE</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Cubs 69.5%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>--</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Odds quality status: UNAVAILABLE.<br><small>Home 69.5% · Away 30.5%</small><br><small>Market home -- · Home edge --</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade D</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>closer_high_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_unavailable</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-17T00:05:00Z</span></div>
+          <h3>Twins <span>@</span> Rangers</h3>
+          <p class="match-meta">Zebby Matthews vs Kumar Rocker<br>TRACKING_ONLY_ODDS_UNAVAILABLE</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Rangers 65.4%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>--</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Odds quality status: UNAVAILABLE.<br><small>Home 65.4% · Away 34.6%</small><br><small>Market home -- · Home edge --</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade D</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>closer_high_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_unavailable</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-17T00:10:00Z</span></div>
+          <h3>Tigers <span>@</span> Astros</h3>
+          <p class="match-meta">Framber Valdez vs Hunter Brown<br>TRACKING_ONLY_ODDS_UNAVAILABLE</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Astros 55.8%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>--</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Odds quality status: UNAVAILABLE.<br><small>Home 55.8% · Away 44.2%</small><br><small>Market home -- · Home edge --</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade D</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>bullpen_not_available</span><span class='tag'>closer_high_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-17T01:40:00Z</span></div>
+          <h3>Angels <span>@</span> D-backs</h3>
+          <p class="match-meta">Reid Detmers vs Merrill Kelly<br>TRACKING_ONLY_ODDS_UNAVAILABLE</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>D-backs 55.4%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>--</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Odds quality status: UNAVAILABLE.<br><small>Home 55.4% · Away 44.6%</small><br><small>Market home -- · Home edge --</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade D</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>closer_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_unavailable</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-17T01:40:00Z</span></div>
+          <h3>Pirates <span>@</span> Athletics</h3>
+          <p class="match-meta">Mitch Keller vs Jack Perkins<br>TRACKING_ONLY_ODDS_UNAVAILABLE</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Athletics 56.6%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>--</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Odds quality status: UNAVAILABLE.<br><small>Home 56.6% · Away 43.4%</small><br><small>Market home -- · Home edge --</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade D</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>closer_high_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_unavailable</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-17T01:40:00Z</span></div>
+          <h3>Orioles <span>@</span> Mariners</h3>
+          <p class="match-meta">Brandon Young vs Logan Gilbert<br>TRACKING_ONLY_ODDS_UNAVAILABLE</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Mariners 53.4%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>--</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Odds quality status: UNAVAILABLE.<br><small>Home 53.4% · Away 46.6%</small><br><small>Market home -- · Home edge --</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade D</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_unavailable</span><span class='tag'>lineup_not_confirmed</span></div>
+    </article>
+    
+    <article class="game-card">
+      <div class="game-mainline">
+        <div>
+          <div class="game-top"><span class="status-pill warning">TRACKING ONLY</span><span>2026-06-17T02:10:00Z</span></div>
+          <h3>Rays <span>@</span> Dodgers</h3>
+          <p class="match-meta">Drew Rasmussen vs Justin Wrobleski<br>TRACKING_ONLY_ODDS_UNAVAILABLE</p>
+        </div>
+        <div>
+          <div class="prob-row">
+            <div class="prob-box"><strong>Dodgers 71.9%</strong><span>Projected side</span></div>
+            <div class="prob-box"><strong>--</strong><span>Value lean vs market</span></div>
+          </div>
+          <p class="game-note">Odds quality status: UNAVAILABLE.<br><small>Home 71.9% · Away 28.1%</small><br><small>Market home -- · Home edge --</small></p>
+        </div>
+      </div>
+      <div class="tag-row"><span class="tag strong">No Bet</span><span class="tag">Grade D</span><span class="tag">pending</span><span class="tag">high_confidence_probable</span><span class='tag'>closer_high_fatigue</span><span class='tag'>context_missing_fields</span><span class='tag'>data_quality_bet_blocked</span><span class='tag'>early_model_small_sample</span><span class='tag'>edge_unavailable</span></div>
+    </article>
+    </div></section>
+  <section id="record" class="section two-column"><div class="panel"><div class="section-heading"><div><p class="eyebrow">Record</p><h2>預測戰績</h2></div></div><div class="record-board">
+    <article class="record-item record-wide"><span>✓ / ✗</span><strong>130 / 122</strong><small>official settled record</small></article>
+    <article class="record-item"><span>Official accuracy</span><strong>51.6%</strong><small>252 settled games</small></article>
+    <article class="record-item"><span>7D accuracy</span><strong>45.7%</strong><small>81 samples</small></article>
+    <article class="record-item"><span>30D accuracy</span><strong>51.6%</strong><small>252 samples</small></article>
+    <article class="record-item"><span>Pending</span><strong>18</strong><small>unsettled_or_missing_outcome</small></article>
+    <article class="record-item"><span>Paper signals</span><strong>52.8%</strong><small>142 samples</small></article>
+  </div></div><div class="panel"><div class="section-heading"><div><p class="eyebrow">Performance</p><h2>模型品質</h2></div></div><div class="performance-grid">
+    <article class="performance-item"><span>Brier</span><strong>0.2544932026984127</strong><small>lower is better</small></article>
+    <article class="performance-item"><span>Logloss</span><strong>0.7024626262731978</strong><small>probability quality</small></article>
+    <article class="performance-item"><span>Model AUC</span><strong>0.5126</strong><small>current eval</small></article>
+    <article class="performance-item"><span>CLV avg</span><strong>0.13637754981114691</strong><small>price movement only</small></article>
+  </div></div></section>
+  <section id="governance" class="section two-column"><div class="panel"><p class="eyebrow">Governance</p><h2>模型治理狀態</h2><p class="match-meta">Pipeline: ok<br>Model: blocked<br>Live betting: False<br>Automated wagering: False</p></div><div class="panel"><p class="eyebrow">Artifact</p><h2>模型 Artifact 鎖定</h2><p class="match-meta">Status: quarantined<br>Artifact samples: 109<br>Current samples: 242<br>Production minimum: 300</p></div></section>
+  <section id="roadmap" class="section"><div class="section-heading"><div><p class="eyebrow">Roadmap</p><h2>資料源修補優先順序</h2></div><span class="section-note">先修資料，不急著升級模型。</span></div><div class="roadmap-grid">
+    <article class="roadmap-card">
+      <strong>starting_pitcher</strong>
+      <p>Starting pitcher quality, pitch traits, strikeout/walk profile and matchup context are high-leverage MLB signals.</p>
+      <ul><li>pitch_movement_diff</li><li>pitch_type_matchup_score</li><li>pitcher_rating_diff</li><li>sp_csw_diff</li><li>sp_fip_diff</li></ul>
+    </article>
+    
+    <article class="roadmap-card">
+      <strong>bullpen</strong>
+      <p>Bullpen availability and workload affect late-game win probability, especially after starter exits.</p>
+      <ul><li>bullpen_ip_diff</li><li>bullpen_availability_diff</li></ul>
+    </article>
+    
+    <article class="roadmap-card">
+      <strong>market</strong>
+      <p>Market no-vig probability and odds movement are essential baselines; model promotion should not occur without beating them.</p>
+      <ul><li>odds_change</li></ul>
+    </article>
+    
+    <article class="roadmap-card">
+      <strong>injuries</strong>
+      <p>Injury context is important but must be carefully timestamped to avoid stale or post-game leakage.</p>
+      <ul><li>injury_diff</li></ul>
+    </article>
+    
+    <article class="roadmap-card">
+      <strong>lineup</strong>
+      <p>Confirmed lineup and top-order hitter context affect actual game strength and should be tracked before model promotion.</p>
+      <ul><li>platoon_ops_diff</li><li>top3_woba_diff</li><li>lineup_context_available</li><li>catcher_era_diff</li><li>cs_diff</li></ul>
+    </article>
+    
+    <article class="roadmap-card">
+      <strong>statcast_batting</strong>
+      <p>Statcast batting quality measures contact quality and batter skill signals that are closer to process than final score outcomes.</p>
+      <ul><li>swing_miss_diff</li><li>avg_bat_speed_diff</li><li>barrel_pa_diff</li><li>hardhit_pa_diff</li><li>statcast_woba_diff</li></ul>
+    </article>
+    </div></section>
+</main>
+</body>
+</html>
