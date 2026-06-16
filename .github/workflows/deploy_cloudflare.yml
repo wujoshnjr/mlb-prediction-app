@@ -13,6 +13,7 @@ on:
       - main
     paths:
       - 'site/**'
+      - 'report/index.html'
       - 'wrangler.toml'
       - '.github/workflows/deploy_cloudflare.yml'
 
@@ -43,10 +44,12 @@ jobs:
           test -f site/styles.css
           test -f site/app.js
           test -f site/data/public_dashboard.json
+          test -f report/index.html
           python -m json.tool site/data/public_dashboard.json >/dev/null
           grep -q 'MLB Paper Prediction Board' site/index.html
+          grep -q 'MLB Paper Prediction Board' report/index.html
           grep -q 'public_dashboard_v2_paper_board' site/data/public_dashboard.json
-          echo "Static site files are present and public_dashboard.json is v2 paper-board JSON."
+          echo "Static site files and report/index.html are v2 paper-board ready."
 
       - name: Skip deploy when Cloudflare secrets are unavailable
         if: ${{ env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '' }}
