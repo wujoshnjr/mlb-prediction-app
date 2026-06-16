@@ -7,9 +7,23 @@ function text(value, fallback = "--") {
   return String(value);
 }
 
+function escapeHtml(value) {
+  return text(value, "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function numeric(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function integer(value) {
+  const parsed = numeric(value);
+  return parsed === null ? "--" : String(Math.round(parsed));
 }
 
 function percent(value) {
@@ -18,32 +32,17 @@ function percent(value) {
   return `${parsed.toFixed(1)}%`;
 }
 
+function ratioPercent(value) {
+  const parsed = numeric(value);
+  if (parsed === null) return "--";
+  return `${(parsed * 100).toFixed(1)}%`;
+}
+
 function signedPercent(value) {
   const parsed = numeric(value);
   if (parsed === null) return "--";
   const sign = parsed > 0 ? "+" : "";
   return `${sign}${parsed.toFixed(1)}%`;
-}
-
-function sideContext(game) {
-  const homeProb = numeric(game.home_win_probability_pct);
-  const awayProb = homeProb === null ? null : 100 - homeProb;
-  const homeEdge = numeric(game.model_edge_home_pct);
-  const awayEdge = homeEdge === null ? null : -homeEdge;
-
-  const projectedSide = homeProb === null
-    ? null
-    : homeProb >= 50
-      ? { team: game.home_team, side: "Home", prob: homeProb }
-      : { team: game.away_team, side: "Away", prob: awayProb };
-
-  const valueLean = homeEdge === null
-    ? null
-    : homeEdge >= 0
-      ? { team: game.home_team, side: "Home", edge: homeEdge }
-      : { team: game.away_team, side: "Away", edge: awayEdge };
-
-  return { homeProb, awayProb, homeEdge, awayEdge, projectedSide, valueLean };
 }
 
 function classForStatus(value) {
@@ -66,14 +65,45 @@ function formatTime(value) {
   });
 }
 
+function sideContext(game) {
+  const homeProb = numeric(game.home_win_probability_pct);
+  const awayProb = homeProb === null ? null : 100 - homeProb;
+  const homeEdge = numeric(game.model_edge_home_pct);
+  const awayEdge = homeEdge === null ? null : -homeEdge;
+  const projectedSide = homeProb === null
+    ? null
+    : homeProb >= 50
+      ? { team: game.home_team, side: "Home", prob: homeProb }
+      : { team: game.away_team, side: "Away", prob: awayProb };
+  const valueLean = homeEdge === null
+    ? null
+    : homeEdge >= 0
+      ? { team: game.home_team, side: "Home", edge: homeEdge }
+      : { team: game.away_team, side: "Away", edge: awayEdge };
+  return { homeProb, awayProb, homeEdge, awayEdge, projectedSide, valueLean };
+}
+
+function isPaperSignal(game) {
+  const raw = String(game.recommendation_raw || "").toUpperCase();
+  return raw && raw !== "NO BET" && raw !== "TRACKING ONLY";
+}
+
 function renderNav(items = []) {
-  const links = items.map((item) => `<a href="${item.href}">${item.label}</a>`).join("");
-  $("navLinks").innerHTML = links || "";
+  const fallback = [
+    { label: "Today", href: "#games" },
+    { label: "Record", href: "#record" },
+    { label: "Governance", href: "#governance" },
+    { label: "Roadmap", href: "#roadmap" },
+  ];
+  const links = (items.length ? items : fallback)
+    .map((item) => `<a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a>`)
+    .join("");
+  $("navLinks").innerHTML = links;
 }
 
 function renderHero(data) {
-  $("heroTitle").textContent = text(data.hero?.title, "MLB Intelligence Cloud");
-  $("heroSubtitle").textContent = text(data.hero?.subtitle, "AI research board for MLB games.");
+  $("heroTitle").textContent = text(data.hero?.title, "MLB Paper Prediction Board");
+  $("heroSubtitle").textContent = text(data.hero?.subtitle, "Paper-only MLB research board with model governance and settlement tracking.");
   $("publicDisclaimer").textContent = text(data.public_disclaimer);
 
   const status = data.hero?.primary_status || data.system_status?.model_quality_status || "tracking only";
@@ -89,10 +119,16 @@ function renderHero(data) {
 }
 
 function renderMetrics(data) {
+  const games = data.games || [];
+  const paperSignals = games.filter(isPaperSignal).length;
+  const noBets = Math.max(0, games.length - paperSignals);
+  const rolling30 = data.performance?.rolling_windows?.["30d"]?.accuracy;
   $("gameCount").textContent = text(data.metrics?.game_count ?? data.metrics?.scheduled_game_count);
-  $("sampleCount").textContent = text(data.metrics?.clean_settled_sample_count);
+  $("paperSignalCount").textContent = integer(paperSignals);
+  $("noBetCount").textContent = integer(noBets);
+  $("sampleCount").textContent = text(data.performance?.official_accuracy?.sample_count ?? data.metrics?.clean_settled_sample_count);
+  $("rolling30Accuracy").textContent = ratioPercent(rolling30);
   $("positiveClv").textContent = percent(data.metrics?.positive_clv_rate_pct);
-  $("repoErrors").textContent = text(data.metrics?.repo_anomaly_errors, "0");
 }
 
 function renderGames(games = []) {
@@ -105,40 +141,96 @@ function renderGames(games = []) {
   container.innerHTML = games
     .map((game) => {
       const statusClass = classForStatus(`${game.recommendation_status} ${game.risk_profile}`);
-      const flags = (game.risk_flags || []).slice(0, 4).map((flag) => `<span class="tag">${flag}</span>`).join("");
+      const flags = (game.risk_flags || []).slice(0, 5).map((flag) => `<span class="tag">${escapeHtml(flag)}</span>`).join("");
       const note = (game.public_notes || [])[0] || "Tracking only. No betting recommendation.";
       const side = sideContext(game);
       const projectedLabel = side.projectedSide
-        ? `${text(side.projectedSide.team)} ${percent(side.projectedSide.prob)}`
+        ? `${escapeHtml(side.projectedSide.team)} ${percent(side.projectedSide.prob)}`
         : "--";
       const valueLabel = side.valueLean
-        ? `${text(side.valueLean.team)} ${signedPercent(side.valueLean.edge)}`
+        ? `${escapeHtml(side.valueLean.team)} ${signedPercent(side.valueLean.edge)}`
         : "--";
       const homeAwayLine = `Home ${percent(side.homeProb)} · Away ${percent(side.awayProb)}`;
-      const valueLine = `Value lean is not a bet. Home edge ${signedPercent(side.homeEdge)} · Away edge ${signedPercent(side.awayEdge)}.`;
+      const marketLine = `Market home ${percent(game.market_home_probability_pct)} · Model edge home ${signedPercent(side.homeEdge)}`;
+      const paperTag = isPaperSignal(game) ? escapeHtml(game.recommendation_raw) : "No Bet";
+      const pitchers = `${escapeHtml(game.away_probable_pitcher_name || "Away pitcher TBD")} vs ${escapeHtml(game.home_probable_pitcher_name || "Home pitcher TBD")}`;
 
       return `
         <article class="game-card">
-          <div class="game-top">
-            <span class="status-pill ${statusClass}">${text(game.recommendation_label, "TRACKING ONLY")}</span>
-            <span>${formatTime(game.start_time)}</span>
+          <div class="game-mainline">
+            <div>
+              <div class="game-top">
+                <span class="status-pill ${statusClass}">${escapeHtml(game.recommendation_label || "TRACKING ONLY")}</span>
+                <span>${formatTime(game.start_time)}</span>
+              </div>
+              <h3>${escapeHtml(game.away_team)} <span>@</span> ${escapeHtml(game.home_team)}</h3>
+              <p class="match-meta">${pitchers}<br>${escapeHtml(game.moneyline_gate_status || "tracking gate")}</p>
+            </div>
+            <div>
+              <div class="prob-row">
+                <div class="prob-box"><strong>${projectedLabel}</strong><span>Projected side</span></div>
+                <div class="prob-box"><strong>${valueLabel}</strong><span>Value lean vs market</span></div>
+              </div>
+              <p class="game-note">${escapeHtml(note)}<br><small>${homeAwayLine}</small><br><small>${marketLine}</small></p>
+            </div>
           </div>
-          <h3>${text(game.away_team)} <span>@</span> ${text(game.home_team)}</h3>
-          <div class="prob-row">
-            <div class="prob-box"><strong>${projectedLabel}</strong><span>Projected side</span></div>
-            <div class="prob-box"><strong>${valueLabel}</strong><span>Value lean vs market</span></div>
-          </div>
-          <p class="game-note">${note}<br><small>${homeAwayLine}</small><br><small>${valueLine}</small></p>
           <div class="tag-row">
-            <span class="tag">No bet</span>
-            <span class="tag">Grade ${text(game.data_quality_grade)}</span>
-            <span class="tag">${text(game.lineup_status, "lineup unknown")}</span>
-            <span class="tag">${text(game.pitcher_status, "pitcher unknown")}</span>
+            <span class="tag strong">${paperTag}</span>
+            <span class="tag">Grade ${escapeHtml(game.data_quality_grade || "--")}</span>
+            <span class="tag">${escapeHtml(game.lineup_status || "lineup unknown")}</span>
+            <span class="tag">${escapeHtml(game.pitcher_status || "pitcher unknown")}</span>
             ${flags}
           </div>
         </article>
       `;
     })
+    .join("");
+}
+
+function renderRecord(data) {
+  const official = data.performance?.official_accuracy || {};
+  const rolling = data.performance?.rolling_windows || {};
+  const slices = data.performance?.slices || {};
+  const pending = data.performance?.pending_predictions || {};
+  const items = [
+    ["✓ / ✗", `${integer(official.correct)} / ${integer((numeric(official.sample_count) || 0) - (numeric(official.correct) || 0))}`, "official settled record", "record-wide"],
+    ["Official accuracy", ratioPercent(official.accuracy), `${integer(official.sample_count)} settled games`, ""],
+    ["7D accuracy", ratioPercent(rolling["7d"]?.accuracy), `${integer(rolling["7d"]?.sample_count)} samples`, ""],
+    ["30D accuracy", ratioPercent(rolling["30d"]?.accuracy), `${integer(rolling["30d"]?.sample_count)} samples`, ""],
+    ["Pending", integer(pending.count), escapeHtml(pending.reason || "unsettled"), ""],
+    ["Paper signals", ratioPercent(slices.paper_signals?.accuracy), `${integer(slices.paper_signals?.sample_count)} samples`, ""],
+  ];
+  $("recordBoard").innerHTML = items
+    .map(([label, value, caption, extra]) => `
+      <article class="record-item ${extra}">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+        <small>${caption}</small>
+      </article>
+    `)
+    .join("");
+}
+
+function renderPerformance(data) {
+  const official = data.performance?.official_accuracy || {};
+  const clv = data.performance?.clv_metrics || {};
+  const metrics = data.metrics || {};
+  const items = [
+    ["Brier", text(official.brier ?? metrics.model_brier), "lower is better"],
+    ["Logloss", text(official.logloss), "probability quality"],
+    ["Model AUC", text(metrics.model_auc), "current eval"],
+    ["CLV avg", text(clv.avg_clv ?? metrics.avg_clv), "price movement only"],
+    ["CLV samples", integer(clv.sample_count), "tracked odds"],
+    ["Data errors", integer(metrics.data_contract_errors), "contract gate"],
+  ];
+  $("performanceGrid").innerHTML = items
+    .map(([label, value, caption]) => `
+      <article class="performance-item">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+        <small>${escapeHtml(caption)}</small>
+      </article>
+    `)
     .join("");
 }
 
@@ -160,7 +252,7 @@ function renderGovernance(data) {
       return `
         <div class="timeline-item">
           <span class="timeline-dot ${normalized}"></span>
-          <div><strong>${label}: ${text(status)}</strong><small>${caption}</small></div>
+          <div><strong>${escapeHtml(label)}: ${escapeHtml(text(status))}</strong><small>${escapeHtml(caption)}</small></div>
         </div>
       `;
     })
@@ -169,11 +261,11 @@ function renderGovernance(data) {
   const artifact = data.governance_summary?.artifact_quarantine || {};
   $("artifactCard").innerHTML = `
     <dl>
-      <div><dt>Status</dt><dd>${text(artifact.status)}</dd></div>
-      <div><dt>Artifact samples</dt><dd>${text(artifact.artifact_training_sample_count)}</dd></div>
-      <div><dt>Current samples</dt><dd>${text(artifact.current_training_sample_count)}</dd></div>
-      <div><dt>Production minimum</dt><dd>${text(artifact.minimum_production_training_samples)}</dd></div>
-      <div><dt>Stale mismatch</dt><dd>${text(artifact.stale_sample_mismatch)}</dd></div>
+      <div><dt>Status</dt><dd>${escapeHtml(text(artifact.status))}</dd></div>
+      <div><dt>Artifact samples</dt><dd>${escapeHtml(text(artifact.artifact_training_sample_count))}</dd></div>
+      <div><dt>Current samples</dt><dd>${escapeHtml(text(artifact.current_training_sample_count))}</dd></div>
+      <div><dt>Production minimum</dt><dd>${escapeHtml(text(artifact.minimum_production_training_samples))}</dd></div>
+      <div><dt>Stale mismatch</dt><dd>${escapeHtml(text(artifact.stale_sample_mismatch))}</dd></div>
     </dl>
   `;
 }
@@ -185,14 +277,13 @@ function renderRoadmap(data) {
     container.innerHTML = `<div class="empty-state">Feature roadmap 尚未產出。下一次治理報告會自動補上。</div>`;
     return;
   }
-
   container.innerHTML = actions
     .map((action) => {
-      const features = (action.top_features || []).map((feature) => `<li>${feature}</li>`).join("");
+      const features = (action.top_features || []).map((feature) => `<li>${escapeHtml(feature)}</li>`).join("");
       return `
         <article class="roadmap-card">
-          <strong>${text(action.feature_group, "Feature group")}</strong>
-          <p>${text(action.rationale, "Review and backfill this feature group.")}</p>
+          <strong>${escapeHtml(action.feature_group || "Feature group")}</strong>
+          <p>${escapeHtml(action.rationale || "Review and backfill this feature group.")}</p>
           <ul>${features}</ul>
         </article>
       `;
@@ -209,10 +300,12 @@ async function loadDashboard() {
     renderHero(data);
     renderMetrics(data);
     renderGames(data.games || []);
+    renderRecord(data);
+    renderPerformance(data);
     renderGovernance(data);
     renderRoadmap(data);
   } catch (error) {
-    $("gameGrid").innerHTML = `<div class="error-state">Public dashboard data unavailable: ${error.message}</div>`;
+    $("gameGrid").innerHTML = `<div class="error-state">Public dashboard data unavailable: ${escapeHtml(error.message)}</div>`;
     $("heroTitle").textContent = "Dashboard data unavailable";
     $("heroSubtitle").textContent = "Run the data builder or wait for the next scheduled update.";
   }
