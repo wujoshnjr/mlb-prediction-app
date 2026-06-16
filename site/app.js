@@ -38,18 +38,19 @@ function ratioPercent(value) {
   return `${(parsed * 100).toFixed(1)}%`;
 }
 
-function signedPercent(value) {
-  const parsed = numeric(value);
+function signedPercent(value, ratio = false) {
+  let parsed = numeric(value);
   if (parsed === null) return "--";
+  if (ratio) parsed *= 100;
   const sign = parsed > 0 ? "+" : "";
   return `${sign}${parsed.toFixed(1)}%`;
 }
 
 function classForStatus(value) {
   const status = String(value || "").toLowerCase();
-  if (["failed", "error", "fatal", "danger"].some((word) => status.includes(word))) return "danger";
-  if (["blocked", "warning", "quarantined", "insufficient", "tracking"].some((word) => status.includes(word))) return "warning";
-  if (["ok", "completed", "ready"].some((word) => status.includes(word))) return "ok";
+  if (["failed", "error", "fatal", "danger", "critical"].some((word) => status.includes(word))) return "danger";
+  if (["blocked", "warning", "quarantined", "insufficient", "tracking", "high", "medium"].some((word) => status.includes(word))) return "warning";
+  if (["ok", "completed", "ready", "low"].some((word) => status.includes(word))) return "ok";
   return "neutral";
 }
 
@@ -92,6 +93,7 @@ function renderNav(items = []) {
   const fallback = [
     { label: "Today", href: "#games" },
     { label: "Record", href: "#record" },
+    { label: "Root Cause", href: "#accuracy-root-cause" },
     { label: "Governance", href: "#governance" },
     { label: "Roadmap", href: "#roadmap" },
   ];
@@ -234,6 +236,69 @@ function renderPerformance(data) {
     .join("");
 }
 
+function renderAccuracyRootCause(data) {
+  const report = data.accuracy_root_cause || {};
+  const summary = report.summary || {};
+  const causes = Array.isArray(report.root_causes) ? report.root_causes : [];
+  const degradedDays = Array.isArray(report.degraded_days) ? report.degraded_days : [];
+  const weakSlices = Array.isArray(report.weak_slices) ? report.weak_slices : [];
+
+  const summaryItems = [
+    ["7D", ratioPercent(summary.rolling_7d_accuracy), `${integer(summary.rolling_7d_sample_count)} samples`],
+    ["30D", ratioPercent(summary.rolling_30d_accuracy), `${integer(summary.rolling_30d_sample_count)} samples`],
+    ["Drop vs 30D", signedPercent(summary.recent_drop_vs_30d, true), "recent delta"],
+    ["Root causes", integer(summary.root_cause_count), `${integer(summary.degraded_day_count)} weak days`],
+  ];
+  $("accuracySummary").innerHTML = summaryItems
+    .map(([label, value, caption]) => `
+      <article class="root-summary-card">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value)}</strong>
+        <small>${escapeHtml(caption)}</small>
+      </article>
+    `)
+    .join("");
+
+  if (!causes.length) {
+    $("rootCauseGrid").innerHTML = `<div class="empty-state">目前沒有產生 root cause report。請先跑 Accuracy Root Cause 或 Hourly。</div>`;
+  } else {
+    $("rootCauseGrid").innerHTML = causes
+      .map((cause) => {
+        const evidence = (cause.evidence || []).slice(0, 4).map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+        return `
+          <article class="root-cause-card ${classForStatus(cause.severity)}">
+            <div class="root-cause-top">
+              <span class="status-pill ${classForStatus(cause.severity)}">${escapeHtml(cause.severity || "cause")}</span>
+              <small>${escapeHtml(cause.id || "root cause")}</small>
+            </div>
+            <strong>${escapeHtml(cause.title || "Accuracy issue")}</strong>
+            <ul>${evidence}</ul>
+            <p>${escapeHtml(cause.repair || "Review this blocker before promotion.")}</p>
+          </article>
+        `;
+      })
+      .join("");
+  }
+
+  $("degradedDays").innerHTML = degradedDays.length
+    ? degradedDays.slice(0, 8).map((day) => `
+        <div class="mini-row">
+          <strong>${escapeHtml(day.game_date)}</strong>
+          <span>${ratioPercent(day.accuracy)} · ${integer(day.sample_count)} games · Δ ${signedPercent(day.delta_vs_30d, true)}</span>
+        </div>
+      `).join("")
+    : `<div class="empty-state">近期沒有符合門檻的低命中日。</div>`;
+
+  $("weakSlices").innerHTML = weakSlices.length
+    ? weakSlices.slice(0, 8).map((slice) => `
+        <div class="mini-row">
+          <strong>${escapeHtml(slice.slice)}</strong>
+          <span>${ratioPercent(slice.accuracy)} · ${integer(slice.sample_count)} samples · Δ ${signedPercent(slice.delta_vs_official, true)}</span>
+        </div>
+      `).join("")
+    : `<div class="empty-state">目前沒有弱勢切片。</div>`;
+}
+
 function renderGovernance(data) {
   const system = data.system_status || {};
   const items = [
@@ -302,6 +367,7 @@ async function loadDashboard() {
     renderGames(data.games || []);
     renderRecord(data);
     renderPerformance(data);
+    renderAccuracyRootCause(data);
     renderGovernance(data);
     renderRoadmap(data);
   } catch (error) {
