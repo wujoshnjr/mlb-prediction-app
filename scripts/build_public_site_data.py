@@ -165,6 +165,25 @@ def _top_feature_actions(feature_priority: dict[str, Any]) -> list[dict[str, Any
     return result
 
 
+def _performance_payload(daily_accuracy: dict[str, Any]) -> dict[str, Any]:
+    official = daily_accuracy.get("official_accuracy") if isinstance(daily_accuracy.get("official_accuracy"), dict) else {}
+    rolling = daily_accuracy.get("rolling_windows") if isinstance(daily_accuracy.get("rolling_windows"), dict) else {}
+    slices = daily_accuracy.get("slices") if isinstance(daily_accuracy.get("slices"), dict) else {}
+    pending = daily_accuracy.get("pending_predictions") if isinstance(daily_accuracy.get("pending_predictions"), dict) else {}
+    clv = daily_accuracy.get("clv_metrics") if isinstance(daily_accuracy.get("clv_metrics"), dict) else {}
+    daily = daily_accuracy.get("daily_accuracy") if isinstance(daily_accuracy.get("daily_accuracy"), list) else []
+    latest_daily = next((item for item in reversed(daily) if isinstance(item, dict) and item.get("sample_count") not in (None, 0)), {})
+    return {
+        "official_accuracy": official,
+        "rolling_windows": rolling,
+        "slices": slices,
+        "pending_predictions": pending,
+        "clv_metrics": clv,
+        "latest_daily": latest_daily,
+        "interpretation": daily_accuracy.get("interpretation") if isinstance(daily_accuracy.get("interpretation"), dict) else {},
+    }
+
+
 def build_public_dashboard() -> dict[str, Any]:
     prediction = _read_json(PREDICTION_PATH)
     report_health = _read_json(REPORT_HEALTH_PATH)
@@ -180,16 +199,19 @@ def build_public_dashboard() -> dict[str, Any]:
     governance = prediction.get("model_governance") if isinstance(prediction.get("model_governance"), dict) else {}
     quality_gate = baseline.get("quality_gate") if isinstance(baseline.get("quality_gate"), dict) else {}
     model_metrics = model_eval.get("metrics") if isinstance(model_eval.get("metrics"), dict) else {}
+    performance = _performance_payload(daily_accuracy)
+    official_accuracy = performance.get("official_accuracy") if isinstance(performance.get("official_accuracy"), dict) else {}
+    clv_metrics = performance.get("clv_metrics") if isinstance(performance.get("clv_metrics"), dict) else {}
 
     dashboard = {
         "generated_at": _utc_now(),
         "source_generated_at": prediction.get("generated_at"),
         "pipeline_version": prediction.get("pipeline_version"),
-        "site_version": "public_dashboard_v1",
+        "site_version": "public_dashboard_v2_paper_board",
         "public_disclaimer": "Research dashboard only. No betting advice, no automated wagering, and no live-betting enablement.",
         "hero": {
-            "title": "MLB Intelligence Cloud",
-            "subtitle": "AI research board for MLB games, model governance, data quality, and paper-only tracking.",
+            "title": "MLB Paper Prediction Board",
+            "subtitle": "每日 MLB 賽事重點整理、paper-only 訊號、已結算戰績與模型治理狀態。",
             "primary_status": "Research mode · tracking only",
             "status_badge": "warning",
         },
@@ -208,16 +230,18 @@ def build_public_dashboard() -> dict[str, Any]:
         "metrics": {
             "scheduled_game_count": prediction.get("scheduled_game_count"),
             "game_count": len(games),
-            "clean_settled_sample_count": (governance.get("model_governance") or {}).get("clean_settled_sample_count") if isinstance(governance.get("model_governance"), dict) else governance.get("clean_model_sample_count"),
+            "clean_settled_sample_count": official_accuracy.get("sample_count") or ((governance.get("model_governance") or {}).get("clean_settled_sample_count") if isinstance(governance.get("model_governance"), dict) else governance.get("clean_model_sample_count")),
             "minimum_train_samples": governance.get("min_clean_train_samples"),
-            "avg_clv": _round(governance.get("avg_clv"), 4),
-            "positive_clv_rate_pct": _percent(governance.get("positive_clv_rate")),
+            "avg_clv": _round(clv_metrics.get("avg_clv", governance.get("avg_clv")), 4),
+            "positive_clv_rate_pct": _percent(clv_metrics.get("positive_clv_rate", governance.get("positive_clv_rate"))),
             "repo_anomaly_errors": repo_anomaly.get("error_count"),
             "data_contract_errors": data_contract.get("error_count"),
             "model_auc": _round(model_metrics.get("roc_auc"), 4),
             "model_brier": _round(model_metrics.get("brier"), 4),
+            "official_accuracy_pct": _percent(official_accuracy.get("accuracy")),
             "daily_accuracy_status": daily_accuracy.get("status"),
         },
+        "performance": performance,
         "governance_summary": {
             "block_reasons": [str(reason) for reason in (governance.get("block_reasons") or [])[:8]],
             "model_quality_blocks": [str(item) for item in (report_health.get("model_quality_blocks") or [])[:10]],
@@ -243,6 +267,7 @@ def build_public_dashboard() -> dict[str, Any]:
         "games": games,
         "navigation": [
             {"label": "Today", "href": "#games"},
+            {"label": "Record", "href": "#record"},
             {"label": "Governance", "href": "#governance"},
             {"label": "Roadmap", "href": "#roadmap"},
             {"label": "About", "href": "#about"},
