@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'scripts/build_public_site_data.py'
+      - 'scripts/html_report_builder.py'
       - 'site/index.html'
       - 'site/styles.css'
       - 'site/app.js'
@@ -39,10 +40,12 @@ jobs:
       - name: Validate and build public dashboard data
         run: |
           set -euo pipefail
-          python -m py_compile scripts/build_public_site_data.py
+          python -m py_compile scripts/build_public_site_data.py scripts/html_report_builder.py
           python scripts/build_public_site_data.py
+          python scripts/html_report_builder.py
           python -m json.tool site/data/public_dashboard.json >/dev/null
           grep -q 'public_dashboard_v2_paper_board' site/data/public_dashboard.json
+          grep -q 'MLB Paper Prediction Board' report/index.html
 
       - name: Commit public site data
         run: |
@@ -51,7 +54,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git add -f site/data/public_dashboard.json
+          git add -f site/data/public_dashboard.json report/index.html
           if git diff --cached --quiet; then
             echo "No public site data changes to commit."
           else
