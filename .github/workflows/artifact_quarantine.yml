@@ -44,6 +44,7 @@ jobs:
             scripts/artifact_quarantine_report.py \
             scripts/feature_missingness_report.py \
             scripts/feature_source_coverage_report.py \
+            scripts/feature_promotion_candidate_report.py \
             scripts/feature_priority_report.py \
             scripts/walkforward_evaluation.py \
             scripts/report_health_gate.py \
@@ -61,6 +62,11 @@ jobs:
 
       - name: Build feature source coverage report
         run: python scripts/feature_source_coverage_report.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Build feature promotion candidate report
+        run: python scripts/feature_promotion_candidate_report.py
         env:
           PYTHONPATH: ${{ github.workspace }}
 
@@ -122,6 +128,7 @@ jobs:
           for path in \
             report/feature_missingness_report.json \
             report/feature_source_coverage_report.json \
+            report/feature_promotion_candidate_report.json \
             report/feature_priority_report.json \
             report/artifact_quarantine_report.json \
             report/walkforward_evaluation.json \
