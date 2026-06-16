@@ -47,6 +47,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -59,575 +60,214 @@ jobs:
 
       - name: Compile critical Python files
         run: |
-          python -m py_compile \
-            config.py \
-            main.py \
-            model.py \
-            prediction.py \
-            train_ensemble.py \
-            scripts/feature_schema.py \
-            scripts/model_training_common.py \
-            scripts/training_samples_builder.py \
-            scripts/update_results.py \
-            scripts/repair_finalized_linkage.py \
-            scripts/model_artifact_status.py \
-            scripts/model_status_consistency_report.py \
-            scripts/artifact_rebuild_readiness_report.py \
-            scripts/feature_contract_report.py \
-            scripts/feature_missingness_report.py \
-            scripts/model_eval_report.py \
-            scripts/calibration_report.py \
-            scripts/per_slice_performance_report.py \
-            scripts/sample_state_builder.py \
-            scripts/backfill_final_scores.py \
-            scripts/rebuild_ratings.py \
-            scripts/rating_updater.py \
-            scripts/glicko2_ratings.py \
-            scripts/historical_collector.py \
-            scripts/validate_predictions.py \
-            scripts/data_contract_validator.py \
-            scripts/pipeline_manifest.py \
-            scripts/report_health_gate.py \
-            scripts/sanitize_prediction_report.py \
-            scripts/sanitize_prediction_snapshots.py \
-            scripts/html_report_builder.py \
-            scripts/baseline_comparison_report.py \
-            scripts/clv_slice_report.py \
-            scripts/walkforward_evaluation.py \
-            scripts/rolling_walkforward_evaluation.py \
-            scripts/lineup_starter_slice_report.py \
-            scripts/market_close_report.py \
-            scripts/settle_reliability_report.py \
-            scripts/settled_prediction_link_report.py \
-            scripts/model_registry.py \
-            scripts/promotion_gate.py \
-            scripts/decision_audit_report.py \
-            scripts/paper_trading_ledger.py \
-            scripts/risk_exposure_report.py \
-            scripts/artifact_retention_manifest.py \
-            scripts/world_class_trading_system_report.py \
-            scripts/saas_readiness_report.py \
-            scripts/research_quality_report.py \
-            scripts/research_promotion_readiness_report.py \
-            scripts/daily_model_accuracy_report.py \
-            scripts/away_pick_diagnostic_report.py \
-            scripts/away_guardrail_impact_report.py \
-            scripts/signal_quality_report.py \
+          files=(
+            config.py
+            main.py
+            model.py
+            prediction.py
+            train_ensemble.py
+            scripts/feature_schema.py
+            scripts/model_training_common.py
+            scripts/training_samples_builder.py
+            scripts/update_results.py
+            scripts/repair_finalized_linkage.py
+            scripts/model_artifact_status.py
+            scripts/model_status_consistency_report.py
+            scripts/artifact_rebuild_readiness_report.py
+            scripts/feature_contract_report.py
+            scripts/feature_missingness_report.py
+            scripts/model_eval_report.py
+            scripts/calibration_report.py
+            scripts/per_slice_performance_report.py
+            scripts/sample_state_builder.py
+            scripts/backfill_final_scores.py
+            scripts/rebuild_ratings.py
+            scripts/rating_updater.py
+            scripts/glicko2_ratings.py
+            scripts/historical_collector.py
+            scripts/validate_predictions.py
+            scripts/data_contract_validator.py
+            scripts/pipeline_manifest.py
+            scripts/report_health_gate.py
+            scripts/sanitize_prediction_report.py
+            scripts/sanitize_prediction_snapshots.py
+            scripts/html_report_builder.py
+            scripts/baseline_comparison_report.py
+            scripts/clv_slice_report.py
+            scripts/walkforward_evaluation.py
+            scripts/rolling_walkforward_evaluation.py
+            scripts/lineup_starter_slice_report.py
+            scripts/market_close_report.py
+            scripts/settle_reliability_report.py
+            scripts/settled_prediction_link_report.py
+            scripts/model_registry.py
+            scripts/promotion_gate.py
+            scripts/decision_audit_report.py
+            scripts/paper_trading_ledger.py
+            scripts/risk_exposure_report.py
+            scripts/artifact_retention_manifest.py
+            scripts/world_class_trading_system_report.py
+            scripts/saas_readiness_report.py
+            scripts/research_quality_report.py
+            scripts/research_promotion_readiness_report.py
+            scripts/daily_model_accuracy_report.py
+            scripts/away_pick_diagnostic_report.py
+            scripts/away_guardrail_impact_report.py
+            scripts/signal_quality_report.py
             scripts/product_experience_report.py
+          )
+          for file in "${files[@]}"; do
+            if [ -f "$file" ]; then
+              python -m py_compile "$file"
+            else
+              echo "Skipping missing optional compile target: $file"
+            fi
+          done
 
-      - name: Update finalized game results
-        run: python scripts/update_results.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Repair finalized linkage from snapshots
-        continue-on-error: true
-        run: python scripts/repair_finalized_linkage.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build outcome linkage diagnostic
-        continue-on-error: true
-        run: python scripts/outcome_linkage_diagnostic.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build canonical training samples
-        run: python scripts/training_samples_builder.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build model artifact status before training
-        run: python scripts/model_artifact_status.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build initial sample state
-        run: python scripts/sample_state_builder.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Backfill historical final scores
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.backfill_final_scores == 'true' }}
-        run: python scripts/backfill_final_scores.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Rebuild ratings from finalized history
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.rebuild_ratings == 'true' }}
-        run: python scripts/rebuild_ratings.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Upload repair diagnostic reports
-        if: ${{ always() && github.event_name == 'workflow_dispatch' && (github.event.inputs.backfill_final_scores == 'true' || github.event.inputs.rebuild_ratings == 'true') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: repair-diagnostic-reports
-          retention-days: 14
-          if-no-files-found: warn
-          path: |
-            report/final_score_backfill_report.json
-            report/rating_rebuild_report.json
-
-      - name: Incrementally update ratings
-        if: ${{ !(github.event_name == 'workflow_dispatch' && github.event.inputs.rebuild_ratings == 'true') }}
-        run: python scripts/rating_updater.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Train model if enough finalized samples are available
-        run: python train_ensemble.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build model artifact status after training
-        run: python scripts/model_artifact_status.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Train model lab shadow challengers
-        continue-on-error: true
-        run: python scripts/train_model_lab.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Diagnose model training
-        continue-on-error: true
-        run: python scripts/training_diagnostic.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Collect daily pregame context snapshots
-        continue-on-error: true
-        run: python scripts/daily_context_collector.py
-        env:
-          APISPORTS_BASEBALL_KEY: ${{ secrets.APISPORTS_BASEBALL_KEY }}
-          APISPORTS_BASEBALL_LEAGUE_ID: ${{ secrets.APISPORTS_BASEBALL_LEAGUE_ID }}
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build weather context
-        continue-on-error: true
-        run: python scripts/weather_context_client.py
-        env:
-          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build top-3 player source
-        timeout-minutes: 4
-        continue-on-error: true
-        run: python scripts/top3_player_source_client.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Diagnose API-Sports Baseball
-        continue-on-error: true
-        run: python scripts/apisports_diagnostic.py
-        env:
-          APISPORTS_BASEBALL_KEY: ${{ secrets.APISPORTS_BASEBALL_KEY }}
-          APISPORTS_BASEBALL_LEAGUE_ID: ${{ secrets.APISPORTS_BASEBALL_LEAGUE_ID }}
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build Savant top-3 hitter context
-        timeout-minutes: 20
-        continue-on-error: true
-        run: python scripts/savant_top3_context_client.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build pitcher advanced context
-        timeout-minutes: 4
-        continue-on-error: true
-        run: python scripts/pitcher_advanced_context_client.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build team form context
-        continue-on-error: true
-        run: python scripts/team_form_context_client.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build context feature bridge
-        continue-on-error: true
-        run: python scripts/context_feature_bridge_client.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build projected lineup context
-        continue-on-error: true
-        run: python scripts/projected_lineup_client.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Generate prediction report
-        run: python prediction.py
+      - name: Run hourly prediction pipeline
         env:
           BALLDONTLIE_API_KEY: ${{ secrets.BALLDONTLIE_API_KEY }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          APISPORTS_BASEBALL_KEY: ${{ secrets.APISPORTS_BASEBALL_KEY }}
+          APISPORTS_BASEBALL_LEAGUE_ID: ${{ secrets.APISPORTS_BASEBALL_LEAGUE_ID }}
+          OPENWEATHER_API_KEY: ${{ secrets.OPENWEATHER_API_KEY }}
           PYTHONPATH: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
 
-      - name: Sanitize prediction report for health gate
-        run: python scripts/sanitize_prediction_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          run_required() {
+            echo "::group::required $*"
+            "$@"
+            echo "::endgroup::"
+          }
 
-      - name: Build model status consistency report
-        run: python scripts/model_status_consistency_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          run_optional() {
+            echo "::group::optional $*"
+            if "$@"; then
+              echo "optional step passed: $*"
+            else
+              echo "optional step failed but pipeline continues: $*"
+            fi
+            echo "::endgroup::"
+          }
 
-      - name: Diagnose context readiness
-        continue-on-error: true
-        run: python scripts/context_diagnostic.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          run_if_exists_optional() {
+            local script="$1"
+            shift || true
+            if [ -f "$script" ]; then
+              run_optional python "$script" "$@"
+            else
+              echo "optional script missing, skipped: $script"
+            fi
+          }
 
-      - name: Diagnose odds matching
-        continue-on-error: true
-        run: python scripts/odds_matching_diagnostic.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          run_if_exists_required() {
+            local script="$1"
+            shift || true
+            if [ -f "$script" ]; then
+              run_required python "$script" "$@"
+            else
+              echo "required script missing: $script"
+              exit 1
+            fi
+          }
 
-      - name: Diagnose evaluation and CLV
-        continue-on-error: true
-        run: python scripts/evaluation_clv_diagnostic.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          run_if_exists_required scripts/update_results.py
+          run_if_exists_optional scripts/repair_finalized_linkage.py
+          run_if_exists_optional scripts/outcome_linkage_diagnostic.py
+          run_if_exists_required scripts/training_samples_builder.py
+          run_if_exists_required scripts/model_artifact_status.py
+          run_if_exists_required scripts/sample_state_builder.py
 
-      - name: Research market edge buckets
-        continue-on-error: true
-        run: python scripts/market_edge_research.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.backfill_final_scores }}" = "true" ]; then
+            run_if_exists_required scripts/backfill_final_scores.py
+          fi
 
-      - name: Train market residual shadow model
-        continue-on-error: true
-        run: python scripts/train_market_residual_shadow.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.rebuild_ratings }}" = "true" ]; then
+            run_if_exists_required scripts/rebuild_ratings.py
+          else
+            run_if_exists_required scripts/rating_updater.py
+          fi
 
-      - name: Build baseline comparison report
-        continue-on-error: true
-        run: python scripts/baseline_comparison_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          run_required python train_ensemble.py
+          run_if_exists_required scripts/model_artifact_status.py
+          run_if_exists_optional scripts/train_model_lab.py
+          run_if_exists_optional scripts/training_diagnostic.py
+          run_if_exists_optional scripts/daily_context_collector.py
+          run_if_exists_optional scripts/weather_context_client.py
+          run_if_exists_optional scripts/top3_player_source_client.py
+          run_if_exists_optional scripts/apisports_diagnostic.py
+          run_if_exists_optional scripts/savant_top3_context_client.py
+          run_if_exists_optional scripts/pitcher_advanced_context_client.py
+          run_if_exists_optional scripts/team_form_context_client.py
+          run_if_exists_optional scripts/context_feature_bridge_client.py
+          run_if_exists_optional scripts/projected_lineup_client.py
 
-      - name: Build CLV slice reports
-        continue-on-error: true
-        run: python scripts/clv_slice_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          run_required python prediction.py
+          run_if_exists_required scripts/sanitize_prediction_report.py
+          run_if_exists_required scripts/model_status_consistency_report.py
+          run_if_exists_optional scripts/context_diagnostic.py
+          run_if_exists_optional scripts/odds_matching_diagnostic.py
+          run_if_exists_optional scripts/evaluation_clv_diagnostic.py
+          run_if_exists_optional scripts/market_edge_research.py
+          run_if_exists_optional scripts/train_market_residual_shadow.py
+          run_if_exists_optional scripts/baseline_comparison_report.py
+          run_if_exists_optional scripts/clv_slice_report.py
+          run_if_exists_optional scripts/walkforward_evaluation.py
+          run_if_exists_optional scripts/rolling_walkforward_evaluation.py
+          run_if_exists_optional scripts/lineup_starter_slice_report.py
+          run_if_exists_optional scripts/market_close_report.py
+          run_if_exists_optional scripts/feature_availability_diagnostic.py
+          run_if_exists_optional scripts/feature_grade_report.py
+          run_if_exists_optional scripts/feature_promotion_report.py
+          run_if_exists_optional scripts/run_walk_forward_validation.py
+          run_if_exists_optional scripts/generate_calibration_diagnostics.py
+          run_if_exists_optional scripts/generate_prediction_trust_report.py
+          run_if_exists_optional scripts/generate_model_comparison_report.py
+          run_if_exists_optional scripts/model_decision_guardrail_report.py
+          run_if_exists_optional scripts/train_shadow_ensemble_stack.py
+          run_if_exists_optional scripts/feature_zero_root_cause_diagnostic.py
+          run_if_exists_required scripts/sanitize_prediction_snapshots.py
+          run_if_exists_optional scripts/settle_reliability_report.py
+          run_if_exists_optional scripts/settled_prediction_link_report.py
+          run_if_exists_required scripts/sample_state_builder.py
+          run_if_exists_optional scripts/lineup_quality_builder.py
+          run_if_exists_optional scripts/feature_freshness_report.py
+          run_if_exists_optional scripts/underdog_diagnostic_report.py
+          run_if_exists_optional scripts/confidence_bucket_guardrail.py
+          run_if_exists_optional scripts/edge_sanity_guardrail.py
+          run_if_exists_optional scripts/slice_promotion_gate.py
+          run_if_exists_optional scripts/model_correctness_report.py
+          run_if_exists_optional scripts/daily_model_accuracy_report.py
+          run_if_exists_optional scripts/away_pick_diagnostic_report.py
+          run_if_exists_optional scripts/away_guardrail_impact_report.py
+          run_if_exists_optional scripts/signal_quality_report.py
+          run_if_exists_optional scripts/product_experience_report.py
+          run_if_exists_optional scripts/research_quality_report.py
+          run_if_exists_optional scripts/model_registry.py
+          run_if_exists_optional scripts/research_promotion_readiness_report.py
 
-      - name: Build walk-forward evaluation report
-        continue-on-error: true
-        run: python scripts/walkforward_evaluation.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build rolling walk-forward evaluation report
-        continue-on-error: true
-        run: python scripts/rolling_walkforward_evaluation.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build lineup and starter slice report
-        continue-on-error: true
-        run: python scripts/lineup_starter_slice_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build market close report
-        continue-on-error: true
-        run: python scripts/market_close_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Diagnose feature availability
-        continue-on-error: true
-        run: python scripts/feature_availability_diagnostic.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build feature grade report
-        continue-on-error: true
-        run: python scripts/feature_grade_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build feature promotion report
-        continue-on-error: true
-        run: python scripts/feature_promotion_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Run walk-forward validation
-        continue-on-error: true
-        run: python scripts/run_walk_forward_validation.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Generate calibration diagnostics
-        continue-on-error: true
-        run: python scripts/generate_calibration_diagnostics.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Generate prediction trust report
-        continue-on-error: true
-        run: python scripts/generate_prediction_trust_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Generate model comparison report
-        continue-on-error: true
-        run: python scripts/generate_model_comparison_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build model decision guardrail report
-        continue-on-error: true
-        run: python scripts/model_decision_guardrail_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Train shadow ensemble stack
-        continue-on-error: true
-        run: python scripts/train_shadow_ensemble_stack.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Diagnose feature zero root cause
-        continue-on-error: true
-        run: python scripts/feature_zero_root_cause_diagnostic.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Sanitize prediction snapshots for no-leakage policy
-        run: python scripts/sanitize_prediction_snapshots.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build settle reliability report
-        continue-on-error: true
-        run: python scripts/settle_reliability_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build settled prediction link report
-        continue-on-error: true
-        run: python scripts/settled_prediction_link_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build final sample state
-        run: python scripts/sample_state_builder.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build lineup quality context
-        continue-on-error: true
-        run: python scripts/lineup_quality_builder.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build feature freshness report
-        continue-on-error: true
-        run: python scripts/feature_freshness_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build underdog diagnostic report
-        continue-on-error: true
-        run: python scripts/underdog_diagnostic_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build confidence bucket guardrail
-        continue-on-error: true
-        run: python scripts/confidence_bucket_guardrail.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build edge sanity guardrail
-        continue-on-error: true
-        run: python scripts/edge_sanity_guardrail.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build slice promotion gate
-        continue-on-error: true
-        run: python scripts/slice_promotion_gate.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build model correctness report
-        continue-on-error: true
-        run: python scripts/model_correctness_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build daily model accuracy report
-        continue-on-error: true
-        run: python scripts/daily_model_accuracy_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build away pick diagnostic report
-        continue-on-error: true
-        run: python scripts/away_pick_diagnostic_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build away guardrail impact report
-        continue-on-error: true
-        run: python scripts/away_guardrail_impact_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build signal quality report
-        continue-on-error: true
-        run: python scripts/signal_quality_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build product experience report
-        continue-on-error: true
-        run: python scripts/product_experience_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build research quality report
-        continue-on-error: true
-        run: python scripts/research_quality_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build model registry
-        continue-on-error: true
-        run: python scripts/model_registry.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build research promotion readiness report
-        continue-on-error: true
-        run: python scripts/research_promotion_readiness_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build HTML report
-        continue-on-error: true
-        run: python scripts/html_report_builder.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build artifact rebuild readiness report
-        run: python scripts/artifact_rebuild_readiness_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build feature contract report
-        run: python scripts/feature_contract_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build feature missingness report
-        run: python scripts/feature_missingness_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build model evaluation report
-        run: python scripts/model_eval_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build calibration report
-        run: python scripts/calibration_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build per-slice performance report
-        run: python scripts/per_slice_performance_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Validate data contracts
-        run: python scripts/data_contract_validator.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build pipeline manifest
-        run: python scripts/pipeline_manifest.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build promotion gate report
-        continue-on-error: true
-        run: python scripts/promotion_gate.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build decision audit report
-        continue-on-error: true
-        run: python scripts/decision_audit_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build paper trading ledger
-        continue-on-error: true
-        run: python scripts/paper_trading_ledger.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build risk exposure report
-        continue-on-error: true
-        run: python scripts/risk_exposure_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build artifact retention manifest
-        continue-on-error: true
-        run: python scripts/artifact_retention_manifest.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build world-class trading system report
-        continue-on-error: true
-        run: python scripts/world_class_trading_system_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build SaaS readiness report
-        continue-on-error: true
-        run: python scripts/saas_readiness_report.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build final HTML report
-        continue-on-error: true
-        run: python scripts/html_report_builder.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Validate final data contracts
-        run: python scripts/data_contract_validator.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Build final pipeline manifest
-        run: python scripts/pipeline_manifest.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Validate report health gate
-        run: python scripts/report_health_gate.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-
-      - name: Sanitize prediction snapshots for no-leakage policy
-        run: python scripts/sanitize_prediction_snapshots.py
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          run_if_exists_optional scripts/html_report_builder.py
+          run_if_exists_required scripts/artifact_rebuild_readiness_report.py
+          run_if_exists_required scripts/feature_contract_report.py
+          run_if_exists_required scripts/feature_missingness_report.py
+          run_if_exists_required scripts/model_eval_report.py
+          run_if_exists_required scripts/calibration_report.py
+          run_if_exists_required scripts/per_slice_performance_report.py
+          run_if_exists_required scripts/data_contract_validator.py
+          run_if_exists_required scripts/pipeline_manifest.py
+          run_if_exists_optional scripts/promotion_gate.py
+          run_if_exists_optional scripts/decision_audit_report.py
+          run_if_exists_optional scripts/paper_trading_ledger.py
+          run_if_exists_optional scripts/risk_exposure_report.py
+          run_if_exists_optional scripts/artifact_retention_manifest.py
+          run_if_exists_optional scripts/world_class_trading_system_report.py
+          run_if_exists_optional scripts/saas_readiness_report.py
+          run_if_exists_optional scripts/html_report_builder.py
+          run_if_exists_required scripts/data_contract_validator.py
+          run_if_exists_required scripts/pipeline_manifest.py
+          run_if_exists_required scripts/report_health_gate.py
+          run_if_exists_required scripts/sanitize_prediction_snapshots.py
 
       - name: Run tests
         run: pytest -q
@@ -652,11 +292,6 @@ jobs:
             data/model_lab/
             docs/*.md
             report/index.html
-            report/feature_contract_report.json
-            report/feature_missingness_report.json
-            report/model_eval_report.json
-            report/calibration_report.json
-            report/per_slice_performance_report.json
             data/training_samples.csv
             data/oos_predictions_with_labels.csv
             data/model_artifact_status.json
@@ -679,150 +314,43 @@ jobs:
 
       - name: Commit validated outputs
         run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF_NAME:-main}"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
-          if [ -f report/prediction.json ]; then
-            git add -f report/prediction.json
-          fi
-
-          for path in \
-            report/rating_rebuild_report.json \
-            report/final_score_backfill_report.json \
-            report/daily_context_collection_report.json \
-            report/odds_fetch_diagnostic.json \
-            report/odds_matching_diagnostic.json \
-            report/training_diagnostic.json \
-            report/context_diagnostic.json \
-            report/evaluation_clv_diagnostic.json \
-            report/feature_availability_diagnostic.json \
-            report/market_edge_research.json \
-            report/market_residual_training_report.json \
-            report/model_lab_report.json \
-            report/feature_promotion_report.json \
-            report/feature_zero_root_cause_diagnostic.json \
-            report/feature_grade_report.json \
-            report/baseline_comparison_report.json \
-            report/clv_by_edge_bucket.json \
-            report/clv_by_side.json \
-            report/clv_by_odds_range.json \
-            report/clv_by_lineup_status.json \
-            report/calibration_report.json \
-            report/per_slice_performance_report.json \
-            report/walkforward_evaluation.json \
-            report/rolling_walkforward_evaluation.json \
-            report/rolling_walkforward_predictions.csv \
-            report/lineup_starter_slice_report.json \
-            report/market_close_report.json \
-            report/research_quality_report.json \
-            report/settle_reliability_report.json \
-            report/settled_prediction_link_report.json \
-            report/finalized_linkage_diagnostic_report.json \
-            report/training_samples_report.json \
-            report/outcome_linkage_diagnostic.json \
-            report/model_artifact_status_report.json \
-            report/model_status_consistency_report.json \
-            report/artifact_rebuild_readiness_report.json \
-            report/feature_contract_report.json \
-            report/feature_missingness_report.json \
-            report/model_eval_report.json \
-            report/train_ensemble_report.json \
-            report/sample_state_report.json \
-            report/snapshot_sanitization_report.json \
-            report/prediction_sanitization_report.json \
-            report/model_registry_report.json \
-            report/promotion_gate_report.json \
-            report/decision_audit_report.json \
-            report/decision_audit.csv \
-            report/paper_trading_ledger_report.json \
-            report/risk_exposure_report.json \
-            report/artifact_retention_manifest.json \
-            report/world_class_trading_system_report.json \
-            report/saas_readiness_report.json \
-            report/data_contract_report.json \
-            report/pipeline_manifest.json \
-            report/index.html \
-            report/walkforward_predictions.csv \
-            report/walk_forward_validation_report.json \
-            report/calibration_diagnostics_report.json \
-            report/prediction_trust_report.json \
-            report/model_comparison_report.json \
-            report/shadow_ensemble_stack_report.json \
-            report/research_promotion_readiness_report.json \
-            report/model_decision_guardrail_report.json \
-            report/underdog_diagnostic_report.json \
-            report/confidence_bucket_guardrail_report.json \
-            report/slice_promotion_gate_report.json \
-            report/feature_freshness_report.json \
-            report/lineup_quality_report.json \
-            report/model_correctness_report.json \
-            report/daily_model_accuracy_report.json \
-            report/away_pick_diagnostic_report.json \
-            report/away_guardrail_impact_report.json \
-            report/edge_sanity_guardrail_report.json \
-            report/signal_quality_report.json \
-            report/product_experience_report.json \
-            data/lineup_quality_context.csv \
-            data/walk_forward_predictions.csv \
-            data/oos_predictions_with_labels.csv \
-            data/model_registry.json \
-            data/sample_state.json \
-            data/training_samples.csv \
-            data/model_artifact_status.json \
-            data/paper_trading_ledger.csv \
-            data/top3_player_context.csv \
-            data/pitcher_advanced_context.csv \
-            data/team_form_context.csv \
-            data/context_feature_bridge.csv \
-            data/market_residual_model.pkl \
-            data/projected_lineup_context.csv \
-            data/finalized_games.csv \
-            data/finalized_snapshot_outcomes.csv \
-            data/historical_predictions.csv \
-            data/prediction_snapshots.csv \
-            data/market_odds_history.csv \
-            data/daily_game_context.csv \
-            data/weather_context.csv \
-            data/savant_top3_context.csv \
-            data/new_final_results.json \
-            data/elo_ratings.json \
-            data/glicko2_ratings.json \
-            data/calibrator.pkl \
-            data/rated_game_ids.json \
-            data/training_status.json \
-            data/training_log.csv \
-            data/feature_importance.csv \
-            docs/SAAS_ROADMAP.md \
-            docs/API_DESIGN.md \
-            docs/RISK_POLICY.md \
-            docs/DATA_SOURCES.md \
-            docs/EVALUATION_METHOD.md \
-            docs/DEPLOYMENT_RENDER.md \
-            docs/GITHUB_ACTIONS_WORKFLOW.md \
-            docs/NO_AUTOMATED_WAGERING_POLICY.md \
-            docs/B2B_PRODUCT_SPEC.md \
-            data/team_last_game.json; do
-            if [ -f "$path" ]; then
-              git add -f "$path"
+          stage_outputs() {
+            git add -u report data docs site || true
+            if [ -d report ]; then git add -f report/ || true; fi
+            if [ -d data ]; then
+              git add -f data/*.csv data/*.json data/*.pkl 2>/dev/null || true
             fi
-          done
+            if [ -d data/historical ]; then git add -f data/historical/ || true; fi
+            if [ -d data/odds_snapshots ]; then git add -f data/odds_snapshots/ || true; fi
+            if [ -d data/model_lab ]; then git add -f data/model_lab/ || true; fi
+            if [ -d docs ]; then git add -f docs/*.md 2>/dev/null || true; fi
+            if [ -d site ]; then git add -f site/ || true; fi
+          }
 
-          if [ -d data/historical ]; then
-            git add -f data/historical/
+          stage_outputs
+          echo "Git status after staging generated outputs:"
+          git status --short
+
+          if git diff --cached --quiet; then
+            echo "No generated output changes to commit."
+          else
+            git commit -m "Update prediction, training and ratings [skip ci]"
           fi
 
-          if [ -d data/odds_snapshots ]; then
-            git add -f data/odds_snapshots/
-          fi
+          echo "Rebasing on latest remote branch with autostash to tolerate dirty generated worktrees."
+          git pull --rebase --autostash origin "$BRANCH"
 
-          if [ -d data/model_lab ]; then
-            git add -f data/model_lab/
+          if ! git push origin "HEAD:$BRANCH"; then
+            echo "Initial push failed; rebasing once more and retrying."
+            git pull --rebase --autostash origin "$BRANCH"
+            git push origin "HEAD:$BRANCH"
           fi
-
-          git commit -m "Update prediction, training and ratings [skip ci]" || echo "No changes"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
 
   collect-history:
     runs-on: ubuntu-latest
@@ -834,11 +362,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Pull latest changes
-        run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git pull --rebase origin "${GITHUB_REF_NAME}"
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -862,6 +386,8 @@ jobs:
 
       - name: Commit historical data
         run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF_NAME:-main}"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
@@ -870,9 +396,17 @@ jobs:
             git add -f data/historical/
           fi
 
-          git commit -m "Add historical data for $(date -u -d 'yesterday' +%Y-%m-%d) [skip ci]" || echo "No changes"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          if git diff --cached --quiet; then
+            echo "No historical data changes to commit."
+          else
+            git commit -m "Add historical data for $(date -u -d 'yesterday' +%Y-%m-%d) [skip ci]"
+          fi
+
+          git pull --rebase --autostash origin "$BRANCH"
+          if ! git push origin "HEAD:$BRANCH"; then
+            git pull --rebase --autostash origin "$BRANCH"
+            git push origin "HEAD:$BRANCH"
+          fi
 
   backfill-history:
     runs-on: ubuntu-latest
@@ -883,6 +417,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -906,6 +441,8 @@ jobs:
 
       - name: Commit historical data
         run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF_NAME:-main}"
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
@@ -914,6 +451,14 @@ jobs:
             git add -f data/historical/
           fi
 
-          git commit -m "Backfill historical data ${{ github.event.inputs.collect_from }} to ${{ github.event.inputs.collect_to }} [skip ci]" || echo "No changes"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+          if git diff --cached --quiet; then
+            echo "No historical backfill changes to commit."
+          else
+            git commit -m "Backfill historical data ${{ github.event.inputs.collect_from }} to ${{ github.event.inputs.collect_to }} [skip ci]"
+          fi
+
+          git pull --rebase --autostash origin "$BRANCH"
+          if ! git push origin "HEAD:$BRANCH"; then
+            git pull --rebase --autostash origin "$BRANCH"
+            git push origin "HEAD:$BRANCH"
+          fi
