@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-16T10:37:13.622272Z",
+  "generated_at": "2026-06-16T10:37:46.834070Z",
   "source_generated_at": "2026-06-16T07:27:31.397832Z",
   "pipeline_version": "baseline_v2_clean",
   "site_version": "public_dashboard_v2_paper_board",
@@ -118,7 +118,442 @@
       "do_not_mix_with_clv": true
     }
   },
-  "accuracy_root_cause": {},
+  "accuracy_root_cause": {
+    "generated_at": "2026-06-16T10:37:46.794753Z",
+    "report_type": "accuracy_root_cause_report",
+    "status": "blocked",
+    "summary": {
+      "official_sample_count": 252,
+      "official_accuracy": 0.5159,
+      "rolling_7d_sample_count": 81,
+      "rolling_7d_accuracy": 0.4568,
+      "rolling_30d_sample_count": 252,
+      "rolling_30d_accuracy": 0.5159,
+      "recent_drop_vs_30d": -0.0591,
+      "degraded_day_count": 2,
+      "weak_slice_count": 2,
+      "inactive_signal_day_count": 4,
+      "root_cause_count": 6
+    },
+    "root_causes": [
+      {
+        "id": "recent_rolling_accuracy_drop",
+        "severity": "high",
+        "title": "近 7 日命中率低於 30 日平均",
+        "evidence": [
+          "7d accuracy=0.4568",
+          "30d accuracy=0.5159",
+          "delta=-0.0591"
+        ],
+        "repair": "把近期低命中日和 tracking-only 天數獨立顯示；不要用單一總命中率代表模型可用性。"
+      },
+      {
+        "id": "model_collapse_guardrail_failed",
+        "severity": "critical",
+        "title": "模型評估觸發 collapse guardrail",
+        "evidence": [
+          "roc_auc=0.5126050420168067",
+          "balanced_accuracy=0.5",
+          "predicted_positive_rate=1.0",
+          "roc_auc_near_random, balanced_accuracy_near_random, single_class_positive_prediction_collapse, brier_near_random_0_25, logloss_near_random_0_693, test_sample_count_too_small_for_stable_claims"
+        ],
+        "repair": "正式站只顯示 tracking-only；模型不可 promotion。先修 feature coverage、再重跑 time-ordered evaluation。"
+      },
+      {
+        "id": "baseline_quality_gate_blocked",
+        "severity": "critical",
+        "title": "模型沒有打贏必要 baseline",
+        "evidence": [
+          "model_does_not_beat_constant_50_brier, model_does_not_beat_constant_50_logloss, model_does_not_beat_home_historical_rate_brier, model_does_not_beat_home_historical_rate_logloss, settled_sample_count_below_300"
+        ],
+        "repair": "新增頁面直接顯示 baseline blocker；模型要先打贏 constant_50、home historical、market no-vig 的 Brier/Logloss 才能升級。"
+      },
+      {
+        "id": "walkforward_recent_fold_collapse",
+        "severity": "high",
+        "title": "時間序列 walk-forward 多個 fold 退化",
+        "evidence": [
+          "fold_count=5",
+          "collapse_fold_count=4",
+          "collapse_rate=0.8",
+          "settled_oos_predictions=252"
+        ],
+        "repair": "把 walk-forward fold collapse 當作發布 gate；近期 fold 未恢復前，網站只做追蹤，不做正式推薦。"
+      },
+      {
+        "id": "paper_signal_drought",
+        "severity": "medium",
+        "title": "近期 paper signal 幾乎消失，盤面多為 tracking-only",
+        "evidence": [
+          "recent inactive signal days=4",
+          "pending_predictions=18"
+        ],
+        "repair": "網站新增 paper signal / tracking-only 分離；official accuracy 之外另顯示可用訊號命中率。"
+      },
+      {
+        "id": "feature_source_incomplete",
+        "severity": "high",
+        "title": "重要 MLB 特徵資料源不完整，無法安全進主模型",
+        "evidence": [
+          "source_missing_all_zero_count=10",
+          "source_missing_or_not_backfilled_count=15",
+          "feature_disabled_with_partial_signal_count=12"
+        ],
+        "repair": "先做 starting pitcher、lineup、statcast、bullpen 的 freshness/backfill audit；修完前不得把這些特徵 promotion。"
+      }
+    ],
+    "degraded_days": [
+      {
+        "game_date": "2026-06-13",
+        "sample_count": 17,
+        "correct": 7,
+        "accuracy": 0.4118,
+        "paper_signal_count": 0,
+        "paper_signal_accuracy": null,
+        "pending_count": 0,
+        "delta_vs_30d": -0.1041
+      },
+      {
+        "game_date": "2026-06-14",
+        "sample_count": 17,
+        "correct": 6,
+        "accuracy": 0.3529,
+        "paper_signal_count": 1,
+        "paper_signal_accuracy": 0.0,
+        "pending_count": 1,
+        "delta_vs_30d": -0.1629
+      }
+    ],
+    "inactive_signal_days": [
+      {
+        "game_date": "2026-06-12",
+        "sample_count": 10,
+        "accuracy": 0.5,
+        "paper_signal_count": 0,
+        "pending_count": 0
+      },
+      {
+        "game_date": "2026-06-13",
+        "sample_count": 17,
+        "accuracy": 0.4118,
+        "paper_signal_count": 0,
+        "pending_count": 0
+      },
+      {
+        "game_date": "2026-06-15",
+        "sample_count": 4,
+        "accuracy": 0.5,
+        "paper_signal_count": 0,
+        "pending_count": 0
+      },
+      {
+        "game_date": "2026-06-16",
+        "sample_count": 6,
+        "accuracy": 0.6667,
+        "paper_signal_count": 0,
+        "pending_count": 8
+      }
+    ],
+    "weak_slices": [
+      {
+        "slice": "away_picks",
+        "sample_count": 142,
+        "correct": 66,
+        "accuracy": 0.4648,
+        "delta_vs_official": -0.0511,
+        "weak_slice": true
+      },
+      {
+        "slice": "underdogs",
+        "sample_count": 104,
+        "correct": 50,
+        "accuracy": 0.4808,
+        "delta_vs_official": -0.0351,
+        "weak_slice": true
+      }
+    ],
+    "model_collapse": {
+      "status": "failed",
+      "model_has_no_discrimination_power": true,
+      "do_not_promote": true,
+      "collapse_reasons": [
+        "roc_auc_near_random",
+        "balanced_accuracy_near_random",
+        "single_class_positive_prediction_collapse",
+        "brier_near_random_0_25",
+        "logloss_near_random_0_693",
+        "test_sample_count_too_small_for_stable_claims"
+      ],
+      "metrics": {
+        "accuracy": 0.5526,
+        "balanced_accuracy": 0.5,
+        "roc_auc": 0.5126,
+        "brier": 0.2588,
+        "logloss": 0.7116,
+        "predicted_positive_rate": 1.0,
+        "predicted_negative_rate": 0.0
+      }
+    },
+    "baseline_gate": {
+      "status": "blocked",
+      "promotion_allowed": false,
+      "reasons": [
+        "model_does_not_beat_constant_50_brier",
+        "model_does_not_beat_constant_50_logloss",
+        "model_does_not_beat_home_historical_rate_brier",
+        "model_does_not_beat_home_historical_rate_logloss",
+        "settled_sample_count_below_300"
+      ]
+    },
+    "walkforward": {
+      "status": "insufficient_samples",
+      "settled_oos_predictions": 252,
+      "min_required_oos_predictions": 300,
+      "fold_count": 5,
+      "collapse_fold_count": 4,
+      "collapse_rate": 0.8,
+      "median_model_brier": 0.25846,
+      "median_model_logloss": 0.709369
+    },
+    "feature_source_summary": {
+      "feature_count": 62,
+      "active_core_healthy_count": 7,
+      "source_missing_all_zero_count": 10,
+      "source_missing_or_not_backfilled_count": 15,
+      "feature_disabled_with_signal_count": 1,
+      "feature_disabled_with_partial_signal_count": 12,
+      "true_zero_or_context_sparse_count": 7,
+      "excluded_by_schema_count": 0
+    },
+    "feature_gap_examples": [
+      {
+        "feature": "pitch_movement_diff",
+        "feature_group": "starting_pitcher",
+        "category": "source_missing_all_zero",
+        "zero_rate": 1.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "high-impact source appears absent or not backfilled",
+          "feature is tracking-only because evidence is insufficient"
+        ]
+      },
+      {
+        "feature": "pitch_type_matchup_score",
+        "feature_group": "starting_pitcher",
+        "category": "source_missing_all_zero",
+        "zero_rate": 1.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "high-impact source appears absent or not backfilled",
+          "feature is tracking-only because evidence is insufficient"
+        ]
+      },
+      {
+        "feature": "catcher_era_diff",
+        "feature_group": "lineup",
+        "category": "source_missing_all_zero",
+        "zero_rate": 1.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "high-impact source appears absent or not backfilled"
+        ]
+      },
+      {
+        "feature": "cs_diff",
+        "feature_group": "lineup",
+        "category": "source_missing_all_zero",
+        "zero_rate": 1.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "high-impact source appears absent or not backfilled"
+        ]
+      },
+      {
+        "feature": "platoon_ops_diff",
+        "feature_group": "lineup",
+        "category": "source_missing_all_zero",
+        "zero_rate": 1.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "high-impact source appears absent or not backfilled",
+          "feature is tracking-only because evidence is insufficient"
+        ]
+      },
+      {
+        "feature": "lineup_context_available",
+        "feature_group": "lineup",
+        "category": "source_missing_or_not_backfilled",
+        "zero_rate": 0.4876,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "historical coverage missing for at least half of samples",
+          "feature is tracking-only; do not promote until backfilled"
+        ]
+      },
+      {
+        "feature": "games_last_3d_diff",
+        "feature_group": "rest_travel",
+        "category": "source_missing_or_not_backfilled",
+        "zero_rate": 0.1942,
+        "non_zero_rate": 0.2355,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "historical coverage missing for at least half of samples"
+        ]
+      },
+      {
+        "feature": "games_last_7d_diff",
+        "feature_group": "rest_travel",
+        "category": "source_missing_or_not_backfilled",
+        "zero_rate": 0.124,
+        "non_zero_rate": 0.3058,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "historical coverage missing for at least half of samples"
+        ]
+      },
+      {
+        "feature": "rest_pressure_diff",
+        "feature_group": "rest_travel",
+        "category": "source_missing_or_not_backfilled",
+        "zero_rate": 0.0826,
+        "non_zero_rate": 0.3471,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "historical coverage missing for at least half of samples"
+        ]
+      },
+      {
+        "feature": "odds_available",
+        "feature_group": "availability",
+        "category": "source_missing_or_not_backfilled",
+        "zero_rate": 0.1612,
+        "non_zero_rate": 0.3264,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "historical coverage missing for at least half of samples"
+        ]
+      },
+      {
+        "feature": "csw_diff",
+        "feature_group": "ungrouped",
+        "category": "all_zero_needs_review",
+        "zero_rate": 1.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "all-zero feature needs manual source review"
+        ]
+      },
+      {
+        "feature": "k_rate",
+        "feature_group": "ungrouped",
+        "category": "all_zero_needs_review",
+        "zero_rate": 1.0,
+        "non_zero_rate": 0.0,
+        "allow_in_main_model": false,
+        "recommended_action": "track_only_do_not_promote",
+        "reasons": [
+          "all-zero feature needs manual source review"
+        ]
+      }
+    ],
+    "shadow_ablation": {
+      "summary": {
+        "candidate_feature_count": 12,
+        "candidate_group_count": 5,
+        "kept_feature_count": 0,
+        "kept_group_count": 0,
+        "rejected_feature_count": 12,
+        "rejected_group_count": 5
+      },
+      "top_rejected_features": [
+        {
+          "feature": "bb_pct_diff",
+          "decision": "reject_for_now",
+          "brier_delta_vs_core": 0.001555,
+          "logloss_delta_vs_core": 0.003519,
+          "accuracy_delta_vs_core": 0.0
+        },
+        {
+          "feature": "sp_fip_diff",
+          "decision": "reject_for_now",
+          "brier_delta_vs_core": 0.001871,
+          "logloss_delta_vs_core": 0.002849,
+          "accuracy_delta_vs_core": -0.027778
+        },
+        {
+          "feature": "lag30_winrate_diff",
+          "decision": "reject_for_now",
+          "brier_delta_vs_core": 0.002034,
+          "logloss_delta_vs_core": 0.004995,
+          "accuracy_delta_vs_core": -0.006944
+        },
+        {
+          "feature": "bullpen_ip_diff",
+          "decision": "reject_for_now",
+          "brier_delta_vs_core": 0.0044,
+          "logloss_delta_vs_core": 0.00932,
+          "accuracy_delta_vs_core": -0.020833
+        },
+        {
+          "feature": "k_pct_diff",
+          "decision": "reject_for_now",
+          "brier_delta_vs_core": 0.00497,
+          "logloss_delta_vs_core": 0.011468,
+          "accuracy_delta_vs_core": -0.020833
+        },
+        {
+          "feature": "bullpen_availability_diff",
+          "decision": "reject_for_now",
+          "brier_delta_vs_core": 0.00542,
+          "logloss_delta_vs_core": 0.011848,
+          "accuracy_delta_vs_core": -0.013889
+        },
+        {
+          "feature": "sp_stuff_plus_diff",
+          "decision": "reject_for_now",
+          "brier_delta_vs_core": 0.005428,
+          "logloss_delta_vs_core": 0.011545,
+          "accuracy_delta_vs_core": -0.006944
+        },
+        {
+          "feature": "avg_bat_speed_diff",
+          "decision": "reject_for_now",
+          "brier_delta_vs_core": 0.011323,
+          "logloss_delta_vs_core": 0.030619,
+          "accuracy_delta_vs_core": -0.020833
+        }
+      ]
+    },
+    "corrective_actions": [
+      "Separate official accuracy, paper-signal accuracy, and tracking-only accuracy on the public site.",
+      "Keep promotion_allowed=false until collapse guardrail, baseline gate, and walk-forward folds improve together.",
+      "Run feature source freshness/backfill audit for starting pitcher, lineup, statcast batting, and bullpen groups.",
+      "Do not promote partially zero-filled shadow features just because they look domain-relevant; require Brier and logloss improvement."
+    ],
+    "promotion_allowed": false,
+    "live_betting_allowed": false,
+    "automated_wagering_allowed": false,
+    "production_model_replacement_allowed": false
+  },
   "governance_summary": {
     "block_reasons": [
       "clean_model_sample_count_below_live_min:109<500",
