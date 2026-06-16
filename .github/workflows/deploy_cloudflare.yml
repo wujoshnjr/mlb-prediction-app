@@ -1,0 +1,54 @@
+name: Deploy Public Site to Cloudflare
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'site/**'
+      - 'wrangler.toml'
+      - '.github/workflows/deploy_cloudflare.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-public-site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-public-site:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Verify static site files
+        run: |
+          set -euo pipefail
+          test -f wrangler.toml
+          test -f site/index.html
+          test -f site/styles.css
+          test -f site/app.js
+          test -f site/data/public_dashboard.json
+          python -m json.tool site/data/public_dashboard.json >/dev/null
+          echo "Static site files are present and public_dashboard.json is valid JSON."
+
+      - name: Skip deploy when Cloudflare secrets are unavailable
+        if: ${{ env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '' }}
+        run: |
+          echo "Cloudflare deploy skipped because CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is not configured."
+          echo "Add both repository secrets to enable automatic deployment."
+
+      - name: Deploy Worker static assets
+        if: ${{ env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' }}
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy
