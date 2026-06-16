@@ -1,0 +1,325 @@
+{
+  "generated_at": "2026-06-16T02:34:54.039982Z",
+  "report_type": "shadow_feature_experiment_report",
+  "status": "warning",
+  "training_samples": {
+    "path": "data/training_samples.csv",
+    "exists": true,
+    "rows": 242,
+    "error": "",
+    "valid_labeled_rows": 242
+  },
+  "candidate_source": "report/feature_promotion_candidate_report.json",
+  "feature_sets": {
+    "core_only": [
+      "elo_diff",
+      "bt_strength_diff",
+      "sp_era_diff",
+      "pitcher_rating_diff",
+      "dynamic_park_factor",
+      "winrate_diff",
+      "timezone_diff"
+    ],
+    "shadow_now": [
+      "lag30_winrate_diff",
+      "bullpen_availability_diff"
+    ],
+    "recommended_shadow_set": [
+      "k_pct_diff",
+      "bb_pct_diff",
+      "sp_fip_diff",
+      "sp_stuff_plus_diff",
+      "lag30_winrate_diff",
+      "bullpen_availability_diff",
+      "avg_bat_speed_diff",
+      "bullpen_ip_diff",
+      "statcast_woba_diff",
+      "top3_woba_diff",
+      "hardhit_pa_diff",
+      "barrel_pa_diff"
+    ]
+  },
+  "experiments": [
+    {
+      "experiment": "core_only",
+      "status": "ok",
+      "feature_count": 7,
+      "features": [
+        "elo_diff",
+        "bt_strength_diff",
+        "sp_era_diff",
+        "pitcher_rating_diff",
+        "dynamic_park_factor",
+        "winrate_diff",
+        "timezone_diff"
+      ],
+      "sample_count": 144,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 144,
+        "brier": 0.263572,
+        "logloss": 0.724037,
+        "accuracy": 0.5625,
+        "balanced_accuracy": 0.572639,
+        "probability_mean": 0.465604,
+        "probability_std": 0.138741,
+        "positive_rate": 0.402778,
+        "negative_rate": 0.597222
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 98,
+          "test_rows": 48,
+          "metrics": {
+            "count": 48,
+            "brier": 0.260033,
+            "logloss": 0.719226,
+            "accuracy": 0.604167,
+            "balanced_accuracy": 0.616402,
+            "probability_mean": 0.459523,
+            "probability_std": 0.166466,
+            "positive_rate": 0.416667,
+            "negative_rate": 0.583333
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 146,
+          "test_rows": 48,
+          "metrics": {
+            "count": 48,
+            "brier": 0.280755,
+            "logloss": 0.759646,
+            "accuracy": 0.5,
+            "balanced_accuracy": 0.513986,
+            "probability_mean": 0.451143,
+            "probability_std": 0.150594,
+            "positive_rate": 0.333333,
+            "negative_rate": 0.666667
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 194,
+          "test_rows": 48,
+          "metrics": {
+            "count": 48,
+            "brier": 0.249928,
+            "logloss": 0.693239,
+            "accuracy": 0.583333,
+            "balanced_accuracy": 0.587413,
+            "probability_mean": 0.486147,
+            "probability_std": 0.081791,
+            "positive_rate": 0.458333,
+            "negative_rate": 0.541667
+          }
+        }
+      ],
+      "errors": []
+    },
+    {
+      "experiment": "core_plus_shadow_now",
+      "status": "ok",
+      "feature_count": 9,
+      "features": [
+        "elo_diff",
+        "bt_strength_diff",
+        "sp_era_diff",
+        "pitcher_rating_diff",
+        "dynamic_park_factor",
+        "winrate_diff",
+        "timezone_diff",
+        "lag30_winrate_diff",
+        "bullpen_availability_diff"
+      ],
+      "sample_count": 144,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 144,
+        "brier": 0.270964,
+        "logloss": 0.740805,
+        "accuracy": 0.534722,
+        "balanced_accuracy": 0.543233,
+        "probability_mean": 0.466221,
+        "probability_std": 0.152791,
+        "positive_rate": 0.416667,
+        "negative_rate": 0.583333
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 98,
+          "test_rows": 48,
+          "metrics": {
+            "count": 48,
+            "brier": 0.265213,
+            "logloss": 0.732004,
+            "accuracy": 0.583333,
+            "balanced_accuracy": 0.592593,
+            "probability_mean": 0.465847,
+            "probability_std": 0.161952,
+            "positive_rate": 0.4375,
+            "negative_rate": 0.5625
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 146,
+          "test_rows": 48,
+          "metrics": {
+            "count": 48,
+            "brier": 0.275556,
+            "logloss": 0.748901,
+            "accuracy": 0.541667,
+            "balanced_accuracy": 0.552448,
+            "probability_mean": 0.450908,
+            "probability_std": 0.160119,
+            "positive_rate": 0.375,
+            "negative_rate": 0.625
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 194,
+          "test_rows": 48,
+          "metrics": {
+            "count": 48,
+            "brier": 0.272123,
+            "logloss": 0.74151,
+            "accuracy": 0.479167,
+            "balanced_accuracy": 0.484266,
+            "probability_mean": 0.481909,
+            "probability_std": 0.132998,
+            "positive_rate": 0.4375,
+            "negative_rate": 0.5625
+          }
+        }
+      ],
+      "errors": []
+    },
+    {
+      "experiment": "core_plus_recommended_shadow_set",
+      "status": "ok",
+      "feature_count": 19,
+      "features": [
+        "elo_diff",
+        "bt_strength_diff",
+        "sp_era_diff",
+        "pitcher_rating_diff",
+        "dynamic_park_factor",
+        "winrate_diff",
+        "timezone_diff",
+        "k_pct_diff",
+        "bb_pct_diff",
+        "sp_fip_diff",
+        "sp_stuff_plus_diff",
+        "lag30_winrate_diff",
+        "bullpen_availability_diff",
+        "avg_bat_speed_diff",
+        "bullpen_ip_diff",
+        "statcast_woba_diff",
+        "top3_woba_diff",
+        "hardhit_pa_diff",
+        "barrel_pa_diff"
+      ],
+      "sample_count": 144,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 144,
+        "brier": 0.311988,
+        "logloss": 0.945384,
+        "accuracy": 0.5,
+        "balanced_accuracy": 0.506134,
+        "probability_mean": 0.474884,
+        "probability_std": 0.255801,
+        "positive_rate": 0.4375,
+        "negative_rate": 0.5625
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 98,
+          "test_rows": 48,
+          "metrics": {
+            "count": 48,
+            "brier": 0.284804,
+            "logloss": 0.772226,
+            "accuracy": 0.520833,
+            "balanced_accuracy": 0.537037,
+            "probability_mean": 0.446607,
+            "probability_std": 0.156892,
+            "positive_rate": 0.375,
+            "negative_rate": 0.625
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 146,
+          "test_rows": 48,
+          "metrics": {
+            "count": 48,
+            "brier": 0.399325,
+            "logloss": 1.358834,
+            "accuracy": 0.4375,
+            "balanced_accuracy": 0.438811,
+            "probability_mean": 0.514985,
+            "probability_std": 0.330576,
+            "positive_rate": 0.479167,
+            "negative_rate": 0.520833
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 194,
+          "test_rows": 48,
+          "metrics": {
+            "count": 48,
+            "brier": 0.251834,
+            "logloss": 0.705092,
+            "accuracy": 0.541667,
+            "balanced_accuracy": 0.545455,
+            "probability_mean": 0.46306,
+            "probability_std": 0.244663,
+            "positive_rate": 0.458333,
+            "negative_rate": 0.541667
+          }
+        }
+      ],
+      "errors": []
+    }
+  ],
+  "comparisons_vs_core": [
+    {
+      "experiment": "core_plus_shadow_now",
+      "brier_delta_vs_core": 0.007392,
+      "logloss_delta_vs_core": 0.016768,
+      "accuracy_delta_vs_core": -0.027778,
+      "balanced_accuracy_delta_vs_core": -0.029406
+    },
+    {
+      "experiment": "core_plus_recommended_shadow_set",
+      "brier_delta_vs_core": 0.048416,
+      "logloss_delta_vs_core": 0.221347,
+      "accuracy_delta_vs_core": -0.0625,
+      "balanced_accuracy_delta_vs_core": -0.066505
+    }
+  ],
+  "recommendations": [
+    "Research-only output. Do not change active predictions from this report.",
+    "Only consider feature promotion after repeated reruns improve Brier/logloss versus core_only.",
+    "Keep missing indicators in the imputation pipeline before any active-model promotion."
+  ],
+  "promotion_allowed": false,
+  "deployment_allowed": false,
+  "public_prediction_change_allowed": false
+}
