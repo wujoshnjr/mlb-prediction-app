@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-06-15T10:46:59.802313+00:00",
+  "generated_at": "2026-06-16T05:40:35.534418+00:00",
   "status": "paper_trading_only_blocked_for_live",
-  "world_class_stage": "research_quality_buildout",
-  "overall_score": 72.23,
-  "overall_grade": "C",
+  "world_class_stage": "advanced_shadow_trading_candidate",
+  "overall_score": 78.36,
+  "overall_grade": "B",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
   "production_allowed": false,
@@ -11,21 +11,21 @@
   "layers": {
     "data_trust": {
       "name": "Layer 1 - Data Trust",
-      "status": "blocked",
-      "score": 85,
-      "grade": "B",
+      "status": "ready_for_next_review",
+      "score": 100.0,
+      "grade": "A",
       "signals": [
         {
           "name": "data_contract_ok",
-          "passed": false,
+          "passed": true,
           "weight": 15,
-          "details": "failed"
+          "details": "ok"
         },
         {
           "name": "pipeline_manifest_readable",
           "passed": true,
           "weight": 15,
-          "details": "partial"
+          "details": "ok"
         },
         {
           "name": "prediction_sanitizer_clean",
@@ -44,28 +44,26 @@
           "passed": true,
           "weight": 10,
           "details": {
-            "prediction_count": 10,
-            "audit_count": 10
+            "prediction_count": 15,
+            "audit_count": 15
           }
         },
         {
           "name": "per_pick_clv_joined",
           "passed": true,
           "weight": 15,
-          "details": 201
+          "details": 205
         },
         {
           "name": "settled_prediction_link_report_ok",
           "passed": true,
           "weight": 15,
           "details": {
-            "linked_game_count": 242
+            "linked_game_count": 252
           }
         }
       ],
-      "blockers": [
-        "data contract is not ok"
-      ],
+      "blockers": [],
       "warnings": [],
       "recommendations": [
         "Keep event-time, snapshot-time, entry odds, closing odds, decision audit, and settle result linked by game_id.",
@@ -95,13 +93,13 @@
           "name": "avg_clv_positive",
           "passed": true,
           "weight": 20,
-          "details": 0.258213
+          "details": 0.253126
         },
         {
           "name": "positive_clv_rate_at_least_55pct",
           "passed": true,
           "weight": 15,
-          "details": 0.602
+          "details": 0.5951
         },
         {
           "name": "calibration_ready",
@@ -113,7 +111,7 @@
           "name": "walkforward_ready",
           "passed": false,
           "weight": 10,
-          "details": 0
+          "details": 270
         },
         {
           "name": "rolling_oos_at_least_300",
@@ -125,11 +123,11 @@
           "name": "settled_samples_at_least_500",
           "passed": false,
           "weight": 5,
-          "details": 242
+          "details": 252
         }
       ],
       "blockers": [
-        "settled prediction samples < 500 (242)",
+        "settled prediction samples < 500 (252)",
         "rolling OOS predictions < 300 (0)",
         "calibration is not ready"
       ],
@@ -149,7 +147,7 @@
           "name": "prediction_live_flags_locked",
           "passed": true,
           "weight": 25,
-          "details": 10
+          "details": 15
         },
         {
           "name": "live_stake_units_zero",
@@ -184,7 +182,7 @@
       ],
       "blockers": [],
       "warnings": [
-        "paper exposure is high for research stage: 23.25"
+        "paper exposure is high for research stage: 24.0"
       ],
       "recommendations": [
         "Keep live betting locked until governance, sample size, CLV, calibration, and risk gates explicitly allow a later shadow phase.",
@@ -194,7 +192,7 @@
     "model_upgrade_path": {
       "name": "Layer 4 - Model Upgrade Path",
       "status": "blocked",
-      "score": 56.13,
+      "score": 56.8,
       "grade": "D",
       "signals": [
         {
@@ -202,7 +200,7 @@
           "passed": false,
           "weight": 20,
           "details": {
-            "sample_count": 242,
+            "sample_count": 252,
             "minimum": 300
           }
         },
@@ -216,13 +214,13 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 72
+          "details": 73
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
           "passed": true,
           "weight": 20,
-          "details": 0.6612903225806451
+          "details": 0.6935483870967742
         },
         {
           "name": "rolling_oos_started",
@@ -232,7 +230,7 @@
         }
       ],
       "blockers": [
-        "clean training samples below threshold: 242 < 300",
+        "clean training samples below threshold: 252 < 300",
         "model is not trained yet"
       ],
       "warnings": [
@@ -246,9 +244,9 @@
     },
     "product_readiness": {
       "name": "Layer 5 - Product Readiness",
-      "status": "blocked",
-      "score": 85,
-      "grade": "B",
+      "status": "ready_for_next_review",
+      "score": 100.0,
+      "grade": "A",
       "signals": [
         {
           "name": "html_dashboard_exists",
@@ -258,33 +256,33 @@
         },
         {
           "name": "data_contract_ok",
-          "passed": false,
+          "passed": true,
           "weight": 15,
-          "details": "failed"
+          "details": "ok"
         },
         {
           "name": "pipeline_manifest_readable",
           "passed": true,
           "weight": 15,
-          "details": "partial"
+          "details": "ok"
         },
         {
           "name": "artifact_retention_ok",
           "passed": true,
           "weight": 10,
-          "details": 109
+          "details": 121
         },
         {
           "name": "decision_audit_ok",
           "passed": true,
           "weight": 10,
-          "details": 10
+          "details": 15
         },
         {
           "name": "paper_ledger_ok",
           "passed": true,
           "weight": 10,
-          "details": 93
+          "details": 96
         },
         {
           "name": "risk_exposure_ok",
@@ -309,9 +307,7 @@
           }
         }
       ],
-      "blockers": [
-        "data contract is not ok"
-      ],
+      "blockers": [],
       "warnings": [],
       "recommendations": [
         "Dashboard should show prediction, decision audit, CLV, promotion gate, research grade, paper PnL, risk exposure, and SaaS readiness.",
@@ -322,16 +318,14 @@
   },
   "critical_blockers": [],
   "blockers": [
-    "data_trust: data contract is not ok",
-    "research_quality: settled prediction samples < 500 (242)",
+    "research_quality: settled prediction samples < 500 (252)",
     "research_quality: rolling OOS predictions < 300 (0)",
     "research_quality: calibration is not ready",
-    "model_upgrade_path: clean training samples below threshold: 242 < 300",
-    "model_upgrade_path: model is not trained yet",
-    "product_readiness: data contract is not ok"
+    "model_upgrade_path: clean training samples below threshold: 252 < 300",
+    "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
-    "risk_controls: paper exposure is high for research stage: 23.25",
+    "risk_controls: paper exposure is high for research stage: 24.0",
     "model_upgrade_path: rolling OOS evaluation has not started producing predictions"
   ],
   "input_files": {
