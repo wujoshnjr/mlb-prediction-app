@@ -83,6 +83,44 @@ INTERNAL_COLUMNS = {
     "_outcome_home_win",
 }
 
+# These are tracking/shadow-only context features where a literal 0 in older
+# snapshots often means "source unavailable at prediction time", not "teams were
+# exactly equal".  Keep true zeros only when a matching availability flag says the
+# source was actually available.  Otherwise preserve the missingness as NA and add
+# an explicit indicator column so downstream SimpleImputer(add_indicator=True)
+# can learn missingness without treating it as a real zero.
+STRUCTURAL_ZERO_FILL_FEATURES: Dict[str, List[str]] = {
+    "sp_fip_diff": ["sp_fip_diff_available", "pitcher_advanced_available"],
+    "sp_csw_diff": ["sp_csw_diff_available", "pitcher_advanced_available"],
+    "sp_stuff_plus_diff": ["sp_stuff_plus_diff_available", "pitcher_advanced_available"],
+    "k_pct_diff": ["pitcher_advanced_available"],
+    "bb_pct_diff": ["pitcher_advanced_available"],
+    "bullpen_ip_diff": ["bullpen_context_available"],
+    "bullpen_availability_diff": ["bullpen_context_available"],
+    "statcast_woba_diff": ["statcast_woba_available"],
+    "statcast_launch_speed_diff": ["statcast_woba_available"],
+    "statcast_barrel_diff": ["statcast_woba_available"],
+    "statcast_hard_hit_diff": ["statcast_woba_available"],
+    "avg_bat_speed_diff": ["statcast_woba_available"],
+    "barrel_pa_diff": ["statcast_woba_available"],
+    "hardhit_pa_diff": ["statcast_woba_available"],
+    "top3_woba_diff": ["top3_woba_available", "lineup_context_available"],
+    "platoon_ops_diff": ["lineup_context_available"],
+    "lag30_winrate_diff": ["team_form_available"],
+    "lag30_runs_diff": ["team_form_available"],
+    "rest_diff": ["team_form_available"],
+    "back2back_diff": ["team_form_available"],
+    "games_last_3d_diff": ["team_form_available"],
+    "games_last_7d_diff": ["team_form_available"],
+    "rest_pressure_diff": ["team_form_available"],
+    "wind_effect": ["weather_available"],
+    "temp_effect": ["weather_available"],
+    "precip_effect": ["weather_available"],
+}
+
+
+TRUE_TEXT_VALUES = {"true", "1", "yes", "y", "valid", "ok", "available", "ready"}
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -163,10 +201,10 @@ def _normalize_game_id(value: Any) -> str:
 
 def _to_bool_series(series: pd.Series) -> pd.Series:
     if series.dtype == bool:
-        return series.fillna(True)
+        return series.fillna(False)
 
     normalized = series.astype(str).str.strip().str.lower()
-    return normalized.isin({"true", "1", "yes", "y", "valid", "ok"})
+    return normalized.isin(TRUE_TEXT_VALUES)
 
 
 def _empty_training_frame() -> pd.DataFrame:
@@ -321,6 +359,69 @@ def _select_output_columns(frame: pd.DataFrame) -> Tuple[List[str], List[str]]:
     return available_core + extra_columns, leakage_removed
 
 
+def _repair_structural_zero_fills(training_samples: pd.DataFrame, report: Dict[str, Any]) -> pd.DataFrame:
+    if training_samples.empty:
+        return training_samples
+
+    repaired = training_samples.copy()
+    repair_records: List[Dict[str, Any]] = []
+    total_repaired_rows = 0
+
+    for feature, availability_flags in STRUCTURAL_ZERO_FILL_FEATURES.items():
+        if feature not in repaired.columns:
+            continue
+
+        numeric = pd.to_numeric(repaired[feature], errors="coerce")
+        zero_mask = numeric.notna() & (numeric.abs() < 1e-12)
+        if not bool(zero_mask.any()):
+            repaired[f"{feature}_missing"] = 0
+            continue
+
+        availability_mask = pd.Series(False, index=repaired.index)
+        available_flag_columns = []
+        for flag in availability_flags:
+            if flag not in repaired.columns:
+                continue
+            available_flag_columns.append(flag)
+            availability_mask = availability_mask | _to_bool_series(repaired[flag])
+
+        structural_missing_mask = zero_mask & ~availability_mask
+        repaired_count = int(structural_missing_mask.sum())
+        repaired[f"{feature}_missing"] = structural_missing_mask.astype(int)
+        total_repaired_rows += repaired_count
+
+        if repaired_count:
+            repaired.loc[structural_missing_mask, feature] = pd.NA
+
+        repair_records.append(
+            {
+                "feature": feature,
+                "availability_flags": availability_flags,
+                "available_flag_columns_present": available_flag_columns,
+                "zero_count_before_repair": int(zero_mask.sum()),
+                "structural_missing_rows_repaired": repaired_count,
+                "true_zero_rows_retained": int((zero_mask & availability_mask).sum()),
+                "missing_indicator_column": f"{feature}_missing",
+            }
+        )
+
+    report["structural_zero_fill_repair"] = {
+        "enabled": True,
+        "policy": "zero values in tracking-only context features are converted to missing when their availability flags are not true",
+        "feature_count_checked": len(repair_records),
+        "total_repaired_cells": total_repaired_rows,
+        "features": repair_records,
+    }
+    if total_repaired_rows:
+        report["warnings"].append(
+            f"Converted {total_repaired_rows} structural zero-filled context feature cells to missing values with indicators."
+        )
+        report["recommendations"].append(
+            "Downstream shadow models should use imputers with missing indicators and should not promote repaired features until time-ordered Brier/logloss improve."
+        )
+    return repaired
+
+
 def build_training_samples(
     snapshot_path: Path = SNAPSHOT_PATH,
     finalized_snapshot_outcomes_path: Path = FINALIZED_SNAPSHOT_OUTCOMES_PATH,
@@ -435,6 +536,7 @@ def build_training_samples(
 
     training_samples = merged[output_columns].copy()
     training_samples = training_samples.drop_duplicates("game_id", keep="first").copy()
+    training_samples = _repair_structural_zero_fills(training_samples, report)
 
     report["clean_training_rows"] = int(len(training_samples))
 
