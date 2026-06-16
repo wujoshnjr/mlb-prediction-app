@@ -1,24 +1,22 @@
 {
-  "generated_at": "2026-06-16T11:08:20.946614Z",
+  "generated_at": "2026-06-16T12:02:53.016416Z",
   "report_type": "feature_source_freshness_audit",
   "status": "warning",
   "summary": {
     "training_samples_available": true,
     "training_sample_count": 252,
-    "training_feature_count": 105,
+    "training_feature_count": 131,
     "training_unique_game_id_count": 252,
     "candidate_feature_count": 41,
     "audited_feature_count": 13,
     "unmapped_feature_count": 28,
-    "highest_priority_issue_count": 10
+    "highest_priority_issue_count": 4
   },
   "recommendation_counts": {
-    "audit_zero_fill_and_missing_value_policy": 8,
-    "ok_to_continue_monitoring": 1,
+    "ok_to_continue_monitoring": 9,
     "backfill_source_history_to_training_game_ids": 4
   },
   "issue_counts": {
-    "training_feature_zero_rate_over_50pct": 12,
     "low_game_id_overlap_with_training_samples": 4
   },
   "highest_priority": [
@@ -27,10 +25,9 @@
       "feature_group": "statcast_batting",
       "recommendation": "backfill_source_history_to_training_game_ids",
       "issue_flags": [
-        "training_feature_zero_rate_over_50pct",
         "low_game_id_overlap_with_training_samples"
       ],
-      "training_zero_rate": 0.6071,
+      "training_zero_rate": 0.0,
       "best_source_overlap_rate": 0
     },
     {
@@ -38,10 +35,9 @@
       "feature_group": "statcast_batting",
       "recommendation": "backfill_source_history_to_training_game_ids",
       "issue_flags": [
-        "training_feature_zero_rate_over_50pct",
         "low_game_id_overlap_with_training_samples"
       ],
-      "training_zero_rate": 0.6032,
+      "training_zero_rate": 0.0,
       "best_source_overlap_rate": 0
     },
     {
@@ -49,10 +45,9 @@
       "feature_group": "statcast_batting",
       "recommendation": "backfill_source_history_to_training_game_ids",
       "issue_flags": [
-        "training_feature_zero_rate_over_50pct",
         "low_game_id_overlap_with_training_samples"
       ],
-      "training_zero_rate": 0.6071,
+      "training_zero_rate": 0.0,
       "best_source_overlap_rate": 0
     },
     {
@@ -60,71 +55,10 @@
       "feature_group": "statcast_batting",
       "recommendation": "backfill_source_history_to_training_game_ids",
       "issue_flags": [
-        "training_feature_zero_rate_over_50pct",
         "low_game_id_overlap_with_training_samples"
       ],
-      "training_zero_rate": 0.6032,
+      "training_zero_rate": 0.0,
       "best_source_overlap_rate": 0
-    },
-    {
-      "feature": "top3_woba_diff",
-      "feature_group": "lineup",
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "training_zero_rate": 0.6071,
-      "best_source_overlap_rate": 0.877
-    },
-    {
-      "feature": "sp_stuff_plus_diff",
-      "feature_group": "starting_pitcher",
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "training_zero_rate": 0.5556,
-      "best_source_overlap_rate": 0.877
-    },
-    {
-      "feature": "sp_fip_diff",
-      "feature_group": "starting_pitcher",
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "training_zero_rate": 0.5556,
-      "best_source_overlap_rate": 0.877
-    },
-    {
-      "feature": "sp_csw_diff",
-      "feature_group": "starting_pitcher",
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "training_zero_rate": 0.5556,
-      "best_source_overlap_rate": 0.877
-    },
-    {
-      "feature": "k_pct_diff",
-      "feature_group": "starting_pitcher",
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "training_zero_rate": 0.5397,
-      "best_source_overlap_rate": 0.877
-    },
-    {
-      "feature": "bullpen_ip_diff",
-      "feature_group": "bullpen",
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "training_zero_rate": 0.5397,
-      "best_source_overlap_rate": 0.877
     }
   ],
   "audits": [
@@ -134,12 +68,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.5476,
-        "non_zero_rate": 0.4524,
-        "unique_count": 110,
-        "numeric_count": 252
+        "non_null_count": 114,
+        "missing_rate": 0.5476,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 109,
+        "numeric_count": 114
       },
       "source_results": [
         {
@@ -152,7 +86,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -204,10 +138,8 @@
           ]
         }
       ],
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
       "promotion_allowed": false
     },
     {
@@ -216,12 +148,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.5556,
-        "non_zero_rate": 0.4444,
-        "unique_count": 113,
-        "numeric_count": 252
+        "non_null_count": 112,
+        "missing_rate": 0.5556,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 112,
+        "numeric_count": 112
       },
       "source_results": [
         {
@@ -234,7 +166,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -286,10 +218,8 @@
           ]
         }
       ],
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
       "promotion_allowed": false
     },
     {
@@ -298,12 +228,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.4683,
-        "non_zero_rate": 0.5317,
-        "unique_count": 116,
-        "numeric_count": 252
+        "non_null_count": 134,
+        "missing_rate": 0.4683,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 115,
+        "numeric_count": 134
       },
       "source_results": [
         {
@@ -316,7 +246,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -377,7 +307,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -401,25 +331,25 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.5397,
-        "non_zero_rate": 0.4603,
-        "unique_count": 92,
-        "numeric_count": 252
+        "non_null_count": 116,
+        "missing_rate": 0.5397,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 91,
+        "numeric_count": 116
       },
       "source_results": [
         {
           "path": "data/daily_game_context.csv",
           "exists": true,
-          "row_count": 2492,
+          "row_count": 2507,
           "column_count": 108,
           "date_range": {
             "date_column": "game_date",
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -442,7 +372,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -470,10 +400,8 @@
           ]
         }
       ],
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
       "promotion_allowed": false
     },
     {
@@ -482,12 +410,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.5397,
-        "non_zero_rate": 0.4603,
-        "unique_count": 115,
-        "numeric_count": 252
+        "non_null_count": 116,
+        "missing_rate": 0.5397,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 114,
+        "numeric_count": 116
       },
       "source_results": [
         {
@@ -500,7 +428,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -552,10 +480,8 @@
           ]
         }
       ],
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
       "promotion_allowed": false
     },
     {
@@ -564,25 +490,25 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.5278,
-        "non_zero_rate": 0.4722,
-        "unique_count": 102,
-        "numeric_count": 252
+        "non_null_count": 119,
+        "missing_rate": 0.5278,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 101,
+        "numeric_count": 119
       },
       "source_results": [
         {
           "path": "data/daily_game_context.csv",
           "exists": true,
-          "row_count": 2492,
+          "row_count": 2507,
           "column_count": 108,
           "date_range": {
             "date_column": "game_date",
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -605,7 +531,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -633,10 +559,8 @@
           ]
         }
       ],
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
       "promotion_allowed": false
     },
     {
@@ -645,12 +569,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.5556,
-        "non_zero_rate": 0.4444,
-        "unique_count": 112,
-        "numeric_count": 252
+        "non_null_count": 112,
+        "missing_rate": 0.5556,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 111,
+        "numeric_count": 112
       },
       "source_results": [
         {
@@ -663,7 +587,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -715,10 +639,8 @@
           ]
         }
       ],
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
       "promotion_allowed": false
     },
     {
@@ -727,12 +649,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.6032,
-        "non_zero_rate": 0.3968,
-        "unique_count": 96,
-        "numeric_count": 252
+        "non_null_count": 100,
+        "missing_rate": 0.6032,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 95,
+        "numeric_count": 100
       },
       "source_results": [
         {
@@ -745,7 +667,7 @@
             "min_date": "2026-06-16",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:36.936562+00:00"
+            "max_captured_at": "2026-06-16T11:28:52.638553+00:00"
           },
           "unique_game_id_count": 15,
           "training_game_id_overlap_count": 0,
@@ -799,7 +721,6 @@
         }
       ],
       "issue_flags": [
-        "training_feature_zero_rate_over_50pct",
         "low_game_id_overlap_with_training_samples"
       ],
       "recommendation": "backfill_source_history_to_training_game_ids",
@@ -811,12 +732,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.6071,
-        "non_zero_rate": 0.3929,
-        "unique_count": 82,
-        "numeric_count": 252
+        "non_null_count": 99,
+        "missing_rate": 0.6071,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 81,
+        "numeric_count": 99
       },
       "source_results": [
         {
@@ -829,7 +750,7 @@
             "min_date": "2026-06-16",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:36.936562+00:00"
+            "max_captured_at": "2026-06-16T11:28:52.638553+00:00"
           },
           "unique_game_id_count": 15,
           "training_game_id_overlap_count": 0,
@@ -883,7 +804,6 @@
         }
       ],
       "issue_flags": [
-        "training_feature_zero_rate_over_50pct",
         "low_game_id_overlap_with_training_samples"
       ],
       "recommendation": "backfill_source_history_to_training_game_ids",
@@ -895,12 +815,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.6032,
-        "non_zero_rate": 0.3968,
-        "unique_count": 91,
-        "numeric_count": 252
+        "non_null_count": 100,
+        "missing_rate": 0.6032,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 90,
+        "numeric_count": 100
       },
       "source_results": [
         {
@@ -913,7 +833,7 @@
             "min_date": "2026-06-16",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:36.936562+00:00"
+            "max_captured_at": "2026-06-16T11:28:52.638553+00:00"
           },
           "unique_game_id_count": 15,
           "training_game_id_overlap_count": 0,
@@ -967,7 +887,6 @@
         }
       ],
       "issue_flags": [
-        "training_feature_zero_rate_over_50pct",
         "low_game_id_overlap_with_training_samples"
       ],
       "recommendation": "backfill_source_history_to_training_game_ids",
@@ -979,12 +898,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.6071,
-        "non_zero_rate": 0.3929,
-        "unique_count": 89,
-        "numeric_count": 252
+        "non_null_count": 99,
+        "missing_rate": 0.6071,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 88,
+        "numeric_count": 99
       },
       "source_results": [
         {
@@ -997,7 +916,7 @@
             "min_date": "2026-06-16",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:36.936562+00:00"
+            "max_captured_at": "2026-06-16T11:28:52.638553+00:00"
           },
           "unique_game_id_count": 15,
           "training_game_id_overlap_count": 0,
@@ -1058,7 +977,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -1072,10 +991,8 @@
           "column_stats": []
         }
       ],
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
       "promotion_allowed": false
     },
     {
@@ -1084,12 +1001,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.6071,
-        "non_zero_rate": 0.3929,
-        "unique_count": 90,
-        "numeric_count": 252
+        "non_null_count": 99,
+        "missing_rate": 0.6071,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 89,
+        "numeric_count": 99
       },
       "source_results": [
         {
@@ -1102,7 +1019,7 @@
             "min_date": "2026-06-16",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:36.936562+00:00"
+            "max_captured_at": "2026-06-16T11:28:52.638553+00:00"
           },
           "unique_game_id_count": 15,
           "training_game_id_overlap_count": 0,
@@ -1156,7 +1073,6 @@
         }
       ],
       "issue_flags": [
-        "training_feature_zero_rate_over_50pct",
         "low_game_id_overlap_with_training_samples"
       ],
       "recommendation": "backfill_source_history_to_training_game_ids",
@@ -1168,12 +1084,12 @@
       "training_stats": {
         "exists": true,
         "row_count": 252,
-        "non_null_count": 252,
-        "missing_rate": 0.0,
-        "zero_rate": 0.5556,
-        "non_zero_rate": 0.4444,
-        "unique_count": 104,
-        "numeric_count": 252
+        "non_null_count": 112,
+        "missing_rate": 0.5556,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 103,
+        "numeric_count": 112
       },
       "source_results": [
         {
@@ -1186,7 +1102,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-16",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-16T07:07:08.022152+00:00"
+            "max_captured_at": "2026-06-16T11:28:09.500154+00:00"
           },
           "unique_game_id_count": 239,
           "training_game_id_overlap_count": 221,
@@ -1238,10 +1154,8 @@
           ]
         }
       ],
-      "issue_flags": [
-        "training_feature_zero_rate_over_50pct"
-      ],
-      "recommendation": "audit_zero_fill_and_missing_value_policy",
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
       "promotion_allowed": false
     }
   ],
