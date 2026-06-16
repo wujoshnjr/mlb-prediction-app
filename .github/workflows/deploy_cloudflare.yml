@@ -2,6 +2,12 @@ name: Deploy Public Site to Cloudflare
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Refresh Public Site Data
+      - Hourly Prediction Update
+    types:
+      - completed
   push:
     branches:
       - main
@@ -19,6 +25,7 @@ concurrency:
 
 jobs:
   deploy-public-site:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -37,7 +44,9 @@ jobs:
           test -f site/app.js
           test -f site/data/public_dashboard.json
           python -m json.tool site/data/public_dashboard.json >/dev/null
-          echo "Static site files are present and public_dashboard.json is valid JSON."
+          grep -q 'MLB Paper Prediction Board' site/index.html
+          grep -q 'public_dashboard_v2_paper_board' site/data/public_dashboard.json
+          echo "Static site files are present and public_dashboard.json is v2 paper-board JSON."
 
       - name: Skip deploy when Cloudflare secrets are unavailable
         if: ${{ env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == '' }}
