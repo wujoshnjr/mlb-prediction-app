@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'scripts/accuracy_root_cause_report.py'
+      - 'scripts/feature_source_freshness_audit.py'
       - 'scripts/build_public_site_data.py'
       - 'scripts/html_report_builder.py'
       - 'site/index.html'
@@ -41,12 +42,14 @@ jobs:
       - name: Validate and build public dashboard data
         run: |
           set -euo pipefail
-          python -m py_compile scripts/accuracy_root_cause_report.py scripts/build_public_site_data.py scripts/html_report_builder.py
+          python -m py_compile scripts/accuracy_root_cause_report.py scripts/feature_source_freshness_audit.py scripts/build_public_site_data.py scripts/html_report_builder.py
           python scripts/accuracy_root_cause_report.py
+          python scripts/feature_source_freshness_audit.py
           python scripts/build_public_site_data.py
           python scripts/html_report_builder.py
           python -m json.tool site/data/public_dashboard.json >/dev/null
           python -m json.tool report/accuracy_root_cause_report.json >/dev/null
+          python -m json.tool report/feature_source_freshness_audit.json >/dev/null
           grep -q 'public_dashboard_v2_paper_board' site/data/public_dashboard.json
           grep -q 'accuracy_root_cause' site/data/public_dashboard.json
           grep -q 'MLB Paper Prediction Board' report/index.html
@@ -58,7 +61,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git add -f report/accuracy_root_cause_report.json site/data/public_dashboard.json report/index.html
+          git add -f report/accuracy_root_cause_report.json report/feature_source_freshness_audit.json site/data/public_dashboard.json report/index.html
           if git diff --cached --quiet; then
             echo "No public site data changes to commit."
           else
