@@ -1,0 +1,64 @@
+name: Refresh Public Site Data
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/build_public_site_data.py'
+      - 'site/index.html'
+      - 'site/styles.css'
+      - 'site/app.js'
+      - 'report/*.json'
+      - '.github/workflows/refresh_public_site.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: public-site-data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refresh-public-site-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - name: Validate and build public dashboard data
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/build_public_site_data.py
+          python scripts/build_public_site_data.py
+          python -m json.tool site/data/public_dashboard.json >/dev/null
+          grep -q 'public_dashboard_v2_paper_board' site/data/public_dashboard.json
+
+      - name: Commit public site data
+        run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF_NAME:-main}"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git add -f site/data/public_dashboard.json
+          if git diff --cached --quiet; then
+            echo "No public site data changes to commit."
+          else
+            git commit -m "Refresh public site data [skip ci]"
+          fi
+          git pull --rebase --autostash origin "$BRANCH"
+          if ! git push origin "HEAD:$BRANCH"; then
+            git pull --rebase --autostash origin "$BRANCH"
+            git push origin "HEAD:$BRANCH"
+          fi
