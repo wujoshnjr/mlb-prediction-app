@@ -104,6 +104,16 @@ def collect_feature_records(source_report: dict[str, Any]) -> list[dict[str, Any
     return records
 
 
+def _rejection_payload(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "decision": row.get("decision"),
+        "blockers": row.get("blockers") or [],
+        "deltas_vs_core": row.get("deltas_vs_core") or {},
+        "metrics": row.get("metrics") or {},
+        "source_report": str(SHADOW_ABLATION_PATH),
+    }
+
+
 def collect_rejected_ablation_features(ablation_report: dict[str, Any]) -> dict[str, dict[str, Any]]:
     rejected: dict[str, dict[str, Any]] = {}
     rows = ablation_report.get("feature_ablation_results")
@@ -116,13 +126,24 @@ def collect_rejected_ablation_features(ablation_report: dict[str, Any]) -> dict[
         if not feature:
             continue
         if row.get("decision") == "reject_for_now":
-            rejected[feature] = {
-                "decision": row.get("decision"),
-                "blockers": row.get("blockers") or [],
-                "deltas_vs_core": row.get("deltas_vs_core") or {},
-                "metrics": row.get("metrics") or {},
-                "source_report": str(SHADOW_ABLATION_PATH),
-            }
+            rejected[feature] = _rejection_payload(row)
+    return rejected
+
+
+def collect_rejected_ablation_groups(ablation_report: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    rejected: dict[str, dict[str, Any]] = {}
+    rows = ablation_report.get("group_ablation_results")
+    if not isinstance(rows, list):
+        return rejected
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        group = str(row.get("feature_group") or "")
+        if not group:
+            continue
+        if row.get("decision") == "reject_for_now":
+            rejected[group] = _rejection_payload(row)
+            rejected[group]["features"] = row.get("features") or []
     return rejected
 
 
@@ -150,8 +171,13 @@ def candidate_score(record: dict[str, Any]) -> float:
     return round(score, 4)
 
 
-def classify_candidate(record: dict[str, Any], rejected_by_ablation: dict[str, dict[str, Any]]) -> tuple[str, list[str]]:
+def classify_candidate(
+    record: dict[str, Any],
+    rejected_by_ablation: dict[str, dict[str, Any]],
+    rejected_groups_by_ablation: dict[str, dict[str, Any]],
+) -> tuple[str, list[str]]:
     feature = str(record.get("feature") or "")
+    group = str(record.get("feature_group") or "ungrouped")
     category = str(record.get("category") or "")
     zero_rate = to_float(record.get("zero_rate"))
     missing_rate = to_float(record.get("missing_rate"))
@@ -167,6 +193,15 @@ def classify_candidate(record: dict[str, Any], rejected_by_ablation: dict[str, d
         deltas = details.get("deltas_vs_core") if isinstance(details.get("deltas_vs_core"), dict) else {}
         return "blocked_shadow_ablation_rejected", [
             "feature was rejected by per-feature shadow ablation",
+            "brier_delta_vs_core=" + str(deltas.get("brier_delta_vs_core")),
+            "logloss_delta_vs_core=" + str(deltas.get("logloss_delta_vs_core")),
+        ]
+    if group in rejected_groups_by_ablation:
+        details = rejected_groups_by_ablation[group]
+        deltas = details.get("deltas_vs_core") if isinstance(details.get("deltas_vs_core"), dict) else {}
+        return "blocked_shadow_group_ablation_rejected", [
+            "feature group was rejected by group-level shadow ablation",
+            "feature_group=" + group,
             "brier_delta_vs_core=" + str(deltas.get("brier_delta_vs_core")),
             "logloss_delta_vs_core=" + str(deltas.get("logloss_delta_vs_core")),
         ]
@@ -210,12 +245,14 @@ def build_report() -> dict[str, Any]:
     baseline = read_json(BASELINE_COMPARISON_PATH)
     ablation = read_json(SHADOW_ABLATION_PATH)
     rejected_by_ablation = collect_rejected_ablation_features(ablation)
+    rejected_groups_by_ablation = collect_rejected_ablation_groups(ablation)
 
     records = collect_feature_records(source_report)
     evaluated: list[dict[str, Any]] = []
     for record in records:
-        promotion_status, reasons = classify_candidate(record, rejected_by_ablation)
+        promotion_status, reasons = classify_candidate(record, rejected_by_ablation, rejected_groups_by_ablation)
         feature = str(record.get("feature") or "")
+        group = str(record.get("feature_group") or "ungrouped")
         candidate = {
             "feature": record.get("feature"),
             "feature_group": record.get("feature_group"),
@@ -232,6 +269,8 @@ def build_report() -> dict[str, Any]:
         }
         if feature in rejected_by_ablation:
             candidate["shadow_ablation"] = rejected_by_ablation[feature]
+        if group in rejected_groups_by_ablation:
+            candidate["shadow_group_ablation"] = rejected_groups_by_ablation[group]
         evaluated.append(candidate)
 
     shadow_now = [item for item in evaluated if item["promotion_status"] == "shadow_candidate_now"]
@@ -239,12 +278,13 @@ def build_report() -> dict[str, Any]:
     blocked = [item for item in evaluated if str(item["promotion_status"]).startswith("blocked")]
     active = [item for item in evaluated if item["promotion_status"] == "already_active_core"]
     shadow_ablation_rejected = [item for item in evaluated if item["promotion_status"] == "blocked_shadow_ablation_rejected"]
+    shadow_group_ablation_rejected = [item for item in evaluated if item["promotion_status"] == "blocked_shadow_group_ablation_rejected"]
 
     recommended_shadow_set = group_limited(shadow_now + shadow_after_backfill)
 
     walkforward_ready = bool(walkforward.get("walkforward_ready", False))
     collapse_fold_count = int(walkforward.get("collapse_fold_count", 0) or 0)
-    baseline_gate = baseline.get("quality_gate") if isinstance(baseline.get("quality_gate"), dict) else {}
+    baseline_gate = baseline.get("quality_gate") if isinstance(baseline.get("quality_gate", None), dict) else {}
     baseline_promotion_allowed = bool(baseline_gate.get("promotion_allowed", False))
 
     active_promotion_blockers = []
@@ -275,7 +315,7 @@ def build_report() -> dict[str, Any]:
             "active_promotion_blockers": sorted(set(active_promotion_blockers)),
             "minimum_shadow_non_zero_rate": MIN_SHADOW_NON_ZERO_RATE,
             "maximum_shadow_missing_rate": MAX_SHADOW_MISSING_RATE,
-            "ablation_rejection_policy": "Features rejected by per-feature shadow ablation are removed from the recommended shadow set until source/data/model changes produce a new positive ablation result.",
+            "ablation_rejection_policy": "Features rejected by per-feature or group-level shadow ablation are removed from the recommended shadow set until source/data/model changes produce a new positive ablation result.",
         },
         "summary": {
             "evaluated_feature_count": len(evaluated),
@@ -283,6 +323,7 @@ def build_report() -> dict[str, Any]:
             "shadow_candidate_now_count": len(shadow_now),
             "shadow_candidate_after_backfill_count": len(shadow_after_backfill),
             "shadow_ablation_rejected_count": len(shadow_ablation_rejected),
+            "shadow_group_ablation_rejected_count": len(shadow_group_ablation_rejected),
             "blocked_candidate_count": len(blocked),
             "recommended_shadow_set_count": len(recommended_shadow_set),
         },
@@ -290,11 +331,12 @@ def build_report() -> dict[str, Any]:
         "shadow_candidate_now": sorted(shadow_now, key=lambda row: (-float(row["candidate_score"]), str(row["feature"]))),
         "shadow_candidate_after_backfill": sorted(shadow_after_backfill, key=lambda row: (-float(row["candidate_score"]), str(row["feature"]))),
         "shadow_ablation_rejected": sorted(shadow_ablation_rejected, key=lambda row: str(row["feature"])),
+        "shadow_group_ablation_rejected": sorted(shadow_group_ablation_rejected, key=lambda row: str(row["feature"])),
         "blocked_candidates": sorted(blocked, key=lambda row: (-float(row["candidate_score"]), str(row["feature"])))[:30],
         "already_active_core": sorted(active, key=lambda row: str(row["feature"])),
         "next_actions": [
             "Run shadow-only evaluation only for recommended_shadow_set; if empty, do not run active-model promotion work.",
-            "Keep rejected shadow features quarantined until a future ablation report shows Brier/logloss improvement.",
+            "Keep rejected shadow features and rejected feature groups quarantined until a future ablation report shows Brier/logloss improvement.",
             "Backfill source-missing all-zero features before considering new candidates.",
             "Keep active model locked until walk-forward sample size, collapse, baseline, and ablation gates pass.",
         ],
