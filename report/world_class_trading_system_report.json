@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-06-16T21:36:55.508626+00:00",
+  "generated_at": "2026-06-17T00:03:24.982067+00:00",
   "status": "paper_trading_only_blocked_for_live",
-  "world_class_stage": "advanced_shadow_trading_candidate",
-  "overall_score": 78.36,
-  "overall_grade": "B",
+  "world_class_stage": "research_quality_buildout",
+  "overall_score": 74.36,
+  "overall_grade": "C",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
   "production_allowed": false,
@@ -44,15 +44,15 @@
           "passed": true,
           "weight": 10,
           "details": {
-            "prediction_count": 15,
-            "audit_count": 15
+            "prediction_count": 14,
+            "audit_count": 14
           }
         },
         {
           "name": "per_pick_clv_joined",
           "passed": true,
           "weight": 15,
-          "details": 205
+          "details": 213
         },
         {
           "name": "settled_prediction_link_report_ok",
@@ -93,13 +93,13 @@
           "name": "avg_clv_positive",
           "passed": true,
           "weight": 20,
-          "details": 0.253126
+          "details": 0.243584
         },
         {
           "name": "positive_clv_rate_at_least_55pct",
           "passed": true,
           "weight": 15,
-          "details": 0.5951
+          "details": 0.5869
         },
         {
           "name": "calibration_ready",
@@ -111,7 +111,7 @@
           "name": "walkforward_ready",
           "passed": false,
           "weight": 10,
-          "details": 270
+          "details": 284
         },
         {
           "name": "rolling_oos_at_least_300",
@@ -147,7 +147,7 @@
           "name": "prediction_live_flags_locked",
           "passed": true,
           "weight": 25,
-          "details": 15
+          "details": 14
         },
         {
           "name": "live_stake_units_zero",
@@ -182,7 +182,7 @@
       ],
       "blockers": [],
       "warnings": [
-        "paper exposure is high for research stage: 24.0"
+        "paper exposure is high for research stage: 25.75"
       ],
       "recommendations": [
         "Keep live betting locked until governance, sample size, CLV, calibration, and risk gates explicitly allow a later shadow phase.",
@@ -192,8 +192,8 @@
     "model_upgrade_path": {
       "name": "Layer 4 - Model Upgrade Path",
       "status": "blocked",
-      "score": 56.8,
-      "grade": "D",
+      "score": 36.8,
+      "grade": "F",
       "signals": [
         {
           "name": "training_sample_progress",
@@ -214,13 +214,13 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 80
+          "details": 81
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
-          "passed": true,
+          "passed": false,
           "weight": 20,
-          "details": 0.6935483870967742
+          "details": 0.14516129032258066
         },
         {
           "name": "rolling_oos_started",
@@ -234,7 +234,8 @@
         "model is not trained yet"
       ],
       "warnings": [
-        "rolling OOS evaluation has not started producing predictions"
+        "rolling OOS evaluation has not started producing predictions",
+        "A/B feature ratio below 50%: 0.1452"
       ],
       "recommendations": [
         "Upgrade models only through registry-backed challenger evaluation.",
@@ -270,19 +271,19 @@
           "name": "artifact_retention_ok",
           "passed": true,
           "weight": 10,
-          "details": 123
+          "details": 124
         },
         {
           "name": "decision_audit_ok",
           "passed": true,
           "weight": 10,
-          "details": 15
+          "details": 14
         },
         {
           "name": "paper_ledger_ok",
           "passed": true,
           "weight": 10,
-          "details": 96
+          "details": 103
         },
         {
           "name": "risk_exposure_ok",
@@ -325,8 +326,9 @@
     "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
-    "risk_controls: paper exposure is high for research stage: 24.0",
-    "model_upgrade_path: rolling OOS evaluation has not started producing predictions"
+    "risk_controls: paper exposure is high for research stage: 25.75",
+    "model_upgrade_path: rolling OOS evaluation has not started producing predictions",
+    "model_upgrade_path: A/B feature ratio below 50%: 0.1452"
   ],
   "input_files": {
     "prediction": {
