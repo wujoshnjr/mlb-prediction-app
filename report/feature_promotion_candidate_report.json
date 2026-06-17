@@ -1,17 +1,18 @@
 {
-  "generated_at": "2026-06-16T04:29:10.972452Z",
+  "generated_at": "2026-06-17T00:21:22.408212Z",
   "report_type": "feature_promotion_candidate_report",
   "status": "warning",
   "source_reports": {
     "feature_source_coverage": "report/feature_source_coverage_report.json",
     "walkforward": "report/walkforward_evaluation.json",
     "model_data_root_cause": "report/model_data_root_cause_report.json",
-    "baseline_comparison": "report/baseline_comparison_report.json"
+    "baseline_comparison": "report/baseline_comparison_report.json",
+    "shadow_feature_ablation": "report/shadow_feature_ablation_report.json"
   },
   "promotion_policy": {
     "active_model_promotion_allowed": false,
     "shadow_evaluation_allowed": true,
-    "reason": "Candidates may enter shadow evaluation only; active model promotion requires passing walk-forward, baseline, and root-cause gates.",
+    "reason": "Candidates may enter shadow evaluation only; active model promotion requires passing walk-forward, baseline, root-cause, and ablation gates.",
     "active_promotion_blockers": [
       "baseline_quality_gate_blocks_promotion",
       "model_data_root_cause_status_blocked",
@@ -19,14 +20,16 @@
       "walkforward_sample_count_below_required_threshold"
     ],
     "minimum_shadow_non_zero_rate": 0.3,
-    "maximum_shadow_missing_rate": 0.1
+    "maximum_shadow_missing_rate": 0.1,
+    "ablation_rejection_policy": "Features rejected by per-feature shadow ablation are removed from the recommended shadow set until source/data/model changes produce a new positive ablation result."
   },
   "summary": {
     "evaluated_feature_count": 62,
     "already_active_core_count": 7,
     "shadow_candidate_now_count": 2,
-    "shadow_candidate_after_backfill_count": 11,
-    "blocked_candidate_count": 41,
+    "shadow_candidate_after_backfill_count": 10,
+    "shadow_ablation_rejected_count": 1,
+    "blocked_candidate_count": 42,
     "recommended_shadow_set_count": 12
   },
   "recommended_shadow_set": [
@@ -355,24 +358,6 @@
       ]
     },
     {
-      "feature": "sp_csw_diff",
-      "feature_group": "starting_pitcher",
-      "source_category": "feature_disabled_with_partial_signal",
-      "promotion_status": "shadow_candidate_after_backfill",
-      "candidate_score": 21.907,
-      "missing_rate": 0.0,
-      "zero_rate": 0.5702,
-      "non_zero_rate": 0.4298,
-      "unique_count": 99,
-      "allow_in_main_model": false,
-      "allow_in_shadow_model": true,
-      "reasons": [
-        "feature has non-zero signal and low missingness",
-        "promotion is limited to shadow evaluation; active model remains locked",
-        "coverage is partial, so require backfill/monitoring before stronger promotion"
-      ]
-    },
-    {
       "feature": "avg_bat_speed_diff",
       "feature_group": "statcast_batting",
       "source_category": "feature_disabled_with_partial_signal",
@@ -481,7 +466,95 @@
       ]
     }
   ],
+  "shadow_ablation_rejected": [
+    {
+      "feature": "sp_csw_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "blocked_shadow_ablation_rejected",
+      "candidate_score": 21.907,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5702,
+      "non_zero_rate": 0.4298,
+      "unique_count": 99,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature was rejected by per-feature shadow ablation",
+        "brier_delta_vs_core=0.009368",
+        "logloss_delta_vs_core=0.023108"
+      ],
+      "shadow_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": 0.009368,
+          "logloss_delta_vs_core": 0.023108,
+          "accuracy_delta_vs_core": -0.033334,
+          "balanced_accuracy_delta_vs_core": -0.036255
+        },
+        "metrics": {
+          "count": 150,
+          "brier": 0.272443,
+          "logloss": 0.74714,
+          "accuracy": 0.533333,
+          "balanced_accuracy": 0.541126,
+          "probability_mean": 0.471646,
+          "probability_std": 0.172439,
+          "positive_rate": 0.44,
+          "negative_rate": 0.56
+        },
+        "source_report": "report/shadow_feature_ablation_report.json"
+      }
+    }
+  ],
   "blocked_candidates": [
+    {
+      "feature": "sp_csw_diff",
+      "feature_group": "starting_pitcher",
+      "source_category": "feature_disabled_with_partial_signal",
+      "promotion_status": "blocked_shadow_ablation_rejected",
+      "candidate_score": 21.907,
+      "missing_rate": 0.0,
+      "zero_rate": 0.5702,
+      "non_zero_rate": 0.4298,
+      "unique_count": 99,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature was rejected by per-feature shadow ablation",
+        "brier_delta_vs_core=0.009368",
+        "logloss_delta_vs_core=0.023108"
+      ],
+      "shadow_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": 0.009368,
+          "logloss_delta_vs_core": 0.023108,
+          "accuracy_delta_vs_core": -0.033334,
+          "balanced_accuracy_delta_vs_core": -0.036255
+        },
+        "metrics": {
+          "count": 150,
+          "brier": 0.272443,
+          "logloss": 0.74714,
+          "accuracy": 0.533333,
+          "balanced_accuracy": 0.541126,
+          "probability_mean": 0.471646,
+          "probability_std": 0.172439,
+          "positive_rate": 0.44,
+          "negative_rate": 0.56
+        },
+        "source_report": "report/shadow_feature_ablation_report.json"
+      }
+    },
     {
       "feature": "statcast_launch_speed_diff",
       "feature_group": "statcast_batting",
@@ -945,22 +1018,6 @@
       "reasons": [
         "source coverage or all-zero review must be fixed before shadow promotion"
       ]
-    },
-    {
-      "feature": "sp_stuff_plus_diff_available",
-      "feature_group": "availability",
-      "source_category": "source_missing_or_not_backfilled",
-      "promotion_status": "blocked_source_or_review_first",
-      "candidate_score": 0.73,
-      "missing_rate": 0.5124,
-      "zero_rate": 0.0,
-      "non_zero_rate": 0.4876,
-      "unique_count": 1,
-      "allow_in_main_model": false,
-      "allow_in_shadow_model": false,
-      "reasons": [
-        "source coverage or all-zero review must be fixed before shadow promotion"
-      ]
     }
   ],
   "already_active_core": [
@@ -1078,13 +1135,12 @@
     }
   ],
   "next_actions": [
-    "Run shadow-only evaluation for recommended_shadow_set without changing public predictions.",
-    "Add missing indicators before any numeric imputation for promoted shadow candidates.",
-    "Backfill source-missing all-zero features before considering them as candidates.",
-    "Keep active model locked until walk-forward sample size, collapse, and baseline gates pass."
+    "Run shadow-only evaluation only for recommended_shadow_set; if empty, do not run active-model promotion work.",
+    "Keep rejected shadow features quarantined until a future ablation report shows Brier/logloss improvement.",
+    "Backfill source-missing all-zero features before considering new candidates.",
+    "Keep active model locked until walk-forward sample size, collapse, baseline, and ablation gates pass."
   ],
   "promotion_allowed": false,
   "live_betting_allowed": false,
-  "automated_wagering_allowed": false,
-  "production_model_replacement_allowed": false
+  "automated_wagering_allowed": false
 }
