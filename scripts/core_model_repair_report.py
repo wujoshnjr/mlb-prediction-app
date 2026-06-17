@@ -379,7 +379,13 @@ def build_report() -> dict[str, Any]:
 
     baselines = {item["candidate"]: item for item in raw_results if item["candidate"] in {"constant_50", "expanding_train_home_rate"}}
     candidate_results = [attach_decision(dict(item), baselines) for item in raw_results]
-    candidate_results.sort(key=lambda item: ((item.get("metrics") or {}).get("brier") is None, (item.get("metrics") or {}).get("brier") or 999, str(item.get("candidate")))) )
+    candidate_results.sort(
+        key=lambda item: (
+            (item.get("metrics") or {}).get("brier") is None,
+            (item.get("metrics") or {}).get("brier") or 999,
+            str(item.get("candidate")),
+        )
+    )
     eligible = [item for item in candidate_results if item.get("decision") == "keep_for_repeated_research"]
     best = eligible[0] if eligible else candidate_results[0] if candidate_results else None
 
