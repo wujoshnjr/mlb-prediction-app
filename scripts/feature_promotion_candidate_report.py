@@ -11,6 +11,7 @@ FEATURE_SOURCE_COVERAGE_PATH = REPORT_DIR / "feature_source_coverage_report.json
 WALKFORWARD_PATH = REPORT_DIR / "walkforward_evaluation.json"
 MODEL_ROOT_CAUSE_PATH = REPORT_DIR / "model_data_root_cause_report.json"
 BASELINE_COMPARISON_PATH = REPORT_DIR / "baseline_comparison_report.json"
+SHADOW_ABLATION_PATH = REPORT_DIR / "shadow_feature_ablation_report.json"
 OUTPUT_PATH = REPORT_DIR / "feature_promotion_candidate_report.json"
 
 SHADOW_CANDIDATE_CATEGORIES = {
@@ -103,6 +104,28 @@ def collect_feature_records(source_report: dict[str, Any]) -> list[dict[str, Any
     return records
 
 
+def collect_rejected_ablation_features(ablation_report: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    rejected: dict[str, dict[str, Any]] = {}
+    rows = ablation_report.get("feature_ablation_results")
+    if not isinstance(rows, list):
+        return rejected
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        feature = str(row.get("feature") or "")
+        if not feature:
+            continue
+        if row.get("decision") == "reject_for_now":
+            rejected[feature] = {
+                "decision": row.get("decision"),
+                "blockers": row.get("blockers") or [],
+                "deltas_vs_core": row.get("deltas_vs_core") or {},
+                "metrics": row.get("metrics") or {},
+                "source_report": str(SHADOW_ABLATION_PATH),
+            }
+    return rejected
+
+
 def candidate_score(record: dict[str, Any]) -> float:
     group = str(record.get("feature_group") or "ungrouped")
     category = str(record.get("category") or "")
@@ -127,7 +150,8 @@ def candidate_score(record: dict[str, Any]) -> float:
     return round(score, 4)
 
 
-def classify_candidate(record: dict[str, Any]) -> tuple[str, list[str]]:
+def classify_candidate(record: dict[str, Any], rejected_by_ablation: dict[str, dict[str, Any]]) -> tuple[str, list[str]]:
+    feature = str(record.get("feature") or "")
     category = str(record.get("category") or "")
     zero_rate = to_float(record.get("zero_rate"))
     missing_rate = to_float(record.get("missing_rate"))
@@ -138,6 +162,14 @@ def classify_candidate(record: dict[str, Any]) -> tuple[str, list[str]]:
     reasons: list[str] = []
     if allow_main:
         return "already_active_core", ["feature is already allowed in active model schema"]
+    if feature in rejected_by_ablation:
+        details = rejected_by_ablation[feature]
+        deltas = details.get("deltas_vs_core") if isinstance(details.get("deltas_vs_core"), dict) else {}
+        return "blocked_shadow_ablation_rejected", [
+            "feature was rejected by per-feature shadow ablation",
+            "brier_delta_vs_core=" + str(deltas.get("brier_delta_vs_core")),
+            "logloss_delta_vs_core=" + str(deltas.get("logloss_delta_vs_core")),
+        ]
     if category in BLOCKED_CATEGORIES:
         return "blocked_source_or_review_first", ["source coverage or all-zero review must be fixed before shadow promotion"]
     if not allow_shadow:
@@ -176,11 +208,14 @@ def build_report() -> dict[str, Any]:
     walkforward = read_json(WALKFORWARD_PATH)
     root_cause = read_json(MODEL_ROOT_CAUSE_PATH)
     baseline = read_json(BASELINE_COMPARISON_PATH)
+    ablation = read_json(SHADOW_ABLATION_PATH)
+    rejected_by_ablation = collect_rejected_ablation_features(ablation)
 
     records = collect_feature_records(source_report)
     evaluated: list[dict[str, Any]] = []
     for record in records:
-        promotion_status, reasons = classify_candidate(record)
+        promotion_status, reasons = classify_candidate(record, rejected_by_ablation)
+        feature = str(record.get("feature") or "")
         candidate = {
             "feature": record.get("feature"),
             "feature_group": record.get("feature_group"),
@@ -195,12 +230,15 @@ def build_report() -> dict[str, Any]:
             "allow_in_shadow_model": bool(record.get("allow_in_shadow_model", False)),
             "reasons": reasons,
         }
+        if feature in rejected_by_ablation:
+            candidate["shadow_ablation"] = rejected_by_ablation[feature]
         evaluated.append(candidate)
 
     shadow_now = [item for item in evaluated if item["promotion_status"] == "shadow_candidate_now"]
     shadow_after_backfill = [item for item in evaluated if item["promotion_status"] == "shadow_candidate_after_backfill"]
     blocked = [item for item in evaluated if str(item["promotion_status"]).startswith("blocked")]
     active = [item for item in evaluated if item["promotion_status"] == "already_active_core"]
+    shadow_ablation_rejected = [item for item in evaluated if item["promotion_status"] == "blocked_shadow_ablation_rejected"]
 
     recommended_shadow_set = group_limited(shadow_now + shadow_after_backfill)
 
@@ -228,38 +266,41 @@ def build_report() -> dict[str, Any]:
             "walkforward": str(WALKFORWARD_PATH),
             "model_data_root_cause": str(MODEL_ROOT_CAUSE_PATH),
             "baseline_comparison": str(BASELINE_COMPARISON_PATH),
+            "shadow_feature_ablation": str(SHADOW_ABLATION_PATH),
         },
         "promotion_policy": {
             "active_model_promotion_allowed": False,
             "shadow_evaluation_allowed": True,
-            "reason": "Candidates may enter shadow evaluation only; active model promotion requires passing walk-forward, baseline, and root-cause gates.",
+            "reason": "Candidates may enter shadow evaluation only; active model promotion requires passing walk-forward, baseline, root-cause, and ablation gates.",
             "active_promotion_blockers": sorted(set(active_promotion_blockers)),
             "minimum_shadow_non_zero_rate": MIN_SHADOW_NON_ZERO_RATE,
             "maximum_shadow_missing_rate": MAX_SHADOW_MISSING_RATE,
+            "ablation_rejection_policy": "Features rejected by per-feature shadow ablation are removed from the recommended shadow set until source/data/model changes produce a new positive ablation result.",
         },
         "summary": {
             "evaluated_feature_count": len(evaluated),
             "already_active_core_count": len(active),
             "shadow_candidate_now_count": len(shadow_now),
             "shadow_candidate_after_backfill_count": len(shadow_after_backfill),
+            "shadow_ablation_rejected_count": len(shadow_ablation_rejected),
             "blocked_candidate_count": len(blocked),
             "recommended_shadow_set_count": len(recommended_shadow_set),
         },
         "recommended_shadow_set": recommended_shadow_set,
         "shadow_candidate_now": sorted(shadow_now, key=lambda row: (-float(row["candidate_score"]), str(row["feature"]))),
         "shadow_candidate_after_backfill": sorted(shadow_after_backfill, key=lambda row: (-float(row["candidate_score"]), str(row["feature"]))),
+        "shadow_ablation_rejected": sorted(shadow_ablation_rejected, key=lambda row: str(row["feature"])),
         "blocked_candidates": sorted(blocked, key=lambda row: (-float(row["candidate_score"]), str(row["feature"])))[:30],
         "already_active_core": sorted(active, key=lambda row: str(row["feature"])),
         "next_actions": [
-            "Run shadow-only evaluation for recommended_shadow_set without changing public predictions.",
-            "Add missing indicators before any numeric imputation for promoted shadow candidates.",
-            "Backfill source-missing all-zero features before considering them as candidates.",
-            "Keep active model locked until walk-forward sample size, collapse, and baseline gates pass.",
+            "Run shadow-only evaluation only for recommended_shadow_set; if empty, do not run active-model promotion work.",
+            "Keep rejected shadow features quarantined until a future ablation report shows Brier/logloss improvement.",
+            "Backfill source-missing all-zero features before considering new candidates.",
+            "Keep active model locked until walk-forward sample size, collapse, baseline, and ablation gates pass.",
         ],
         "promotion_allowed": False,
         "live_betting_allowed": False,
         "automated_wagering_allowed": False,
-        "production_model_replacement_allowed": False,
     }
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(json_safe(report), indent=2, ensure_ascii=False, allow_nan=False), encoding="utf-8")
@@ -268,17 +309,7 @@ def build_report() -> dict[str, Any]:
 
 def main() -> int:
     report = build_report()
-    print(
-        json.dumps(
-            {
-                "status": report["status"],
-                "recommended_shadow_set_count": report["summary"]["recommended_shadow_set_count"],
-                "shadow_candidate_now_count": report["summary"]["shadow_candidate_now_count"],
-                "output_path": str(OUTPUT_PATH),
-            },
-            indent=2,
-        )
-    )
+    print(json.dumps({"status": report["status"], "recommended_shadow_set_count": report["summary"]["recommended_shadow_set_count"], "output_path": str(OUTPUT_PATH)}, indent=2))
     return 0
 
 
