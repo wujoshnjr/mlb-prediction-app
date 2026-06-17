@@ -14,6 +14,7 @@ on:
       - 'data/training_samples.csv'
       - 'report/feature_source_freshness_audit.json'
       - 'report/feature_promotion_candidate_report.json'
+      - 'scripts/feature_promotion_candidate_report.py'
       - 'scripts/shadow_feature_experiment_report.py'
       - 'scripts/shadow_feature_decision_report.py'
       - 'scripts/shadow_feature_ablation_report.py'
@@ -53,14 +54,18 @@ jobs:
           set -euo pipefail
           python -m py_compile \
             scripts/feature_source_freshness_audit.py \
+            scripts/feature_promotion_candidate_report.py \
             scripts/shadow_feature_experiment_report.py \
             scripts/shadow_feature_decision_report.py \
             scripts/shadow_feature_ablation_report.py
           python scripts/feature_source_freshness_audit.py
+          python scripts/feature_promotion_candidate_report.py
           python scripts/shadow_feature_experiment_report.py
           python scripts/shadow_feature_decision_report.py
           python scripts/shadow_feature_ablation_report.py
+          python scripts/feature_promotion_candidate_report.py
           python -m json.tool report/feature_source_freshness_audit.json >/dev/null
+          python -m json.tool report/feature_promotion_candidate_report.json >/dev/null
           python -m json.tool report/shadow_feature_experiment_report.json >/dev/null
           python -m json.tool report/shadow_feature_decision_report.json >/dev/null
           python -m json.tool report/shadow_feature_ablation_report.json >/dev/null
@@ -76,6 +81,7 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git add -f \
             report/feature_source_freshness_audit.json \
+            report/feature_promotion_candidate_report.json \
             report/shadow_feature_experiment_report.json \
             report/shadow_feature_experiment_rows.csv \
             report/shadow_feature_decision_report.json \
