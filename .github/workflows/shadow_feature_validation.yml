@@ -15,6 +15,8 @@ on:
       - 'report/feature_source_freshness_audit.json'
       - 'report/feature_promotion_candidate_report.json'
       - 'scripts/shadow_feature_experiment_report.py'
+      - 'scripts/shadow_feature_decision_report.py'
+      - 'scripts/shadow_feature_ablation_report.py'
       - 'scripts/feature_source_freshness_audit.py'
       - '.github/workflows/shadow_feature_validation.yml'
 
@@ -49,12 +51,21 @@ jobs:
       - name: Validate shadow feature scripts
         run: |
           set -euo pipefail
-          python -m py_compile scripts/feature_source_freshness_audit.py scripts/shadow_feature_experiment_report.py
+          python -m py_compile \
+            scripts/feature_source_freshness_audit.py \
+            scripts/shadow_feature_experiment_report.py \
+            scripts/shadow_feature_decision_report.py \
+            scripts/shadow_feature_ablation_report.py
           python scripts/feature_source_freshness_audit.py
           python scripts/shadow_feature_experiment_report.py
+          python scripts/shadow_feature_decision_report.py
+          python scripts/shadow_feature_ablation_report.py
           python -m json.tool report/feature_source_freshness_audit.json >/dev/null
           python -m json.tool report/shadow_feature_experiment_report.json >/dev/null
+          python -m json.tool report/shadow_feature_decision_report.json >/dev/null
+          python -m json.tool report/shadow_feature_ablation_report.json >/dev/null
           test -s report/shadow_feature_experiment_rows.csv
+          test -s report/shadow_feature_ablation_rows.csv
 
       - name: Commit shadow validation outputs
         run: |
@@ -63,7 +74,13 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git add -f report/feature_source_freshness_audit.json report/shadow_feature_experiment_report.json report/shadow_feature_experiment_rows.csv
+          git add -f \
+            report/feature_source_freshness_audit.json \
+            report/shadow_feature_experiment_report.json \
+            report/shadow_feature_experiment_rows.csv \
+            report/shadow_feature_decision_report.json \
+            report/shadow_feature_ablation_report.json \
+            report/shadow_feature_ablation_rows.csv
           if git diff --cached --quiet; then
             echo "No shadow validation changes to commit."
           else
