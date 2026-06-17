@@ -1,0 +1,1760 @@
+{
+  "generated_at": "2026-06-17T00:58:25.938754Z",
+  "report_type": "core_model_repair_report",
+  "status": "blocked",
+  "training_samples": {
+    "path": "data/training_samples.csv",
+    "exists": true,
+    "rows": 252,
+    "valid_labeled_rows": 252,
+    "error": ""
+  },
+  "feature_schema_version": "core_v4_canonical_training_samples",
+  "feature_schema_hash": "96648eff8ef44ed996d40e7a84d16d67305d831de227e200d0d93819283df1ed",
+  "core_features": [
+    "elo_diff",
+    "bt_strength_diff",
+    "sp_era_diff",
+    "pitcher_rating_diff",
+    "dynamic_park_factor",
+    "winrate_diff",
+    "timezone_diff"
+  ],
+  "candidate_results": [
+    {
+      "candidate": "logistic_core_c0.02_plain",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.243221,
+        "logloss": 0.67908,
+        "accuracy": 0.513333,
+        "balanced_accuracy": 0.490801,
+        "probability_mean": 0.531385,
+        "probability_std": 0.057289,
+        "predicted_positive_rate": 0.686667,
+        "predicted_negative_rate": 0.313333,
+        "probability_min": 0.352973,
+        "probability_max": 0.7169
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.249315,
+            "logloss": 0.69136,
+            "accuracy": 0.46,
+            "balanced_accuracy": 0.450321,
+            "probability_mean": 0.54009,
+            "probability_std": 0.058274,
+            "predicted_positive_rate": 0.74,
+            "predicted_negative_rate": 0.26,
+            "probability_min": 0.424227,
+            "probability_max": 0.697938
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.246083,
+            "logloss": 0.684956,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.535427,
+            "probability_mean": 0.515297,
+            "probability_std": 0.061384,
+            "predicted_positive_rate": 0.56,
+            "predicted_negative_rate": 0.44,
+            "probability_min": 0.352973,
+            "probability_max": 0.673489
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.234265,
+            "logloss": 0.660925,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.476231,
+            "probability_mean": 0.538768,
+            "probability_std": 0.047888,
+            "predicted_positive_rate": 0.76,
+            "predicted_negative_rate": 0.24,
+            "probability_min": 0.462718,
+            "probability_max": 0.7169
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": -0.006779,
+          "logloss_delta": -0.014067,
+          "accuracy_delta": -0.046667
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": -0.003748,
+          "logloss_delta": -0.007997,
+          "accuracy_delta": -0.046667
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c0.05_plain",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.245836,
+        "logloss": 0.684058,
+        "accuracy": 0.506667,
+        "balanced_accuracy": 0.492965,
+        "probability_mean": 0.526468,
+        "probability_std": 0.084016,
+        "predicted_positive_rate": 0.613333,
+        "predicted_negative_rate": 0.386667,
+        "probability_min": 0.280541,
+        "probability_max": 0.783254
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.254631,
+            "logloss": 0.702019,
+            "accuracy": 0.46,
+            "balanced_accuracy": 0.453526,
+            "probability_mean": 0.533019,
+            "probability_std": 0.093802,
+            "predicted_positive_rate": 0.66,
+            "predicted_negative_rate": 0.34,
+            "probability_min": 0.343287,
+            "probability_max": 0.783254
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.249218,
+            "logloss": 0.690878,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.541868,
+            "probability_mean": 0.507828,
+            "probability_std": 0.089229,
+            "predicted_positive_rate": 0.48,
+            "predicted_negative_rate": 0.52,
+            "probability_min": 0.280541,
+            "probability_max": 0.733269
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.233659,
+            "logloss": 0.659276,
+            "accuracy": 0.52,
+            "balanced_accuracy": 0.470289,
+            "probability_mean": 0.538558,
+            "probability_std": 0.06228,
+            "predicted_positive_rate": 0.7,
+            "predicted_negative_rate": 0.3,
+            "probability_min": 0.440156,
+            "probability_max": 0.758465
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": -0.004164,
+          "logloss_delta": -0.009089,
+          "accuracy_delta": -0.053333
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": -0.001133,
+          "logloss_delta": -0.003019,
+          "accuracy_delta": -0.053333
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c0.02_balanced",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.246968,
+        "logloss": 0.686874,
+        "accuracy": 0.526667,
+        "balanced_accuracy": 0.540043,
+        "probability_mean": 0.489727,
+        "probability_std": 0.057484,
+        "predicted_positive_rate": 0.393333,
+        "predicted_negative_rate": 0.606667,
+        "probability_min": 0.317563,
+        "probability_max": 0.683967
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.249427,
+            "logloss": 0.69194,
+            "accuracy": 0.56,
+            "balanced_accuracy": 0.564103,
+            "probability_mean": 0.492492,
+            "probability_std": 0.059038,
+            "predicted_positive_rate": 0.4,
+            "predicted_negative_rate": 0.6,
+            "probability_min": 0.377583,
+            "probability_max": 0.656039
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.249483,
+            "logloss": 0.691872,
+            "accuracy": 0.46,
+            "balanced_accuracy": 0.477456,
+            "probability_mean": 0.476813,
+            "probability_std": 0.061585,
+            "predicted_positive_rate": 0.28,
+            "predicted_negative_rate": 0.72,
+            "probability_min": 0.317563,
+            "probability_max": 0.638608
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.241995,
+            "logloss": 0.676809,
+            "accuracy": 0.56,
+            "balanced_accuracy": 0.563667,
+            "probability_mean": 0.499874,
+            "probability_std": 0.048555,
+            "predicted_positive_rate": 0.5,
+            "predicted_negative_rate": 0.5,
+            "probability_min": 0.423901,
+            "probability_max": 0.683967
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": -0.003032,
+          "logloss_delta": -0.006273,
+          "accuracy_delta": -0.033333
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": -1e-06,
+          "logloss_delta": -0.000203,
+          "accuracy_delta": -0.033333
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "expanding_train_home_rate",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.246969,
+        "logloss": 0.687077,
+        "accuracy": 0.56,
+        "balanced_accuracy": 0.5,
+        "probability_mean": 0.542699,
+        "probability_std": 0.00447,
+        "predicted_positive_rate": 1.0,
+        "predicted_negative_rate": 0.0,
+        "probability_min": 0.539474,
+        "probability_max": 0.54902
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.250442,
+            "logloss": 0.694042,
+            "accuracy": 0.52,
+            "balanced_accuracy": 0.5,
+            "probability_mean": 0.54902,
+            "probability_std": 0.0,
+            "predicted_positive_rate": 1.0,
+            "predicted_negative_rate": 0.0,
+            "probability_min": 0.54902,
+            "probability_max": 0.54902
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.2484,
+            "logloss": 0.689944,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.5,
+            "probability_mean": 0.539474,
+            "probability_std": 0.0,
+            "predicted_positive_rate": 1.0,
+            "predicted_negative_rate": 0.0,
+            "probability_min": 0.539474,
+            "probability_max": 0.539474
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.242064,
+            "logloss": 0.677244,
+            "accuracy": 0.62,
+            "balanced_accuracy": 0.5,
+            "probability_mean": 0.539604,
+            "probability_std": 0.0,
+            "predicted_positive_rate": 1.0,
+            "predicted_negative_rate": 0.0,
+            "probability_min": 0.539604,
+            "probability_max": 0.539604
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": -0.003031,
+          "logloss_delta": -0.00607,
+          "accuracy_delta": 0.0
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.0,
+          "logloss_delta": 0.0,
+          "accuracy_delta": 0.0
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_expanding_train_home_rate",
+        "probability_distribution_too_narrow",
+        "single_class_positive_prediction_collapse"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c0.1_plain",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.249424,
+        "logloss": 0.691533,
+        "accuracy": 0.5,
+        "balanced_accuracy": 0.493506,
+        "probability_mean": 0.523124,
+        "probability_std": 0.103118,
+        "predicted_positive_rate": 0.553333,
+        "predicted_negative_rate": 0.446667,
+        "probability_min": 0.239066,
+        "probability_max": 0.840263
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.261366,
+            "logloss": 0.716685,
+            "accuracy": 0.46,
+            "balanced_accuracy": 0.456731,
+            "probability_mean": 0.526884,
+            "probability_std": 0.120692,
+            "predicted_positive_rate": 0.58,
+            "predicted_negative_rate": 0.42,
+            "probability_min": 0.283214,
+            "probability_max": 0.840263
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.252838,
+            "logloss": 0.698039,
+            "accuracy": 0.5,
+            "balanced_accuracy": 0.508052,
+            "probability_mean": 0.50402,
+            "probability_std": 0.10838,
+            "predicted_positive_rate": 0.4,
+            "predicted_negative_rate": 0.6,
+            "probability_min": 0.239066,
+            "probability_max": 0.772037
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.23407,
+            "logloss": 0.659876,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.496604,
+            "probability_mean": 0.53847,
+            "probability_std": 0.070517,
+            "predicted_positive_rate": 0.68,
+            "predicted_negative_rate": 0.32,
+            "probability_min": 0.427656,
+            "probability_max": 0.77536
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": -0.000576,
+          "logloss_delta": -0.001614,
+          "accuracy_delta": -0.06
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.002455,
+          "logloss_delta": 0.004456,
+          "accuracy_delta": -0.06
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c0.05_balanced",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.249789,
+        "logloss": 0.692572,
+        "accuracy": 0.526667,
+        "balanced_accuracy": 0.540043,
+        "probability_mean": 0.485591,
+        "probability_std": 0.084478,
+        "predicted_positive_rate": 0.393333,
+        "predicted_negative_rate": 0.606667,
+        "probability_min": 0.249608,
+        "probability_max": 0.748231
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.254915,
+            "logloss": 0.70344,
+            "accuracy": 0.56,
+            "balanced_accuracy": 0.564103,
+            "probability_mean": 0.486769,
+            "probability_std": 0.094617,
+            "predicted_positive_rate": 0.4,
+            "predicted_negative_rate": 0.6,
+            "probability_min": 0.301905,
+            "probability_max": 0.748231
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.25309,
+            "logloss": 0.698964,
+            "accuracy": 0.46,
+            "balanced_accuracy": 0.477456,
+            "probability_mean": 0.470146,
+            "probability_std": 0.089576,
+            "predicted_positive_rate": 0.28,
+            "predicted_negative_rate": 0.72,
+            "probability_min": 0.249608,
+            "probability_max": 0.702367
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.241361,
+            "logloss": 0.675312,
+            "accuracy": 0.56,
+            "balanced_accuracy": 0.563667,
+            "probability_mean": 0.499857,
+            "probability_std": 0.063167,
+            "predicted_positive_rate": 0.5,
+            "predicted_negative_rate": 0.5,
+            "probability_min": 0.401815,
+            "probability_max": 0.728066
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": -0.000211,
+          "logloss_delta": -0.000575,
+          "accuracy_delta": -0.033333
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.00282,
+          "logloss_delta": 0.005495,
+          "accuracy_delta": -0.033333
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "constant_50",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.25,
+        "logloss": 0.693147,
+        "accuracy": 0.56,
+        "balanced_accuracy": 0.5,
+        "probability_mean": 0.5,
+        "probability_std": 0.0,
+        "predicted_positive_rate": 1.0,
+        "predicted_negative_rate": 0.0,
+        "probability_min": 0.5,
+        "probability_max": 0.5
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.25,
+            "logloss": 0.693147,
+            "accuracy": 0.52,
+            "balanced_accuracy": 0.5,
+            "probability_mean": 0.5,
+            "probability_std": 0.0,
+            "predicted_positive_rate": 1.0,
+            "predicted_negative_rate": 0.0,
+            "probability_min": 0.5,
+            "probability_max": 0.5
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.25,
+            "logloss": 0.693147,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.5,
+            "probability_mean": 0.5,
+            "probability_std": 0.0,
+            "predicted_positive_rate": 1.0,
+            "predicted_negative_rate": 0.0,
+            "probability_min": 0.5,
+            "probability_max": 0.5
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.25,
+            "logloss": 0.693147,
+            "accuracy": 0.62,
+            "balanced_accuracy": 0.5,
+            "probability_mean": 0.5,
+            "probability_std": 0.0,
+            "predicted_positive_rate": 1.0,
+            "predicted_negative_rate": 0.0,
+            "probability_min": 0.5,
+            "probability_max": 0.5
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": 0.0,
+          "logloss_delta": 0.0,
+          "accuracy_delta": 0.0
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.003031,
+          "logloss_delta": 0.00607,
+          "accuracy_delta": 0.0
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate",
+        "probability_distribution_too_narrow",
+        "single_class_positive_prediction_collapse"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c0.1_balanced",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.25344,
+        "logloss": 0.700469,
+        "accuracy": 0.553333,
+        "balanced_accuracy": 0.565476,
+        "probability_mean": 0.482793,
+        "probability_std": 0.103671,
+        "predicted_positive_rate": 0.406667,
+        "predicted_negative_rate": 0.593333,
+        "probability_min": 0.21128,
+        "probability_max": 0.81126
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.261625,
+            "logloss": 0.718541,
+            "accuracy": 0.58,
+            "balanced_accuracy": 0.583333,
+            "probability_mean": 0.481727,
+            "probability_std": 0.121299,
+            "predicted_positive_rate": 0.42,
+            "predicted_negative_rate": 0.58,
+            "probability_min": 0.247174,
+            "probability_max": 0.81126
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.256921,
+            "logloss": 0.706817,
+            "accuracy": 0.48,
+            "balanced_accuracy": 0.495974,
+            "probability_mean": 0.466839,
+            "probability_std": 0.108918,
+            "predicted_positive_rate": 0.3,
+            "predicted_negative_rate": 0.7,
+            "probability_min": 0.21128,
+            "probability_max": 0.744243
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.241773,
+            "logloss": 0.67605,
+            "accuracy": 0.6,
+            "balanced_accuracy": 0.606112,
+            "probability_mean": 0.499812,
+            "probability_std": 0.071564,
+            "predicted_positive_rate": 0.5,
+            "predicted_negative_rate": 0.5,
+            "probability_min": 0.388985,
+            "probability_max": 0.74612
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": 0.00344,
+          "logloss_delta": 0.007322,
+          "accuracy_delta": -0.006667
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.006471,
+          "logloss_delta": 0.013392,
+          "accuracy_delta": -0.006667
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c0.25_plain",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.254375,
+        "logloss": 0.702734,
+        "accuracy": 0.52,
+        "balanced_accuracy": 0.517857,
+        "probability_mean": 0.519435,
+        "probability_std": 0.122774,
+        "predicted_positive_rate": 0.52,
+        "predicted_negative_rate": 0.48,
+        "probability_min": 0.204677,
+        "probability_max": 0.891057
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.270483,
+            "logloss": 0.738639,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.540064,
+            "probability_mean": 0.519304,
+            "probability_std": 0.148856,
+            "predicted_positive_rate": 0.5,
+            "predicted_negative_rate": 0.5,
+            "probability_min": 0.222634,
+            "probability_max": 0.891057
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.257526,
+            "logloss": 0.707716,
+            "accuracy": 0.5,
+            "balanced_accuracy": 0.508052,
+            "probability_mean": 0.500697,
+            "probability_std": 0.12773,
+            "predicted_positive_rate": 0.4,
+            "predicted_negative_rate": 0.6,
+            "probability_min": 0.204677,
+            "probability_max": 0.808336
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.235115,
+            "logloss": 0.661849,
+            "accuracy": 0.52,
+            "balanced_accuracy": 0.480475,
+            "probability_mean": 0.538305,
+            "probability_std": 0.077717,
+            "predicted_positive_rate": 0.66,
+            "predicted_negative_rate": 0.34,
+            "probability_min": 0.415497,
+            "probability_max": 0.78358
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": 0.004375,
+          "logloss_delta": 0.009587,
+          "accuracy_delta": -0.04
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.007406,
+          "logloss_delta": 0.015657,
+          "accuracy_delta": -0.04
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c0.5_plain",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.257198,
+        "logloss": 0.709624,
+        "accuracy": 0.513333,
+        "balanced_accuracy": 0.511905,
+        "probability_mean": 0.517358,
+        "probability_std": 0.132553,
+        "predicted_positive_rate": 0.513333,
+        "predicted_negative_rate": 0.486667,
+        "probability_min": 0.190404,
+        "probability_max": 0.912512
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.275595,
+            "logloss": 0.752233,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.540064,
+            "probability_mean": 0.514734,
+            "probability_std": 0.162832,
+            "predicted_positive_rate": 0.5,
+            "predicted_negative_rate": 0.5,
+            "probability_min": 0.193591,
+            "probability_max": 0.912512
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.260144,
+            "logloss": 0.71332,
+            "accuracy": 0.5,
+            "balanced_accuracy": 0.508052,
+            "probability_mean": 0.499181,
+            "probability_std": 0.137404,
+            "predicted_positive_rate": 0.4,
+            "predicted_negative_rate": 0.6,
+            "probability_min": 0.190404,
+            "probability_max": 0.825356
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.235856,
+            "logloss": 0.663318,
+            "accuracy": 0.5,
+            "balanced_accuracy": 0.464346,
+            "probability_mean": 0.53816,
+            "probability_std": 0.08091,
+            "predicted_positive_rate": 0.64,
+            "predicted_negative_rate": 0.36,
+            "probability_min": 0.409919,
+            "probability_max": 0.784412
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": 0.007198,
+          "logloss_delta": 0.016477,
+          "accuracy_delta": -0.046667
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.010229,
+          "logloss_delta": 0.022547,
+          "accuracy_delta": -0.046667
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c0.25_balanced",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.258402,
+        "logloss": 0.71206,
+        "accuracy": 0.553333,
+        "balanced_accuracy": 0.565476,
+        "probability_mean": 0.479747,
+        "probability_std": 0.123341,
+        "predicted_positive_rate": 0.406667,
+        "predicted_negative_rate": 0.593333,
+        "probability_min": 0.179712,
+        "probability_max": 0.868656
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.270623,
+            "logloss": 0.740844,
+            "accuracy": 0.56,
+            "balanced_accuracy": 0.564103,
+            "probability_mean": 0.475305,
+            "probability_std": 0.149045,
+            "predicted_positive_rate": 0.4,
+            "predicted_negative_rate": 0.6,
+            "probability_min": 0.192998,
+            "probability_max": 0.868656
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.261734,
+            "logloss": 0.717127,
+            "accuracy": 0.5,
+            "balanced_accuracy": 0.514493,
+            "probability_mean": 0.46418,
+            "probability_std": 0.128632,
+            "predicted_positive_rate": 0.32,
+            "predicted_negative_rate": 0.68,
+            "probability_min": 0.179712,
+            "probability_max": 0.784242
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.24285,
+            "logloss": 0.678207,
+            "accuracy": 0.6,
+            "balanced_accuracy": 0.606112,
+            "probability_mean": 0.499756,
+            "probability_std": 0.07884,
+            "predicted_positive_rate": 0.5,
+            "predicted_negative_rate": 0.5,
+            "probability_min": 0.376954,
+            "probability_max": 0.754717
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": 0.008402,
+          "logloss_delta": 0.018913,
+          "accuracy_delta": -0.006667
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.011433,
+          "logloss_delta": 0.024983,
+          "accuracy_delta": -0.006667
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c1_plain",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.259033,
+        "logloss": 0.714316,
+        "accuracy": 0.513333,
+        "balanced_accuracy": 0.511905,
+        "probability_mean": 0.515936,
+        "probability_std": 0.1386,
+        "predicted_positive_rate": 0.513333,
+        "predicted_negative_rate": 0.486667,
+        "probability_min": 0.176174,
+        "probability_max": 0.924291
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.278868,
+            "logloss": 0.761514,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.540064,
+            "probability_mean": 0.511501,
+            "probability_std": 0.171403,
+            "predicted_positive_rate": 0.5,
+            "predicted_negative_rate": 0.5,
+            "probability_min": 0.176174,
+            "probability_max": 0.924291
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.261848,
+            "logloss": 0.717051,
+            "accuracy": 0.5,
+            "balanced_accuracy": 0.508052,
+            "probability_mean": 0.498262,
+            "probability_std": 0.143446,
+            "predicted_positive_rate": 0.4,
+            "predicted_negative_rate": 0.6,
+            "probability_min": 0.182454,
+            "probability_max": 0.835595
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.236384,
+            "logloss": 0.664383,
+            "accuracy": 0.5,
+            "balanced_accuracy": 0.464346,
+            "probability_mean": 0.538046,
+            "probability_std": 0.082782,
+            "predicted_positive_rate": 0.64,
+            "predicted_negative_rate": 0.36,
+            "probability_min": 0.406576,
+            "probability_max": 0.783888
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": 0.009033,
+          "logloss_delta": 0.021169,
+          "accuracy_delta": -0.046667
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.012064,
+          "logloss_delta": 0.027239,
+          "accuracy_delta": -0.046667
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c0.5_balanced",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.261223,
+        "logloss": 0.719146,
+        "accuracy": 0.56,
+        "balanced_accuracy": 0.571429,
+        "probability_mean": 0.477969,
+        "probability_std": 0.133057,
+        "predicted_positive_rate": 0.413333,
+        "predicted_negative_rate": 0.586667,
+        "probability_min": 0.166645,
+        "probability_max": 0.893241
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.275653,
+            "logloss": 0.754589,
+            "accuracy": 0.56,
+            "balanced_accuracy": 0.564103,
+            "probability_mean": 0.471304,
+            "probability_std": 0.162658,
+            "predicted_positive_rate": 0.4,
+            "predicted_negative_rate": 0.6,
+            "probability_min": 0.167401,
+            "probability_max": 0.893241
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.264405,
+            "logloss": 0.723075,
+            "accuracy": 0.5,
+            "balanced_accuracy": 0.514493,
+            "probability_mean": 0.462956,
+            "probability_std": 0.138495,
+            "predicted_positive_rate": 0.32,
+            "predicted_negative_rate": 0.68,
+            "probability_min": 0.166645,
+            "probability_max": 0.803064
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.243612,
+            "logloss": 0.679772,
+            "accuracy": 0.62,
+            "balanced_accuracy": 0.622241,
+            "probability_mean": 0.499649,
+            "probability_std": 0.08206,
+            "predicted_positive_rate": 0.52,
+            "predicted_negative_rate": 0.48,
+            "probability_min": 0.371414,
+            "probability_max": 0.75548
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": 0.011223,
+          "logloss_delta": 0.025999,
+          "accuracy_delta": 0.0
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.014254,
+          "logloss_delta": 0.032069,
+          "accuracy_delta": 0.0
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "logistic_core_c1_balanced",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.263075,
+        "logloss": 0.724032,
+        "accuracy": 0.566667,
+        "balanced_accuracy": 0.577381,
+        "probability_mean": 0.476695,
+        "probability_std": 0.139112,
+        "predicted_positive_rate": 0.42,
+        "predicted_negative_rate": 0.58,
+        "probability_min": 0.151759,
+        "probability_max": 0.907299
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.278929,
+            "logloss": 0.764163,
+            "accuracy": 0.58,
+            "balanced_accuracy": 0.583333,
+            "probability_mean": 0.468336,
+            "probability_std": 0.171113,
+            "predicted_positive_rate": 0.42,
+            "predicted_negative_rate": 0.58,
+            "probability_min": 0.151759,
+            "probability_max": 0.907299
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.266143,
+            "logloss": 0.72704,
+            "accuracy": 0.5,
+            "balanced_accuracy": 0.514493,
+            "probability_mean": 0.462185,
+            "probability_std": 0.144663,
+            "predicted_positive_rate": 0.32,
+            "predicted_negative_rate": 0.68,
+            "probability_min": 0.159329,
+            "probability_max": 0.814411
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.244153,
+            "logloss": 0.680891,
+            "accuracy": 0.62,
+            "balanced_accuracy": 0.622241,
+            "probability_mean": 0.499564,
+            "probability_std": 0.083941,
+            "predicted_positive_rate": 0.52,
+            "predicted_negative_rate": 0.48,
+            "probability_min": 0.368109,
+            "probability_max": 0.754836
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": 0.013075,
+          "logloss_delta": 0.030885,
+          "accuracy_delta": 0.006667
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.016106,
+          "logloss_delta": 0.036955,
+          "accuracy_delta": 0.006667
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "column__premarket_model_home_prob",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.268311,
+        "logloss": 0.732149,
+        "accuracy": 0.493333,
+        "balanced_accuracy": 0.498918,
+        "probability_mean": 0.475799,
+        "probability_std": 0.145539,
+        "predicted_positive_rate": 0.453333,
+        "predicted_negative_rate": 0.546667,
+        "probability_min": 0.1543,
+        "probability_max": 0.8914
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.25766,
+            "logloss": 0.706868,
+            "accuracy": 0.48,
+            "balanced_accuracy": 0.477564,
+            "probability_mean": 0.50603,
+            "probability_std": 0.15968,
+            "predicted_positive_rate": 0.56,
+            "predicted_negative_rate": 0.44,
+            "probability_min": 0.1543,
+            "probability_max": 0.8914
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.279503,
+            "logloss": 0.759732,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.55153,
+            "probability_mean": 0.433286,
+            "probability_std": 0.136198,
+            "predicted_positive_rate": 0.36,
+            "predicted_negative_rate": 0.64,
+            "probability_min": 0.2155,
+            "probability_max": 0.7002
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.267771,
+            "logloss": 0.729848,
+            "accuracy": 0.46,
+            "balanced_accuracy": 0.472835,
+            "probability_mean": 0.48808,
+            "probability_std": 0.128938,
+            "predicted_positive_rate": 0.44,
+            "predicted_negative_rate": 0.56,
+            "probability_min": 0.2885,
+            "probability_max": 0.7941
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": 0.018311,
+          "logloss_delta": 0.039002,
+          "accuracy_delta": -0.066667
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.021342,
+          "logloss_delta": 0.045072,
+          "accuracy_delta": -0.066667
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    },
+    {
+      "candidate": "column__market_no_vig_home_prob",
+      "status": "ok",
+      "sample_count": 150,
+      "successful_fold_count": 3,
+      "metrics": {
+        "count": 150,
+        "brier": 0.273631,
+        "logloss": 0.771798,
+        "accuracy": 0.506667,
+        "balanced_accuracy": 0.488095,
+        "probability_mean": 0.50881,
+        "probability_std": 0.131459,
+        "predicted_positive_rate": 0.653333,
+        "predicted_negative_rate": 0.346667,
+        "probability_min": 0.028849,
+        "probability_max": 0.971151
+      },
+      "folds": [
+        {
+          "fold_id": 1,
+          "status": "ok",
+          "train_rows": 102,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.292506,
+            "logloss": 0.8462,
+            "accuracy": 0.44,
+            "balanced_accuracy": 0.434295,
+            "probability_mean": 0.528712,
+            "probability_std": 0.150349,
+            "predicted_positive_rate": 0.64,
+            "predicted_negative_rate": 0.36,
+            "probability_min": 0.028849,
+            "probability_max": 0.971151
+          }
+        },
+        {
+          "fold_id": 2,
+          "status": "ok",
+          "train_rows": 152,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.281446,
+            "logloss": 0.782103,
+            "accuracy": 0.48,
+            "balanced_accuracy": 0.483092,
+            "probability_mean": 0.465859,
+            "probability_std": 0.157907,
+            "predicted_positive_rate": 0.46,
+            "predicted_negative_rate": 0.54,
+            "probability_min": 0.04296,
+            "probability_max": 0.880713
+          }
+        },
+        {
+          "fold_id": 3,
+          "status": "ok",
+          "train_rows": 202,
+          "test_rows": 50,
+          "metrics": {
+            "count": 50,
+            "brier": 0.246939,
+            "logloss": 0.68709,
+            "accuracy": 0.6,
+            "balanced_accuracy": 0.514431,
+            "probability_mean": 0.531859,
+            "probability_std": 0.039154,
+            "predicted_positive_rate": 0.86,
+            "predicted_negative_rate": 0.14,
+            "probability_min": 0.3698,
+            "probability_max": 0.6509
+          }
+        }
+      ],
+      "errors": [],
+      "deltas_vs_baselines": {
+        "constant_50": {
+          "brier_delta": 0.023631,
+          "logloss_delta": 0.078651,
+          "accuracy_delta": -0.053333
+        },
+        "expanding_train_home_rate": {
+          "brier_delta": 0.026662,
+          "logloss_delta": 0.084721,
+          "accuracy_delta": -0.053333
+        }
+      },
+      "decision": "reject_for_active_model",
+      "blockers": [
+        "does_not_improve_brier_vs_constant_50",
+        "does_not_improve_brier_vs_expanding_train_home_rate",
+        "does_not_improve_logloss_vs_constant_50",
+        "does_not_improve_logloss_vs_expanding_train_home_rate"
+      ],
+      "promotion_allowed": false,
+      "live_betting_allowed": false,
+      "automated_wagering_allowed": false
+    }
+  ],
+  "best_candidate": {
+    "candidate": "logistic_core_c0.02_plain",
+    "status": "ok",
+    "sample_count": 150,
+    "successful_fold_count": 3,
+    "metrics": {
+      "count": 150,
+      "brier": 0.243221,
+      "logloss": 0.67908,
+      "accuracy": 0.513333,
+      "balanced_accuracy": 0.490801,
+      "probability_mean": 0.531385,
+      "probability_std": 0.057289,
+      "predicted_positive_rate": 0.686667,
+      "predicted_negative_rate": 0.313333,
+      "probability_min": 0.352973,
+      "probability_max": 0.7169
+    },
+    "folds": [
+      {
+        "fold_id": 1,
+        "status": "ok",
+        "train_rows": 102,
+        "test_rows": 50,
+        "metrics": {
+          "count": 50,
+          "brier": 0.249315,
+          "logloss": 0.69136,
+          "accuracy": 0.46,
+          "balanced_accuracy": 0.450321,
+          "probability_mean": 0.54009,
+          "probability_std": 0.058274,
+          "predicted_positive_rate": 0.74,
+          "predicted_negative_rate": 0.26,
+          "probability_min": 0.424227,
+          "probability_max": 0.697938
+        }
+      },
+      {
+        "fold_id": 2,
+        "status": "ok",
+        "train_rows": 152,
+        "test_rows": 50,
+        "metrics": {
+          "count": 50,
+          "brier": 0.246083,
+          "logloss": 0.684956,
+          "accuracy": 0.54,
+          "balanced_accuracy": 0.535427,
+          "probability_mean": 0.515297,
+          "probability_std": 0.061384,
+          "predicted_positive_rate": 0.56,
+          "predicted_negative_rate": 0.44,
+          "probability_min": 0.352973,
+          "probability_max": 0.673489
+        }
+      },
+      {
+        "fold_id": 3,
+        "status": "ok",
+        "train_rows": 202,
+        "test_rows": 50,
+        "metrics": {
+          "count": 50,
+          "brier": 0.234265,
+          "logloss": 0.660925,
+          "accuracy": 0.54,
+          "balanced_accuracy": 0.476231,
+          "probability_mean": 0.538768,
+          "probability_std": 0.047888,
+          "predicted_positive_rate": 0.76,
+          "predicted_negative_rate": 0.24,
+          "probability_min": 0.462718,
+          "probability_max": 0.7169
+        }
+      }
+    ],
+    "errors": [],
+    "deltas_vs_baselines": {
+      "constant_50": {
+        "brier_delta": -0.006779,
+        "logloss_delta": -0.014067,
+        "accuracy_delta": -0.046667
+      },
+      "expanding_train_home_rate": {
+        "brier_delta": -0.003748,
+        "logloss_delta": -0.007997,
+        "accuracy_delta": -0.046667
+      }
+    },
+    "decision": "reject_for_active_model",
+    "blockers": [
+      "does_not_improve_brier_vs_expanding_train_home_rate"
+    ],
+    "promotion_allowed": false,
+    "live_betting_allowed": false,
+    "automated_wagering_allowed": false
+  },
+  "recommendations": [
+    "Do not replace the active model unless a candidate repeatedly beats constant_50 and expanding_train_home_rate on Brier and logloss.",
+    "If all candidates remain blocked, prioritize more settled pregame snapshots before adding model complexity.",
+    "Use this report for research only; live betting and automated wagering remain disabled."
+  ],
+  "promotion_allowed": false,
+  "live_betting_allowed": false,
+  "automated_wagering_allowed": false,
+  "available_core_features": [
+    "elo_diff",
+    "bt_strength_diff",
+    "sp_era_diff",
+    "pitcher_rating_diff",
+    "dynamic_park_factor",
+    "winrate_diff",
+    "timezone_diff"
+  ],
+  "summary": {
+    "candidate_count": 16,
+    "eligible_research_candidate_count": 0,
+    "fold_count": 3,
+    "oos_prediction_count": 150
+  }
+}
