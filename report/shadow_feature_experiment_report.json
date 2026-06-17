@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-17T00:31:15.296938Z",
+  "generated_at": "2026-06-17T00:32:22.582089Z",
   "report_type": "shadow_feature_experiment_report",
   "status": "warning",
   "training_samples": {
@@ -20,8 +20,24 @@
       "winrate_diff",
       "timezone_diff"
     ],
-    "shadow_now": [],
-    "recommended_shadow_set": []
+    "shadow_now": [
+      "lag30_winrate_diff",
+      "bullpen_availability_diff"
+    ],
+    "recommended_shadow_set": [
+      "k_pct_diff",
+      "bb_pct_diff",
+      "sp_fip_diff",
+      "sp_stuff_plus_diff",
+      "lag30_winrate_diff",
+      "bullpen_availability_diff",
+      "avg_bat_speed_diff",
+      "bullpen_ip_diff",
+      "statcast_woba_diff",
+      "top3_woba_diff",
+      "hardhit_pa_diff",
+      "barrel_pa_diff"
+    ]
   },
   "experiments": [
     {
@@ -108,7 +124,7 @@
     {
       "experiment": "core_plus_shadow_now",
       "status": "ok",
-      "feature_count": 7,
+      "feature_count": 9,
       "features": [
         "elo_diff",
         "bt_strength_diff",
@@ -116,20 +132,22 @@
         "pitcher_rating_diff",
         "dynamic_park_factor",
         "winrate_diff",
-        "timezone_diff"
+        "timezone_diff",
+        "lag30_winrate_diff",
+        "bullpen_availability_diff"
       ],
       "sample_count": 150,
       "successful_fold_count": 3,
       "metrics": {
         "count": 150,
-        "brier": 0.263075,
-        "logloss": 0.724032,
-        "accuracy": 0.566667,
-        "balanced_accuracy": 0.577381,
-        "probability_mean": 0.476695,
-        "probability_std": 0.139112,
-        "positive_rate": 0.42,
-        "negative_rate": 0.58
+        "brier": 0.295955,
+        "logloss": 0.815269,
+        "accuracy": 0.486667,
+        "balanced_accuracy": 0.502706,
+        "probability_mean": 0.441961,
+        "probability_std": 0.182247,
+        "positive_rate": 0.366667,
+        "negative_rate": 0.633333
       },
       "folds": [
         {
@@ -139,14 +157,14 @@
           "test_rows": 50,
           "metrics": {
             "count": 50,
-            "brier": 0.278929,
-            "logloss": 0.764163,
-            "accuracy": 0.58,
-            "balanced_accuracy": 0.583333,
-            "probability_mean": 0.468336,
-            "probability_std": 0.171113,
-            "positive_rate": 0.42,
-            "negative_rate": 0.58
+            "brier": 0.362216,
+            "logloss": 1.001442,
+            "accuracy": 0.4,
+            "balanced_accuracy": 0.408654,
+            "probability_mean": 0.360668,
+            "probability_std": 0.212717,
+            "positive_rate": 0.28,
+            "negative_rate": 0.72
           }
         },
         {
@@ -156,12 +174,12 @@
           "test_rows": 50,
           "metrics": {
             "count": 50,
-            "brier": 0.266143,
-            "logloss": 0.72704,
-            "accuracy": 0.5,
-            "balanced_accuracy": 0.514493,
-            "probability_mean": 0.462185,
-            "probability_std": 0.144663,
+            "brier": 0.266258,
+            "logloss": 0.729557,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.55475,
+            "probability_mean": 0.466391,
+            "probability_std": 0.162647,
             "positive_rate": 0.32,
             "negative_rate": 0.68
           }
@@ -173,14 +191,14 @@
           "test_rows": 50,
           "metrics": {
             "count": 50,
-            "brier": 0.244153,
-            "logloss": 0.680891,
-            "accuracy": 0.62,
-            "balanced_accuracy": 0.622241,
-            "probability_mean": 0.499564,
-            "probability_std": 0.083941,
-            "positive_rate": 0.52,
-            "negative_rate": 0.48
+            "brier": 0.259389,
+            "logloss": 0.714808,
+            "accuracy": 0.52,
+            "balanced_accuracy": 0.521222,
+            "probability_mean": 0.498825,
+            "probability_std": 0.132289,
+            "positive_rate": 0.5,
+            "negative_rate": 0.5
           }
         }
       ],
@@ -189,7 +207,7 @@
     {
       "experiment": "core_plus_recommended_shadow_set",
       "status": "ok",
-      "feature_count": 7,
+      "feature_count": 19,
       "features": [
         "elo_diff",
         "bt_strength_diff",
@@ -197,20 +215,32 @@
         "pitcher_rating_diff",
         "dynamic_park_factor",
         "winrate_diff",
-        "timezone_diff"
+        "timezone_diff",
+        "k_pct_diff",
+        "bb_pct_diff",
+        "sp_fip_diff",
+        "sp_stuff_plus_diff",
+        "lag30_winrate_diff",
+        "bullpen_availability_diff",
+        "avg_bat_speed_diff",
+        "bullpen_ip_diff",
+        "statcast_woba_diff",
+        "top3_woba_diff",
+        "hardhit_pa_diff",
+        "barrel_pa_diff"
       ],
       "sample_count": 150,
       "successful_fold_count": 3,
       "metrics": {
         "count": 150,
-        "brier": 0.263075,
-        "logloss": 0.724032,
-        "accuracy": 0.566667,
-        "balanced_accuracy": 0.577381,
-        "probability_mean": 0.476695,
-        "probability_std": 0.139112,
-        "positive_rate": 0.42,
-        "negative_rate": 0.58
+        "brier": 0.341789,
+        "logloss": 1.012269,
+        "accuracy": 0.48,
+        "balanced_accuracy": 0.49026,
+        "probability_mean": 0.43386,
+        "probability_std": 0.287697,
+        "positive_rate": 0.413333,
+        "negative_rate": 0.586667
       },
       "folds": [
         {
@@ -220,14 +250,14 @@
           "test_rows": 50,
           "metrics": {
             "count": 50,
-            "brier": 0.278929,
-            "logloss": 0.764163,
-            "accuracy": 0.58,
-            "balanced_accuracy": 0.583333,
-            "probability_mean": 0.468336,
-            "probability_std": 0.171113,
-            "positive_rate": 0.42,
-            "negative_rate": 0.58
+            "brier": 0.382548,
+            "logloss": 1.096335,
+            "accuracy": 0.44,
+            "balanced_accuracy": 0.451923,
+            "probability_mean": 0.274319,
+            "probability_std": 0.207461,
+            "positive_rate": 0.2,
+            "negative_rate": 0.8
           }
         },
         {
@@ -237,14 +267,14 @@
           "test_rows": 50,
           "metrics": {
             "count": 50,
-            "brier": 0.266143,
-            "logloss": 0.72704,
-            "accuracy": 0.5,
-            "balanced_accuracy": 0.514493,
-            "probability_mean": 0.462185,
-            "probability_std": 0.144663,
-            "positive_rate": 0.32,
-            "negative_rate": 0.68
+            "brier": 0.392268,
+            "logloss": 1.237474,
+            "accuracy": 0.46,
+            "balanced_accuracy": 0.464573,
+            "probability_mean": 0.494508,
+            "probability_std": 0.335159,
+            "positive_rate": 0.44,
+            "negative_rate": 0.56
           }
         },
         {
@@ -254,14 +284,14 @@
           "test_rows": 50,
           "metrics": {
             "count": 50,
-            "brier": 0.244153,
-            "logloss": 0.680891,
-            "accuracy": 0.62,
-            "balanced_accuracy": 0.622241,
-            "probability_mean": 0.499564,
-            "probability_std": 0.083941,
-            "positive_rate": 0.52,
-            "negative_rate": 0.48
+            "brier": 0.250551,
+            "logloss": 0.702998,
+            "accuracy": 0.54,
+            "balanced_accuracy": 0.516978,
+            "probability_mean": 0.532754,
+            "probability_std": 0.232434,
+            "positive_rate": 0.6,
+            "negative_rate": 0.4
           }
         }
       ],
@@ -271,17 +301,17 @@
   "comparisons_vs_core": [
     {
       "experiment": "core_plus_shadow_now",
-      "brier_delta_vs_core": 0.0,
-      "logloss_delta_vs_core": 0.0,
-      "accuracy_delta_vs_core": 0.0,
-      "balanced_accuracy_delta_vs_core": 0.0
+      "brier_delta_vs_core": 0.03288,
+      "logloss_delta_vs_core": 0.091237,
+      "accuracy_delta_vs_core": -0.08,
+      "balanced_accuracy_delta_vs_core": -0.074675
     },
     {
       "experiment": "core_plus_recommended_shadow_set",
-      "brier_delta_vs_core": 0.0,
-      "logloss_delta_vs_core": 0.0,
-      "accuracy_delta_vs_core": 0.0,
-      "balanced_accuracy_delta_vs_core": 0.0
+      "brier_delta_vs_core": 0.078714,
+      "logloss_delta_vs_core": 0.288237,
+      "accuracy_delta_vs_core": -0.086667,
+      "balanced_accuracy_delta_vs_core": -0.087121
     }
   ],
   "recommendations": [
