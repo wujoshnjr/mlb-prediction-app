@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -50,6 +51,10 @@ GROUP_WEIGHTS = {
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def env_flag(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -243,7 +248,8 @@ def build_report() -> dict[str, Any]:
     walkforward = read_json(WALKFORWARD_PATH)
     root_cause = read_json(MODEL_ROOT_CAUSE_PATH)
     baseline = read_json(BASELINE_COMPARISON_PATH)
-    ablation = read_json(SHADOW_ABLATION_PATH)
+    ablation_pruning_disabled = env_flag("IGNORE_SHADOW_ABLATION")
+    ablation = {} if ablation_pruning_disabled else read_json(SHADOW_ABLATION_PATH)
     rejected_by_ablation = collect_rejected_ablation_features(ablation)
     rejected_groups_by_ablation = collect_rejected_ablation_groups(ablation)
 
@@ -315,6 +321,7 @@ def build_report() -> dict[str, Any]:
             "active_promotion_blockers": sorted(set(active_promotion_blockers)),
             "minimum_shadow_non_zero_rate": MIN_SHADOW_NON_ZERO_RATE,
             "maximum_shadow_missing_rate": MAX_SHADOW_MISSING_RATE,
+            "ablation_pruning_disabled": ablation_pruning_disabled,
             "ablation_rejection_policy": "Features rejected by per-feature or group-level shadow ablation are removed from the recommended shadow set until source/data/model changes produce a new positive ablation result.",
         },
         "summary": {
