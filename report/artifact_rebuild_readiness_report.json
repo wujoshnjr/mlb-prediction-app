@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-06-17T20:46:52.610094+00:00",
+  "generated_at": "2026-06-17T23:10:03.191880+00:00",
   "status": "blocked",
   "report_type": "artifact_rebuild_readiness_v1",
   "input_files": {
     "training_samples": {
       "path": "data/training_samples.csv",
       "exists": true,
-      "rows": 271,
+      "rows": 275,
       "error": ""
     },
     "training_status": {
@@ -46,8 +46,8 @@
       "type": "dict"
     }
   },
-  "training_samples_row_count": 271,
-  "training_status_sample_count": 271,
+  "training_samples_row_count": 275,
+  "training_status_sample_count": 275,
   "training_status_trained": false,
   "model_artifact_valid": false,
   "model_artifact_reason": "sample_count_mismatch",
@@ -55,14 +55,14 @@
   "model_status_consistency_status": "failed",
   "model_status_consistency_sample_count_consistent": false,
   "model_status_consistency_mismatch_count": 4,
-  "model_lab_sample_count": 271,
+  "model_lab_sample_count": 275,
   "model_lab_best_by_brier": "lightgbm_market_residual",
   "model_lab_best_by_logloss": "lightgbm_market_residual",
-  "model_lab_best_by_ece": "xgboost_classifier",
+  "model_lab_best_by_ece": "lightgbm_classifier",
   "walk_forward_ready": false,
-  "walk_forward_total_oos_predictions": 191,
-  "walk_forward_unique_oos_games": 191,
-  "walk_forward_max_model_oos": 191,
+  "walk_forward_total_oos_predictions": 195,
+  "walk_forward_unique_oos_games": 195,
+  "walk_forward_max_model_oos": 195,
   "minimum_clean_train_samples": 300,
   "minimum_promotion_samples": 500,
   "minimum_walk_forward_oos": 300,
@@ -76,11 +76,11 @@
   "blockers": [
     {
       "code": "insufficient_training_samples_for_rebuild",
-      "detail": "Only 271 training samples, need at least 300."
+      "detail": "Only 275 training samples, need at least 300."
     },
     {
       "code": "insufficient_training_status_samples_for_rebuild",
-      "detail": "Only 271 training status samples, need at least 300."
+      "detail": "Only 275 training status samples, need at least 300."
     },
     {
       "code": "model_status_consistency_mismatches_present",
@@ -88,7 +88,7 @@
     },
     {
       "code": "insufficient_walk_forward_oos_for_readiness",
-      "detail": "Max model OOS is 191, need at least 300."
+      "detail": "Max model OOS is 195, need at least 300."
     }
   ],
   "warnings": [],
