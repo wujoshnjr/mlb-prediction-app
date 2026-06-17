@@ -1,0 +1,71 @@
+name: Core Model Repair Validation
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Hourly Prediction Update
+    types:
+      - completed
+  push:
+    branches:
+      - main
+    paths:
+      - 'data/training_samples.csv'
+      - 'scripts/core_model_repair_report.py'
+      - '.github/workflows/core_model_repair_validation.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: core-model-repair-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-core-model-repair:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run core model repair validation
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/core_model_repair_report.py
+          python scripts/core_model_repair_report.py
+          python -m json.tool report/core_model_repair_report.json >/dev/null
+          test -s report/core_model_repair_rows.csv
+
+      - name: Commit core model repair outputs
+        run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF_NAME:-main}"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git add -f report/core_model_repair_report.json report/core_model_repair_rows.csv
+          if git diff --cached --quiet; then
+            echo "No core model repair output changes to commit."
+          else
+            git commit -m "Refresh core model repair validation"
+          fi
+          git pull --rebase --autostash origin "$BRANCH"
+          if ! git push origin "HEAD:$BRANCH"; then
+            git pull --rebase --autostash origin "$BRANCH"
+            git push origin "HEAD:$BRANCH"
+          fi
