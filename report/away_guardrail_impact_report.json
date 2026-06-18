@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T18:45:48.011533Z",
+  "generated_at": "2026-06-18T21:39:53.680398Z",
   "status": "ok",
   "report_type": "away_guardrail_impact_v1",
   "pipeline_version": "baseline_v2_clean",
@@ -23,37 +23,19 @@
   },
   "summary": {
     "prediction_count": 9,
-    "away_candidate_count": 1,
-    "away_guardrail_applied_count": 1,
-    "away_guardrail_applied_rate": 1.0,
+    "away_candidate_count": 0,
+    "away_guardrail_applied_count": 0,
+    "away_guardrail_applied_rate": null,
     "retained_away_paper_signal_count": 0,
-    "downgraded_away_tracking_only_count": 1,
-    "home_candidate_count": 4
+    "downgraded_away_tracking_only_count": 0,
+    "home_candidate_count": 2
   },
-  "reason_counts": {
-    "away_low_selected_probability_vs_home_market": 1
-  },
-  "guardrail_status_counts": {
-    "tracking_only": 1
-  },
-  "downgraded_examples": [
-    {
-      "game_id": 823772,
-      "game_date": "2026-06-18",
-      "away_team": "Guardians",
-      "home_team": "Brewers",
-      "moneyline_selected_edge": 0.0867,
-      "away_selected_probability": 0.3633,
-      "market_no_vig_home_prob": 0.7234,
-      "away_guardrail_reasons": [
-        "away_low_selected_probability_vs_home_market"
-      ],
-      "recommendation_status": "TRACKING_ONLY"
-    }
-  ],
+  "reason_counts": {},
+  "guardrail_status_counts": {},
+  "downgraded_examples": [],
   "diagnostic_snapshot": {
-    "away_pick_accuracy": 0.4563758389261745,
-    "away_pick_sample_count": 149,
+    "away_pick_accuracy": 0.46,
+    "away_pick_sample_count": 150,
     "away_pick_rate": 0.5221843003412969,
     "recommended_guardrails": [
       "Away picks materially underperform home picks; raise away edge threshold.",
@@ -69,6 +51,6 @@
   "warnings": [],
   "errors": [],
   "recommendations": [
-    "Track downgraded away candidates separately to verify whether the guardrail improves settled away accuracy."
+    "No away candidates in current prediction report; continue monitoring."
   ]
 }
