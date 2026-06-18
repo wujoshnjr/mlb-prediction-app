@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T00:36:40.628747Z",
+  "generated_at": "2026-06-18T06:17:21.753674Z",
   "status": "ok",
   "report_type": "away_guardrail_impact_v1",
   "pipeline_version": "baseline_v2_clean",
@@ -23,20 +23,20 @@
   },
   "summary": {
     "prediction_count": 9,
-    "away_candidate_count": 2,
-    "away_guardrail_applied_count": 2,
+    "away_candidate_count": 3,
+    "away_guardrail_applied_count": 3,
     "away_guardrail_applied_rate": 1.0,
     "retained_away_paper_signal_count": 0,
-    "downgraded_away_tracking_only_count": 2,
+    "downgraded_away_tracking_only_count": 3,
     "home_candidate_count": 2
   },
   "reason_counts": {
-    "away_low_selected_probability_vs_home_market": 2,
-    "away_mid_edge_underperforming_bucket": 2,
+    "away_low_selected_probability_vs_home_market": 3,
+    "away_mid_edge_underperforming_bucket": 3,
     "away_slight_home_market_underperforming_bucket": 2
   },
   "guardrail_status_counts": {
-    "tracking_only": 2
+    "tracking_only": 3
   },
   "downgraded_examples": [
     {
@@ -44,13 +44,27 @@
       "game_date": "2026-06-18",
       "away_team": "Blue Jays",
       "home_team": "Red Sox",
-      "moneyline_selected_edge": 0.0372,
-      "away_selected_probability": 0.5346,
-      "market_no_vig_home_prob": 0.5026,
+      "moneyline_selected_edge": 0.0632,
+      "away_selected_probability": 0.541,
+      "market_no_vig_home_prob": 0.5222,
       "away_guardrail_reasons": [
         "away_low_selected_probability_vs_home_market",
         "away_mid_edge_underperforming_bucket",
         "away_slight_home_market_underperforming_bucket"
+      ],
+      "recommendation_status": "TRACKING_ONLY"
+    },
+    {
+      "game_id": 823125,
+      "game_date": "2026-06-18",
+      "away_team": "Orioles",
+      "home_team": "Mariners",
+      "moneyline_selected_edge": 0.032,
+      "away_selected_probability": 0.4482,
+      "market_no_vig_home_prob": 0.5838,
+      "away_guardrail_reasons": [
+        "away_low_selected_probability_vs_home_market",
+        "away_mid_edge_underperforming_bucket"
       ],
       "recommendation_status": "TRACKING_ONLY"
     },
@@ -71,8 +85,8 @@
     }
   ],
   "diagnostic_snapshot": {
-    "away_pick_accuracy": 0.4594594594594595,
-    "away_pick_sample_count": 148,
+    "away_pick_accuracy": 0.4563758389261745,
+    "away_pick_sample_count": 149,
     "away_pick_rate": 0.5221843003412969,
     "recommended_guardrails": [
       "Away picks materially underperform home picks; raise away edge threshold.",

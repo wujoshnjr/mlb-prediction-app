@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T00:36:41.584822+00:00",
+  "generated_at": "2026-06-18T06:17:22.655747+00:00",
   "status": "insufficient_evidence",
   "readiness_score": 64.29,
   "research_promotion_allowed": false,
@@ -10,7 +10,7 @@
   "automated_wagering_allowed": false,
   "user_funds_handled": false,
   "recommended_champion": null,
-  "recommended_challenger": "lightgbm_market_residual",
+  "recommended_challenger": "logistic_baseline",
   "recommended_shadow_ensemble": "logistic_stacking",
   "thresholds": {
     "min_train_eligible_samples": 300,
@@ -19,14 +19,14 @@
     "max_ece": 0.05
   },
   "evidence_summary": {
-    "clean_settled_samples": 275,
-    "train_eligible_samples": 275,
-    "linked_games": 275,
-    "pending_not_final": 9,
-    "model_lab_sample_count": 275,
-    "walkforward_oos_predictions": 195,
-    "calibration_sample_count": 275,
-    "calibration_ece": 0.07843490909090906,
+    "clean_settled_samples": 281,
+    "train_eligible_samples": 281,
+    "linked_games": 281,
+    "pending_not_final": 12,
+    "model_lab_sample_count": 281,
+    "walkforward_oos_predictions": 201,
+    "calibration_sample_count": 281,
+    "calibration_ece": 0.08195195729537365,
     "feature_candidate_shadow_count": 27,
     "feature_ready_for_review_count": 0,
     "prediction_trust": {
@@ -39,8 +39,8 @@
     "market_edge": {
       "any_model_beats_market_brier": true,
       "any_model_beats_market_logloss": true,
-      "best_brier_delta": -0.009645882481607915,
-      "best_logloss_delta": -0.051367398946956744,
+      "best_brier_delta": -0.008239537807137542,
+      "best_logloss_delta": -0.04725269704199542,
       "best_brier_model": "logistic_baseline",
       "best_logloss_model": "logistic_baseline"
     },
@@ -64,8 +64,8 @@
       "name": "finalized_linkage_gate",
       "passed": true,
       "current": {
-        "linked_games": 275,
-        "pending_not_final": 9,
+        "linked_games": 281,
+        "pending_not_final": 12,
         "api_not_found_or_failed": 0
       },
       "required": "linked_games > 0 and api_not_found_or_failed == 0",
@@ -76,18 +76,18 @@
     {
       "name": "train_sample_gate",
       "passed": false,
-      "current": 275,
+      "current": 281,
       "required": 300,
-      "blocker": "train eligible samples below threshold: 275 < 300",
+      "blocker": "train eligible samples below threshold: 281 < 300",
       "warning": "",
       "details": {}
     },
     {
       "name": "promotion_sample_gate",
       "passed": false,
-      "current": 275,
+      "current": 281,
       "required": 500,
-      "blocker": "clean settled samples below promotion threshold: 275 < 500",
+      "blocker": "clean settled samples below promotion threshold: 281 < 500",
       "warning": "",
       "details": {}
     },
@@ -95,8 +95,8 @@
       "name": "model_lab_gate",
       "passed": false,
       "current": {
-        "sample_count": 275,
-        "best_shadow_model": "lightgbm_market_residual",
+        "sample_count": 281,
+        "best_shadow_model": "logistic_baseline",
         "champion_candidate": null
       },
       "required": "sample_count >= 300 and best shadow model exists",
@@ -107,9 +107,9 @@
     {
       "name": "walk_forward_oos_gate",
       "passed": false,
-      "current": 195,
+      "current": 201,
       "required": 300,
-      "blocker": "walk-forward OOS predictions below threshold: 195 < 300",
+      "blocker": "walk-forward OOS predictions below threshold: 201 < 300",
       "warning": "",
       "details": {}
     },
@@ -119,8 +119,8 @@
       "current": {
         "any_model_beats_market_brier": true,
         "any_model_beats_market_logloss": true,
-        "best_brier_delta": -0.009645882481607915,
-        "best_logloss_delta": -0.051367398946956744,
+        "best_brier_delta": -0.008239537807137542,
+        "best_logloss_delta": -0.04725269704199542,
         "best_brier_model": "logistic_baseline",
         "best_logloss_model": "logistic_baseline"
       },
@@ -135,7 +135,7 @@
       "current": {
         "decision": "NO_PROMOTION_SHADOW_ONLY",
         "status": "blocked",
-        "recommended_challenger": "lightgbm_market_residual",
+        "recommended_challenger": "logistic_baseline",
         "probability_policy": {
           "official_probability_change_allowed": false,
           "shadow_probability_shrinkage_allowed": true,
@@ -158,9 +158,9 @@
       "name": "calibration_gate",
       "passed": false,
       "current": {
-        "sample_count": 275,
+        "sample_count": 281,
         "calibration_ready": false,
-        "ece": 0.07843490909090906
+        "ece": 0.08195195729537365
       },
       "required": {
         "sample_count": 300,
@@ -202,7 +202,7 @@
       "name": "shadow_ensemble_gate",
       "passed": true,
       "current": {
-        "sample_count": 195,
+        "sample_count": 201,
         "recommended_shadow_ensemble": "logistic_stacking",
         "promotion_eligible": false
       },
@@ -244,10 +244,10 @@
   ],
   "blockers": [
     "calibration sample count, readiness, or ECE threshold not satisfied",
-    "clean settled samples below promotion threshold: 275 < 500",
+    "clean settled samples below promotion threshold: 281 < 500",
     "model lab does not have enough samples or no challenger model",
-    "train eligible samples below threshold: 275 < 300",
-    "walk-forward OOS predictions below threshold: 195 < 300"
+    "train eligible samples below threshold: 281 < 300",
+    "walk-forward OOS predictions below threshold: 201 < 300"
   ],
   "warnings": [
     "C/D trust grades should be monitored but do not block research readiness by themselves",
@@ -338,10 +338,10 @@
     }
   },
   "next_recommended_actions": [
-    "Accumulate 25 more train-eligible finalized samples.",
-    "Accumulate 225 more clean settled samples for promotion-grade review.",
-    "Accumulate 105 more walk-forward OOS predictions.",
-    "Improve calibration: ECE 0.0784 is above 0.05.",
+    "Accumulate 19 more train-eligible finalized samples.",
+    "Accumulate 219 more clean settled samples for promotion-grade review.",
+    "Accumulate 99 more walk-forward OOS predictions.",
+    "Improve calibration: ECE 0.0820 is above 0.05.",
     "Keep official prediction on current calibrated logistic baseline until all gates pass.",
     "Keep LightGBM, XGBoost, residual, and ensemble outputs shadow-only.",
     "Do not lower sample gates to force promotion."

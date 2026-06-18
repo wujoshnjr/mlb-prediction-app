@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T00:36:33.056488+00:00",
+  "generated_at": "2026-06-18T06:17:14.357113+00:00",
   "prediction_count": 9,
   "feature_zero_summary": [
     {
@@ -17,10 +17,10 @@
     {
       "feature": "bullpen_ip_diff",
       "missing_count": 0,
-      "zero_count": 1,
-      "non_zero_count": 8,
-      "zero_rate": 0.1111,
-      "non_zero_rate": 0.8889,
+      "zero_count": 0,
+      "non_zero_count": 9,
+      "zero_rate": 0.0,
+      "non_zero_rate": 1.0,
       "source": "context_bridge",
       "source_status": "present",
       "likely_root_cause": "repaired_or_active",
@@ -197,10 +197,10 @@
     {
       "feature": "elo_momentum_7d",
       "missing_count": 0,
-      "zero_count": 1,
-      "non_zero_count": 8,
-      "zero_rate": 0.1111,
-      "non_zero_rate": 0.8889,
+      "zero_count": 2,
+      "non_zero_count": 7,
+      "zero_rate": 0.2222,
+      "non_zero_rate": 0.7778,
       "source": "team_form",
       "source_status": "present",
       "likely_root_cause": "repaired_or_active",
@@ -209,22 +209,22 @@
     {
       "feature": "games_last_3d_diff",
       "missing_count": 0,
-      "zero_count": 8,
-      "non_zero_count": 1,
-      "zero_rate": 0.8889,
-      "non_zero_rate": 0.1111,
+      "zero_count": 9,
+      "non_zero_count": 0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
       "source": "team_form",
       "source_status": "present",
-      "likely_root_cause": "repaired_or_active",
+      "likely_root_cause": "source_present_but_not_integrated_or_no_signal",
       "expected_neutral_zero": false
     },
     {
       "feature": "games_last_7d_diff",
       "missing_count": 0,
-      "zero_count": 4,
-      "non_zero_count": 5,
-      "zero_rate": 0.4444,
-      "non_zero_rate": 0.5556,
+      "zero_count": 5,
+      "non_zero_count": 4,
+      "zero_rate": 0.5556,
+      "non_zero_rate": 0.4444,
       "source": "team_form",
       "source_status": "present",
       "likely_root_cause": "repaired_or_active",
@@ -281,10 +281,10 @@
     {
       "feature": "rest_pressure_diff",
       "missing_count": 0,
-      "zero_count": 4,
-      "non_zero_count": 5,
-      "zero_rate": 0.4444,
-      "non_zero_rate": 0.5556,
+      "zero_count": 5,
+      "non_zero_count": 4,
+      "zero_rate": 0.5556,
+      "non_zero_rate": 0.4444,
       "source": "team_form",
       "source_status": "present",
       "likely_root_cause": "repaired_or_active",
@@ -329,10 +329,10 @@
     {
       "feature": "wind_effect",
       "missing_count": 0,
-      "zero_count": 5,
-      "non_zero_count": 4,
-      "zero_rate": 0.5556,
-      "non_zero_rate": 0.4444,
+      "zero_count": 4,
+      "non_zero_count": 5,
+      "zero_rate": 0.4444,
+      "non_zero_rate": 0.5556,
       "source": "weather",
       "source_status": "present",
       "likely_root_cause": "repaired_or_active",
@@ -431,7 +431,9 @@
       "bullpen_availability_diff"
     ]
   },
-  "still_zero_features": [],
+  "still_zero_features": [
+    "games_last_3d_diff"
+  ],
   "repaired_features": [
     "avg_bat_speed_diff",
     "back2back_diff",
@@ -441,7 +443,6 @@
     "bullpen_ip_diff",
     "elo_momentum_30d",
     "elo_momentum_7d",
-    "games_last_3d_diff",
     "games_last_7d_diff",
     "hardhit_pa_diff",
     "k_pct_diff",
@@ -463,6 +464,6 @@
     "wind_effect"
   ],
   "recommendations": [
-    "All tracked feature sources have at least one non-zero feature."
+    "team_form source exists but these features remain all-zero: ['games_last_3d_diff']"
   ]
 }
