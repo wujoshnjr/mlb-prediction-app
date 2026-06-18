@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T00:38:59.115505Z",
+  "generated_at": "2026-06-18T06:19:47.851957Z",
   "report_type": "feature_promotion_candidate_report",
   "status": "blocked",
   "source_reports": {
@@ -30,7 +30,7 @@
     "shadow_candidate_now_count": 0,
     "shadow_candidate_after_backfill_count": 0,
     "shadow_ablation_rejected_count": 12,
-    "shadow_group_ablation_rejected_count": 13,
+    "shadow_group_ablation_rejected_count": 19,
     "blocked_candidate_count": 55,
     "recommended_shadow_set_count": 0
   },
@@ -52,8 +52,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.011957",
-        "logloss_delta_vs_core=0.026182"
+        "brier_delta_vs_core=0.020354",
+        "logloss_delta_vs_core=0.047504"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -62,23 +62,54 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.011957,
-          "logloss_delta_vs_core": 0.026182,
-          "accuracy_delta_vs_core": -0.024243,
-          "balanced_accuracy_delta_vs_core": -0.023
+          "brier_delta_vs_core": 0.020354,
+          "logloss_delta_vs_core": 0.047504,
+          "accuracy_delta_vs_core": -0.035715,
+          "balanced_accuracy_delta_vs_core": -0.037923
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.269435,
-          "logloss": 0.735951,
-          "accuracy": 0.521212,
-          "balanced_accuracy": 0.53154,
-          "probability_mean": 0.476827,
-          "probability_std": 0.135957,
-          "positive_rate": 0.430303,
-          "negative_rate": 0.569697
+          "count": 168,
+          "brier": 0.281192,
+          "logloss": 0.764682,
+          "accuracy": 0.47619,
+          "balanced_accuracy": 0.484499,
+          "probability_mean": 0.473638,
+          "probability_std": 0.142933,
+          "positive_rate": 0.434524,
+          "negative_rate": 0.565476
         },
         "source_report": "report/shadow_feature_ablation_report.json"
+      },
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
       }
     },
     {
@@ -95,8 +126,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.006542",
-        "logloss_delta_vs_core=0.014443"
+        "brier_delta_vs_core=0.011588",
+        "logloss_delta_vs_core=0.026488"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -105,23 +136,54 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.006542,
-          "logloss_delta_vs_core": 0.014443,
-          "accuracy_delta_vs_core": -0.012122,
-          "balanced_accuracy_delta_vs_core": -0.010638
+          "brier_delta_vs_core": 0.011588,
+          "logloss_delta_vs_core": 0.026488,
+          "accuracy_delta_vs_core": -0.029762,
+          "balanced_accuracy_delta_vs_core": -0.03266
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.26402,
-          "logloss": 0.724212,
-          "accuracy": 0.533333,
-          "balanced_accuracy": 0.543902,
-          "probability_mean": 0.475822,
-          "probability_std": 0.13069,
-          "positive_rate": 0.430303,
-          "negative_rate": 0.569697
+          "count": 168,
+          "brier": 0.272426,
+          "logloss": 0.743666,
+          "accuracy": 0.482143,
+          "balanced_accuracy": 0.489762,
+          "probability_mean": 0.47238,
+          "probability_std": 0.132274,
+          "positive_rate": 0.440476,
+          "negative_rate": 0.559524
         },
         "source_report": "report/shadow_feature_ablation_report.json"
+      },
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
       }
     },
     {
@@ -138,8 +200,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.030369",
-        "logloss_delta_vs_core=0.114877"
+        "brier_delta_vs_core=0.034172",
+        "logloss_delta_vs_core=0.130724"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -148,21 +210,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.030369,
-          "logloss_delta_vs_core": 0.114877,
-          "accuracy_delta_vs_core": 0.012121,
-          "balanced_accuracy_delta_vs_core": 0.024423
+          "brier_delta_vs_core": 0.034172,
+          "logloss_delta_vs_core": 0.130724,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.028479
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.287847,
-          "logloss": 0.824646,
-          "accuracy": 0.557576,
-          "balanced_accuracy": 0.578963,
-          "probability_mean": 0.418342,
-          "probability_std": 0.180788,
-          "positive_rate": 0.357576,
-          "negative_rate": 0.642424
+          "count": 168,
+          "brier": 0.29501,
+          "logloss": 0.847902,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.550901,
+          "probability_mean": 0.403777,
+          "probability_std": 0.181856,
+          "positive_rate": 0.345238,
+          "negative_rate": 0.654762
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -173,21 +235,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -212,8 +274,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.00749",
-        "logloss_delta_vs_core=0.016032"
+        "brier_delta_vs_core=0.011837",
+        "logloss_delta_vs_core=0.026847"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -222,21 +284,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.00749,
-          "logloss_delta_vs_core": 0.016032,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.011837,
+          "logloss_delta_vs_core": 0.026847,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.020547
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.264968,
-          "logloss": 0.725801,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.476303,
-          "probability_std": 0.14507,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.272675,
+          "logloss": 0.744025,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.501875,
+          "probability_mean": 0.471693,
+          "probability_std": 0.14495,
+          "positive_rate": 0.440476,
+          "negative_rate": 0.559524
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -247,21 +309,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.002444,
-          "logloss_delta_vs_core": 0.004618,
-          "accuracy_delta_vs_core": -0.018182,
-          "balanced_accuracy_delta_vs_core": -0.019404
+          "brier_delta_vs_core": 0.008721,
+          "logloss_delta_vs_core": 0.019719,
+          "accuracy_delta_vs_core": -0.011905,
+          "balanced_accuracy_delta_vs_core": -0.015284
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259922,
-          "logloss": 0.714387,
-          "accuracy": 0.527273,
-          "balanced_accuracy": 0.535136,
-          "probability_mean": 0.478673,
-          "probability_std": 0.150865,
-          "positive_rate": 0.448485,
-          "negative_rate": 0.551515
+          "count": 168,
+          "brier": 0.269559,
+          "logloss": 0.736897,
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.507138,
+          "probability_mean": 0.476763,
+          "probability_std": 0.154715,
+          "positive_rate": 0.446429,
+          "negative_rate": 0.553571
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -284,8 +346,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.00369",
-        "logloss_delta_vs_core=0.008113"
+        "brier_delta_vs_core=0.009556",
+        "logloss_delta_vs_core=0.021869"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -294,21 +356,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.00369,
-          "logloss_delta_vs_core": 0.008113,
-          "accuracy_delta_vs_core": -0.018182,
-          "balanced_accuracy_delta_vs_core": -0.021127
+          "brier_delta_vs_core": 0.009556,
+          "logloss_delta_vs_core": 0.021869,
+          "accuracy_delta_vs_core": -0.029762,
+          "balanced_accuracy_delta_vs_core": -0.034246
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.261168,
-          "logloss": 0.717882,
-          "accuracy": 0.527273,
-          "balanced_accuracy": 0.533413,
-          "probability_mean": 0.482957,
-          "probability_std": 0.134949,
-          "positive_rate": 0.460606,
-          "negative_rate": 0.539394
+          "count": 168,
+          "brier": 0.270394,
+          "logloss": 0.739047,
+          "accuracy": 0.482143,
+          "balanced_accuracy": 0.488176,
+          "probability_mean": 0.478424,
+          "probability_std": 0.138162,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -319,21 +381,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.002444,
-          "logloss_delta_vs_core": 0.004618,
-          "accuracy_delta_vs_core": -0.018182,
-          "balanced_accuracy_delta_vs_core": -0.019404
+          "brier_delta_vs_core": 0.008721,
+          "logloss_delta_vs_core": 0.019719,
+          "accuracy_delta_vs_core": -0.011905,
+          "balanced_accuracy_delta_vs_core": -0.015284
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259922,
-          "logloss": 0.714387,
-          "accuracy": 0.527273,
-          "balanced_accuracy": 0.535136,
-          "probability_mean": 0.478673,
-          "probability_std": 0.150865,
-          "positive_rate": 0.448485,
-          "negative_rate": 0.551515
+          "count": 168,
+          "brier": 0.269559,
+          "logloss": 0.736897,
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.507138,
+          "probability_mean": 0.476763,
+          "probability_std": 0.154715,
+          "positive_rate": 0.446429,
+          "negative_rate": 0.553571
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -356,8 +418,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.007121",
-        "logloss_delta_vs_core=0.015417"
+        "brier_delta_vs_core=0.012369",
+        "logloss_delta_vs_core=0.027695"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -366,23 +428,54 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.007121,
-          "logloss_delta_vs_core": 0.015417,
-          "accuracy_delta_vs_core": -0.024243,
-          "balanced_accuracy_delta_vs_core": -0.023
+          "brier_delta_vs_core": 0.012369,
+          "logloss_delta_vs_core": 0.027695,
+          "accuracy_delta_vs_core": -0.035715,
+          "balanced_accuracy_delta_vs_core": -0.037923
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.264599,
-          "logloss": 0.725186,
-          "accuracy": 0.521212,
-          "balanced_accuracy": 0.53154,
-          "probability_mean": 0.47657,
-          "probability_std": 0.130931,
-          "positive_rate": 0.430303,
-          "negative_rate": 0.569697
+          "count": 168,
+          "brier": 0.273207,
+          "logloss": 0.744873,
+          "accuracy": 0.47619,
+          "balanced_accuracy": 0.484499,
+          "probability_mean": 0.473246,
+          "probability_std": 0.132826,
+          "positive_rate": 0.434524,
+          "negative_rate": 0.565476
         },
         "source_report": "report/shadow_feature_ablation_report.json"
+      },
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
       }
     },
     {
@@ -399,8 +492,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.028131",
-        "logloss_delta_vs_core=0.089344"
+        "brier_delta_vs_core=0.029461",
+        "logloss_delta_vs_core=0.101407"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -409,21 +502,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.028131,
-          "logloss_delta_vs_core": 0.089344,
-          "accuracy_delta_vs_core": -0.012122,
-          "balanced_accuracy_delta_vs_core": 0.003147
+          "brier_delta_vs_core": 0.029461,
+          "logloss_delta_vs_core": 0.101407,
+          "accuracy_delta_vs_core": 0.0,
+          "balanced_accuracy_delta_vs_core": 0.014276
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.285609,
-          "logloss": 0.799113,
-          "accuracy": 0.533333,
-          "balanced_accuracy": 0.557687,
-          "probability_mean": 0.41717,
-          "probability_std": 0.19203,
-          "positive_rate": 0.333333,
-          "negative_rate": 0.666667
+          "count": 168,
+          "brier": 0.290299,
+          "logloss": 0.818585,
+          "accuracy": 0.511905,
+          "balanced_accuracy": 0.536698,
+          "probability_mean": 0.400686,
+          "probability_std": 0.183763,
+          "positive_rate": 0.315476,
+          "negative_rate": 0.684524
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -434,21 +527,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -473,8 +566,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.009456",
-        "logloss_delta_vs_core=0.021523"
+        "brier_delta_vs_core=0.007139",
+        "logloss_delta_vs_core=0.01611"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -483,21 +576,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -508,21 +601,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -544,8 +637,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.006493",
-        "logloss_delta_vs_core=0.014179"
+        "brier_delta_vs_core=0.002501",
+        "logloss_delta_vs_core=0.003615"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -554,21 +647,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.006493,
-          "logloss_delta_vs_core": 0.014179,
-          "accuracy_delta_vs_core": -0.036364,
-          "balanced_accuracy_delta_vs_core": -0.042254
+          "brier_delta_vs_core": 0.002501,
+          "logloss_delta_vs_core": 0.003615,
+          "accuracy_delta_vs_core": -0.02381,
+          "balanced_accuracy_delta_vs_core": -0.030569
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.263971,
-          "logloss": 0.723948,
-          "accuracy": 0.509091,
-          "balanced_accuracy": 0.512286,
-          "probability_mean": 0.501558,
-          "probability_std": 0.161539,
-          "positive_rate": 0.478788,
-          "negative_rate": 0.521212
+          "count": 168,
+          "brier": 0.263339,
+          "logloss": 0.720793,
+          "accuracy": 0.488095,
+          "balanced_accuracy": 0.491853,
+          "probability_mean": 0.487718,
+          "probability_std": 0.139838,
+          "positive_rate": 0.470238,
+          "negative_rate": 0.529762
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -579,21 +672,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -618,8 +711,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.010032",
-        "logloss_delta_vs_core=0.024443"
+        "brier_delta_vs_core=0.005782",
+        "logloss_delta_vs_core=0.011883"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -628,21 +721,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.010032,
-          "logloss_delta_vs_core": 0.024443,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.059934
+          "brier_delta_vs_core": 0.005782,
+          "logloss_delta_vs_core": 0.011883,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.02372
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.26751,
-          "logloss": 0.734212,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.494606,
-          "probability_mean": 0.493949,
-          "probability_std": 0.162763,
-          "positive_rate": 0.472727,
-          "negative_rate": 0.527273
+          "count": 168,
+          "brier": 0.26662,
+          "logloss": 0.729061,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.498702,
+          "probability_mean": 0.482223,
+          "probability_std": 0.140268,
+          "positive_rate": 0.464286,
+          "negative_rate": 0.535714
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -653,21 +746,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -692,8 +785,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.0038",
-        "logloss_delta_vs_core=0.008963"
+        "brier_delta_vs_core=0.003586",
+        "logloss_delta_vs_core=0.008334"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -702,23 +795,54 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0038,
-          "logloss_delta_vs_core": 0.008963,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.003586,
+          "logloss_delta_vs_core": 0.008334,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.261278,
-          "logloss": 0.718732,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482207,
-          "probability_std": 0.141097,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.264424,
+          "logloss": 0.725512,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481827,
+          "probability_std": 0.141939,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json"
+      },
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
       }
     },
     {
@@ -735,8 +859,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.001677",
-        "logloss_delta_vs_core=0.003888"
+        "brier_delta_vs_core=0.001293",
+        "logloss_delta_vs_core=0.002647"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -745,21 +869,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -770,21 +894,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -809,8 +933,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=rest_travel",
-        "brier_delta_vs_core=0.009456",
-        "logloss_delta_vs_core=0.021523"
+        "brier_delta_vs_core=0.007139",
+        "logloss_delta_vs_core=0.01611"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -819,25 +943,75 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
           "lag30_winrate_diff"
+        ]
+      }
+    },
+    {
+      "feature": "barrel_bb_pct_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
+      "candidate_score": 6.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
         ]
       }
     },
@@ -856,8 +1030,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=lineup",
-        "brier_delta_vs_core=0.001677",
-        "logloss_delta_vs_core=0.003888"
+        "brier_delta_vs_core=0.001293",
+        "logloss_delta_vs_core=0.002647"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -866,21 +1040,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -903,8 +1077,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=lineup",
-        "brier_delta_vs_core=0.001677",
-        "logloss_delta_vs_core=0.003888"
+        "brier_delta_vs_core=0.001293",
+        "logloss_delta_vs_core=0.002647"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -913,21 +1087,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -950,8 +1124,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=rest_travel",
-        "brier_delta_vs_core=0.009456",
-        "logloss_delta_vs_core=0.021523"
+        "brier_delta_vs_core=0.007139",
+        "logloss_delta_vs_core=0.01611"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -960,21 +1134,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -997,8 +1171,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=rest_travel",
-        "brier_delta_vs_core=0.009456",
-        "logloss_delta_vs_core=0.021523"
+        "brier_delta_vs_core=0.007139",
+        "logloss_delta_vs_core=0.01611"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -1007,21 +1181,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1044,8 +1218,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=rest_travel",
-        "brier_delta_vs_core=0.009456",
-        "logloss_delta_vs_core=0.021523"
+        "brier_delta_vs_core=0.007139",
+        "logloss_delta_vs_core=0.01611"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -1054,21 +1228,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1091,8 +1265,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=lineup",
-        "brier_delta_vs_core=0.001677",
-        "logloss_delta_vs_core=0.003888"
+        "brier_delta_vs_core=0.001293",
+        "logloss_delta_vs_core=0.002647"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -1101,21 +1275,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1138,8 +1312,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=starting_pitcher",
-        "brier_delta_vs_core=0.0479",
-        "logloss_delta_vs_core=0.156594"
+        "brier_delta_vs_core=0.044613",
+        "logloss_delta_vs_core=0.155965"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -1148,21 +1322,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1188,8 +1362,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=starting_pitcher",
-        "brier_delta_vs_core=0.0479",
-        "logloss_delta_vs_core=0.156594"
+        "brier_delta_vs_core=0.044613",
+        "logloss_delta_vs_core=0.155965"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -1198,21 +1372,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1238,8 +1412,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=lineup",
-        "brier_delta_vs_core=0.001677",
-        "logloss_delta_vs_core=0.003888"
+        "brier_delta_vs_core=0.001293",
+        "logloss_delta_vs_core=0.002647"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -1248,21 +1422,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1285,8 +1459,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=rest_travel",
-        "brier_delta_vs_core=0.009456",
-        "logloss_delta_vs_core=0.021523"
+        "brier_delta_vs_core=0.007139",
+        "logloss_delta_vs_core=0.01611"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -1295,21 +1469,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1332,8 +1506,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=rest_travel",
-        "brier_delta_vs_core=0.009456",
-        "logloss_delta_vs_core=0.021523"
+        "brier_delta_vs_core=0.007139",
+        "logloss_delta_vs_core=0.01611"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -1342,21 +1516,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1379,8 +1553,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=starting_pitcher",
-        "brier_delta_vs_core=0.0479",
-        "logloss_delta_vs_core=0.156594"
+        "brier_delta_vs_core=0.044613",
+        "logloss_delta_vs_core=0.155965"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -1389,21 +1563,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1411,6 +1585,256 @@
           "bb_pct_diff",
           "sp_fip_diff",
           "sp_stuff_plus_diff"
+        ]
+      }
+    },
+    {
+      "feature": "sprint_speed_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
+      "candidate_score": 6.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
+      }
+    },
+    {
+      "feature": "statcast_barrel_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "high_zero_needs_review",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
+      "candidate_score": 15.1585,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 77,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
+      }
+    },
+    {
+      "feature": "statcast_hard_hit_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "high_zero_needs_review",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
+      "candidate_score": 15.3585,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 82,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
+      }
+    },
+    {
+      "feature": "statcast_launch_speed_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "high_zero_needs_review",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
+      "candidate_score": 15.5185,
+      "missing_rate": 0.0,
+      "zero_rate": 0.6281,
+      "non_zero_rate": 0.3719,
+      "unique_count": 86,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": false,
+      "reasons": [
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
+      }
+    },
+    {
+      "feature": "swing_miss_diff",
+      "feature_group": "statcast_batting",
+      "source_category": "source_missing_all_zero",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
+      "candidate_score": 8.54,
+      "missing_rate": 0.0,
+      "zero_rate": 1.0,
+      "non_zero_rate": 0.0,
+      "unique_count": 1,
+      "allow_in_main_model": false,
+      "allow_in_shadow_model": true,
+      "reasons": [
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
         ]
       }
     }
@@ -1430,8 +1854,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.028131",
-        "logloss_delta_vs_core=0.089344"
+        "brier_delta_vs_core=0.029461",
+        "logloss_delta_vs_core=0.101407"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -1440,21 +1864,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.028131,
-          "logloss_delta_vs_core": 0.089344,
-          "accuracy_delta_vs_core": -0.012122,
-          "balanced_accuracy_delta_vs_core": 0.003147
+          "brier_delta_vs_core": 0.029461,
+          "logloss_delta_vs_core": 0.101407,
+          "accuracy_delta_vs_core": 0.0,
+          "balanced_accuracy_delta_vs_core": 0.014276
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.285609,
-          "logloss": 0.799113,
-          "accuracy": 0.533333,
-          "balanced_accuracy": 0.557687,
-          "probability_mean": 0.41717,
-          "probability_std": 0.19203,
-          "positive_rate": 0.333333,
-          "negative_rate": 0.666667
+          "count": 168,
+          "brier": 0.290299,
+          "logloss": 0.818585,
+          "accuracy": 0.511905,
+          "balanced_accuracy": 0.536698,
+          "probability_mean": 0.400686,
+          "probability_std": 0.183763,
+          "positive_rate": 0.315476,
+          "negative_rate": 0.684524
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -1465,21 +1889,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1504,8 +1928,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.030369",
-        "logloss_delta_vs_core=0.114877"
+        "brier_delta_vs_core=0.034172",
+        "logloss_delta_vs_core=0.130724"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -1514,21 +1938,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.030369,
-          "logloss_delta_vs_core": 0.114877,
-          "accuracy_delta_vs_core": 0.012121,
-          "balanced_accuracy_delta_vs_core": 0.024423
+          "brier_delta_vs_core": 0.034172,
+          "logloss_delta_vs_core": 0.130724,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.028479
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.287847,
-          "logloss": 0.824646,
-          "accuracy": 0.557576,
-          "balanced_accuracy": 0.578963,
-          "probability_mean": 0.418342,
-          "probability_std": 0.180788,
-          "positive_rate": 0.357576,
-          "negative_rate": 0.642424
+          "count": 168,
+          "brier": 0.29501,
+          "logloss": 0.847902,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.550901,
+          "probability_mean": 0.403777,
+          "probability_std": 0.181856,
+          "positive_rate": 0.345238,
+          "negative_rate": 0.654762
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -1539,21 +1963,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1578,8 +2002,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.006493",
-        "logloss_delta_vs_core=0.014179"
+        "brier_delta_vs_core=0.002501",
+        "logloss_delta_vs_core=0.003615"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -1588,21 +2012,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.006493,
-          "logloss_delta_vs_core": 0.014179,
-          "accuracy_delta_vs_core": -0.036364,
-          "balanced_accuracy_delta_vs_core": -0.042254
+          "brier_delta_vs_core": 0.002501,
+          "logloss_delta_vs_core": 0.003615,
+          "accuracy_delta_vs_core": -0.02381,
+          "balanced_accuracy_delta_vs_core": -0.030569
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.263971,
-          "logloss": 0.723948,
-          "accuracy": 0.509091,
-          "balanced_accuracy": 0.512286,
-          "probability_mean": 0.501558,
-          "probability_std": 0.161539,
-          "positive_rate": 0.478788,
-          "negative_rate": 0.521212
+          "count": 168,
+          "brier": 0.263339,
+          "logloss": 0.720793,
+          "accuracy": 0.488095,
+          "balanced_accuracy": 0.491853,
+          "probability_mean": 0.487718,
+          "probability_std": 0.139838,
+          "positive_rate": 0.470238,
+          "negative_rate": 0.529762
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -1613,21 +2037,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1652,8 +2076,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.010032",
-        "logloss_delta_vs_core=0.024443"
+        "brier_delta_vs_core=0.005782",
+        "logloss_delta_vs_core=0.011883"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -1662,21 +2086,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.010032,
-          "logloss_delta_vs_core": 0.024443,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.059934
+          "brier_delta_vs_core": 0.005782,
+          "logloss_delta_vs_core": 0.011883,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.02372
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.26751,
-          "logloss": 0.734212,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.494606,
-          "probability_mean": 0.493949,
-          "probability_std": 0.162763,
-          "positive_rate": 0.472727,
-          "negative_rate": 0.527273
+          "count": 168,
+          "brier": 0.26662,
+          "logloss": 0.729061,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.498702,
+          "probability_mean": 0.482223,
+          "probability_std": 0.140268,
+          "positive_rate": 0.464286,
+          "negative_rate": 0.535714
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -1687,21 +2111,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1727,8 +2151,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=starting_pitcher",
-        "brier_delta_vs_core=0.0479",
-        "logloss_delta_vs_core=0.156594"
+        "brier_delta_vs_core=0.044613",
+        "logloss_delta_vs_core=0.155965"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -1737,21 +2161,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1776,8 +2200,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.009456",
-        "logloss_delta_vs_core=0.021523"
+        "brier_delta_vs_core=0.007139",
+        "logloss_delta_vs_core=0.01611"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -1786,21 +2210,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -1811,21 +2235,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1847,8 +2271,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.00749",
-        "logloss_delta_vs_core=0.016032"
+        "brier_delta_vs_core=0.011837",
+        "logloss_delta_vs_core=0.026847"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -1857,21 +2281,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.00749,
-          "logloss_delta_vs_core": 0.016032,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.011837,
+          "logloss_delta_vs_core": 0.026847,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.020547
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.264968,
-          "logloss": 0.725801,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.476303,
-          "probability_std": 0.14507,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.272675,
+          "logloss": 0.744025,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.501875,
+          "probability_mean": 0.471693,
+          "probability_std": 0.14495,
+          "positive_rate": 0.440476,
+          "negative_rate": 0.559524
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -1882,21 +2306,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.002444,
-          "logloss_delta_vs_core": 0.004618,
-          "accuracy_delta_vs_core": -0.018182,
-          "balanced_accuracy_delta_vs_core": -0.019404
+          "brier_delta_vs_core": 0.008721,
+          "logloss_delta_vs_core": 0.019719,
+          "accuracy_delta_vs_core": -0.011905,
+          "balanced_accuracy_delta_vs_core": -0.015284
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259922,
-          "logloss": 0.714387,
-          "accuracy": 0.527273,
-          "balanced_accuracy": 0.535136,
-          "probability_mean": 0.478673,
-          "probability_std": 0.150865,
-          "positive_rate": 0.448485,
-          "negative_rate": 0.551515
+          "count": 168,
+          "brier": 0.269559,
+          "logloss": 0.736897,
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.507138,
+          "probability_mean": 0.476763,
+          "probability_std": 0.154715,
+          "positive_rate": 0.446429,
+          "negative_rate": 0.553571
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -1919,8 +2343,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.011957",
-        "logloss_delta_vs_core=0.026182"
+        "brier_delta_vs_core=0.020354",
+        "logloss_delta_vs_core=0.047504"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -1929,23 +2353,54 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.011957,
-          "logloss_delta_vs_core": 0.026182,
-          "accuracy_delta_vs_core": -0.024243,
-          "balanced_accuracy_delta_vs_core": -0.023
+          "brier_delta_vs_core": 0.020354,
+          "logloss_delta_vs_core": 0.047504,
+          "accuracy_delta_vs_core": -0.035715,
+          "balanced_accuracy_delta_vs_core": -0.037923
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.269435,
-          "logloss": 0.735951,
-          "accuracy": 0.521212,
-          "balanced_accuracy": 0.53154,
-          "probability_mean": 0.476827,
-          "probability_std": 0.135957,
-          "positive_rate": 0.430303,
-          "negative_rate": 0.569697
+          "count": 168,
+          "brier": 0.281192,
+          "logloss": 0.764682,
+          "accuracy": 0.47619,
+          "balanced_accuracy": 0.484499,
+          "probability_mean": 0.473638,
+          "probability_std": 0.142933,
+          "positive_rate": 0.434524,
+          "negative_rate": 0.565476
         },
         "source_report": "report/shadow_feature_ablation_report.json"
+      },
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
       }
     },
     {
@@ -1962,8 +2417,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.00369",
-        "logloss_delta_vs_core=0.008113"
+        "brier_delta_vs_core=0.009556",
+        "logloss_delta_vs_core=0.021869"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -1972,21 +2427,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.00369,
-          "logloss_delta_vs_core": 0.008113,
-          "accuracy_delta_vs_core": -0.018182,
-          "balanced_accuracy_delta_vs_core": -0.021127
+          "brier_delta_vs_core": 0.009556,
+          "logloss_delta_vs_core": 0.021869,
+          "accuracy_delta_vs_core": -0.029762,
+          "balanced_accuracy_delta_vs_core": -0.034246
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.261168,
-          "logloss": 0.717882,
-          "accuracy": 0.527273,
-          "balanced_accuracy": 0.533413,
-          "probability_mean": 0.482957,
-          "probability_std": 0.134949,
-          "positive_rate": 0.460606,
-          "negative_rate": 0.539394
+          "count": 168,
+          "brier": 0.270394,
+          "logloss": 0.739047,
+          "accuracy": 0.482143,
+          "balanced_accuracy": 0.488176,
+          "probability_mean": 0.478424,
+          "probability_std": 0.138162,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -1997,21 +2452,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.002444,
-          "logloss_delta_vs_core": 0.004618,
-          "accuracy_delta_vs_core": -0.018182,
-          "balanced_accuracy_delta_vs_core": -0.019404
+          "brier_delta_vs_core": 0.008721,
+          "logloss_delta_vs_core": 0.019719,
+          "accuracy_delta_vs_core": -0.011905,
+          "balanced_accuracy_delta_vs_core": -0.015284
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259922,
-          "logloss": 0.714387,
-          "accuracy": 0.527273,
-          "balanced_accuracy": 0.535136,
-          "probability_mean": 0.478673,
-          "probability_std": 0.150865,
-          "positive_rate": 0.448485,
-          "negative_rate": 0.551515
+          "count": 168,
+          "brier": 0.269559,
+          "logloss": 0.736897,
+          "accuracy": 0.5,
+          "balanced_accuracy": 0.507138,
+          "probability_mean": 0.476763,
+          "probability_std": 0.154715,
+          "positive_rate": 0.446429,
+          "negative_rate": 0.553571
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -2034,8 +2489,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.0038",
-        "logloss_delta_vs_core=0.008963"
+        "brier_delta_vs_core=0.003586",
+        "logloss_delta_vs_core=0.008334"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -2044,23 +2499,54 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0038,
-          "logloss_delta_vs_core": 0.008963,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.003586,
+          "logloss_delta_vs_core": 0.008334,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.261278,
-          "logloss": 0.718732,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482207,
-          "probability_std": 0.141097,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.264424,
+          "logloss": 0.725512,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481827,
+          "probability_std": 0.141939,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json"
+      },
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
       }
     },
     {
@@ -2077,8 +2563,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.001677",
-        "logloss_delta_vs_core=0.003888"
+        "brier_delta_vs_core=0.001293",
+        "logloss_delta_vs_core=0.002647"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -2087,21 +2573,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json"
       },
@@ -2112,21 +2598,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -2148,8 +2634,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.007121",
-        "logloss_delta_vs_core=0.015417"
+        "brier_delta_vs_core=0.012369",
+        "logloss_delta_vs_core=0.027695"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -2158,23 +2644,54 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.007121,
-          "logloss_delta_vs_core": 0.015417,
-          "accuracy_delta_vs_core": -0.024243,
-          "balanced_accuracy_delta_vs_core": -0.023
+          "brier_delta_vs_core": 0.012369,
+          "logloss_delta_vs_core": 0.027695,
+          "accuracy_delta_vs_core": -0.035715,
+          "balanced_accuracy_delta_vs_core": -0.037923
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.264599,
-          "logloss": 0.725186,
-          "accuracy": 0.521212,
-          "balanced_accuracy": 0.53154,
-          "probability_mean": 0.47657,
-          "probability_std": 0.130931,
-          "positive_rate": 0.430303,
-          "negative_rate": 0.569697
+          "count": 168,
+          "brier": 0.273207,
+          "logloss": 0.744873,
+          "accuracy": 0.47619,
+          "balanced_accuracy": 0.484499,
+          "probability_mean": 0.473246,
+          "probability_std": 0.132826,
+          "positive_rate": 0.434524,
+          "negative_rate": 0.565476
         },
         "source_report": "report/shadow_feature_ablation_report.json"
+      },
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
       }
     },
     {
@@ -2191,8 +2708,8 @@
       "allow_in_shadow_model": true,
       "reasons": [
         "feature was rejected by per-feature shadow ablation",
-        "brier_delta_vs_core=0.006542",
-        "logloss_delta_vs_core=0.014443"
+        "brier_delta_vs_core=0.011588",
+        "logloss_delta_vs_core=0.026488"
       ],
       "shadow_ablation": {
         "decision": "reject_for_now",
@@ -2201,23 +2718,54 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.006542,
-          "logloss_delta_vs_core": 0.014443,
-          "accuracy_delta_vs_core": -0.012122,
-          "balanced_accuracy_delta_vs_core": -0.010638
+          "brier_delta_vs_core": 0.011588,
+          "logloss_delta_vs_core": 0.026488,
+          "accuracy_delta_vs_core": -0.029762,
+          "balanced_accuracy_delta_vs_core": -0.03266
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.26402,
-          "logloss": 0.724212,
-          "accuracy": 0.533333,
-          "balanced_accuracy": 0.543902,
-          "probability_mean": 0.475822,
-          "probability_std": 0.13069,
-          "positive_rate": 0.430303,
-          "negative_rate": 0.569697
+          "count": 168,
+          "brier": 0.272426,
+          "logloss": 0.743666,
+          "accuracy": 0.482143,
+          "balanced_accuracy": 0.489762,
+          "probability_mean": 0.47238,
+          "probability_std": 0.132274,
+          "positive_rate": 0.440476,
+          "negative_rate": 0.559524
         },
         "source_report": "report/shadow_feature_ablation_report.json"
+      },
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
       }
     },
     {
@@ -2235,8 +2783,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=rest_travel",
-        "brier_delta_vs_core=0.009456",
-        "logloss_delta_vs_core=0.021523"
+        "brier_delta_vs_core=0.007139",
+        "logloss_delta_vs_core=0.01611"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -2245,21 +2793,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -2271,7 +2819,7 @@
       "feature": "statcast_launch_speed_diff",
       "feature_group": "statcast_batting",
       "source_category": "high_zero_needs_review",
-      "promotion_status": "blocked_source_or_review_first",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
       "candidate_score": 15.5185,
       "missing_rate": 0.0,
       "zero_rate": 0.6281,
@@ -2280,14 +2828,48 @@
       "allow_in_main_model": false,
       "allow_in_shadow_model": false,
       "reasons": [
-        "source coverage or all-zero review must be fixed before shadow promotion"
-      ]
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
+      }
     },
     {
       "feature": "statcast_hard_hit_diff",
       "feature_group": "statcast_batting",
       "source_category": "high_zero_needs_review",
-      "promotion_status": "blocked_source_or_review_first",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
       "candidate_score": 15.3585,
       "missing_rate": 0.0,
       "zero_rate": 0.6281,
@@ -2296,14 +2878,48 @@
       "allow_in_main_model": false,
       "allow_in_shadow_model": false,
       "reasons": [
-        "source coverage or all-zero review must be fixed before shadow promotion"
-      ]
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
+      }
     },
     {
       "feature": "statcast_barrel_diff",
       "feature_group": "statcast_batting",
       "source_category": "high_zero_needs_review",
-      "promotion_status": "blocked_source_or_review_first",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
       "candidate_score": 15.1585,
       "missing_rate": 0.0,
       "zero_rate": 0.6281,
@@ -2312,8 +2928,42 @@
       "allow_in_main_model": false,
       "allow_in_shadow_model": false,
       "reasons": [
-        "source coverage or all-zero review must be fixed before shadow promotion"
-      ]
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
+      }
     },
     {
       "feature": "elo_momentum_30d",
@@ -2378,8 +3028,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=starting_pitcher",
-        "brier_delta_vs_core=0.0479",
-        "logloss_delta_vs_core=0.156594"
+        "brier_delta_vs_core=0.044613",
+        "logloss_delta_vs_core=0.155965"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -2388,21 +3038,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -2428,8 +3078,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=starting_pitcher",
-        "brier_delta_vs_core=0.0479",
-        "logloss_delta_vs_core=0.156594"
+        "brier_delta_vs_core=0.044613",
+        "logloss_delta_vs_core=0.155965"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -2438,21 +3088,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -2478,8 +3128,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=lineup",
-        "brier_delta_vs_core=0.001677",
-        "logloss_delta_vs_core=0.003888"
+        "brier_delta_vs_core=0.001293",
+        "logloss_delta_vs_core=0.002647"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -2488,21 +3138,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -2514,7 +3164,7 @@
       "feature": "swing_miss_diff",
       "feature_group": "statcast_batting",
       "source_category": "source_missing_all_zero",
-      "promotion_status": "blocked_source_or_review_first",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
       "candidate_score": 8.54,
       "missing_rate": 0.0,
       "zero_rate": 1.0,
@@ -2523,8 +3173,42 @@
       "allow_in_main_model": false,
       "allow_in_shadow_model": true,
       "reasons": [
-        "source coverage or all-zero review must be fixed before shadow promotion"
-      ]
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
+      }
     },
     {
       "feature": "is_day_game",
@@ -2578,7 +3262,7 @@
       "feature": "barrel_bb_pct_diff",
       "feature_group": "statcast_batting",
       "source_category": "source_missing_all_zero",
-      "promotion_status": "blocked_source_or_review_first",
+      "promotion_status": "blocked_shadow_group_ablation_rejected",
       "candidate_score": 6.54,
       "missing_rate": 0.0,
       "zero_rate": 1.0,
@@ -2587,8 +3271,42 @@
       "allow_in_main_model": false,
       "allow_in_shadow_model": false,
       "reasons": [
-        "source coverage or all-zero review must be fixed before shadow promotion"
-      ]
+        "feature group was rejected by group-level shadow ablation",
+        "feature_group=statcast_batting",
+        "brier_delta_vs_core=-0.003228",
+        "logloss_delta_vs_core=-0.002543"
+      ],
+      "shadow_group_ablation": {
+        "decision": "reject_for_now",
+        "blockers": [
+          "brier_not_enough_improvement",
+          "logloss_not_enough_improvement"
+        ],
+        "deltas_vs_core": {
+          "brier_delta_vs_core": -0.003228,
+          "logloss_delta_vs_core": -0.002543,
+          "accuracy_delta_vs_core": 0.017857,
+          "balanced_accuracy_delta_vs_core": 0.011031
+        },
+        "metrics": {
+          "count": 168,
+          "brier": 0.25761,
+          "logloss": 0.714635,
+          "accuracy": 0.529762,
+          "balanced_accuracy": 0.533453,
+          "probability_mean": 0.482301,
+          "probability_std": 0.161056,
+          "positive_rate": 0.47619,
+          "negative_rate": 0.52381
+        },
+        "source_report": "report/shadow_feature_ablation_report.json",
+        "features": [
+          "avg_bat_speed_diff",
+          "statcast_woba_diff",
+          "hardhit_pa_diff",
+          "barrel_pa_diff"
+        ]
+      }
     },
     {
       "feature": "catcher_era_diff",
@@ -2605,8 +3323,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=lineup",
-        "brier_delta_vs_core=0.001677",
-        "logloss_delta_vs_core=0.003888"
+        "brier_delta_vs_core=0.001293",
+        "logloss_delta_vs_core=0.002647"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -2615,21 +3333,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -2652,8 +3370,8 @@
       "reasons": [
         "feature group was rejected by group-level shadow ablation",
         "feature_group=lineup",
-        "brier_delta_vs_core=0.001677",
-        "logloss_delta_vs_core=0.003888"
+        "brier_delta_vs_core=0.001293",
+        "logloss_delta_vs_core=0.002647"
       ],
       "shadow_group_ablation": {
         "decision": "reject_for_now",
@@ -2662,21 +3380,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.001677,
-          "logloss_delta_vs_core": 0.003888,
-          "accuracy_delta_vs_core": -0.030303,
-          "balanced_accuracy_delta_vs_core": -0.030042
+          "brier_delta_vs_core": 0.001293,
+          "logloss_delta_vs_core": 0.002647,
+          "accuracy_delta_vs_core": -0.017857,
+          "balanced_accuracy_delta_vs_core": -0.022134
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.259155,
-          "logloss": 0.713657,
-          "accuracy": 0.515152,
-          "balanced_accuracy": 0.524498,
-          "probability_mean": 0.482012,
-          "probability_std": 0.138619,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.262131,
+          "logloss": 0.719825,
+          "accuracy": 0.494048,
+          "balanced_accuracy": 0.500288,
+          "probability_mean": 0.481648,
+          "probability_std": 0.13916,
+          "positive_rate": 0.452381,
+          "negative_rate": 0.547619
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -2756,21 +3474,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -2803,21 +3521,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.0479,
-          "logloss_delta_vs_core": 0.156594,
-          "accuracy_delta_vs_core": -0.054546,
-          "balanced_accuracy_delta_vs_core": -0.044426
+          "brier_delta_vs_core": 0.044613,
+          "logloss_delta_vs_core": 0.155965,
+          "accuracy_delta_vs_core": -0.005953,
+          "balanced_accuracy_delta_vs_core": 0.002668
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.305378,
-          "logloss": 0.866363,
-          "accuracy": 0.490909,
-          "balanced_accuracy": 0.510114,
-          "probability_mean": 0.417879,
-          "probability_std": 0.22297,
-          "positive_rate": 0.363636,
-          "negative_rate": 0.636364
+          "count": 168,
+          "brier": 0.305451,
+          "logloss": 0.873143,
+          "accuracy": 0.505952,
+          "balanced_accuracy": 0.52509,
+          "probability_mean": 0.396912,
+          "probability_std": 0.20709,
+          "positive_rate": 0.357143,
+          "negative_rate": 0.642857
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
@@ -2850,21 +3568,21 @@
           "logloss_not_enough_improvement"
         ],
         "deltas_vs_core": {
-          "brier_delta_vs_core": 0.009456,
-          "logloss_delta_vs_core": 0.021523,
-          "accuracy_delta_vs_core": -0.042425,
-          "balanced_accuracy_delta_vs_core": -0.042403
+          "brier_delta_vs_core": 0.007139,
+          "logloss_delta_vs_core": 0.01611,
+          "accuracy_delta_vs_core": -0.041667,
+          "balanced_accuracy_delta_vs_core": -0.038428
         },
         "metrics": {
-          "count": 165,
-          "brier": 0.266934,
-          "logloss": 0.731292,
-          "accuracy": 0.50303,
-          "balanced_accuracy": 0.512137,
-          "probability_mean": 0.476034,
-          "probability_std": 0.128921,
-          "positive_rate": 0.436364,
-          "negative_rate": 0.563636
+          "count": 168,
+          "brier": 0.267977,
+          "logloss": 0.733288,
+          "accuracy": 0.470238,
+          "balanced_accuracy": 0.483994,
+          "probability_mean": 0.464011,
+          "probability_std": 0.122471,
+          "positive_rate": 0.392857,
+          "negative_rate": 0.607143
         },
         "source_report": "report/shadow_feature_ablation_report.json",
         "features": [
