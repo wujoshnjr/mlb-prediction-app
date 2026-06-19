@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-06-19T00:08:36.871731+00:00",
+  "generated_at": "2026-06-19T05:32:01.416718+00:00",
   "status": "paper_trading_only_blocked_for_live",
-  "world_class_stage": "research_quality_buildout",
-  "overall_score": 74.8,
-  "overall_grade": "C",
+  "world_class_stage": "advanced_shadow_trading_candidate",
+  "overall_score": 78.85,
+  "overall_grade": "B",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
   "production_allowed": false,
@@ -59,7 +59,7 @@
           "passed": true,
           "weight": 15,
           "details": {
-            "linked_game_count": 285
+            "linked_game_count": 289
           }
         }
       ],
@@ -123,11 +123,11 @@
           "name": "settled_samples_at_least_500",
           "passed": false,
           "weight": 5,
-          "details": 285
+          "details": 289
         }
       ],
       "blockers": [
-        "settled prediction samples < 500 (285)",
+        "settled prediction samples < 500 (289)",
         "rolling OOS predictions < 300 (0)",
         "calibration is not ready"
       ],
@@ -182,7 +182,7 @@
       ],
       "blockers": [],
       "warnings": [
-        "paper exposure is high for research stage: 29.75"
+        "paper exposure is high for research stage: 30.0"
       ],
       "recommendations": [
         "Keep live betting locked until governance, sample size, CLV, calibration, and risk gates explicitly allow a later shadow phase.",
@@ -192,15 +192,15 @@
     "model_upgrade_path": {
       "name": "Layer 4 - Model Upgrade Path",
       "status": "blocked",
-      "score": 39.0,
-      "grade": "F",
+      "score": 59.27,
+      "grade": "D",
       "signals": [
         {
           "name": "training_sample_progress",
           "passed": false,
           "weight": 20,
           "details": {
-            "sample_count": 285,
+            "sample_count": 289,
             "minimum": 300
           }
         },
@@ -214,13 +214,13 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 94
+          "details": 95
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
-          "passed": false,
+          "passed": true,
           "weight": 20,
-          "details": 0.12903225806451613
+          "details": 0.7096774193548387
         },
         {
           "name": "rolling_oos_started",
@@ -230,12 +230,11 @@
         }
       ],
       "blockers": [
-        "clean training samples below threshold: 285 < 300",
+        "clean training samples below threshold: 289 < 300",
         "model is not trained yet"
       ],
       "warnings": [
-        "rolling OOS evaluation has not started producing predictions",
-        "A/B feature ratio below 50%: 0.1290"
+        "rolling OOS evaluation has not started producing predictions"
       ],
       "recommendations": [
         "Upgrade models only through registry-backed challenger evaluation.",
@@ -283,7 +282,7 @@
           "name": "paper_ledger_ok",
           "passed": true,
           "weight": 10,
-          "details": 119
+          "details": 120
         },
         {
           "name": "risk_exposure_ok",
@@ -319,16 +318,15 @@
   },
   "critical_blockers": [],
   "blockers": [
-    "research_quality: settled prediction samples < 500 (285)",
+    "research_quality: settled prediction samples < 500 (289)",
     "research_quality: rolling OOS predictions < 300 (0)",
     "research_quality: calibration is not ready",
-    "model_upgrade_path: clean training samples below threshold: 285 < 300",
+    "model_upgrade_path: clean training samples below threshold: 289 < 300",
     "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
-    "risk_controls: paper exposure is high for research stage: 29.75",
-    "model_upgrade_path: rolling OOS evaluation has not started producing predictions",
-    "model_upgrade_path: A/B feature ratio below 50%: 0.1290"
+    "risk_controls: paper exposure is high for research stage: 30.0",
+    "model_upgrade_path: rolling OOS evaluation has not started producing predictions"
   ],
   "input_files": {
     "prediction": {
