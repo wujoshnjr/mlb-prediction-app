@@ -5,10 +5,27 @@ from typing import Any
 
 
 WORLD_CUP_PREFIX = "wc2026"
+DRAW_KEY = "draw"
+
+TEAM_KEY_ALIASES: dict[str, set[str]] = {
+    "czechia": {"czech-republic"},
+    "czech-republic": {"czechia"},
+    "dr-congo": {"congo-dr", "d-r-congo", "democratic-republic-of-the-congo"},
+    "congo-dr": {"dr-congo"},
+    "ivory-coast": {"cote-d-ivoire", "cote-divoire"},
+    "cote-d-ivoire": {"ivory-coast"},
+    "usa": {"united-states", "united-states-of-america"},
+    "united-states": {"usa", "united-states-of-america"},
+    "south-korea": {"korea-republic", "republic-of-korea"},
+    "saudi-arabia": {"ksa"},
+    "cape-verde": {"cabo-verde"},
+    "curacao": {"curaçao"},
+}
 
 
 def normalize_tournamental_snapshot(payload: Any) -> dict[str, Any]:
-    snapshot = payload if isinstance(payload, dict) else {}
+    wrapper = payload if isinstance(payload, dict) else {}
+    snapshot = wrapper.get("data") if isinstance(wrapper.get("data"), dict) else wrapper
     probabilities = snapshot.get("probabilities", {}) if isinstance(snapshot.get("probabilities"), dict) else {}
 
     match_markets: list[dict[str, Any]] = []
@@ -80,7 +97,19 @@ def normalize_match_market(market_key: str, match_no: str, outcomes: dict[str, f
     probability_sum = round(sum(outcomes.values()), 6)
     max_probability = max(outcomes.values()) if outcomes else 0.0
     normalized = normalize_outcomes(outcomes)
+    outcome_records = [
+        {
+            "name": name,
+            "team_key": normalize_team_key(name),
+            "probability": probability,
+            "normalized_probability": normalized.get(name),
+        }
+        for name, probability in outcomes.items()
+    ]
     quality_flags: list[str] = []
+    non_draw_count = sum(1 for item in outcome_records if item["team_key"] != DRAW_KEY)
+    if non_draw_count != 2:
+        quality_flags.append("team_outcome_count_mismatch")
     if len(outcomes) < 2:
         quality_flags.append("too_few_outcomes")
     if probability_sum < 0.95:
@@ -95,12 +124,59 @@ def normalize_match_market(market_key: str, match_no: str, outcomes: dict[str, f
         "market_key": market_key,
         "outcomes": outcomes,
         "normalized_outcomes": normalized,
+        "outcome_records": outcome_records,
         "probability_sum": probability_sum,
         "max_probability": round(max_probability, 6),
         "quality_flags": quality_flags,
         "is_settled_like": "settled_like" in quality_flags,
         "is_usable_for_prediction": not quality_flags,
     }
+
+
+def find_market_signal_for_fixture(fixture: Any, market_snapshot: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not market_snapshot:
+        return None
+    home_name = getattr(getattr(fixture, "home_team", None), "name", None)
+    away_name = getattr(getattr(fixture, "away_team", None), "name", None)
+    if not home_name or not away_name:
+        return None
+
+    home_keys = candidate_team_keys(str(home_name))
+    away_keys = candidate_team_keys(str(away_name))
+    for market in market_snapshot.get("match_markets", []):
+        if not market.get("is_usable_for_prediction"):
+            continue
+        outcome_records = market.get("outcome_records", [])
+        home_outcome = find_outcome_record(outcome_records, home_keys)
+        away_outcome = find_outcome_record(outcome_records, away_keys)
+        draw_outcome = find_outcome_record(outcome_records, {DRAW_KEY})
+        if not home_outcome or not away_outcome:
+            continue
+        return {
+            "source_key": "tournamental_odds",
+            "market_key": market.get("market_key"),
+            "match_no": market.get("match_no"),
+            "home_team_probability": home_outcome.get("normalized_probability"),
+            "draw_probability": draw_outcome.get("normalized_probability") if draw_outcome else None,
+            "away_team_probability": away_outcome.get("normalized_probability"),
+            "raw_outcomes": market.get("outcomes"),
+            "normalized_outcomes": market.get("normalized_outcomes"),
+            "probability_sum": market.get("probability_sum"),
+        }
+    return None
+
+
+def find_outcome_record(outcome_records: list[dict[str, Any]], candidates: set[str]) -> dict[str, Any] | None:
+    for item in outcome_records:
+        team_key = item.get("team_key")
+        if isinstance(team_key, str) and team_key in candidates:
+            return item
+    return None
+
+
+def candidate_team_keys(name: str) -> set[str]:
+    base = normalize_team_key(name)
+    return {base, *TEAM_KEY_ALIASES.get(base, set())}
 
 
 def clean_outcomes(outcomes: dict[str, Any]) -> dict[str, float]:
@@ -129,6 +205,13 @@ def is_extreme_binary(outcomes: dict[str, float]) -> bool:
     if not outcomes:
         return False
     return max(outcomes.values()) >= 0.995
+
+
+def normalize_team_key(value: str) -> str:
+    normalized = "".join(ch.lower() if ch.isalnum() else "-" for ch in value).strip("-")
+    while "--" in normalized:
+        normalized = normalized.replace("--", "-")
+    return normalized or "unknown"
 
 
 def timestamp_to_utc(value: Any) -> str | None:
