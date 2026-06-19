@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-06-19T05:31:17.881185+00:00",
+  "generated_at": "2026-06-19T11:12:00.728649+00:00",
   "prediction_report": {
     "exists": true,
     "error": "",
     "scheduled_game_count": 14,
     "prediction_count": 14,
-    "generated_at": "2026-06-19T05:31:15.861642Z",
+    "generated_at": "2026-06-19T11:11:58.644236Z",
     "report_date": ""
   },
   "market_odds_history": {
     "exists": true,
     "error": "",
-    "total_rows": 41725,
-    "moneyline_rows": 16669,
+    "total_rows": 41814,
+    "moneyline_rows": 16705,
     "closing_rows": 5453,
     "columns": [
       "odds_snapshot_id",
@@ -47,7 +47,7 @@
   "daily_context": {
     "exists": true,
     "error": "",
-    "total_rows": 2708
+    "total_rows": 2722
   },
   "prediction_snapshots": {
     "exists": true,
@@ -58,8 +58,8 @@
     "exists": true,
     "status": "ok",
     "selected_attempt": "configured_bookmakers_full_market_date_window",
-    "final_event_count": 5,
-    "final_usable_row_count": 5,
+    "final_event_count": 6,
+    "final_usable_row_count": 6,
     "attempts": [
       {
         "attempt_name": "configured_bookmakers_full_market_date_window",
@@ -73,14 +73,14 @@
           "commenceTimeTo": "2026-06-19T23:59:59Z"
         },
         "status_code": 200,
-        "event_count": 5,
-        "usable_row_count": 5,
+        "event_count": 6,
+        "usable_row_count": 6,
         "quality_counts": {
-          "OK": 5
+          "OK": 6
         },
         "request_headers": {
-          "x-requests-remaining": "362",
-          "x-requests-used": "138",
+          "x-requests-remaining": "359",
+          "x-requests-used": "141",
           "x-requests-last": "3"
         },
         "error": ""
@@ -90,25 +90,25 @@
     "error": ""
   },
   "odds_quality_counts": {
-    "OK": 5,
+    "OK": 6,
     "SUSPICIOUS": 0,
-    "UNAVAILABLE": 9,
+    "UNAVAILABLE": 8,
     "MISSING": 0
   },
   "candidate_match_summary": {
-    "games_with_candidates": 7,
-    "games_with_moneyline_candidates": 7,
-    "games_with_complete_home_away_prices": 7,
-    "games_without_candidates": 7
+    "games_with_candidates": 8,
+    "games_with_moneyline_candidates": 8,
+    "games_with_complete_home_away_prices": 8,
+    "games_without_candidates": 6
   },
   "top_likely_issues": [
     {
-      "issue": "no_candidate_odds_found",
-      "count": 7
+      "issue": "odds_ok",
+      "count": 6
     },
     {
-      "issue": "odds_ok",
-      "count": 5
+      "issue": "no_candidate_odds_found",
+      "count": 6
     },
     {
       "issue": "matching_logic_too_strict_or_schema_mismatch",
@@ -116,28 +116,6 @@
     }
   ],
   "unavailable_games_sample": [
-    {
-      "game_id": "823853",
-      "game_date": "2026-06-19",
-      "home_team": "Marlins",
-      "away_team": "Giants",
-      "normalized_home_team": "marlins",
-      "normalized_away_team": "giants",
-      "odds_quality_status": "UNAVAILABLE",
-      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
-      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
-      "candidate_count": 0,
-      "candidate_by_game_id_count": 0,
-      "candidate_by_team_name_count": 0,
-      "candidate_moneyline_count": 0,
-      "candidate_closing_count": 0,
-      "candidate_sportsbooks": [],
-      "candidate_markets": [],
-      "has_home_price": false,
-      "has_away_price": false,
-      "likely_issue": "no_candidate_odds_found",
-      "sample_candidates": []
-    },
     {
       "game_id": "822886",
       "game_date": "2026-06-20",
@@ -294,6 +272,97 @@
       "has_away_price": false,
       "likely_issue": "no_candidate_odds_found",
       "sample_candidates": []
+    },
+    {
+      "game_id": "824990",
+      "game_date": "2026-06-20",
+      "home_team": "Athletics",
+      "away_team": "Angels",
+      "normalized_home_team": "athletics",
+      "normalized_away_team": "angels",
+      "odds_quality_status": "UNAVAILABLE",
+      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
+      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "matching_logic_too_strict_or_schema_mismatch",
+      "sample_candidates": [
+        {
+          "game_id": 824990,
+          "game_date": "2026-06-20",
+          "captured_at": "2026-06-19T00:07:37.446932Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Athletics",
+          "away_team": "Angels",
+          "side": "home",
+          "odds": 1.54,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824990,
+          "game_date": "2026-06-20",
+          "captured_at": "2026-06-19T00:07:37.446932Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Athletics",
+          "away_team": "Angels",
+          "side": "away",
+          "odds": 2.54,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824990,
+          "game_date": "2026-06-20",
+          "captured_at": "2026-06-19T00:07:37.446932Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Athletics",
+          "away_team": "Angels",
+          "side": "home",
+          "odds": 2.05,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824990,
+          "game_date": "2026-06-20",
+          "captured_at": "2026-06-19T00:07:37.446932Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Athletics",
+          "away_team": "Angels",
+          "side": "over",
+          "odds": 1.87,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824990,
+          "game_date": "2026-06-20",
+          "captured_at": "2026-06-19T00:07:37.446932Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Athletics",
+          "away_team": "Angels",
+          "side": "under",
+          "odds": 1.95,
+          "is_closing_snapshot": false
+        }
+      ]
     }
   ],
   "prediction_diagnostics": [
@@ -307,10 +376,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
-      "candidate_count": 15,
-      "candidate_by_game_id_count": 15,
-      "candidate_by_team_name_count": 15,
-      "candidate_moneyline_count": 6,
+      "candidate_count": 30,
+      "candidate_by_game_id_count": 30,
+      "candidate_by_team_name_count": 30,
+      "candidate_moneyline_count": 12,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -398,10 +467,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
-      "candidate_count": 30,
-      "candidate_by_game_id_count": 30,
-      "candidate_by_team_name_count": 30,
-      "candidate_moneyline_count": 12,
+      "candidate_count": 45,
+      "candidate_by_game_id_count": 45,
+      "candidate_by_team_name_count": 45,
+      "candidate_moneyline_count": 18,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -489,10 +558,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "PAPER_BET_EDGE_PASSED",
-      "candidate_count": 30,
-      "candidate_by_game_id_count": 30,
-      "candidate_by_team_name_count": 30,
-      "candidate_moneyline_count": 12,
+      "candidate_count": 45,
+      "candidate_by_game_id_count": 45,
+      "candidate_by_team_name_count": 45,
+      "candidate_moneyline_count": 18,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -580,10 +649,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
-      "candidate_count": 30,
-      "candidate_by_game_id_count": 30,
-      "candidate_by_team_name_count": 30,
-      "candidate_moneyline_count": 12,
+      "candidate_count": 45,
+      "candidate_by_game_id_count": 45,
+      "candidate_by_team_name_count": 45,
+      "candidate_moneyline_count": 18,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -668,20 +737,89 @@
       "away_team": "Giants",
       "normalized_home_team": "marlins",
       "normalized_away_team": "giants",
-      "odds_quality_status": "UNAVAILABLE",
-      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
-      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
-      "candidate_count": 0,
-      "candidate_by_game_id_count": 0,
-      "candidate_by_team_name_count": 0,
-      "candidate_moneyline_count": 0,
+      "odds_quality_status": "OK",
+      "suspicious_odds_reason": "",
+      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
       "candidate_closing_count": 0,
-      "candidate_sportsbooks": [],
-      "candidate_markets": [],
-      "has_home_price": false,
-      "has_away_price": false,
-      "likely_issue": "no_candidate_odds_found",
-      "sample_candidates": []
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "odds_ok",
+      "sample_candidates": [
+        {
+          "game_id": 823853,
+          "game_date": "2026-06-19",
+          "captured_at": "2026-06-19T11:11:29.347974Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Marlins",
+          "away_team": "Giants",
+          "side": "home",
+          "odds": 1.77,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823853,
+          "game_date": "2026-06-19",
+          "captured_at": "2026-06-19T11:11:29.347974Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Marlins",
+          "away_team": "Giants",
+          "side": "away",
+          "odds": 2.1,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823853,
+          "game_date": "2026-06-19",
+          "captured_at": "2026-06-19T11:11:29.347974Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Marlins",
+          "away_team": "Giants",
+          "side": "home",
+          "odds": 1.45,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823853,
+          "game_date": "2026-06-19",
+          "captured_at": "2026-06-19T11:11:29.347974Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Marlins",
+          "away_team": "Giants",
+          "side": "over",
+          "odds": 1.93,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823853,
+          "game_date": "2026-06-19",
+          "captured_at": "2026-06-19T11:11:29.347974Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Marlins",
+          "away_team": "Giants",
+          "side": "under",
+          "odds": 1.89,
+          "is_closing_snapshot": false
+        }
+      ]
     },
     {
       "game_id": "824910",
@@ -693,10 +831,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 14,
-      "candidate_by_game_id_count": 14,
-      "candidate_by_team_name_count": 14,
-      "candidate_moneyline_count": 6,
+      "candidate_count": 28,
+      "candidate_by_game_id_count": 28,
+      "candidate_by_team_name_count": 28,
+      "candidate_moneyline_count": 12,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
