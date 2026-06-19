@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-06-18T21:40:05.947091+00:00",
+  "generated_at": "2026-06-19T00:08:36.871731+00:00",
   "status": "paper_trading_only_blocked_for_live",
-  "world_class_stage": "advanced_shadow_trading_candidate",
-  "overall_score": 78.77,
-  "overall_grade": "B",
+  "world_class_stage": "research_quality_buildout",
+  "overall_score": 74.8,
+  "overall_grade": "C",
   "live_betting_allowed": false,
   "shadow_live_allowed": false,
   "production_allowed": false,
@@ -44,22 +44,22 @@
           "passed": true,
           "weight": 10,
           "details": {
-            "prediction_count": 9,
-            "audit_count": 9
+            "prediction_count": 14,
+            "audit_count": 14
           }
         },
         {
           "name": "per_pick_clv_joined",
           "passed": true,
           "weight": 15,
-          "details": 230
+          "details": 234
         },
         {
           "name": "settled_prediction_link_report_ok",
           "passed": true,
           "weight": 15,
           "details": {
-            "linked_game_count": 283
+            "linked_game_count": 285
           }
         }
       ],
@@ -93,13 +93,13 @@
           "name": "avg_clv_positive",
           "passed": true,
           "weight": 20,
-          "details": 0.227469
+          "details": 0.223797
         },
         {
           "name": "positive_clv_rate_at_least_55pct",
           "passed": true,
           "weight": 15,
-          "details": 0.5913
+          "details": 0.5897
         },
         {
           "name": "calibration_ready",
@@ -111,7 +111,7 @@
           "name": "walkforward_ready",
           "passed": false,
           "weight": 10,
-          "details": 293
+          "details": 307
         },
         {
           "name": "rolling_oos_at_least_300",
@@ -123,11 +123,11 @@
           "name": "settled_samples_at_least_500",
           "passed": false,
           "weight": 5,
-          "details": 283
+          "details": 285
         }
       ],
       "blockers": [
-        "settled prediction samples < 500 (283)",
+        "settled prediction samples < 500 (285)",
         "rolling OOS predictions < 300 (0)",
         "calibration is not ready"
       ],
@@ -147,7 +147,7 @@
           "name": "prediction_live_flags_locked",
           "passed": true,
           "weight": 25,
-          "details": 9
+          "details": 14
         },
         {
           "name": "live_stake_units_zero",
@@ -182,7 +182,7 @@
       ],
       "blockers": [],
       "warnings": [
-        "paper exposure is high for research stage: 29.0"
+        "paper exposure is high for research stage: 29.75"
       ],
       "recommendations": [
         "Keep live betting locked until governance, sample size, CLV, calibration, and risk gates explicitly allow a later shadow phase.",
@@ -192,15 +192,15 @@
     "model_upgrade_path": {
       "name": "Layer 4 - Model Upgrade Path",
       "status": "blocked",
-      "score": 58.87,
-      "grade": "D",
+      "score": 39.0,
+      "grade": "F",
       "signals": [
         {
           "name": "training_sample_progress",
           "passed": false,
           "weight": 20,
           "details": {
-            "sample_count": 283,
+            "sample_count": 285,
             "minimum": 300
           }
         },
@@ -214,13 +214,13 @@
           "name": "model_registry_has_records",
           "passed": true,
           "weight": 20,
-          "details": 93
+          "details": 94
         },
         {
           "name": "feature_ab_ratio_at_least_50pct",
-          "passed": true,
+          "passed": false,
           "weight": 20,
-          "details": 0.7258064516129032
+          "details": 0.12903225806451613
         },
         {
           "name": "rolling_oos_started",
@@ -230,11 +230,12 @@
         }
       ],
       "blockers": [
-        "clean training samples below threshold: 283 < 300",
+        "clean training samples below threshold: 285 < 300",
         "model is not trained yet"
       ],
       "warnings": [
-        "rolling OOS evaluation has not started producing predictions"
+        "rolling OOS evaluation has not started producing predictions",
+        "A/B feature ratio below 50%: 0.1290"
       ],
       "recommendations": [
         "Upgrade models only through registry-backed challenger evaluation.",
@@ -270,19 +271,19 @@
           "name": "artifact_retention_ok",
           "passed": true,
           "weight": 10,
-          "details": 127
+          "details": 128
         },
         {
           "name": "decision_audit_ok",
           "passed": true,
           "weight": 10,
-          "details": 9
+          "details": 14
         },
         {
           "name": "paper_ledger_ok",
           "passed": true,
           "weight": 10,
-          "details": 116
+          "details": 119
         },
         {
           "name": "risk_exposure_ok",
@@ -318,15 +319,16 @@
   },
   "critical_blockers": [],
   "blockers": [
-    "research_quality: settled prediction samples < 500 (283)",
+    "research_quality: settled prediction samples < 500 (285)",
     "research_quality: rolling OOS predictions < 300 (0)",
     "research_quality: calibration is not ready",
-    "model_upgrade_path: clean training samples below threshold: 283 < 300",
+    "model_upgrade_path: clean training samples below threshold: 285 < 300",
     "model_upgrade_path: model is not trained yet"
   ],
   "warnings": [
-    "risk_controls: paper exposure is high for research stage: 29.0",
-    "model_upgrade_path: rolling OOS evaluation has not started producing predictions"
+    "risk_controls: paper exposure is high for research stage: 29.75",
+    "model_upgrade_path: rolling OOS evaluation has not started producing predictions",
+    "model_upgrade_path: A/B feature ratio below 50%: 0.1290"
   ],
   "input_files": {
     "prediction": {

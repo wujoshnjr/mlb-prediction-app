@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T21:39:30.124847+00:00",
+  "generated_at": "2026-06-19T00:08:11.932593+00:00",
   "input_files": {
     "prediction": {
       "exists": true,
@@ -8,41 +8,41 @@
     "snapshots": {
       "exists": true,
       "error": "",
-      "rows": 293
+      "rows": 307
     },
     "market_odds_history": {
       "exists": true,
       "error": "",
-      "rows": 41591
+      "rows": 41651
     },
     "finalized_games": {
       "exists": true,
       "error": "",
-      "rows": 1078
+      "rows": 1080
     }
   },
   "current_prediction_summary": {
-    "prediction_count": 9,
-    "paper_bet_count": 2,
+    "prediction_count": 14,
+    "paper_bet_count": 1,
     "live_bet_candidate_count": 0,
     "betting_readiness_status_counts": {
-      "odds_blocked": 6,
-      "model_blocked": 3
+      "odds_blocked": 10,
+      "away_guardrail_tracking_only": 2,
+      "risk_blocked": 1,
+      "model_blocked": 1
     },
     "risk_flag_counts": {
-      "closer_high_fatigue": 7,
-      "data_quality_bet_blocked": 9,
-      "early_model_small_sample": 9,
-      "edge_unavailable": 6,
-      "model_governance_live_locked": 9,
-      "non_ml_model": 9,
-      "odds_not_ok": 6,
-      "starter_confirmation_pending": 8,
-      "closer_fatigue": 1,
-      "risk_guard_rejected": 2,
-      "edge_below_threshold": 1,
-      "context_missing_fields": 2,
-      "lineup_not_confirmed": 2
+      "bullpen_not_available": 14,
+      "data_quality_bet_blocked": 14,
+      "early_model_small_sample": 14,
+      "edge_unavailable": 10,
+      "lineup_not_confirmed": 14,
+      "model_governance_live_locked": 14,
+      "non_ml_model": 14,
+      "odds_not_ok": 10,
+      "large_anti_market_edge_early_model": 2,
+      "risk_guard_rejected": 1,
+      "edge_below_threshold": 1
     }
   },
   "settled_performance": {
@@ -89,15 +89,15 @@
   },
   "clv_summary": {
     "source": "per_pick_log_decimal_clv",
-    "evaluated_picks": 150,
-    "positive_clv_count": 83,
-    "negative_clv_count": 53,
+    "evaluated_picks": 151,
+    "positive_clv_count": 84,
+    "negative_clv_count": 54,
     "neutral_clv_count": 2,
-    "avg_clv": 0.13360672898558426,
-    "positive_clv_rate": 0.5533333333333333,
+    "avg_clv": 0.1319862053193841,
+    "positive_clv_rate": 0.5562913907284768,
     "avg_clv_by_side": {
       "away": 0.10270719542667359,
-      "home": 0.1749806807000577
+      "home": 0.1699049230492877
     }
   },
   "edge_bucket_summary": {
@@ -108,8 +108,8 @@
       "roi_flat": 0.03571428571428568,
       "stake_weighted_roi": -0.011148958889482133,
       "avg_edge": 0.040467741935483866,
-      "avg_clv": 0.012008254196058775,
-      "positive_clv_rate": 0.46153846153846156
+      "avg_clv": 0.011083831731498153,
+      "positive_clv_rate": 0.4444444444444444
     },
     "5_to_8pct": {
       "count": 37,
@@ -118,30 +118,30 @@
       "roi_flat": -0.04138888888888889,
       "stake_weighted_roi": 0.013387766111964156,
       "avg_edge": 0.06368378378378377,
-      "avg_clv": 0.017279856084794074,
-      "positive_clv_rate": 0.48484848484848486
+      "avg_clv": 0.018339016113189062,
+      "positive_clv_rate": 0.5
     },
     "8pct_plus": {
-      "count": 82,
+      "count": 83,
       "settled_count": 82,
       "win_rate": 0.5487804878048781,
       "roi_flat": 0.4383536585365855,
       "stake_weighted_roi": 0.29149182554420544,
-      "avg_edge": 0.1707353658536585,
+      "avg_edge": 0.1698469879518072,
       "avg_clv": 0.2222187182293025,
       "positive_clv_rate": 0.6962025316455697
     }
   },
   "risk_flag_summary": {
     "none": {
-      "count": 150,
+      "count": 151,
       "settled_count": 146,
       "win_rate": 0.5342465753424658,
       "roi_flat": 0.24284246575342464,
       "stake_weighted_roi": 0.15192715348640573,
-      "avg_edge": 0.1174073333333333,
-      "avg_clv": 0.13360672898558426,
-      "positive_clv_rate": 0.6014492753623188
+      "avg_edge": 0.11727218543046354,
+      "avg_clv": 0.1319862053193841,
+      "positive_clv_rate": 0.6
     }
   },
   "side_summary": {
@@ -156,20 +156,19 @@
       "positive_clv_rate": 0.5443037974683544
     },
     "home": {
-      "count": 65,
+      "count": 66,
       "settled_count": 61,
       "win_rate": 0.639344262295082,
       "roi_flat": 0.4575409836065574,
       "stake_weighted_roi": 0.440838905578706,
-      "avg_edge": 0.10208307692307687,
-      "avg_clv": 0.1749806807000577,
-      "positive_clv_rate": 0.6779661016949152
+      "avg_edge": 0.10200606060606057,
+      "avg_clv": 0.1699049230492877,
+      "positive_clv_rate": 0.6721311475409836
     }
   },
   "recommendations": [
     "Settled sample size is below 300; evaluation is useful for debugging but not production betting.",
     "Current live_bet_candidate_count is 0; risk controls are blocking all real-bet candidates, which is expected during early model validation.",
-    "Lineup confirmation remains a major blocker; projected or confirmed lineup integration should be prioritized.",
-    "Closer high fatigue risk is present; keep stake_multiplier conservative or require manual review."
+    "Lineup confirmation remains a major blocker; projected or confirmed lineup integration should be prioritized."
   ]
 }

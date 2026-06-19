@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-18T21:39:53.680398Z",
+  "generated_at": "2026-06-19T00:08:27.227389Z",
   "status": "ok",
   "report_type": "away_guardrail_impact_v1",
   "pipeline_version": "baseline_v2_clean",
@@ -22,21 +22,56 @@
     }
   },
   "summary": {
-    "prediction_count": 9,
-    "away_candidate_count": 0,
-    "away_guardrail_applied_count": 0,
-    "away_guardrail_applied_rate": null,
+    "prediction_count": 14,
+    "away_candidate_count": 2,
+    "away_guardrail_applied_count": 2,
+    "away_guardrail_applied_rate": 1.0,
     "retained_away_paper_signal_count": 0,
-    "downgraded_away_tracking_only_count": 0,
-    "home_candidate_count": 2
+    "downgraded_away_tracking_only_count": 2,
+    "home_candidate_count": 1
   },
-  "reason_counts": {},
-  "guardrail_status_counts": {},
-  "downgraded_examples": [],
+  "reason_counts": {
+    "away_low_selected_probability_vs_home_market": 2,
+    "away_mid_edge_underperforming_bucket": 1,
+    "away_slight_home_market_underperforming_bucket": 1
+  },
+  "guardrail_status_counts": {
+    "tracking_only": 2
+  },
+  "downgraded_examples": [
+    {
+      "game_id": 824264,
+      "game_date": "2026-06-19",
+      "away_team": "White Sox",
+      "home_team": "Tigers",
+      "moneyline_selected_edge": 0.1122,
+      "away_selected_probability": 0.4432,
+      "market_no_vig_home_prob": 0.669,
+      "away_guardrail_reasons": [
+        "away_low_selected_probability_vs_home_market"
+      ],
+      "recommendation_status": "TRACKING_ONLY"
+    },
+    {
+      "game_id": 822966,
+      "game_date": "2026-06-19",
+      "away_team": "Nationals",
+      "home_team": "Rays",
+      "moneyline_selected_edge": 0.0687,
+      "away_selected_probability": 0.5426,
+      "market_no_vig_home_prob": 0.526,
+      "away_guardrail_reasons": [
+        "away_low_selected_probability_vs_home_market",
+        "away_mid_edge_underperforming_bucket",
+        "away_slight_home_market_underperforming_bucket"
+      ],
+      "recommendation_status": "TRACKING_ONLY"
+    }
+  ],
   "diagnostic_snapshot": {
-    "away_pick_accuracy": 0.46,
-    "away_pick_sample_count": 150,
-    "away_pick_rate": 0.5221843003412969,
+    "away_pick_accuracy": 0.46357615894039733,
+    "away_pick_sample_count": 151,
+    "away_pick_rate": 0.5244299674267101,
     "recommended_guardrails": [
       "Away picks materially underperform home picks; raise away edge threshold.",
       "Away underdogs are weak; require stronger edge or downgrade to tracking-only.",
@@ -51,6 +86,6 @@
   "warnings": [],
   "errors": [],
   "recommendations": [
-    "No away candidates in current prediction report; continue monitoring."
+    "Track downgraded away candidates separately to verify whether the guardrail improves settled away accuracy."
   ]
 }
