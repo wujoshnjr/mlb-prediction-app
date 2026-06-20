@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-06-20T04:43:30.991189+00:00",
+  "generated_at": "2026-06-20T08:48:39.863107+00:00",
   "status": "blocked",
   "report_type": "artifact_rebuild_readiness_v1",
   "input_files": {
     "training_samples": {
       "path": "data/training_samples.csv",
       "exists": true,
-      "rows": 299,
+      "rows": 303,
       "error": ""
     },
     "training_status": {
@@ -46,56 +46,42 @@
       "type": "dict"
     }
   },
-  "training_samples_row_count": 299,
-  "training_status_sample_count": 299,
-  "training_status_trained": false,
-  "model_artifact_valid": false,
-  "model_artifact_reason": "sample_count_mismatch",
-  "model_artifact_action": "ignore_artifact_and_use_manual_baseline",
-  "model_status_consistency_status": "failed",
-  "model_status_consistency_sample_count_consistent": false,
-  "model_status_consistency_mismatch_count": 4,
-  "model_lab_sample_count": 299,
+  "training_samples_row_count": 303,
+  "training_status_sample_count": 303,
+  "training_status_trained": true,
+  "model_artifact_valid": true,
+  "model_artifact_reason": "ok",
+  "model_artifact_action": "use_artifact",
+  "model_status_consistency_status": "ok",
+  "model_status_consistency_sample_count_consistent": true,
+  "model_status_consistency_mismatch_count": 0,
+  "model_lab_sample_count": 303,
   "model_lab_best_by_brier": "lightgbm_classifier",
   "model_lab_best_by_logloss": "lightgbm_classifier",
   "model_lab_best_by_ece": "xgboost_classifier",
   "walk_forward_ready": false,
-  "walk_forward_total_oos_predictions": 219,
-  "walk_forward_unique_oos_games": 219,
-  "walk_forward_max_model_oos": 219,
+  "walk_forward_total_oos_predictions": 223,
+  "walk_forward_unique_oos_games": 223,
+  "walk_forward_max_model_oos": 223,
   "minimum_clean_train_samples": 300,
   "minimum_promotion_samples": 500,
   "minimum_walk_forward_oos": 300,
   "artifact_rebuild_allowed": false,
   "artifact_rebuild_status": "blocked",
-  "artifact_quarantine_required": true,
+  "artifact_quarantine_required": false,
   "promotion_candidate_allowed": false,
   "production_model_replacement_allowed": false,
   "live_betting_allowed": false,
   "automated_wagering_allowed": false,
   "blockers": [
     {
-      "code": "insufficient_training_samples_for_rebuild",
-      "detail": "Only 299 training samples, need at least 300."
-    },
-    {
-      "code": "insufficient_training_status_samples_for_rebuild",
-      "detail": "Only 299 training status samples, need at least 300."
-    },
-    {
-      "code": "model_status_consistency_mismatches_present",
-      "detail": "Model status consistency report contains 4 mismatch(es)."
-    },
-    {
       "code": "insufficient_walk_forward_oos_for_readiness",
-      "detail": "Max model OOS is 219, need at least 300."
+      "detail": "Max model OOS is 223, need at least 300."
     }
   ],
   "warnings": [],
   "recommendations": [
-    "Keep current artifact quarantined until rebuilt from current canonical training samples.",
     "Do not rebuild artifact until readiness blockers are resolved.",
-    "Continue collecting finalized samples until at least 300 clean training samples are available.",
     "Do not consider promotion until at least 500 clean finalized samples are available.",
     "Production model replacement remains disabled by policy."
   ]

@@ -1,38 +1,31 @@
 {
-  "generated_at": "2026-06-20T04:22:01.110945+00:00",
+  "generated_at": "2026-06-20T08:26:45.035910+00:00",
   "training_status": {
     "exists": true,
     "error": "",
-    "trained": false,
-    "skipped": true,
-    "sample_count": 299,
+    "trained": true,
+    "skipped": false,
+    "sample_count": 303,
     "minimum_clean_train_samples": 300,
-    "brier": "",
-    "logloss": "",
-    "reason": "insufficient_samples:299<300",
+    "brier": 0.2435037549319831,
+    "logloss": 0.6801494421129975,
+    "reason": "",
     "model_type": "calibrated_logistic_regression_with_imputer",
     "training_source": "data/training_samples.csv",
     "pipeline_version": "baseline_v2_clean",
-    "timestamp": "2026-06-20T04:21:58.211418"
+    "timestamp": "2026-06-20T08:26:42.987079"
   },
   "training_log": {
     "exists": true,
     "error": "",
-    "row_count": 70,
-    "latest_num_samples": 109,
-    "latest_used_feature_count": 9,
-    "latest_brier": 0.2775,
-    "latest_logloss": 0.7486,
-    "latest_timestamp": "2026-06-05T15:53:42.441970",
+    "row_count": 71,
+    "latest_num_samples": 303,
+    "latest_used_feature_count": 7,
+    "latest_brier": 0.2435037549319831,
+    "latest_logloss": 0.6801494421129975,
+    "latest_timestamp": "2026-06-20T08:26:42.987368",
     "trend_available": true,
     "recent_training_runs": [
-      {
-        "timestamp": "2026-06-05T09:46:49.914516",
-        "num_samples": 109,
-        "used_feature_count": 13,
-        "brier": 0.2942,
-        "logloss": 0.7985
-      },
       {
         "timestamp": "2026-06-05T12:36:55.796665",
         "num_samples": 109,
@@ -60,6 +53,13 @@
         "used_feature_count": 9,
         "brier": 0.2775,
         "logloss": 0.7486
+      },
+      {
+        "timestamp": "2026-06-20T08:26:42.987368",
+        "num_samples": 303,
+        "used_feature_count": 7,
+        "brier": 0.2435037549319831,
+        "logloss": 0.6801494421129975
       }
     ]
   },
@@ -119,6 +119,14 @@
       {
         "feature": "bt_strength_diff",
         "importance": 0.0
+      },
+      {
+        "feature": "feature_schema_version",
+        "importance": 0.0
+      },
+      {
+        "feature": "feature_schema_hash",
+        "importance": 0.0
       }
     ],
     "low_importance_features": [
@@ -131,15 +139,19 @@
       "bb_pct_diff",
       "pitcher_rating_diff",
       "winrate_diff",
-      "bt_strength_diff"
+      "bt_strength_diff",
+      "feature_schema_version",
+      "feature_schema_hash",
+      "used_feature_count",
+      "transformed_feature_count"
     ]
   },
   "snapshots": {
     "exists": true,
     "error": "",
-    "total_rows": 307,
-    "clean_pipeline_rows": 307,
-    "valid_rows": 307,
+    "total_rows": 321,
+    "clean_pipeline_rows": 321,
+    "valid_rows": 321,
     "settled_rows": 0,
     "clean_settled_rows": 0,
     "target_home_win_counts": {
@@ -148,9 +160,9 @@
     },
     "date_range": {
       "min": "2026-05-27T19:34:03.285423+00:00",
-      "max": "2026-06-19T00:08:08.075871+00:00"
+      "max": "2026-06-20T04:42:57.477691+00:00"
     },
-    "recent_rows_sample_count": 307
+    "recent_rows_sample_count": 321
   },
   "prediction_usage": {
     "exists": true,
@@ -202,13 +214,13 @@
     "using_ml_count": 0,
     "using_manual_count": 14
   },
-  "model_stage": "no_model",
+  "model_stage": "production_candidate",
   "health_flags": [
-    "model_not_trained",
+    "model_trained",
     "prediction_still_manual",
     "feature_count_low",
     "snapshot_count_below_production_threshold",
-    "training_metrics_missing",
+    "training_metrics_available",
     "model_load_errors_present",
     "feature_importance_available"
   ],
