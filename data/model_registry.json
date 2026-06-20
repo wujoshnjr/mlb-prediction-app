@@ -5214,5 +5214,80 @@
       "sample_count < 500",
       "live betting disabled by governance"
     ]
+  },
+  {
+    "model_id": "mlb-20260620-6508e60b0aa0",
+    "created_at": "2026-06-20T16:46:46.162404+00:00",
+    "model_type": "calibrated_logistic_regression_with_imputer",
+    "sample_count": 303,
+    "trained": true,
+    "artifact_paths": [
+      "data/calibrator.pkl",
+      "data/market_residual_model.pkl",
+      "data/training_status.json"
+    ],
+    "metrics": {
+      "baseline": {
+        "status": "ok",
+        "comparisons": {
+          "market_no_vig": {
+            "delta_brier": -0.012471,
+            "beats_brier": true,
+            "delta_logloss": -0.055097,
+            "beats_logloss": true,
+            "delta_accuracy": -0.037629,
+            "beats_accuracy": false
+          },
+          "elo": {
+            "delta_brier": -0.002938,
+            "beats_brier": true,
+            "delta_logloss": -0.006436,
+            "beats_logloss": true,
+            "delta_accuracy": 0.0033,
+            "beats_accuracy": true
+          },
+          "constant_50": {
+            "delta_brier": 0.005638,
+            "beats_brier": false,
+            "delta_logloss": 0.011736,
+            "beats_logloss": false,
+            "delta_accuracy": -0.052805,
+            "beats_accuracy": false
+          },
+          "home_historical_rate": {
+            "delta_brier": 0.009145,
+            "beats_brier": false,
+            "delta_logloss": 0.018761,
+            "beats_logloss": false,
+            "delta_accuracy": -0.052805,
+            "beats_accuracy": false
+          },
+          "log5": {
+            "delta_brier": -0.156184,
+            "beats_brier": true,
+            "delta_logloss": -7.406627,
+            "beats_logloss": true,
+            "delta_accuracy": 0.023102,
+            "beats_accuracy": true
+          }
+        },
+        "reasons": []
+      },
+      "walkforward": {
+        "model_brier": null,
+        "market_brier": null,
+        "model_logloss": null,
+        "market_logloss": null,
+        "avg_clv": null,
+        "positive_clv_rate": null
+      }
+    },
+    "calibration_ready": false,
+    "walkforward_ready": true,
+    "promotion_status": "blocked",
+    "promotion_blockers": [
+      "sample_count < 500",
+      "live betting disabled by governance"
+    ]
   }
 ]
