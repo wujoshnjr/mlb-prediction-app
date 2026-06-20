@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-20T20:43:33.218811Z",
+  "generated_at": "2026-06-20T22:40:23.373174Z",
   "status": "ok",
   "report_type": "away_guardrail_impact_v1",
   "pipeline_version": "baseline_v2_clean",
@@ -23,37 +23,19 @@
   },
   "summary": {
     "prediction_count": 14,
-    "away_candidate_count": 1,
-    "away_guardrail_applied_count": 1,
-    "away_guardrail_applied_rate": 1.0,
+    "away_candidate_count": 0,
+    "away_guardrail_applied_count": 0,
+    "away_guardrail_applied_rate": null,
     "retained_away_paper_signal_count": 0,
-    "downgraded_away_tracking_only_count": 1,
-    "home_candidate_count": 0
+    "downgraded_away_tracking_only_count": 0,
+    "home_candidate_count": 3
   },
-  "reason_counts": {
-    "away_low_selected_probability_vs_home_market": 1
-  },
-  "guardrail_status_counts": {
-    "tracking_only": 1
-  },
-  "downgraded_examples": [
-    {
-      "game_id": 824665,
-      "game_date": "2026-06-20",
-      "away_team": "Blue Jays",
-      "home_team": "Cubs",
-      "moneyline_selected_edge": 0.2004,
-      "away_selected_probability": 0.3411,
-      "market_no_vig_home_prob": 0.8594,
-      "away_guardrail_reasons": [
-        "away_low_selected_probability_vs_home_market"
-      ],
-      "recommendation_status": "TRACKING_ONLY"
-    }
-  ],
+  "reason_counts": {},
+  "guardrail_status_counts": {},
+  "downgraded_examples": [],
   "diagnostic_snapshot": {
-    "away_pick_accuracy": 0.43478260869565216,
-    "away_pick_sample_count": 161,
+    "away_pick_accuracy": 0.4382716049382716,
+    "away_pick_sample_count": 162,
     "away_pick_rate": 0.5171339563862928,
     "recommended_guardrails": [
       "Away picks materially underperform home picks; raise away edge threshold.",
@@ -69,6 +51,6 @@
   "warnings": [],
   "errors": [],
   "recommendations": [
-    "Track downgraded away candidates separately to verify whether the guardrail improves settled away accuracy."
+    "No away candidates in current prediction report; continue monitoring."
   ]
 }
