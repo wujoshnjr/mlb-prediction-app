@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-06-19T23:27:07.565381Z",
+  "generated_at": "2026-06-20T04:43:33.844505Z",
   "report_type": "accuracy_root_cause_report",
   "status": "blocked",
   "summary": {
-    "official_sample_count": 290,
-    "official_accuracy": 0.5034,
-    "rolling_7d_sample_count": 82,
-    "rolling_7d_accuracy": 0.4268,
-    "rolling_30d_sample_count": 290,
-    "rolling_30d_accuracy": 0.5034,
-    "recent_drop_vs_30d": -0.0766,
-    "degraded_day_count": 4,
+    "official_sample_count": 299,
+    "official_accuracy": 0.495,
+    "rolling_7d_sample_count": 74,
+    "rolling_7d_accuracy": 0.4054,
+    "rolling_30d_sample_count": 299,
+    "rolling_30d_accuracy": 0.495,
+    "recent_drop_vs_30d": -0.0896,
+    "degraded_day_count": 6,
     "weak_slice_count": 3,
-    "inactive_signal_day_count": 3,
-    "root_cause_count": 6
+    "inactive_signal_day_count": 2,
+    "root_cause_count": 5
   },
   "root_causes": [
     {
@@ -21,9 +21,9 @@
       "severity": "high",
       "title": "近 7 日命中率低於 30 日平均",
       "evidence": [
-        "7d accuracy=0.4268",
-        "30d accuracy=0.5034",
-        "delta=-0.0766"
+        "7d accuracy=0.4054",
+        "30d accuracy=0.4950",
+        "delta=-0.0896"
       ],
       "repair": "把近期低命中日和 tracking-only 天數獨立顯示；不要用單一總命中率代表模型可用性。"
     },
@@ -32,10 +32,10 @@
       "severity": "critical",
       "title": "模型評估觸發 collapse guardrail",
       "evidence": [
-        "roc_auc=0.5238095238095238",
-        "balanced_accuracy=0.4865424430641822",
-        "predicted_positive_rate=0.7954545454545454",
-        "balanced_accuracy_near_random, brier_near_random_0_25, logloss_near_random_0_693, test_sample_count_too_small_for_stable_claims"
+        "roc_auc=0.41295546558704455",
+        "balanced_accuracy=0.5",
+        "predicted_positive_rate=1.0",
+        "balanced_accuracy_near_random, single_class_positive_prediction_collapse, brier_near_random_0_25, logloss_near_random_0_693, test_sample_count_too_small_for_stable_claims"
       ],
       "repair": "正式站只顯示 tracking-only；模型不可 promotion。先修 feature coverage、再重跑 time-ordered evaluation。"
     },
@@ -56,19 +56,9 @@
         "fold_count=5",
         "collapse_fold_count=4",
         "collapse_rate=0.8",
-        "settled_oos_predictions=290"
+        "settled_oos_predictions=299"
       ],
       "repair": "把 walk-forward fold collapse 當作發布 gate；近期 fold 未恢復前，網站只做追蹤，不做正式推薦。"
-    },
-    {
-      "id": "paper_signal_drought",
-      "severity": "medium",
-      "title": "近期 paper signal 幾乎消失，盤面多為 tracking-only",
-      "evidence": [
-        "recent inactive signal days=3",
-        "pending_predictions=17"
-      ],
-      "repair": "網站新增 paper signal / tracking-only 分離；official accuracy 之外另顯示可用訊號命中率。"
     },
     {
       "id": "feature_source_incomplete",
@@ -91,7 +81,7 @@
       "paper_signal_count": 0,
       "paper_signal_accuracy": null,
       "pending_count": 0,
-      "delta_vs_30d": -0.0917
+      "delta_vs_30d": -0.0832
     },
     {
       "game_date": "2026-06-14",
@@ -101,7 +91,7 @@
       "paper_signal_count": 1,
       "paper_signal_accuracy": 0.0,
       "pending_count": 1,
-      "delta_vs_30d": -0.1505
+      "delta_vs_30d": -0.142
     },
     {
       "game_date": "2026-06-17",
@@ -111,7 +101,7 @@
       "paper_signal_count": 4,
       "paper_signal_accuracy": 0.75,
       "pending_count": 0,
-      "delta_vs_30d": -0.1146
+      "delta_vs_30d": -0.1061
     },
     {
       "game_date": "2026-06-18",
@@ -121,17 +111,30 @@
       "paper_signal_count": 2,
       "paper_signal_accuracy": 0.0,
       "pending_count": 1,
-      "delta_vs_30d": -0.1034
+      "delta_vs_30d": -0.095
+    },
+    {
+      "game_date": "2026-06-19",
+      "sample_count": 7,
+      "correct": 3,
+      "accuracy": 0.4286,
+      "paper_signal_count": 1,
+      "paper_signal_accuracy": 1.0,
+      "pending_count": 0,
+      "delta_vs_30d": -0.0664
+    },
+    {
+      "game_date": "2026-06-20",
+      "sample_count": 4,
+      "correct": 0,
+      "accuracy": 0.0,
+      "paper_signal_count": 0,
+      "paper_signal_accuracy": null,
+      "pending_count": 13,
+      "delta_vs_30d": -0.495
     }
   ],
   "inactive_signal_days": [
-    {
-      "game_date": "2026-06-13",
-      "sample_count": 17,
-      "accuracy": 0.4118,
-      "paper_signal_count": 0,
-      "pending_count": 0
-    },
     {
       "game_date": "2026-06-15",
       "sample_count": 4,
@@ -140,36 +143,36 @@
       "pending_count": 0
     },
     {
-      "game_date": "2026-06-19",
-      "sample_count": 2,
-      "accuracy": 0.5,
+      "game_date": "2026-06-20",
+      "sample_count": 4,
+      "accuracy": 0.0,
       "paper_signal_count": 0,
-      "pending_count": 5
+      "pending_count": 13
     }
   ],
   "weak_slices": [
     {
       "slice": "away_picks",
-      "sample_count": 153,
+      "sample_count": 160,
       "correct": 70,
-      "accuracy": 0.4575,
-      "delta_vs_official": -0.0459,
+      "accuracy": 0.4375,
+      "delta_vs_official": -0.0575,
       "weak_slice": true
     },
     {
       "slice": "underdogs",
-      "sample_count": 110,
+      "sample_count": 112,
       "correct": 51,
-      "accuracy": 0.4636,
-      "delta_vs_official": -0.0398,
+      "accuracy": 0.4554,
+      "delta_vs_official": -0.0396,
       "weak_slice": true
     },
     {
       "slice": "tracking_only",
-      "sample_count": 141,
-      "correct": 67,
-      "accuracy": 0.4752,
-      "delta_vs_official": -0.0283,
+      "sample_count": 149,
+      "correct": 68,
+      "accuracy": 0.4564,
+      "delta_vs_official": -0.0386,
       "weak_slice": true
     }
   ],
@@ -179,18 +182,19 @@
     "do_not_promote": true,
     "collapse_reasons": [
       "balanced_accuracy_near_random",
+      "single_class_positive_prediction_collapse",
       "brier_near_random_0_25",
       "logloss_near_random_0_693",
       "test_sample_count_too_small_for_stable_claims"
     ],
     "metrics": {
-      "accuracy": 0.5,
-      "balanced_accuracy": 0.4865,
-      "roc_auc": 0.5238,
-      "brier": 0.2552,
-      "logloss": 0.704,
-      "predicted_positive_rate": 0.7955,
-      "predicted_negative_rate": 0.2045
+      "accuracy": 0.5778,
+      "balanced_accuracy": 0.5,
+      "roc_auc": 0.413,
+      "brier": 0.247,
+      "logloss": 0.6872,
+      "predicted_positive_rate": 1.0,
+      "predicted_negative_rate": 0.0
     }
   },
   "baseline_gate": {
@@ -206,13 +210,13 @@
   },
   "walkforward": {
     "status": "insufficient_samples",
-    "settled_oos_predictions": 290,
+    "settled_oos_predictions": 299,
     "min_required_oos_predictions": 300,
     "fold_count": 5,
     "collapse_fold_count": 4,
     "collapse_rate": 0.8,
-    "median_model_brier": 0.257019,
-    "median_model_logloss": 0.70974
+    "median_model_brier": 0.25658,
+    "median_model_logloss": 0.708774
   },
   "feature_source_summary": {
     "feature_count": 62,
