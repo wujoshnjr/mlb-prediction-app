@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-21T21:07:03.538039Z",
+  "generated_at": "2026-06-21T22:42:42.561385Z",
   "status": "ok",
   "report_type": "away_guardrail_impact_v1",
   "pipeline_version": "baseline_v2_clean",
@@ -23,49 +23,16 @@
   },
   "summary": {
     "prediction_count": 15,
-    "away_candidate_count": 2,
-    "away_guardrail_applied_count": 2,
-    "away_guardrail_applied_rate": 1.0,
+    "away_candidate_count": 0,
+    "away_guardrail_applied_count": 0,
+    "away_guardrail_applied_rate": null,
     "retained_away_paper_signal_count": 0,
-    "downgraded_away_tracking_only_count": 2,
-    "home_candidate_count": 2
+    "downgraded_away_tracking_only_count": 0,
+    "home_candidate_count": 0
   },
-  "reason_counts": {
-    "away_low_selected_probability_vs_home_market": 2,
-    "away_mid_edge_underperforming_bucket": 1
-  },
-  "guardrail_status_counts": {
-    "tracking_only": 2
-  },
-  "downgraded_examples": [
-    {
-      "game_id": 822883,
-      "game_date": "2026-06-21",
-      "away_team": "Padres",
-      "home_team": "Rangers",
-      "moneyline_selected_edge": 0.1924,
-      "away_selected_probability": 0.3426,
-      "market_no_vig_home_prob": 0.8498,
-      "away_guardrail_reasons": [
-        "away_low_selected_probability_vs_home_market"
-      ],
-      "recommendation_status": "TRACKING_ONLY"
-    },
-    {
-      "game_id": 824987,
-      "game_date": "2026-06-21",
-      "away_team": "Angels",
-      "home_team": "Athletics",
-      "moneyline_selected_edge": 0.0759,
-      "away_selected_probability": 0.3525,
-      "market_no_vig_home_prob": 0.7234,
-      "away_guardrail_reasons": [
-        "away_low_selected_probability_vs_home_market",
-        "away_mid_edge_underperforming_bucket"
-      ],
-      "recommendation_status": "TRACKING_ONLY"
-    }
-  ],
+  "reason_counts": {},
+  "guardrail_status_counts": {},
+  "downgraded_examples": [],
   "diagnostic_snapshot": {
     "away_pick_accuracy": 0.43452380952380953,
     "away_pick_sample_count": 168,
@@ -84,6 +51,6 @@
   "warnings": [],
   "errors": [],
   "recommendations": [
-    "Track downgraded away candidates separately to verify whether the guardrail improves settled away accuracy."
+    "No away candidates in current prediction report; continue monitoring."
   ]
 }

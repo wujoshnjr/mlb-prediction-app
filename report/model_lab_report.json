@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-06-21T20:44:04.080176+00:00",
+  "generated_at": "2026-06-21T22:20:48.012330+00:00",
   "pipeline_version": "baseline_v2_clean",
-  "sample_count": 323,
-  "train_count": 226,
-  "calibration_count": 48,
-  "validation_count": 49,
+  "sample_count": 327,
+  "train_count": 228,
+  "calibration_count": 49,
+  "validation_count": 50,
   "models": [
     {
       "model_name": "market_no_vig_baseline",
@@ -13,7 +13,7 @@
       "skip_reason": "",
       "train_count": 0,
       "calibration_count": 0,
-      "validation_count": 49,
+      "validation_count": 50,
       "feature_count": 1,
       "features_used": [
         "market_no_vig_home_prob"
@@ -22,11 +22,11 @@
       "calibration_method": "market_baseline",
       "calibration_used": false,
       "calibration_required": false,
-      "brier": 0.24127017375889806,
-      "logloss": 0.7064493045110529,
-      "accuracy": 0.5675675675675675,
-      "auc": 0.6352941176470588,
-      "ece": 0.15579152731326643,
+      "brier": 0.24463995619133047,
+      "logloss": 0.713219723412799,
+      "accuracy": 0.5405405405405406,
+      "auc": 0.6227272727272727,
+      "ece": 0.15937801379975292,
       "beats_market_brier": null,
       "beats_market_logloss": null,
       "beats_market_accuracy": null,
@@ -35,7 +35,7 @@
         "market baseline is not a candidate model"
       ],
       "warnings": [
-        "dropped 12 rows with invalid probability"
+        "dropped 13 rows with invalid probability"
       ],
       "errors": []
     },
@@ -44,9 +44,9 @@
       "trained": true,
       "skipped": false,
       "skip_reason": "",
-      "train_count": 226,
-      "calibration_count": 48,
-      "validation_count": 49,
+      "train_count": 228,
+      "calibration_count": 49,
+      "validation_count": 50,
       "feature_count": 7,
       "features_used": [
         "elo_diff",
@@ -61,16 +61,18 @@
       "calibration_method": "sigmoid",
       "calibration_used": true,
       "calibration_required": true,
-      "brier": 0.24530433347364244,
-      "logloss": 0.6837412605449341,
-      "accuracy": 0.5714285714285714,
-      "auc": 0.5051020408163265,
-      "ece": 0.010574013955724548,
+      "brier": 0.2507084142258211,
+      "logloss": 0.6946730730772207,
+      "accuracy": 0.54,
+      "auc": 0.5507246376811594,
+      "ece": 0.051854396732830536,
       "beats_market_brier": false,
       "beats_market_logloss": true,
-      "beats_market_accuracy": true,
-      "promotion_eligible": true,
-      "promotion_blockers": [],
+      "beats_market_accuracy": false,
+      "promotion_eligible": false,
+      "promotion_blockers": [
+        "ece above candidate threshold: 0.0519 > 0.05"
+      ],
       "warnings": [],
       "errors": []
     },
@@ -79,9 +81,9 @@
       "trained": true,
       "skipped": false,
       "skip_reason": "",
-      "train_count": 226,
-      "calibration_count": 48,
-      "validation_count": 49,
+      "train_count": 228,
+      "calibration_count": 49,
+      "validation_count": 50,
       "feature_count": 7,
       "features_used": [
         "elo_diff",
@@ -96,17 +98,17 @@
       "calibration_method": "sigmoid",
       "calibration_used": true,
       "calibration_required": true,
-      "brier": 0.24113887409463822,
-      "logloss": 0.6721106659742777,
-      "accuracy": 0.5306122448979592,
-      "auc": 0.5340136054421769,
-      "ece": 0.0980614831609255,
-      "beats_market_brier": true,
+      "brier": 0.25529062378542744,
+      "logloss": 0.7023716120177813,
+      "accuracy": 0.48,
+      "auc": 0.45410628019323673,
+      "ece": 0.14297356131189665,
+      "beats_market_brier": false,
       "beats_market_logloss": true,
       "beats_market_accuracy": false,
       "promotion_eligible": false,
       "promotion_blockers": [
-        "ece above candidate threshold: 0.0981 > 0.05"
+        "ece above candidate threshold: 0.1430 > 0.05"
       ],
       "warnings": [],
       "errors": []
@@ -116,9 +118,9 @@
       "trained": true,
       "skipped": false,
       "skip_reason": "",
-      "train_count": 226,
-      "calibration_count": 48,
-      "validation_count": 49,
+      "train_count": 228,
+      "calibration_count": 49,
+      "validation_count": 50,
       "feature_count": 7,
       "features_used": [
         "elo_diff",
@@ -133,17 +135,17 @@
       "calibration_method": "sigmoid",
       "calibration_used": true,
       "calibration_required": true,
-      "brier": 0.25993341242859,
-      "logloss": 0.7149421365404194,
-      "accuracy": 0.5306122448979592,
-      "auc": 0.48129251700680276,
-      "ece": 0.12800781459224464,
+      "brier": 0.2702694294680157,
+      "logloss": 0.7362689908324973,
+      "accuracy": 0.48,
+      "auc": 0.429951690821256,
+      "ece": 0.1416010564565659,
       "beats_market_brier": false,
       "beats_market_logloss": false,
       "beats_market_accuracy": false,
       "promotion_eligible": false,
       "promotion_blockers": [
-        "ece above candidate threshold: 0.1280 > 0.05",
+        "ece above candidate threshold: 0.1416 > 0.05",
         "does not beat market brier or logloss"
       ],
       "warnings": [],
@@ -154,9 +156,9 @@
       "trained": true,
       "skipped": false,
       "skip_reason": "",
-      "train_count": 226,
-      "calibration_count": 48,
-      "validation_count": 49,
+      "train_count": 228,
+      "calibration_count": 49,
+      "validation_count": 50,
       "feature_count": 8,
       "features_used": [
         "elo_diff",
@@ -172,37 +174,37 @@
       "calibration_method": "market_residual_uncalibrated",
       "calibration_used": false,
       "calibration_required": false,
-      "brier": 0.2614945129478827,
-      "logloss": 0.7168607886300117,
-      "accuracy": 0.5135135135135135,
-      "auc": 0.5058823529411764,
-      "ece": 0.12526868192419596,
+      "brier": 0.2666600590201861,
+      "logloss": 0.7272642451901378,
+      "accuracy": 0.4594594594594595,
+      "auc": 0.5515151515151515,
+      "ece": 0.18092953402327638,
       "beats_market_brier": false,
       "beats_market_logloss": false,
       "beats_market_accuracy": false,
       "promotion_eligible": false,
       "promotion_blockers": [
-        "ece above candidate threshold: 0.1253 > 0.05",
+        "ece above candidate threshold: 0.1809 > 0.05",
         "does not beat market brier or logloss"
       ],
       "warnings": [
-        "dropped_invalid_market_prob_rows: train=32, validation=12"
+        "dropped_invalid_market_prob_rows: train=34, validation=13"
       ],
       "errors": [],
       "residual_train_count": 194,
       "residual_validation_count": 37,
       "dropped_invalid_market_prob_rows": {
-        "train": 32,
-        "validation": 12
+        "train": 34,
+        "validation": 13
       }
     }
   ],
   "market_baseline_available": true,
   "market_probability_column": "market_no_vig_home_prob",
-  "best_by_brier": "lightgbm_classifier",
-  "best_by_logloss": "lightgbm_classifier",
+  "best_by_brier": "logistic_baseline",
+  "best_by_logloss": "logistic_baseline",
   "best_by_ece": "logistic_baseline",
-  "champion_candidate": "logistic_baseline",
+  "champion_candidate": null,
   "global_blockers": [],
   "warnings": [
     "removed leakage columns from snapshots: away_score, home_score, home_win, settled_at"
