@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-22T00:41:01.019457+00:00",
+  "generated_at": "2026-06-22T06:55:22.824129+00:00",
   "status": "ok",
   "product_summary": {
     "mode": "MLB_ONLY_PAPER_RESEARCH",
@@ -9,8 +9,8 @@
       "edge_5_plus is downgraded by edge sanity guardrail",
       "sample gate remains below research promotion threshold"
     ],
-    "sample_count": 330,
-    "overall_accuracy": 0.5121212121212121,
+    "sample_count": 331,
+    "overall_accuracy": 0.513595166163142,
     "production_allowed": false,
     "live_betting_allowed": false,
     "automated_wagering_allowed": false
@@ -19,19 +19,19 @@
     {
       "card_id": "overall_accuracy",
       "label": "Overall Accuracy",
-      "value": 0.5121212121212121,
-      "display_value": "51.2%",
-      "sample_count": 330,
+      "value": 0.513595166163142,
+      "display_value": "51.4%",
+      "sample_count": 331,
       "status": "neutral",
-      "caption": "330 settled samples",
+      "caption": "331 settled samples",
       "priority": 1
     },
     {
       "card_id": "sample_gate",
       "label": "Research Sample Gate",
-      "value": 330,
-      "display_value": "330 / 300",
-      "sample_count": 330,
+      "value": 331,
+      "display_value": "331 / 300",
+      "sample_count": 331,
       "status": "positive",
       "caption": "Needed before research promotion opens",
       "priority": 2
@@ -65,14 +65,14 @@
       "display_status": "TRACKING ONLY",
       "ui_status": "waiting",
       "evidence": {
-        "favorite_accuracy": 0.5271317829457365,
-        "favorite_sample_count": 258,
-        "home_accuracy": 0.559322033898305,
-        "home_sample_count": 177,
+        "favorite_accuracy": 0.528957528957529,
+        "favorite_sample_count": 259,
+        "home_accuracy": 0.5617977528089888,
+        "home_sample_count": 178,
         "edge_3_to_5_accuracy": 0.6666666666666666,
         "edge_3_to_5_sample_count": 42,
-        "odds_ok_accuracy": 0.540650406504065,
-        "odds_ok_sample_count": 246,
+        "odds_ok_accuracy": 0.5425101214574899,
+        "odds_ok_sample_count": 247,
         "paper_bet_accuracy": 0.554140127388535,
         "paper_bet_sample_count": 157
       },
@@ -143,8 +143,8 @@
       "evidence": {
         "paper_bet_accuracy": 0.554140127388535,
         "paper_bet_sample_count": 157,
-        "odds_ok_accuracy": 0.540650406504065,
-        "odds_ok_sample_count": 246
+        "odds_ok_accuracy": 0.5425101214574899,
+        "odds_ok_sample_count": 247
       },
       "reason": [
         "Paper-bet and OK-odds slices are outperforming tracking-only slices.",
@@ -161,11 +161,11 @@
     {
       "card_id": "favorite_pick",
       "label": "Favorite Pick",
-      "value": 0.5271317829457365,
-      "display_value": "52.7%",
-      "sample_count": 258,
+      "value": 0.528957528957529,
+      "display_value": "52.9%",
+      "sample_count": 259,
       "status": "neutral",
-      "caption": "258 samples \u00b7 Market favorite model picks",
+      "caption": "259 samples \u00b7 Market favorite model picks",
       "priority": 1
     },
     {
@@ -181,11 +181,11 @@
     {
       "card_id": "home_pick",
       "label": "Home Pick",
-      "value": 0.559322033898305,
-      "display_value": "55.9%",
-      "sample_count": 177,
+      "value": 0.5617977528089888,
+      "display_value": "56.2%",
+      "sample_count": 178,
       "status": "positive",
-      "caption": "177 samples \u00b7 Home side model picks",
+      "caption": "178 samples \u00b7 Home side model picks",
       "priority": 3
     },
     {
@@ -201,11 +201,11 @@
     {
       "card_id": "odds_ok",
       "label": "Odds OK",
-      "value": 0.540650406504065,
-      "display_value": "54.1%",
-      "sample_count": 246,
+      "value": 0.5425101214574899,
+      "display_value": "54.3%",
+      "sample_count": 247,
       "status": "neutral",
-      "caption": "246 samples \u00b7 Verified odds quality",
+      "caption": "247 samples \u00b7 Verified odds quality",
       "priority": 5
     },
     {
@@ -221,11 +221,11 @@
     {
       "card_id": "tracking_only",
       "label": "Tracking Only",
-      "value": 0.47398843930635837,
-      "display_value": "47.4%",
-      "sample_count": 173,
+      "value": 0.47701149425287354,
+      "display_value": "47.7%",
+      "sample_count": 174,
       "status": "negative",
-      "caption": "173 samples \u00b7 Non-entry tracking signals",
+      "caption": "174 samples \u00b7 Non-entry tracking signals",
       "priority": 7
     },
     {
@@ -261,11 +261,11 @@
     {
       "card_id": "confidence_60_65",
       "label": "Confidence 60\u201365%",
-      "value": 0.5365853658536586,
-      "display_value": "53.7%",
-      "sample_count": 82,
+      "value": 0.5421686746987951,
+      "display_value": "54.2%",
+      "sample_count": 83,
       "status": "neutral",
-      "caption": "82 samples \u00b7 Secondary confidence range",
+      "caption": "83 samples \u00b7 Secondary confidence range",
       "priority": 11
     },
     {
@@ -335,9 +335,11 @@
     {
       "risk_id": "freshness",
       "label": "Data Freshness",
-      "status": "ok",
-      "display_status": "A",
-      "reasons": [],
+      "status": "warning",
+      "display_status": "D",
+      "reasons": [
+        "prediction_snapshots"
+      ],
       "description": "Fresh data improves interpretability of game-board signals.",
       "priority": 5
     },
