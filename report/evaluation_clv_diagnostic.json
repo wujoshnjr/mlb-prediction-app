@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-22T21:29:02.120365+00:00",
+  "generated_at": "2026-06-22T23:46:00.853603+00:00",
   "input_files": {
     "prediction": {
       "exists": true,
@@ -13,7 +13,7 @@
     "market_odds_history": {
       "exists": true,
       "error": "",
-      "rows": 45649
+      "rows": 45769
     },
     "finalized_games": {
       "exists": true,
@@ -23,28 +23,27 @@
   },
   "current_prediction_summary": {
     "prediction_count": 13,
-    "paper_bet_count": 2,
+    "paper_bet_count": 4,
     "live_bet_candidate_count": 0,
     "betting_readiness_status_counts": {
-      "away_guardrail_tracking_only": 3,
-      "practical_ready": 1,
-      "model_blocked": 5,
+      "away_guardrail_tracking_only": 2,
+      "practical_ready": 3,
+      "odds_blocked": 5,
       "context_tracking_only": 1,
-      "odds_blocked": 3
+      "model_blocked": 2
     },
     "risk_flag_counts": {
       "closer_high_fatigue": 12,
       "data_quality_bet_blocked": 13,
       "model_governance_live_locked": 13,
       "starter_confirmation_pending": 13,
-      "risk_guard_rejected": 2,
+      "risk_guard_rejected": 4,
+      "edge_unavailable": 5,
+      "odds_not_ok": 5,
       "bullpen_not_available": 2,
       "closer_fatigue": 1,
-      "context_missing_fields": 5,
-      "edge_below_threshold": 5,
-      "edge_unavailable": 3,
-      "lineup_not_confirmed": 3,
-      "odds_not_ok": 3
+      "context_missing_fields": 2,
+      "edge_below_threshold": 2
     }
   },
   "settled_performance": {
@@ -92,14 +91,14 @@
   "clv_summary": {
     "source": "per_pick_log_decimal_clv",
     "evaluated_picks": 161,
-    "positive_clv_count": 88,
+    "positive_clv_count": 91,
     "negative_clv_count": 58,
     "neutral_clv_count": 2,
-    "avg_clv": 0.1264021431536798,
-    "positive_clv_rate": 0.546583850931677,
+    "avg_clv": 0.12425133955868387,
+    "positive_clv_rate": 0.5652173913043478,
     "avg_clv_by_side": {
       "away": 0.10270719542667359,
-      "home": 0.15353114127590411
+      "home": 0.14789005325908378
     }
   },
   "edge_bucket_summary": {
@@ -110,8 +109,8 @@
       "roi_flat": -0.06451612903225809,
       "stake_weighted_roi": -0.195281112283533,
       "avg_edge": 0.04048857142857142,
-      "avg_clv": 0.017608460498813587,
-      "positive_clv_rate": 0.4482758620689655
+      "avg_clv": 0.01713480288408262,
+      "positive_clv_rate": 0.4838709677419355
     },
     "5_to_8pct": {
       "count": 41,
@@ -120,8 +119,8 @@
       "roi_flat": -0.04,
       "stake_weighted_roi": 0.00452714782589852,
       "avg_edge": 0.06392682926829267,
-      "avg_clv": 0.016106958768119614,
-      "positive_clv_rate": 0.4864864864864865
+      "avg_clv": 0.016575237528844922,
+      "positive_clv_rate": 0.5
     },
     "8pct_plus": {
       "count": 85,
@@ -142,8 +141,8 @@
       "roi_flat": 0.19721153846153847,
       "stake_weighted_roi": 0.05958348267200471,
       "avg_edge": 0.11473850931677014,
-      "avg_clv": 0.1264021431536798,
-      "positive_clv_rate": 0.5945945945945946
+      "avg_clv": 0.12425133955868387,
+      "positive_clv_rate": 0.6026490066225165
     }
   },
   "side_summary": {
@@ -164,14 +163,13 @@
       "roi_flat": 0.32704225352112687,
       "stake_weighted_roi": 0.2005304889161228,
       "avg_edge": 0.0986473684210526,
-      "avg_clv": 0.15353114127590411,
-      "positive_clv_rate": 0.6521739130434783
+      "avg_clv": 0.14789005325908378,
+      "positive_clv_rate": 0.6666666666666666
     }
   },
   "recommendations": [
     "Settled sample size is below 300; evaluation is useful for debugging but not production betting.",
     "Current live_bet_candidate_count is 0; risk controls are blocking all real-bet candidates, which is expected during early model validation.",
-    "Lineup confirmation remains a major blocker; projected or confirmed lineup integration should be prioritized.",
     "Closer high fatigue risk is present; keep stake_multiplier conservative or require manual review."
   ]
 }
