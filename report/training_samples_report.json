@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-06-22T23:27:01.537073+00:00",
+  "generated_at": "2026-06-23T04:11:12.209673+00:00",
   "status": "ok",
   "pipeline_version": "baseline_v2_clean",
   "snapshot_policy": "first_seen_pregame",
   "raw_snapshot_rows": 349,
-  "finalized_outcome_rows": 331,
-  "linked_rows": 331,
-  "clean_training_rows": 331,
+  "finalized_outcome_rows": 341,
+  "linked_rows": 341,
+  "clean_training_rows": 341,
   "dropped_empty_game_id_rows": 0,
   "dropped_post_start_rows": 0,
   "dropped_invalid_snapshot_rows": 0,
   "dropped_pipeline_mismatch_rows": 0,
-  "dropped_missing_outcome_rows": 18,
+  "dropped_missing_outcome_rows": 8,
   "leakage_columns_removed": [
     "away_score",
     "closing_away_odds",
@@ -33,13 +33,13 @@
     "finalized_snapshot_outcomes": {
       "path": "data/finalized_snapshot_outcomes.csv",
       "exists": true,
-      "rows": 331,
+      "rows": 341,
       "error": ""
     }
   },
   "errors": [],
   "warnings": [
-    "Converted 5005 structural zero-filled context feature cells to missing values with indicators."
+    "Converted 5084 structural zero-filled context feature cells to missing values with indicators."
   ],
   "recommendations": [
     "Downstream shadow models should use imputers with missing indicators and should not promote repaired features until time-ordered Brier/logloss improve."
@@ -51,7 +51,7 @@
     "enabled": true,
     "policy": "zero values in tracking-only context features are converted to missing when their availability flags are not true",
     "feature_count_checked": 26,
-    "total_repaired_cells": 5005,
+    "total_repaired_cells": 5084,
     "features": [
       {
         "feature": "sp_fip_diff",
@@ -63,8 +63,8 @@
           "sp_fip_diff_available",
           "pitcher_advanced_available"
         ],
-        "zero_count_before_repair": 174,
-        "structural_missing_rows_repaired": 174,
+        "zero_count_before_repair": 177,
+        "structural_missing_rows_repaired": 177,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "sp_fip_diff_missing"
       },
@@ -78,8 +78,8 @@
           "sp_csw_diff_available",
           "pitcher_advanced_available"
         ],
-        "zero_count_before_repair": 175,
-        "structural_missing_rows_repaired": 175,
+        "zero_count_before_repair": 178,
+        "structural_missing_rows_repaired": 178,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "sp_csw_diff_missing"
       },
@@ -93,8 +93,8 @@
           "sp_stuff_plus_diff_available",
           "pitcher_advanced_available"
         ],
-        "zero_count_before_repair": 174,
-        "structural_missing_rows_repaired": 174,
+        "zero_count_before_repair": 177,
+        "structural_missing_rows_repaired": 177,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "sp_stuff_plus_diff_missing"
       },
@@ -106,8 +106,8 @@
         "available_flag_columns_present": [
           "pitcher_advanced_available"
         ],
-        "zero_count_before_repair": 168,
-        "structural_missing_rows_repaired": 168,
+        "zero_count_before_repair": 171,
+        "structural_missing_rows_repaired": 171,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "k_pct_diff_missing"
       },
@@ -119,8 +119,8 @@
         "available_flag_columns_present": [
           "pitcher_advanced_available"
         ],
-        "zero_count_before_repair": 170,
-        "structural_missing_rows_repaired": 170,
+        "zero_count_before_repair": 173,
+        "structural_missing_rows_repaired": 173,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "bb_pct_diff_missing"
       },
@@ -132,8 +132,8 @@
         "available_flag_columns_present": [
           "bullpen_context_available"
         ],
-        "zero_count_before_repair": 172,
-        "structural_missing_rows_repaired": 172,
+        "zero_count_before_repair": 174,
+        "structural_missing_rows_repaired": 174,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "bullpen_ip_diff_missing"
       },
@@ -264,8 +264,8 @@
         "available_flag_columns_present": [
           "lineup_context_available"
         ],
-        "zero_count_before_repair": 331,
-        "structural_missing_rows_repaired": 331,
+        "zero_count_before_repair": 341,
+        "structural_missing_rows_repaired": 341,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "platoon_ops_diff_missing"
       },
@@ -303,8 +303,8 @@
         "available_flag_columns_present": [
           "team_form_available"
         ],
-        "zero_count_before_repair": 312,
-        "structural_missing_rows_repaired": 312,
+        "zero_count_before_repair": 320,
+        "structural_missing_rows_repaired": 320,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "rest_diff_missing"
       },
@@ -316,8 +316,8 @@
         "available_flag_columns_present": [
           "team_form_available"
         ],
-        "zero_count_before_repair": 305,
-        "structural_missing_rows_repaired": 305,
+        "zero_count_before_repair": 313,
+        "structural_missing_rows_repaired": 313,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "back2back_diff_missing"
       },
@@ -329,8 +329,8 @@
         "available_flag_columns_present": [
           "team_form_available"
         ],
-        "zero_count_before_repair": 100,
-        "structural_missing_rows_repaired": 100,
+        "zero_count_before_repair": 105,
+        "structural_missing_rows_repaired": 105,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "games_last_3d_diff_missing"
       },
@@ -342,8 +342,8 @@
         "available_flag_columns_present": [
           "team_form_available"
         ],
-        "zero_count_before_repair": 80,
-        "structural_missing_rows_repaired": 80,
+        "zero_count_before_repair": 82,
+        "structural_missing_rows_repaired": 82,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "games_last_7d_diff_missing"
       },
@@ -355,8 +355,8 @@
         "available_flag_columns_present": [
           "team_form_available"
         ],
-        "zero_count_before_repair": 61,
-        "structural_missing_rows_repaired": 61,
+        "zero_count_before_repair": 63,
+        "structural_missing_rows_repaired": 63,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "rest_pressure_diff_missing"
       },
@@ -368,8 +368,8 @@
         "available_flag_columns_present": [
           "weather_available"
         ],
-        "zero_count_before_repair": 274,
-        "structural_missing_rows_repaired": 274,
+        "zero_count_before_repair": 282,
+        "structural_missing_rows_repaired": 282,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "wind_effect_missing"
       },
@@ -381,8 +381,8 @@
         "available_flag_columns_present": [
           "weather_available"
         ],
-        "zero_count_before_repair": 301,
-        "structural_missing_rows_repaired": 301,
+        "zero_count_before_repair": 311,
+        "structural_missing_rows_repaired": 311,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "temp_effect_missing"
       },
@@ -394,8 +394,8 @@
         "available_flag_columns_present": [
           "weather_available"
         ],
-        "zero_count_before_repair": 303,
-        "structural_missing_rows_repaired": 303,
+        "zero_count_before_repair": 312,
+        "structural_missing_rows_repaired": 312,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "precip_effect_missing"
       }

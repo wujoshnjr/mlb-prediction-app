@@ -1,18 +1,18 @@
 {
-  "generated_at": "2026-06-22T23:45:56.069723+00:00",
+  "generated_at": "2026-06-23T04:33:53.092031+00:00",
   "prediction_report": {
     "exists": true,
     "error": "",
-    "scheduled_game_count": 13,
-    "prediction_count": 13,
-    "generated_at": "2026-06-22T23:45:53.917654Z",
+    "scheduled_game_count": 15,
+    "prediction_count": 15,
+    "generated_at": "2026-06-23T04:33:50.820923Z",
     "report_date": ""
   },
   "market_odds_history": {
     "exists": true,
     "error": "",
-    "total_rows": 45769,
-    "moneyline_rows": 18280,
+    "total_rows": 45947,
+    "moneyline_rows": 18352,
     "closing_rows": 6346,
     "columns": [
       "odds_snapshot_id",
@@ -47,19 +47,19 @@
   "daily_context": {
     "exists": true,
     "error": "",
-    "total_rows": 3052
+    "total_rows": 3067
   },
   "prediction_snapshots": {
     "exists": true,
     "error": "",
-    "total_rows": 349
+    "total_rows": 364
   },
   "odds_fetch_diagnostic": {
     "exists": true,
     "status": "ok",
     "selected_attempt": "configured_bookmakers_full_market_date_window",
-    "final_event_count": 8,
-    "final_usable_row_count": 8,
+    "final_event_count": 12,
+    "final_usable_row_count": 12,
     "attempts": [
       {
         "attempt_name": "configured_bookmakers_full_market_date_window",
@@ -69,18 +69,19 @@
           "markets": "h2h,spreads,totals",
           "oddsFormat": "decimal",
           "bookmakers": "draftkings,fanduel,betmgm,bet365",
-          "commenceTimeFrom": "2026-06-22T00:00:00Z",
-          "commenceTimeTo": "2026-06-22T23:59:59Z"
+          "commenceTimeFrom": "2026-06-23T00:00:00Z",
+          "commenceTimeTo": "2026-06-23T23:59:59Z"
         },
         "status_code": 200,
-        "event_count": 8,
-        "usable_row_count": 8,
+        "event_count": 12,
+        "usable_row_count": 12,
         "quality_counts": {
-          "OK": 8
+          "SUSPICIOUS": 1,
+          "OK": 11
         },
         "request_headers": {
-          "x-requests-remaining": "275",
-          "x-requests-used": "225",
+          "x-requests-remaining": "272",
+          "x-requests-used": "228",
           "x-requests-last": "3"
         },
         "error": ""
@@ -90,126 +91,35 @@
     "error": ""
   },
   "odds_quality_counts": {
-    "OK": 8,
-    "SUSPICIOUS": 0,
-    "UNAVAILABLE": 5,
+    "OK": 11,
+    "SUSPICIOUS": 1,
+    "UNAVAILABLE": 3,
     "MISSING": 0
   },
   "candidate_match_summary": {
-    "games_with_candidates": 10,
-    "games_with_moneyline_candidates": 10,
-    "games_with_complete_home_away_prices": 10,
+    "games_with_candidates": 12,
+    "games_with_moneyline_candidates": 12,
+    "games_with_complete_home_away_prices": 12,
     "games_without_candidates": 3
   },
   "top_likely_issues": [
     {
       "issue": "odds_ok",
-      "count": 8
+      "count": 11
     },
     {
       "issue": "no_candidate_odds_found",
       "count": 3
     },
     {
-      "issue": "matching_logic_too_strict_or_schema_mismatch",
-      "count": 2
+      "issue": "unknown",
+      "count": 1
     }
   ],
   "unavailable_games_sample": [
     {
-      "game_id": "822720",
-      "game_date": "2026-06-22",
-      "home_team": "Nationals",
-      "away_team": "Phillies",
-      "normalized_home_team": "nationals",
-      "normalized_away_team": "phillies",
-      "odds_quality_status": "UNAVAILABLE",
-      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
-      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
-      "candidate_count": 50,
-      "candidate_by_game_id_count": 50,
-      "candidate_by_team_name_count": 50,
-      "candidate_moneyline_count": 20,
-      "candidate_closing_count": 24,
-      "candidate_sportsbooks": [
-        "betmgm",
-        "draftkings",
-        "fanduel"
-      ],
-      "candidate_markets": [
-        "moneyline",
-        "spread",
-        "total"
-      ],
-      "has_home_price": true,
-      "has_away_price": true,
-      "likely_issue": "matching_logic_too_strict_or_schema_mismatch",
-      "sample_candidates": [
-        {
-          "game_id": 822720,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T06:54:20.268442Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Nationals",
-          "away_team": "Phillies",
-          "side": "home",
-          "odds": 1.89,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822720,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T06:54:20.268442Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Nationals",
-          "away_team": "Phillies",
-          "side": "away",
-          "odds": 1.96,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822720,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T06:54:20.268442Z",
-          "market": "spread",
-          "bookmaker": "FanDuel",
-          "home_team": "Nationals",
-          "away_team": "Phillies",
-          "side": "home",
-          "odds": 1.6,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822720,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T06:54:20.268442Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Nationals",
-          "away_team": "Phillies",
-          "side": "over",
-          "odds": 1.91,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822720,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T06:54:20.268442Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Nationals",
-          "away_team": "Phillies",
-          "side": "under",
-          "odds": 1.91,
-          "is_closing_snapshot": false
-        }
-      ]
-    },
-    {
-      "game_id": "824344",
-      "game_date": "2026-06-23",
+      "game_id": "824340",
+      "game_date": "2026-06-24",
       "home_team": "Rockies",
       "away_team": "Red Sox",
       "normalized_home_team": "rockies",
@@ -230,8 +140,8 @@
       "sample_candidates": []
     },
     {
-      "game_id": "824016",
-      "game_date": "2026-06-23",
+      "game_id": "824017",
+      "game_date": "2026-06-24",
       "home_team": "Angels",
       "away_team": "Orioles",
       "normalized_home_team": "angels",
@@ -252,12 +162,12 @@
       "sample_candidates": []
     },
     {
-      "game_id": "823288",
-      "game_date": "2026-06-23",
-      "home_team": "Padres",
-      "away_team": "Braves",
-      "normalized_home_team": "padres",
-      "normalized_away_team": "braves",
+      "game_id": "823210",
+      "game_date": "2026-06-24",
+      "home_team": "Giants",
+      "away_team": "Athletics",
+      "normalized_home_team": "giants",
+      "normalized_away_team": "athletics",
       "odds_quality_status": "UNAVAILABLE",
       "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
       "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
@@ -272,479 +182,24 @@
       "has_away_price": false,
       "likely_issue": "no_candidate_odds_found",
       "sample_candidates": []
-    },
-    {
-      "game_id": "823613",
-      "game_date": "2026-06-22",
-      "home_team": "Mets",
-      "away_team": "Cubs",
-      "normalized_home_team": "mets",
-      "normalized_away_team": "cubs",
-      "odds_quality_status": "UNAVAILABLE",
-      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
-      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
-      "candidate_count": 75,
-      "candidate_by_game_id_count": 75,
-      "candidate_by_team_name_count": 75,
-      "candidate_moneyline_count": 30,
-      "candidate_closing_count": 21,
-      "candidate_sportsbooks": [
-        "betmgm",
-        "draftkings",
-        "fanduel"
-      ],
-      "candidate_markets": [
-        "moneyline",
-        "spread",
-        "total"
-      ],
-      "has_home_price": true,
-      "has_away_price": true,
-      "likely_issue": "matching_logic_too_strict_or_schema_mismatch",
-      "sample_candidates": [
-        {
-          "game_id": 823613,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Mets",
-          "away_team": "Cubs",
-          "side": "home",
-          "odds": 1.96,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823613,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Mets",
-          "away_team": "Cubs",
-          "side": "away",
-          "odds": 1.89,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823613,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "spread",
-          "bookmaker": "FanDuel",
-          "home_team": "Mets",
-          "away_team": "Cubs",
-          "side": "home",
-          "odds": 1.55,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823613,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Mets",
-          "away_team": "Cubs",
-          "side": "over",
-          "odds": 1.87,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823613,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Mets",
-          "away_team": "Cubs",
-          "side": "under",
-          "odds": 1.95,
-          "is_closing_snapshot": false
-        }
-      ]
     }
   ],
   "prediction_diagnostics": [
     {
-      "game_id": "824261",
-      "game_date": "2026-06-22",
-      "home_team": "Tigers",
-      "away_team": "Yankees",
-      "normalized_home_team": "tigers",
-      "normalized_away_team": "yankees",
-      "odds_quality_status": "OK",
-      "suspicious_odds_reason": "",
-      "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
-      "candidate_closing_count": 21,
-      "candidate_sportsbooks": [
-        "betmgm",
-        "draftkings",
-        "fanduel"
-      ],
-      "candidate_markets": [
-        "moneyline",
-        "spread",
-        "total"
-      ],
-      "has_home_price": true,
-      "has_away_price": true,
-      "likely_issue": "odds_ok",
-      "sample_candidates": [
-        {
-          "game_id": 824261,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Tigers",
-          "away_team": "Yankees",
-          "side": "home",
-          "odds": 2.06,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 824261,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Tigers",
-          "away_team": "Yankees",
-          "side": "away",
-          "odds": 1.81,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 824261,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "spread",
-          "bookmaker": "FanDuel",
-          "home_team": "Tigers",
-          "away_team": "Yankees",
-          "side": "home",
-          "odds": 1.61,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 824261,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Tigers",
-          "away_team": "Yankees",
-          "side": "over",
-          "odds": 1.85,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 824261,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Tigers",
-          "away_team": "Yankees",
-          "side": "under",
-          "odds": 1.96,
-          "is_closing_snapshot": false
-        }
-      ]
-    },
-    {
-      "game_id": "822964",
-      "game_date": "2026-06-22",
-      "home_team": "Rays",
-      "away_team": "Royals",
-      "normalized_home_team": "rays",
-      "normalized_away_team": "royals",
-      "odds_quality_status": "OK",
-      "suspicious_odds_reason": "",
-      "moneyline_gate_status": "PAPER_BET_EDGE_PASSED",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
-      "candidate_closing_count": 15,
-      "candidate_sportsbooks": [
-        "betmgm",
-        "draftkings",
-        "fanduel"
-      ],
-      "candidate_markets": [
-        "moneyline",
-        "spread",
-        "total"
-      ],
-      "has_home_price": true,
-      "has_away_price": true,
-      "likely_issue": "odds_ok",
-      "sample_candidates": [
-        {
-          "game_id": 822964,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Rays",
-          "away_team": "Royals",
-          "side": "home",
-          "odds": 1.57,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822964,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Rays",
-          "away_team": "Royals",
-          "side": "away",
-          "odds": 2.46,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822964,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "spread",
-          "bookmaker": "FanDuel",
-          "home_team": "Rays",
-          "away_team": "Royals",
-          "side": "home",
-          "odds": 2.34,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822964,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Rays",
-          "away_team": "Royals",
-          "side": "over",
-          "odds": 2.02,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822964,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Rays",
-          "away_team": "Royals",
-          "side": "under",
-          "odds": 1.81,
-          "is_closing_snapshot": false
-        }
-      ]
-    },
-    {
-      "game_id": "823851",
-      "game_date": "2026-06-22",
-      "home_team": "Marlins",
-      "away_team": "Rangers",
-      "normalized_home_team": "marlins",
-      "normalized_away_team": "rangers",
-      "odds_quality_status": "OK",
-      "suspicious_odds_reason": "",
-      "moneyline_gate_status": "PAPER_BET_EDGE_PASSED",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
-      "candidate_closing_count": 17,
-      "candidate_sportsbooks": [
-        "betmgm",
-        "draftkings",
-        "fanduel"
-      ],
-      "candidate_markets": [
-        "moneyline",
-        "spread",
-        "total"
-      ],
-      "has_home_price": true,
-      "has_away_price": true,
-      "likely_issue": "odds_ok",
-      "sample_candidates": [
-        {
-          "game_id": 823851,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Marlins",
-          "away_team": "Rangers",
-          "side": "home",
-          "odds": 1.81,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823851,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Marlins",
-          "away_team": "Rangers",
-          "side": "away",
-          "odds": 2.06,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823851,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "spread",
-          "bookmaker": "FanDuel",
-          "home_team": "Marlins",
-          "away_team": "Rangers",
-          "side": "home",
-          "odds": 2.76,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823851,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Marlins",
-          "away_team": "Rangers",
-          "side": "over",
-          "odds": 1.94,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823851,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Marlins",
-          "away_team": "Rangers",
-          "side": "under",
-          "odds": 1.88,
-          "is_closing_snapshot": false
-        }
-      ]
-    },
-    {
-      "game_id": "822720",
-      "game_date": "2026-06-22",
-      "home_team": "Nationals",
-      "away_team": "Phillies",
-      "normalized_home_team": "nationals",
-      "normalized_away_team": "phillies",
-      "odds_quality_status": "UNAVAILABLE",
-      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
-      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
-      "candidate_count": 50,
-      "candidate_by_game_id_count": 50,
-      "candidate_by_team_name_count": 50,
-      "candidate_moneyline_count": 20,
-      "candidate_closing_count": 24,
-      "candidate_sportsbooks": [
-        "betmgm",
-        "draftkings",
-        "fanduel"
-      ],
-      "candidate_markets": [
-        "moneyline",
-        "spread",
-        "total"
-      ],
-      "has_home_price": true,
-      "has_away_price": true,
-      "likely_issue": "matching_logic_too_strict_or_schema_mismatch",
-      "sample_candidates": [
-        {
-          "game_id": 822720,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T06:54:20.268442Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Nationals",
-          "away_team": "Phillies",
-          "side": "home",
-          "odds": 1.89,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822720,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T06:54:20.268442Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Nationals",
-          "away_team": "Phillies",
-          "side": "away",
-          "odds": 1.96,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822720,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T06:54:20.268442Z",
-          "market": "spread",
-          "bookmaker": "FanDuel",
-          "home_team": "Nationals",
-          "away_team": "Phillies",
-          "side": "home",
-          "odds": 1.6,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822720,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T06:54:20.268442Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Nationals",
-          "away_team": "Phillies",
-          "side": "over",
-          "odds": 1.91,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 822720,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T06:54:20.268442Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Nationals",
-          "away_team": "Phillies",
-          "side": "under",
-          "odds": 1.91,
-          "is_closing_snapshot": false
-        }
-      ]
-    },
-    {
-      "game_id": "822800",
-      "game_date": "2026-06-22",
+      "game_id": "822799",
+      "game_date": "2026-06-23",
       "home_team": "Blue Jays",
       "away_team": "Astros",
       "normalized_home_team": "blue jays",
       "normalized_away_team": "astros",
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
-      "moneyline_gate_status": "PAPER_BET_EDGE_PASSED",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
-      "candidate_closing_count": 21,
+      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
         "draftkings",
@@ -760,82 +215,82 @@
       "likely_issue": "odds_ok",
       "sample_candidates": [
         {
-          "game_id": 822800,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 822799,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "moneyline",
           "bookmaker": "FanDuel",
           "home_team": "Blue Jays",
           "away_team": "Astros",
           "side": "home",
-          "odds": 1.79,
+          "odds": 1.72,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 822800,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 822799,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "moneyline",
           "bookmaker": "FanDuel",
           "home_team": "Blue Jays",
           "away_team": "Astros",
           "side": "away",
-          "odds": 2.08,
+          "odds": 2.18,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 822800,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 822799,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "spread",
           "bookmaker": "FanDuel",
           "home_team": "Blue Jays",
           "away_team": "Astros",
           "side": "home",
-          "odds": 2.76,
+          "odds": 2.46,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 822800,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 822799,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "total",
           "bookmaker": "FanDuel",
           "home_team": "Blue Jays",
           "away_team": "Astros",
           "side": "over",
-          "odds": 1.85,
+          "odds": 1.82,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 822800,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 822799,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "total",
           "bookmaker": "FanDuel",
           "home_team": "Blue Jays",
           "away_team": "Astros",
           "side": "under",
-          "odds": 1.96,
+          "odds": 2.0,
           "is_closing_snapshot": false
         }
       ]
     },
     {
-      "game_id": "824502",
-      "game_date": "2026-06-22",
-      "home_team": "Reds",
-      "away_team": "Brewers",
-      "normalized_home_team": "reds",
-      "normalized_away_team": "brewers",
+      "game_id": "823365",
+      "game_date": "2026-06-23",
+      "home_team": "Pirates",
+      "away_team": "Mariners",
+      "normalized_home_team": "pirates",
+      "normalized_away_team": "mariners",
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
-      "candidate_closing_count": 15,
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
         "draftkings",
@@ -851,61 +306,243 @@
       "likely_issue": "odds_ok",
       "sample_candidates": [
         {
-          "game_id": 824502,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823365,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "moneyline",
           "bookmaker": "FanDuel",
-          "home_team": "Reds",
-          "away_team": "Brewers",
+          "home_team": "Pirates",
+          "away_team": "Mariners",
           "side": "home",
-          "odds": 2.36,
+          "odds": 2.04,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 824502,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823365,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "moneyline",
           "bookmaker": "FanDuel",
-          "home_team": "Reds",
-          "away_team": "Brewers",
+          "home_team": "Pirates",
+          "away_team": "Mariners",
           "side": "away",
-          "odds": 1.62,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 824502,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "spread",
-          "bookmaker": "FanDuel",
-          "home_team": "Reds",
-          "away_team": "Brewers",
-          "side": "home",
           "odds": 1.82,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 824502,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823365,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Pirates",
+          "away_team": "Mariners",
+          "side": "home",
+          "odds": 1.59,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823365,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "total",
           "bookmaker": "FanDuel",
-          "home_team": "Reds",
-          "away_team": "Brewers",
+          "home_team": "Pirates",
+          "away_team": "Mariners",
+          "side": "over",
+          "odds": 2.0,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823365,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Pirates",
+          "away_team": "Mariners",
+          "side": "under",
+          "odds": 1.82,
+          "is_closing_snapshot": false
+        }
+      ]
+    },
+    {
+      "game_id": "822963",
+      "game_date": "2026-06-23",
+      "home_team": "Rays",
+      "away_team": "Royals",
+      "normalized_home_team": "rays",
+      "normalized_away_team": "royals",
+      "odds_quality_status": "OK",
+      "suspicious_odds_reason": "",
+      "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "odds_ok",
+      "sample_candidates": [
+        {
+          "game_id": 822963,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Rays",
+          "away_team": "Royals",
+          "side": "home",
+          "odds": 1.56,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 822963,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Rays",
+          "away_team": "Royals",
+          "side": "away",
+          "odds": 2.52,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 822963,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Rays",
+          "away_team": "Royals",
+          "side": "home",
+          "odds": 2.18,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 822963,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Rays",
+          "away_team": "Royals",
+          "side": "over",
+          "odds": 1.89,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 822963,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Rays",
+          "away_team": "Royals",
+          "side": "under",
+          "odds": 1.93,
+          "is_closing_snapshot": false
+        }
+      ]
+    },
+    {
+      "game_id": "823849",
+      "game_date": "2026-06-23",
+      "home_team": "Marlins",
+      "away_team": "Rangers",
+      "normalized_home_team": "marlins",
+      "normalized_away_team": "rangers",
+      "odds_quality_status": "OK",
+      "suspicious_odds_reason": "",
+      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "odds_ok",
+      "sample_candidates": [
+        {
+          "game_id": 823849,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Marlins",
+          "away_team": "Rangers",
+          "side": "home",
+          "odds": 1.7,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823849,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Marlins",
+          "away_team": "Rangers",
+          "side": "away",
+          "odds": 2.2,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823849,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Marlins",
+          "away_team": "Rangers",
+          "side": "home",
+          "odds": 2.5,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823849,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Marlins",
+          "away_team": "Rangers",
           "side": "over",
           "odds": 1.93,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 824502,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823849,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "total",
           "bookmaker": "FanDuel",
-          "home_team": "Reds",
-          "away_team": "Brewers",
+          "home_team": "Marlins",
+          "away_team": "Rangers",
           "side": "under",
           "odds": 1.89,
           "is_closing_snapshot": false
@@ -913,8 +550,372 @@
       ]
     },
     {
-      "game_id": "823692",
-      "game_date": "2026-06-22",
+      "game_id": "824262",
+      "game_date": "2026-06-23",
+      "home_team": "Tigers",
+      "away_team": "Yankees",
+      "normalized_home_team": "tigers",
+      "normalized_away_team": "yankees",
+      "odds_quality_status": "OK",
+      "suspicious_odds_reason": "",
+      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "odds_ok",
+      "sample_candidates": [
+        {
+          "game_id": 824262,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Tigers",
+          "away_team": "Yankees",
+          "side": "home",
+          "odds": 1.96,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824262,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Tigers",
+          "away_team": "Yankees",
+          "side": "away",
+          "odds": 1.89,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824262,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Tigers",
+          "away_team": "Yankees",
+          "side": "home",
+          "odds": 1.53,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824262,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Tigers",
+          "away_team": "Yankees",
+          "side": "over",
+          "odds": 1.83,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824262,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Tigers",
+          "away_team": "Yankees",
+          "side": "under",
+          "odds": 1.98,
+          "is_closing_snapshot": false
+        }
+      ]
+    },
+    {
+      "game_id": "822718",
+      "game_date": "2026-06-23",
+      "home_team": "Nationals",
+      "away_team": "Phillies",
+      "normalized_home_team": "nationals",
+      "normalized_away_team": "phillies",
+      "odds_quality_status": "OK",
+      "suspicious_odds_reason": "",
+      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "odds_ok",
+      "sample_candidates": [
+        {
+          "game_id": 822718,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Nationals",
+          "away_team": "Phillies",
+          "side": "home",
+          "odds": 2.42,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 822718,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Nationals",
+          "away_team": "Phillies",
+          "side": "away",
+          "odds": 1.6,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 822718,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Nationals",
+          "away_team": "Phillies",
+          "side": "home",
+          "odds": 1.83,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 822718,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Nationals",
+          "away_team": "Phillies",
+          "side": "over",
+          "odds": 1.89,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 822718,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Nationals",
+          "away_team": "Phillies",
+          "side": "under",
+          "odds": 1.93,
+          "is_closing_snapshot": false
+        }
+      ]
+    },
+    {
+      "game_id": "823614",
+      "game_date": "2026-06-23",
+      "home_team": "Mets",
+      "away_team": "Cubs",
+      "normalized_home_team": "mets",
+      "normalized_away_team": "cubs",
+      "odds_quality_status": "OK",
+      "suspicious_odds_reason": "",
+      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "odds_ok",
+      "sample_candidates": [
+        {
+          "game_id": 823614,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Mets",
+          "away_team": "Cubs",
+          "side": "home",
+          "odds": 1.83,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823614,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Mets",
+          "away_team": "Cubs",
+          "side": "away",
+          "odds": 2.02,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823614,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Mets",
+          "away_team": "Cubs",
+          "side": "home",
+          "odds": 1.48,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823614,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Mets",
+          "away_team": "Cubs",
+          "side": "over",
+          "odds": 2.02,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823614,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Mets",
+          "away_team": "Cubs",
+          "side": "under",
+          "odds": 1.81,
+          "is_closing_snapshot": false
+        }
+      ]
+    },
+    {
+      "game_id": "824501",
+      "game_date": "2026-06-23",
+      "home_team": "Reds",
+      "away_team": "Brewers",
+      "normalized_home_team": "reds",
+      "normalized_away_team": "brewers",
+      "odds_quality_status": "OK",
+      "suspicious_odds_reason": "",
+      "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "odds_ok",
+      "sample_candidates": [
+        {
+          "game_id": 824501,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Reds",
+          "away_team": "Brewers",
+          "side": "home",
+          "odds": 2.02,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824501,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Reds",
+          "away_team": "Brewers",
+          "side": "away",
+          "odds": 1.83,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824501,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Reds",
+          "away_team": "Brewers",
+          "side": "home",
+          "odds": 1.62,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824501,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Reds",
+          "away_team": "Brewers",
+          "side": "over",
+          "odds": 1.89,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824501,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Reds",
+          "away_team": "Brewers",
+          "side": "under",
+          "odds": 1.93,
+          "is_closing_snapshot": false
+        }
+      ]
+    },
+    {
+      "game_id": "823690",
+      "game_date": "2026-06-23",
       "home_team": "Twins",
       "away_team": "Dodgers",
       "normalized_home_team": "twins",
@@ -922,11 +923,11 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "PAPER_BET_EDGE_PASSED",
-      "candidate_count": 85,
-      "candidate_by_game_id_count": 85,
-      "candidate_by_team_name_count": 85,
-      "candidate_moneyline_count": 36,
-      "candidate_closing_count": 22,
+      "candidate_count": 14,
+      "candidate_by_game_id_count": 14,
+      "candidate_by_team_name_count": 14,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
         "draftkings",
@@ -942,61 +943,152 @@
       "likely_issue": "odds_ok",
       "sample_candidates": [
         {
-          "game_id": 823692,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823690,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "moneyline",
           "bookmaker": "FanDuel",
           "home_team": "Twins",
           "away_team": "Dodgers",
           "side": "home",
-          "odds": 2.34,
+          "odds": 2.38,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 823692,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823690,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "moneyline",
           "bookmaker": "FanDuel",
           "home_team": "Twins",
           "away_team": "Dodgers",
           "side": "away",
-          "odds": 1.63,
+          "odds": 1.61,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 823692,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823690,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "spread",
           "bookmaker": "FanDuel",
           "home_team": "Twins",
           "away_team": "Dodgers",
           "side": "home",
-          "odds": 1.8,
+          "odds": 1.79,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 823692,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823690,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "total",
           "bookmaker": "FanDuel",
           "home_team": "Twins",
           "away_team": "Dodgers",
           "side": "over",
-          "odds": 2.0,
+          "odds": 1.83,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 823692,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823690,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "total",
           "bookmaker": "FanDuel",
           "home_team": "Twins",
           "away_team": "Dodgers",
+          "side": "under",
+          "odds": 1.98,
+          "is_closing_snapshot": false
+        }
+      ]
+    },
+    {
+      "game_id": "824584",
+      "game_date": "2026-06-23",
+      "home_team": "White Sox",
+      "away_team": "Guardians",
+      "normalized_home_team": "white sox",
+      "normalized_away_team": "guardians",
+      "odds_quality_status": "OK",
+      "suspicious_odds_reason": "",
+      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "odds_ok",
+      "sample_candidates": [
+        {
+          "game_id": 824584,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "White Sox",
+          "away_team": "Guardians",
+          "side": "home",
+          "odds": 1.94,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824584,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "White Sox",
+          "away_team": "Guardians",
+          "side": "away",
+          "odds": 1.91,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824584,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "White Sox",
+          "away_team": "Guardians",
+          "side": "home",
+          "odds": 1.52,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824584,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "White Sox",
+          "away_team": "Guardians",
+          "side": "over",
+          "odds": 2.0,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824584,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "White Sox",
+          "away_team": "Guardians",
           "side": "under",
           "odds": 1.82,
           "is_closing_snapshot": false
@@ -1004,99 +1096,8 @@
       ]
     },
     {
-      "game_id": "824585",
-      "game_date": "2026-06-22",
-      "home_team": "White Sox",
-      "away_team": "Guardians",
-      "normalized_home_team": "white sox",
-      "normalized_away_team": "guardians",
-      "odds_quality_status": "OK",
-      "suspicious_odds_reason": "",
-      "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
-      "candidate_closing_count": 17,
-      "candidate_sportsbooks": [
-        "betmgm",
-        "draftkings",
-        "fanduel"
-      ],
-      "candidate_markets": [
-        "moneyline",
-        "spread",
-        "total"
-      ],
-      "has_home_price": true,
-      "has_away_price": true,
-      "likely_issue": "odds_ok",
-      "sample_candidates": [
-        {
-          "game_id": 824585,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "White Sox",
-          "away_team": "Guardians",
-          "side": "home",
-          "odds": 2.02,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 824585,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "White Sox",
-          "away_team": "Guardians",
-          "side": "away",
-          "odds": 1.83,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 824585,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "spread",
-          "bookmaker": "FanDuel",
-          "home_team": "White Sox",
-          "away_team": "Guardians",
-          "side": "home",
-          "odds": 1.59,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 824585,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "White Sox",
-          "away_team": "Guardians",
-          "side": "over",
-          "odds": 1.81,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 824585,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "White Sox",
-          "away_team": "Guardians",
-          "side": "under",
-          "odds": 2.02,
-          "is_closing_snapshot": false
-        }
-      ]
-    },
-    {
-      "game_id": "823040",
-      "game_date": "2026-06-22",
+      "game_id": "823043",
+      "game_date": "2026-06-23",
       "home_team": "Cardinals",
       "away_team": "D-backs",
       "normalized_home_team": "cardinals",
@@ -1104,11 +1105,11 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
-      "candidate_closing_count": 15,
+      "candidate_count": 15,
+      "candidate_by_game_id_count": 15,
+      "candidate_by_team_name_count": 15,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
         "draftkings",
@@ -1124,70 +1125,70 @@
       "likely_issue": "odds_ok",
       "sample_candidates": [
         {
-          "game_id": 823040,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823043,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "moneyline",
           "bookmaker": "FanDuel",
           "home_team": "Cardinals",
           "away_team": "D-backs",
           "side": "home",
-          "odds": 1.7,
+          "odds": 1.89,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 823040,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823043,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "moneyline",
           "bookmaker": "FanDuel",
           "home_team": "Cardinals",
           "away_team": "D-backs",
           "side": "away",
-          "odds": 2.2,
+          "odds": 1.96,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 823040,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823043,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "spread",
           "bookmaker": "FanDuel",
           "home_team": "Cardinals",
           "away_team": "D-backs",
           "side": "home",
-          "odds": 2.46,
+          "odds": 1.52,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 823040,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823043,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "total",
           "bookmaker": "FanDuel",
           "home_team": "Cardinals",
           "away_team": "D-backs",
           "side": "over",
-          "odds": 1.81,
+          "odds": 1.82,
           "is_closing_snapshot": false
         },
         {
-          "game_id": 823040,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
+          "game_id": 823043,
+          "game_date": "2026-06-23",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
           "market": "total",
           "bookmaker": "FanDuel",
           "home_team": "Cardinals",
           "away_team": "D-backs",
           "side": "under",
-          "odds": 2.02,
+          "odds": 2.0,
           "is_closing_snapshot": false
         }
       ]
     },
     {
-      "game_id": "824344",
-      "game_date": "2026-06-23",
+      "game_id": "824340",
+      "game_date": "2026-06-24",
       "home_team": "Rockies",
       "away_team": "Red Sox",
       "normalized_home_team": "rockies",
@@ -1208,8 +1209,8 @@
       "sample_candidates": []
     },
     {
-      "game_id": "824016",
-      "game_date": "2026-06-23",
+      "game_id": "824017",
+      "game_date": "2026-06-24",
       "home_team": "Angels",
       "away_team": "Orioles",
       "normalized_home_team": "angels",
@@ -1230,12 +1231,103 @@
       "sample_candidates": []
     },
     {
-      "game_id": "823288",
-      "game_date": "2026-06-23",
+      "game_id": "823286",
+      "game_date": "2026-06-24",
       "home_team": "Padres",
       "away_team": "Braves",
       "normalized_home_team": "padres",
       "normalized_away_team": "braves",
+      "odds_quality_status": "SUSPICIOUS",
+      "suspicious_odds_reason": "total outside 5.0-14.5",
+      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
+      "candidate_count": 14,
+      "candidate_by_game_id_count": 14,
+      "candidate_by_team_name_count": 14,
+      "candidate_moneyline_count": 6,
+      "candidate_closing_count": 0,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "unknown",
+      "sample_candidates": [
+        {
+          "game_id": 823286,
+          "game_date": "2026-06-24",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "DraftKings",
+          "home_team": "Padres",
+          "away_team": "Braves",
+          "side": "home",
+          "odds": 1.05,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823286,
+          "game_date": "2026-06-24",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "moneyline",
+          "bookmaker": "DraftKings",
+          "home_team": "Padres",
+          "away_team": "Braves",
+          "side": "away",
+          "odds": 8.7,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823286,
+          "game_date": "2026-06-24",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "spread",
+          "bookmaker": "DraftKings",
+          "home_team": "Padres",
+          "away_team": "Braves",
+          "side": "home",
+          "odds": 5.51,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823286,
+          "game_date": "2026-06-24",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "DraftKings",
+          "home_team": "Padres",
+          "away_team": "Braves",
+          "side": "over",
+          "odds": 3.02,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 823286,
+          "game_date": "2026-06-24",
+          "captured_at": "2026-06-23T04:33:09.182886Z",
+          "market": "total",
+          "bookmaker": "DraftKings",
+          "home_team": "Padres",
+          "away_team": "Braves",
+          "side": "under",
+          "odds": 1.36,
+          "is_closing_snapshot": false
+        }
+      ]
+    },
+    {
+      "game_id": "823210",
+      "game_date": "2026-06-24",
+      "home_team": "Giants",
+      "away_team": "Athletics",
+      "normalized_home_team": "giants",
+      "normalized_away_team": "athletics",
       "odds_quality_status": "UNAVAILABLE",
       "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
       "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
@@ -1250,101 +1342,9 @@
       "has_away_price": false,
       "likely_issue": "no_candidate_odds_found",
       "sample_candidates": []
-    },
-    {
-      "game_id": "823613",
-      "game_date": "2026-06-22",
-      "home_team": "Mets",
-      "away_team": "Cubs",
-      "normalized_home_team": "mets",
-      "normalized_away_team": "cubs",
-      "odds_quality_status": "UNAVAILABLE",
-      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
-      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
-      "candidate_count": 75,
-      "candidate_by_game_id_count": 75,
-      "candidate_by_team_name_count": 75,
-      "candidate_moneyline_count": 30,
-      "candidate_closing_count": 21,
-      "candidate_sportsbooks": [
-        "betmgm",
-        "draftkings",
-        "fanduel"
-      ],
-      "candidate_markets": [
-        "moneyline",
-        "spread",
-        "total"
-      ],
-      "has_home_price": true,
-      "has_away_price": true,
-      "likely_issue": "matching_logic_too_strict_or_schema_mismatch",
-      "sample_candidates": [
-        {
-          "game_id": 823613,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Mets",
-          "away_team": "Cubs",
-          "side": "home",
-          "odds": 1.96,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823613,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "moneyline",
-          "bookmaker": "FanDuel",
-          "home_team": "Mets",
-          "away_team": "Cubs",
-          "side": "away",
-          "odds": 1.89,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823613,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "spread",
-          "bookmaker": "FanDuel",
-          "home_team": "Mets",
-          "away_team": "Cubs",
-          "side": "home",
-          "odds": 1.55,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823613,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Mets",
-          "away_team": "Cubs",
-          "side": "over",
-          "odds": 1.87,
-          "is_closing_snapshot": false
-        },
-        {
-          "game_id": 823613,
-          "game_date": "2026-06-22",
-          "captured_at": "2026-06-22T00:39:47.167177Z",
-          "market": "total",
-          "bookmaker": "FanDuel",
-          "home_team": "Mets",
-          "away_team": "Cubs",
-          "side": "under",
-          "odds": 1.95,
-          "is_closing_snapshot": false
-        }
-      ]
     }
   ],
   "recommendations": [
-    "Relax prediction.py odds matching by adding team-name fallback or schema alias mapping.",
     "No candidate odds found for some games. Verify team-name normalization, game_id alignment, and odds fetch timing."
   ]
 }
