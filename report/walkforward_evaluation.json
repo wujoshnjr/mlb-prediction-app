@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-23T04:34:02.818622Z",
+  "generated_at": "2026-06-23T08:55:23.925700Z",
   "report_type": "walkforward_evaluation_report",
   "status": "warning",
   "input_files": {
@@ -12,13 +12,13 @@
     "finalized_snapshot_outcomes": {
       "path": "data/finalized_snapshot_outcomes.csv",
       "exists": true,
-      "rows": 341,
+      "rows": 343,
       "error": ""
     },
     "legacy_finalized_games": {
       "path": "data/finalized_games.csv",
       "exists": true,
-      "rows": 1136,
+      "rows": 1138,
       "error": ""
     }
   },
@@ -32,48 +32,48 @@
       "away_score",
       "settled_at"
     ],
-    "outcome_rows": 341,
-    "outcome_unique_games": 341,
-    "linked_rows_before_probability_filter": 341,
-    "linked_unique_games_before_probability_filter": 341,
-    "settled_rows_after_probability_filter": 341,
-    "missing_outcome_rows": 23,
+    "outcome_rows": 343,
+    "outcome_unique_games": 343,
+    "linked_rows_before_probability_filter": 343,
+    "linked_unique_games_before_probability_filter": 343,
+    "settled_rows_after_probability_filter": 343,
+    "missing_outcome_rows": 21,
     "probability_diagnostics": {
       "candidate_columns": [
         {
           "column": "predicted_home_win_pct",
-          "valid_count": 341
+          "valid_count": 343
         },
         {
           "column": "premarket_model_home_prob",
-          "valid_count": 341
+          "valid_count": 343
         },
         {
           "column": "displayed_home_win_pct",
-          "valid_count": 341
+          "valid_count": 343
         },
         {
           "column": "model_prob",
-          "valid_count": 341
+          "valid_count": 343
         }
       ],
       "used_columns": [
         "predicted_home_win_pct"
       ],
-      "valid_model_probability_count": 341
+      "valid_model_probability_count": 343
     }
   },
   "min_required_oos_predictions": 300,
   "min_fold_size": 20,
   "target_fold_count": 5,
   "total_oos_predictions": 364,
-  "settled_oos_predictions": 341,
+  "settled_oos_predictions": 343,
   "walkforward_ready": true,
   "fold_count": 5,
-  "collapse_fold_count": 5,
-  "collapse_rate": 1.0,
-  "median_model_brier": 0.255197,
-  "median_model_logloss": 0.702956,
+  "collapse_fold_count": 4,
+  "collapse_rate": 0.8,
+  "median_model_brier": 0.252847,
+  "median_model_logloss": 0.700795,
   "folds": [
     {
       "fold_id": 1,
@@ -122,77 +122,75 @@
       "fold_id": 2,
       "start_snapshot_at": "2026-06-01 03:35:36.736814+00:00",
       "end_snapshot_at": "2026-06-06 06:49:12.996318+00:00",
-      "sample_count": 68,
+      "sample_count": 69,
       "model": {
-        "count": 68,
-        "brier": 0.245051,
-        "logloss": 0.68117,
-        "accuracy": 0.470588,
-        "balanced_accuracy": 0.473593,
-        "probability_mean": 0.514068,
-        "probability_std": 0.110294,
-        "predicted_positive_rate": 0.602941,
-        "predicted_negative_rate": 0.397059
+        "count": 69,
+        "brier": 0.24694,
+        "logloss": 0.685045,
+        "accuracy": 0.463768,
+        "balanced_accuracy": 0.468434,
+        "probability_mean": 0.515497,
+        "probability_std": 0.110124,
+        "predicted_positive_rate": 0.608696,
+        "predicted_negative_rate": 0.391304
       },
       "market_no_vig": {
-        "count": 65,
-        "brier": 0.265351,
-        "logloss": 0.756726,
-        "accuracy": 0.507692,
-        "balanced_accuracy": 0.514286,
-        "probability_mean": 0.523788,
-        "probability_std": 0.178792,
-        "predicted_positive_rate": 0.584615,
-        "predicted_negative_rate": 0.415385
+        "count": 66,
+        "brier": 0.266665,
+        "logloss": 0.758896,
+        "accuracy": 0.5,
+        "balanced_accuracy": 0.508333,
+        "probability_mean": 0.524842,
+        "probability_std": 0.177636,
+        "predicted_positive_rate": 0.590909,
+        "predicted_negative_rate": 0.409091
       },
       "constant_50": {
-        "count": 68,
+        "count": 69,
         "brier": 0.25,
         "logloss": 0.693147,
-        "accuracy": 0.485294,
+        "accuracy": 0.478261,
         "balanced_accuracy": 0.5,
         "probability_mean": 0.5,
         "probability_std": 0.0,
         "predicted_positive_rate": 1.0,
         "predicted_negative_rate": 0.0
       },
-      "collapse_detected": true,
-      "collapse_reasons": [
-        "balanced_accuracy_near_random"
-      ]
+      "collapse_detected": false,
+      "collapse_reasons": []
     },
     {
       "fold_id": 3,
-      "start_snapshot_at": "2026-06-06 06:49:12.996318+00:00",
+      "start_snapshot_at": "2026-06-07 02:19:15.409355+00:00",
       "end_snapshot_at": "2026-06-12 14:38:48.580016+00:00",
-      "sample_count": 68,
+      "sample_count": 69,
       "model": {
-        "count": 68,
-        "brier": 0.267496,
-        "logloss": 0.730229,
-        "accuracy": 0.5,
-        "balanced_accuracy": 0.510526,
-        "probability_mean": 0.463579,
-        "probability_std": 0.119112,
-        "predicted_positive_rate": 0.411765,
-        "predicted_negative_rate": 0.588235
+        "count": 69,
+        "brier": 0.266992,
+        "logloss": 0.729135,
+        "accuracy": 0.492754,
+        "balanced_accuracy": 0.505128,
+        "probability_mean": 0.462549,
+        "probability_std": 0.117385,
+        "predicted_positive_rate": 0.405797,
+        "predicted_negative_rate": 0.594203
       },
       "market_no_vig": {
-        "count": 60,
-        "brier": 0.286048,
-        "logloss": 0.811458,
-        "accuracy": 0.466667,
-        "balanced_accuracy": 0.468013,
-        "probability_mean": 0.466835,
-        "probability_std": 0.167613,
-        "predicted_positive_rate": 0.483333,
-        "predicted_negative_rate": 0.516667
+        "count": 59,
+        "brier": 0.284928,
+        "logloss": 0.809959,
+        "accuracy": 0.474576,
+        "balanced_accuracy": 0.477273,
+        "probability_mean": 0.46469,
+        "probability_std": 0.168208,
+        "predicted_positive_rate": 0.474576,
+        "predicted_negative_rate": 0.525424
       },
       "constant_50": {
-        "count": 68,
+        "count": 69,
         "brier": 0.25,
         "logloss": 0.693147,
-        "accuracy": 0.558824,
+        "accuracy": 0.565217,
         "balanced_accuracy": 0.5,
         "probability_mean": 0.5,
         "probability_std": 0.0,
@@ -212,31 +210,31 @@
       "sample_count": 68,
       "model": {
         "count": 68,
-        "brier": 0.255197,
-        "logloss": 0.702956,
-        "accuracy": 0.485294,
-        "balanced_accuracy": 0.471706,
-        "probability_mean": 0.524809,
-        "probability_std": 0.108963,
-        "predicted_positive_rate": 0.588235,
-        "predicted_negative_rate": 0.411765
+        "brier": 0.250978,
+        "logloss": 0.694325,
+        "accuracy": 0.514706,
+        "balanced_accuracy": 0.496429,
+        "probability_mean": 0.527851,
+        "probability_std": 0.11011,
+        "predicted_positive_rate": 0.602941,
+        "predicted_negative_rate": 0.397059
       },
       "market_no_vig": {
-        "count": 31,
-        "brier": 0.247519,
-        "logloss": 0.688189,
-        "accuracy": 0.580645,
-        "balanced_accuracy": 0.535088,
-        "probability_mean": 0.529745,
-        "probability_std": 0.057635,
-        "predicted_positive_rate": 0.709677,
-        "predicted_negative_rate": 0.290323
+        "count": 33,
+        "brier": 0.24281,
+        "logloss": 0.678664,
+        "accuracy": 0.606061,
+        "balanced_accuracy": 0.547619,
+        "probability_mean": 0.533288,
+        "probability_std": 0.057699,
+        "predicted_positive_rate": 0.727273,
+        "predicted_negative_rate": 0.272727
       },
       "constant_50": {
         "count": 68,
         "brier": 0.25,
         "logloss": 0.693147,
-        "accuracy": 0.573529,
+        "accuracy": 0.588235,
         "balanced_accuracy": 0.5,
         "probability_mean": 0.5,
         "probability_std": 0.0,
@@ -257,31 +255,31 @@
       "sample_count": 68,
       "model": {
         "count": 68,
-        "brier": 0.268709,
-        "logloss": 0.732799,
-        "accuracy": 0.5,
-        "balanced_accuracy": 0.482456,
-        "probability_mean": 0.531069,
-        "probability_std": 0.099491,
-        "predicted_positive_rate": 0.647059,
-        "predicted_negative_rate": 0.352941
+        "brier": 0.270709,
+        "logloss": 0.736959,
+        "accuracy": 0.485294,
+        "balanced_accuracy": 0.474717,
+        "probability_mean": 0.526216,
+        "probability_std": 0.099037,
+        "predicted_positive_rate": 0.617647,
+        "predicted_negative_rate": 0.382353
       },
       "market_no_vig": {
-        "count": 53,
-        "brier": 0.24262,
-        "logloss": 0.700215,
-        "accuracy": 0.566038,
-        "balanced_accuracy": 0.592672,
-        "probability_mean": 0.529105,
-        "probability_std": 0.133881,
-        "predicted_positive_rate": 0.773585,
-        "predicted_negative_rate": 0.226415
+        "count": 51,
+        "brier": 0.245475,
+        "logloss": 0.70685,
+        "accuracy": 0.54902,
+        "balanced_accuracy": 0.586991,
+        "probability_mean": 0.526788,
+        "probability_std": 0.135925,
+        "predicted_positive_rate": 0.764706,
+        "predicted_negative_rate": 0.235294
       },
       "constant_50": {
         "count": 68,
         "brier": 0.25,
         "logloss": 0.693147,
-        "accuracy": 0.558824,
+        "accuracy": 0.544118,
         "balanced_accuracy": 0.5,
         "probability_mean": 0.5,
         "probability_std": 0.0,

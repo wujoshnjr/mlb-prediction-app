@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-23T04:34:25.603603Z",
+  "generated_at": "2026-06-23T08:55:45.318720Z",
   "status": "ok",
   "report_type": "away_guardrail_impact_v1",
   "pipeline_version": "baseline_v2_clean",
@@ -23,19 +23,19 @@
   },
   "summary": {
     "prediction_count": 15,
-    "away_candidate_count": 2,
-    "away_guardrail_applied_count": 2,
+    "away_candidate_count": 1,
+    "away_guardrail_applied_count": 1,
     "away_guardrail_applied_rate": 1.0,
     "retained_away_paper_signal_count": 0,
-    "downgraded_away_tracking_only_count": 2,
-    "home_candidate_count": 1
+    "downgraded_away_tracking_only_count": 1,
+    "home_candidate_count": 2
   },
   "reason_counts": {
     "away_low_selected_probability_vs_home_market": 1,
-    "away_mid_edge_underperforming_bucket": 2
+    "away_mid_edge_underperforming_bucket": 1
   },
   "guardrail_status_counts": {
-    "tracking_only": 2
+    "tracking_only": 1
   },
   "downgraded_examples": [
     {
@@ -43,32 +43,19 @@
       "game_date": "2026-06-23",
       "away_team": "Royals",
       "home_team": "Rays",
-      "moneyline_selected_edge": 0.0582,
-      "away_selected_probability": 0.4366,
-      "market_no_vig_home_prob": 0.6216,
+      "moneyline_selected_edge": 0.0487,
+      "away_selected_probability": 0.4237,
+      "market_no_vig_home_prob": 0.625,
       "away_guardrail_reasons": [
         "away_low_selected_probability_vs_home_market",
-        "away_mid_edge_underperforming_bucket"
-      ],
-      "recommendation_status": "TRACKING_ONLY"
-    },
-    {
-      "game_id": 824501,
-      "game_date": "2026-06-23",
-      "away_team": "Brewers",
-      "home_team": "Reds",
-      "moneyline_selected_edge": 0.0444,
-      "away_selected_probability": 0.5678,
-      "market_no_vig_home_prob": 0.4766,
-      "away_guardrail_reasons": [
         "away_mid_edge_underperforming_bucket"
       ],
       "recommendation_status": "TRACKING_ONLY"
     }
   ],
   "diagnostic_snapshot": {
-    "away_pick_accuracy": 0.4342857142857143,
-    "away_pick_sample_count": 175,
+    "away_pick_accuracy": 0.4350282485875706,
+    "away_pick_sample_count": 177,
     "away_pick_rate": 0.5192307692307693,
     "recommended_guardrails": [
       "Away picks materially underperform home picks; raise away edge threshold.",
