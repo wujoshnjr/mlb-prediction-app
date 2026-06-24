@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-24T20:23:35.230265Z",
+  "generated_at": "2026-06-24T22:02:53.825353Z",
   "report_type": "feature_source_freshness_audit",
   "status": "ok",
   "summary": {
@@ -42,7 +42,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -103,7 +103,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -115,6 +115,86 @@
           ],
           "found_expected_columns": [],
           "column_stats": []
+        }
+      ],
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
+      "promotion_allowed": false
+    },
+    {
+      "feature": "bb_pct_diff",
+      "feature_group": "starting_pitcher",
+      "training_stats": {
+        "exists": true,
+        "row_count": 361,
+        "non_null_count": 184,
+        "missing_rate": 0.4903,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 175,
+        "numeric_count": 184
+      },
+      "source_results": [
+        {
+          "path": "data/pitcher_advanced_context.csv",
+          "exists": true,
+          "row_count": 348,
+          "column_count": 28,
+          "date_range": {
+            "date_column": "game_date",
+            "min_date": "2026-05-30",
+            "max_date": "2026-06-24",
+            "captured_column": "captured_at",
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
+          },
+          "unique_game_id_count": 348,
+          "training_game_id_overlap_count": 330,
+          "training_game_id_overlap_rate": 0.9141,
+          "expected_columns": [
+            "bb_pct_diff",
+            "home_sp_bb_pct",
+            "away_sp_bb_pct"
+          ],
+          "found_expected_columns": [
+            "bb_pct_diff",
+            "home_sp_bb_pct",
+            "away_sp_bb_pct"
+          ],
+          "column_stats": [
+            {
+              "column": "bb_pct_diff",
+              "exists": true,
+              "row_count": 348,
+              "non_null_count": 348,
+              "missing_rate": 0.0,
+              "zero_rate": 0.0259,
+              "non_zero_rate": 0.9741,
+              "unique_count": 298,
+              "numeric_count": 348
+            },
+            {
+              "column": "home_sp_bb_pct",
+              "exists": true,
+              "row_count": 348,
+              "non_null_count": 343,
+              "missing_rate": 0.0144,
+              "zero_rate": 0.0058,
+              "non_zero_rate": 0.9942,
+              "unique_count": 160,
+              "numeric_count": 343
+            },
+            {
+              "column": "away_sp_bb_pct",
+              "exists": true,
+              "row_count": 348,
+              "non_null_count": 344,
+              "missing_rate": 0.0115,
+              "zero_rate": 0.0,
+              "non_zero_rate": 1.0,
+              "unique_count": 168,
+              "numeric_count": 344
+            }
+          ]
         }
       ],
       "issue_flags": [],
@@ -145,7 +225,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -167,21 +247,21 @@
               "row_count": 348,
               "non_null_count": 348,
               "missing_rate": 0.0,
-              "zero_rate": 0.023,
-              "non_zero_rate": 0.977,
-              "unique_count": 325,
+              "zero_rate": 0.0259,
+              "non_zero_rate": 0.9741,
+              "unique_count": 323,
               "numeric_count": 348
             },
             {
               "column": "home_sp_stuff_plus_proxy",
               "exists": true,
               "row_count": 348,
-              "non_null_count": 344,
-              "missing_rate": 0.0115,
+              "non_null_count": 343,
+              "missing_rate": 0.0144,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
               "unique_count": 162,
-              "numeric_count": 344
+              "numeric_count": 343
             },
             {
               "column": "away_sp_stuff_plus_proxy",
@@ -193,85 +273,6 @@
               "non_zero_rate": 1.0,
               "unique_count": 172,
               "numeric_count": 344
-            }
-          ]
-        }
-      ],
-      "issue_flags": [],
-      "recommendation": "ok_to_continue_monitoring",
-      "promotion_allowed": false
-    },
-    {
-      "feature": "bullpen_availability_diff",
-      "feature_group": "bullpen",
-      "training_stats": {
-        "exists": true,
-        "row_count": 361,
-        "non_null_count": 193,
-        "missing_rate": 0.4654,
-        "zero_rate": 0.0,
-        "non_zero_rate": 1.0,
-        "unique_count": 145,
-        "numeric_count": 193
-      },
-      "source_results": [
-        {
-          "path": "data/daily_game_context.csv",
-          "exists": true,
-          "row_count": 3238,
-          "column_count": 108,
-          "date_range": {
-            "date_column": "game_date",
-            "min_date": "2026-05-30",
-            "max_date": "2026-06-24",
-            "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
-          },
-          "unique_game_id_count": 348,
-          "training_game_id_overlap_count": 330,
-          "training_game_id_overlap_rate": 0.9141,
-          "expected_columns": [
-            "bullpen_availability_diff",
-            "home_bullpen_availability",
-            "away_bullpen_availability"
-          ],
-          "found_expected_columns": [],
-          "column_stats": []
-        },
-        {
-          "path": "data/context_feature_bridge.csv",
-          "exists": true,
-          "row_count": 348,
-          "column_count": 20,
-          "date_range": {
-            "date_column": "game_date",
-            "min_date": "2026-05-30",
-            "max_date": "2026-06-24",
-            "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
-          },
-          "unique_game_id_count": 348,
-          "training_game_id_overlap_count": 330,
-          "training_game_id_overlap_rate": 0.9141,
-          "expected_columns": [
-            "bullpen_availability_diff",
-            "home_bullpen_availability",
-            "away_bullpen_availability"
-          ],
-          "found_expected_columns": [
-            "bullpen_availability_diff"
-          ],
-          "column_stats": [
-            {
-              "column": "bullpen_availability_diff",
-              "exists": true,
-              "row_count": 348,
-              "non_null_count": 348,
-              "missing_rate": 0.0,
-              "zero_rate": 0.0603,
-              "non_zero_rate": 0.9397,
-              "unique_count": 228,
-              "numeric_count": 348
             }
           ]
         }
@@ -297,14 +298,14 @@
         {
           "path": "data/daily_game_context.csv",
           "exists": true,
-          "row_count": 3238,
+          "row_count": 3249,
           "column_count": 108,
           "date_range": {
             "date_column": "game_date",
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -327,7 +328,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -360,17 +361,96 @@
       "promotion_allowed": false
     },
     {
-      "feature": "bb_pct_diff",
+      "feature": "bullpen_availability_diff",
+      "feature_group": "bullpen",
+      "training_stats": {
+        "exists": true,
+        "row_count": 361,
+        "non_null_count": 193,
+        "missing_rate": 0.4654,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 145,
+        "numeric_count": 193
+      },
+      "source_results": [
+        {
+          "path": "data/daily_game_context.csv",
+          "exists": true,
+          "row_count": 3249,
+          "column_count": 108,
+          "date_range": {
+            "date_column": "game_date",
+            "min_date": "2026-05-30",
+            "max_date": "2026-06-24",
+            "captured_column": "captured_at",
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
+          },
+          "unique_game_id_count": 348,
+          "training_game_id_overlap_count": 330,
+          "training_game_id_overlap_rate": 0.9141,
+          "expected_columns": [
+            "bullpen_availability_diff",
+            "home_bullpen_availability",
+            "away_bullpen_availability"
+          ],
+          "found_expected_columns": [],
+          "column_stats": []
+        },
+        {
+          "path": "data/context_feature_bridge.csv",
+          "exists": true,
+          "row_count": 348,
+          "column_count": 20,
+          "date_range": {
+            "date_column": "game_date",
+            "min_date": "2026-05-30",
+            "max_date": "2026-06-24",
+            "captured_column": "captured_at",
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
+          },
+          "unique_game_id_count": 348,
+          "training_game_id_overlap_count": 330,
+          "training_game_id_overlap_rate": 0.9141,
+          "expected_columns": [
+            "bullpen_availability_diff",
+            "home_bullpen_availability",
+            "away_bullpen_availability"
+          ],
+          "found_expected_columns": [
+            "bullpen_availability_diff"
+          ],
+          "column_stats": [
+            {
+              "column": "bullpen_availability_diff",
+              "exists": true,
+              "row_count": 348,
+              "non_null_count": 348,
+              "missing_rate": 0.0,
+              "zero_rate": 0.0603,
+              "non_zero_rate": 0.9397,
+              "unique_count": 228,
+              "numeric_count": 348
+            }
+          ]
+        }
+      ],
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
+      "promotion_allowed": false
+    },
+    {
+      "feature": "sp_fip_diff",
       "feature_group": "starting_pitcher",
       "training_stats": {
         "exists": true,
         "row_count": 361,
-        "non_null_count": 184,
-        "missing_rate": 0.4903,
+        "non_null_count": 180,
+        "missing_rate": 0.5014,
         "zero_rate": 0.0,
         "non_zero_rate": 1.0,
-        "unique_count": 175,
-        "numeric_count": 184
+        "unique_count": 180,
+        "numeric_count": 180
       },
       "source_results": [
         {
@@ -383,53 +463,53 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
           "training_game_id_overlap_rate": 0.9141,
           "expected_columns": [
-            "bb_pct_diff",
-            "home_sp_bb_pct",
-            "away_sp_bb_pct"
+            "sp_fip_diff",
+            "home_sp_fip",
+            "away_sp_fip"
           ],
           "found_expected_columns": [
-            "bb_pct_diff",
-            "home_sp_bb_pct",
-            "away_sp_bb_pct"
+            "sp_fip_diff",
+            "home_sp_fip",
+            "away_sp_fip"
           ],
           "column_stats": [
             {
-              "column": "bb_pct_diff",
+              "column": "sp_fip_diff",
               "exists": true,
               "row_count": 348,
               "non_null_count": 348,
               "missing_rate": 0.0,
-              "zero_rate": 0.023,
-              "non_zero_rate": 0.977,
-              "unique_count": 299,
+              "zero_rate": 0.0259,
+              "non_zero_rate": 0.9741,
+              "unique_count": 337,
               "numeric_count": 348
             },
             {
-              "column": "home_sp_bb_pct",
+              "column": "home_sp_fip",
               "exists": true,
               "row_count": 348,
-              "non_null_count": 344,
-              "missing_rate": 0.0115,
-              "zero_rate": 0.0058,
-              "non_zero_rate": 0.9942,
-              "unique_count": 160,
-              "numeric_count": 344
+              "non_null_count": 343,
+              "missing_rate": 0.0144,
+              "zero_rate": 0.0,
+              "non_zero_rate": 1.0,
+              "unique_count": 171,
+              "numeric_count": 343
             },
             {
-              "column": "away_sp_bb_pct",
+              "column": "away_sp_fip",
               "exists": true,
               "row_count": 348,
               "non_null_count": 344,
               "missing_rate": 0.0115,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 168,
+              "unique_count": 182,
               "numeric_count": 344
             }
           ]
@@ -463,7 +543,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -485,21 +565,21 @@
               "row_count": 348,
               "non_null_count": 348,
               "missing_rate": 0.0,
-              "zero_rate": 0.023,
-              "non_zero_rate": 0.977,
-              "unique_count": 321,
+              "zero_rate": 0.0259,
+              "non_zero_rate": 0.9741,
+              "unique_count": 322,
               "numeric_count": 348
             },
             {
               "column": "home_sp_k_pct",
               "exists": true,
               "row_count": 348,
-              "non_null_count": 344,
-              "missing_rate": 0.0115,
+              "non_null_count": 343,
+              "missing_rate": 0.0144,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
               "unique_count": 163,
-              "numeric_count": 344
+              "numeric_count": 343
             },
             {
               "column": "away_sp_k_pct",
@@ -509,87 +589,7 @@
               "missing_rate": 0.0115,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 172,
-              "numeric_count": 344
-            }
-          ]
-        }
-      ],
-      "issue_flags": [],
-      "recommendation": "ok_to_continue_monitoring",
-      "promotion_allowed": false
-    },
-    {
-      "feature": "sp_fip_diff",
-      "feature_group": "starting_pitcher",
-      "training_stats": {
-        "exists": true,
-        "row_count": 361,
-        "non_null_count": 180,
-        "missing_rate": 0.5014,
-        "zero_rate": 0.0,
-        "non_zero_rate": 1.0,
-        "unique_count": 180,
-        "numeric_count": 180
-      },
-      "source_results": [
-        {
-          "path": "data/pitcher_advanced_context.csv",
-          "exists": true,
-          "row_count": 348,
-          "column_count": 28,
-          "date_range": {
-            "date_column": "game_date",
-            "min_date": "2026-05-30",
-            "max_date": "2026-06-24",
-            "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
-          },
-          "unique_game_id_count": 348,
-          "training_game_id_overlap_count": 330,
-          "training_game_id_overlap_rate": 0.9141,
-          "expected_columns": [
-            "sp_fip_diff",
-            "home_sp_fip",
-            "away_sp_fip"
-          ],
-          "found_expected_columns": [
-            "sp_fip_diff",
-            "home_sp_fip",
-            "away_sp_fip"
-          ],
-          "column_stats": [
-            {
-              "column": "sp_fip_diff",
-              "exists": true,
-              "row_count": 348,
-              "non_null_count": 348,
-              "missing_rate": 0.0,
-              "zero_rate": 0.023,
-              "non_zero_rate": 0.977,
-              "unique_count": 338,
-              "numeric_count": 348
-            },
-            {
-              "column": "home_sp_fip",
-              "exists": true,
-              "row_count": 348,
-              "non_null_count": 344,
-              "missing_rate": 0.0115,
-              "zero_rate": 0.0,
-              "non_zero_rate": 1.0,
               "unique_count": 171,
-              "numeric_count": 344
-            },
-            {
-              "column": "away_sp_fip",
-              "exists": true,
-              "row_count": 348,
-              "non_null_count": 344,
-              "missing_rate": 0.0115,
-              "zero_rate": 0.0,
-              "non_zero_rate": 1.0,
-              "unique_count": 183,
               "numeric_count": 344
             }
           ]
@@ -623,7 +623,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T20:17:31.720758+00:00"
+            "max_captured_at": "2026-06-24T21:59:52.004973+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -648,7 +648,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 283,
+              "unique_count": 281,
               "numeric_count": 348
             },
             {
@@ -659,7 +659,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 140,
+              "unique_count": 144,
               "numeric_count": 348
             },
             {
@@ -670,7 +670,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 136,
+              "unique_count": 141,
               "numeric_count": 348
             }
           ]
@@ -704,7 +704,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T20:17:31.720758+00:00"
+            "max_captured_at": "2026-06-24T21:59:52.004973+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -729,7 +729,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 283,
+              "unique_count": 281,
               "numeric_count": 348
             },
             {
@@ -740,7 +740,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 140,
+              "unique_count": 142,
               "numeric_count": 348
             },
             {
@@ -751,88 +751,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 135,
-              "numeric_count": 348
-            }
-          ]
-        }
-      ],
-      "issue_flags": [],
-      "recommendation": "ok_to_continue_monitoring",
-      "promotion_allowed": false
-    },
-    {
-      "feature": "avg_bat_speed_diff",
-      "feature_group": "statcast_batting",
-      "training_stats": {
-        "exists": true,
-        "row_count": 361,
-        "non_null_count": 181,
-        "missing_rate": 0.4986,
-        "zero_rate": 0.0,
-        "non_zero_rate": 1.0,
-        "unique_count": 174,
-        "numeric_count": 181
-      },
-      "source_results": [
-        {
-          "path": "data/savant_top3_context.csv",
-          "exists": true,
-          "row_count": 348,
-          "column_count": 28,
-          "date_range": {
-            "date_column": "game_date",
-            "min_date": "2026-05-30",
-            "max_date": "2026-06-24",
-            "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T20:17:31.720758+00:00"
-          },
-          "unique_game_id_count": 348,
-          "training_game_id_overlap_count": 330,
-          "training_game_id_overlap_rate": 0.9141,
-          "expected_columns": [
-            "avg_bat_speed_diff",
-            "top3_avg_launch_speed_diff",
-            "home_top3_avg_launch_speed",
-            "away_top3_avg_launch_speed"
-          ],
-          "found_expected_columns": [
-            "top3_avg_launch_speed_diff",
-            "home_top3_avg_launch_speed",
-            "away_top3_avg_launch_speed"
-          ],
-          "column_stats": [
-            {
-              "column": "top3_avg_launch_speed_diff",
-              "exists": true,
-              "row_count": 348,
-              "non_null_count": 348,
-              "missing_rate": 0.0,
-              "zero_rate": 0.0,
-              "non_zero_rate": 1.0,
-              "unique_count": 283,
-              "numeric_count": 348
-            },
-            {
-              "column": "home_top3_avg_launch_speed",
-              "exists": true,
-              "row_count": 348,
-              "non_null_count": 348,
-              "missing_rate": 0.0,
-              "zero_rate": 0.0,
-              "non_zero_rate": 1.0,
-              "unique_count": 139,
-              "numeric_count": 348
-            },
-            {
-              "column": "away_top3_avg_launch_speed",
-              "exists": true,
-              "row_count": 348,
-              "non_null_count": 348,
-              "missing_rate": 0.0,
-              "zero_rate": 0.0,
-              "non_zero_rate": 1.0,
-              "unique_count": 135,
+              "unique_count": 138,
               "numeric_count": 348
             }
           ]
@@ -866,7 +785,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T20:17:31.720758+00:00"
+            "max_captured_at": "2026-06-24T21:59:52.004973+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -890,7 +809,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 283,
+              "unique_count": 282,
               "numeric_count": 348
             },
             {
@@ -901,7 +820,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 143,
+              "unique_count": 146,
               "numeric_count": 348
             },
             {
@@ -912,7 +831,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 138,
+              "unique_count": 143,
               "numeric_count": 348
             }
           ]
@@ -927,7 +846,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -969,7 +888,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T20:17:31.720758+00:00"
+            "max_captured_at": "2026-06-24T21:59:52.004973+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -994,7 +913,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 283,
+              "unique_count": 282,
               "numeric_count": 348
             },
             {
@@ -1005,7 +924,7 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 143,
+              "unique_count": 146,
               "numeric_count": 348
             },
             {
@@ -1016,7 +935,88 @@
               "missing_rate": 0.0,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 138,
+              "unique_count": 143,
+              "numeric_count": 348
+            }
+          ]
+        }
+      ],
+      "issue_flags": [],
+      "recommendation": "ok_to_continue_monitoring",
+      "promotion_allowed": false
+    },
+    {
+      "feature": "avg_bat_speed_diff",
+      "feature_group": "statcast_batting",
+      "training_stats": {
+        "exists": true,
+        "row_count": 361,
+        "non_null_count": 181,
+        "missing_rate": 0.4986,
+        "zero_rate": 0.0,
+        "non_zero_rate": 1.0,
+        "unique_count": 174,
+        "numeric_count": 181
+      },
+      "source_results": [
+        {
+          "path": "data/savant_top3_context.csv",
+          "exists": true,
+          "row_count": 348,
+          "column_count": 28,
+          "date_range": {
+            "date_column": "game_date",
+            "min_date": "2026-05-30",
+            "max_date": "2026-06-24",
+            "captured_column": "captured_at",
+            "max_captured_at": "2026-06-24T21:59:52.004973+00:00"
+          },
+          "unique_game_id_count": 348,
+          "training_game_id_overlap_count": 330,
+          "training_game_id_overlap_rate": 0.9141,
+          "expected_columns": [
+            "avg_bat_speed_diff",
+            "top3_avg_launch_speed_diff",
+            "home_top3_avg_launch_speed",
+            "away_top3_avg_launch_speed"
+          ],
+          "found_expected_columns": [
+            "top3_avg_launch_speed_diff",
+            "home_top3_avg_launch_speed",
+            "away_top3_avg_launch_speed"
+          ],
+          "column_stats": [
+            {
+              "column": "top3_avg_launch_speed_diff",
+              "exists": true,
+              "row_count": 348,
+              "non_null_count": 348,
+              "missing_rate": 0.0,
+              "zero_rate": 0.0,
+              "non_zero_rate": 1.0,
+              "unique_count": 282,
+              "numeric_count": 348
+            },
+            {
+              "column": "home_top3_avg_launch_speed",
+              "exists": true,
+              "row_count": 348,
+              "non_null_count": 348,
+              "missing_rate": 0.0,
+              "zero_rate": 0.0,
+              "non_zero_rate": 1.0,
+              "unique_count": 142,
+              "numeric_count": 348
+            },
+            {
+              "column": "away_top3_avg_launch_speed",
+              "exists": true,
+              "row_count": 348,
+              "non_null_count": 348,
+              "missing_rate": 0.0,
+              "zero_rate": 0.0,
+              "non_zero_rate": 1.0,
+              "unique_count": 141,
               "numeric_count": 348
             }
           ]
@@ -1050,7 +1050,7 @@
             "min_date": "2026-05-30",
             "max_date": "2026-06-24",
             "captured_column": "captured_at",
-            "max_captured_at": "2026-06-24T19:58:28.534242+00:00"
+            "max_captured_at": "2026-06-24T21:40:46.563377+00:00"
           },
           "unique_game_id_count": 348,
           "training_game_id_overlap_count": 330,
@@ -1072,21 +1072,21 @@
               "row_count": 348,
               "non_null_count": 348,
               "missing_rate": 0.0,
-              "zero_rate": 0.0287,
-              "non_zero_rate": 0.9713,
-              "unique_count": 309,
+              "zero_rate": 0.0316,
+              "non_zero_rate": 0.9684,
+              "unique_count": 312,
               "numeric_count": 348
             },
             {
               "column": "home_sp_csw_proxy",
               "exists": true,
               "row_count": 348,
-              "non_null_count": 344,
-              "missing_rate": 0.0115,
+              "non_null_count": 343,
+              "missing_rate": 0.0144,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 155,
-              "numeric_count": 344
+              "unique_count": 156,
+              "numeric_count": 343
             },
             {
               "column": "away_sp_csw_proxy",
@@ -1096,7 +1096,7 @@
               "missing_rate": 0.0115,
               "zero_rate": 0.0,
               "non_zero_rate": 1.0,
-              "unique_count": 166,
+              "unique_count": 167,
               "numeric_count": 344
             }
           ]
