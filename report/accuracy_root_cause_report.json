@@ -1,15 +1,15 @@
 {
-  "generated_at": "2026-06-24T04:38:49.722364Z",
+  "generated_at": "2026-06-24T08:54:23.885663Z",
   "report_type": "accuracy_root_cause_report",
   "status": "blocked",
   "summary": {
-    "official_sample_count": 356,
+    "official_sample_count": 358,
     "official_accuracy": 0.4916,
-    "rolling_7d_sample_count": 78,
-    "rolling_7d_accuracy": 0.4359,
-    "rolling_30d_sample_count": 356,
+    "rolling_7d_sample_count": 80,
+    "rolling_7d_accuracy": 0.4375,
+    "rolling_30d_sample_count": 358,
     "rolling_30d_accuracy": 0.4916,
-    "recent_drop_vs_30d": -0.0557,
+    "recent_drop_vs_30d": -0.0541,
     "degraded_day_count": 5,
     "weak_slice_count": 3,
     "inactive_signal_day_count": 1,
@@ -21,9 +21,9 @@
       "severity": "high",
       "title": "近 7 日命中率低於 30 日平均",
       "evidence": [
-        "7d accuracy=0.4359",
+        "7d accuracy=0.4375",
         "30d accuracy=0.4916",
-        "delta=-0.0557"
+        "delta=-0.0541"
       ],
       "repair": "把近期低命中日和 tracking-only 天數獨立顯示；不要用單一總命中率代表模型可用性。"
     },
@@ -32,7 +32,7 @@
       "severity": "critical",
       "title": "模型評估觸發 collapse guardrail",
       "evidence": [
-        "roc_auc=0.5189340813464235",
+        "roc_auc=0.5013888888888889",
         "balanced_accuracy=0.5",
         "predicted_positive_rate=1.0",
         "roc_auc_near_random, balanced_accuracy_near_random, single_class_positive_prediction_collapse, probability_distribution_too_narrow"
@@ -56,7 +56,7 @@
         "fold_count=5",
         "collapse_fold_count=4",
         "collapse_rate=0.8",
-        "settled_oos_predictions=356"
+        "settled_oos_predictions=358"
       ],
       "repair": "把 walk-forward fold collapse 當作發布 gate；近期 fold 未恢復前，網站只做追蹤，不做正式推薦。"
     },
@@ -121,41 +121,41 @@
       "paper_signal_count": 3,
       "paper_signal_accuracy": 0.3333,
       "pending_count": 1,
-      "delta_vs_30d": -0.0471
+      "delta_vs_30d": -0.0472
     }
   ],
   "inactive_signal_days": [
     {
       "game_date": "2026-06-24",
-      "sample_count": 2,
+      "sample_count": 4,
       "accuracy": 0.5,
       "paper_signal_count": 0,
-      "pending_count": 15
+      "pending_count": 13
     }
   ],
   "weak_slices": [
     {
       "slice": "underdogs",
-      "sample_count": 131,
+      "sample_count": 132,
       "correct": 59,
-      "accuracy": 0.4504,
-      "delta_vs_official": -0.0412,
+      "accuracy": 0.447,
+      "delta_vs_official": -0.0447,
       "weak_slice": true
     },
     {
       "slice": "away_picks",
-      "sample_count": 186,
+      "sample_count": 187,
       "correct": 84,
-      "accuracy": 0.4516,
-      "delta_vs_official": -0.04,
+      "accuracy": 0.4492,
+      "delta_vs_official": -0.0424,
       "weak_slice": true
     },
     {
       "slice": "tracking_only",
-      "sample_count": 195,
-      "correct": 92,
-      "accuracy": 0.4718,
-      "delta_vs_official": -0.0198,
+      "sample_count": 197,
+      "correct": 93,
+      "accuracy": 0.4721,
+      "delta_vs_official": -0.0195,
       "weak_slice": true
     }
   ],
@@ -170,11 +170,11 @@
       "probability_distribution_too_narrow"
     ],
     "metrics": {
-      "accuracy": 0.4259,
+      "accuracy": 0.4444,
       "balanced_accuracy": 0.5,
-      "roc_auc": 0.5189,
-      "brier": 0.2758,
-      "logloss": 0.7457,
+      "roc_auc": 0.5014,
+      "brier": 0.2685,
+      "logloss": 0.7308,
       "predicted_positive_rate": 1.0,
       "predicted_negative_rate": 0.0
     }
@@ -191,13 +191,13 @@
   },
   "walkforward": {
     "status": "warning",
-    "settled_oos_predictions": 356,
+    "settled_oos_predictions": 358,
     "min_required_oos_predictions": 300,
     "fold_count": 5,
     "collapse_fold_count": 4,
     "collapse_rate": 0.8,
-    "median_model_brier": 0.254764,
-    "median_model_logloss": 0.70255
+    "median_model_brier": 0.25751,
+    "median_model_logloss": 0.708185
   },
   "feature_source_summary": {
     "feature_count": 62,
@@ -372,58 +372,58 @@
       {
         "feature": "lag30_winrate_diff",
         "decision": "reject_for_now",
-        "brier_delta_vs_core": 0.002421,
-        "logloss_delta_vs_core": 0.005536,
-        "accuracy_delta_vs_core": -0.029269
-      },
-      {
-        "feature": "bullpen_ip_diff",
-        "decision": "reject_for_now",
-        "brier_delta_vs_core": 0.003794,
-        "logloss_delta_vs_core": 0.007254,
-        "accuracy_delta_vs_core": -0.039025
-      },
-      {
-        "feature": "bullpen_availability_diff",
-        "decision": "reject_for_now",
-        "brier_delta_vs_core": 0.004413,
-        "logloss_delta_vs_core": 0.008796,
-        "accuracy_delta_vs_core": -0.039025
-      },
-      {
-        "feature": "k_pct_diff",
-        "decision": "reject_for_now",
-        "brier_delta_vs_core": 0.007453,
-        "logloss_delta_vs_core": 0.016934,
-        "accuracy_delta_vs_core": -0.004879
-      },
-      {
-        "feature": "barrel_pa_diff",
-        "decision": "reject_for_now",
-        "brier_delta_vs_core": 0.010063,
-        "logloss_delta_vs_core": 0.025059,
-        "accuracy_delta_vs_core": -0.043903
-      },
-      {
-        "feature": "hardhit_pa_diff",
-        "decision": "reject_for_now",
-        "brier_delta_vs_core": 0.010674,
-        "logloss_delta_vs_core": 0.026195,
-        "accuracy_delta_vs_core": -0.029269
-      },
-      {
-        "feature": "avg_bat_speed_diff",
-        "decision": "reject_for_now",
-        "brier_delta_vs_core": 0.012123,
-        "logloss_delta_vs_core": 0.029301,
-        "accuracy_delta_vs_core": -0.058537
+        "brier_delta_vs_core": 0.001036,
+        "logloss_delta_vs_core": 0.002783,
+        "accuracy_delta_vs_core": -0.037559
       },
       {
         "feature": "sp_stuff_plus_diff",
         "decision": "reject_for_now",
-        "brier_delta_vs_core": 0.01373,
-        "logloss_delta_vs_core": 0.029658,
-        "accuracy_delta_vs_core": -0.068293
+        "brier_delta_vs_core": 0.001467,
+        "logloss_delta_vs_core": 0.002619,
+        "accuracy_delta_vs_core": -0.056338
+      },
+      {
+        "feature": "bullpen_availability_diff",
+        "decision": "reject_for_now",
+        "brier_delta_vs_core": 0.002666,
+        "logloss_delta_vs_core": 0.005424,
+        "accuracy_delta_vs_core": -0.056338
+      },
+      {
+        "feature": "bullpen_ip_diff",
+        "decision": "reject_for_now",
+        "brier_delta_vs_core": 0.003027,
+        "logloss_delta_vs_core": 0.006304,
+        "accuracy_delta_vs_core": -0.056338
+      },
+      {
+        "feature": "bb_pct_diff",
+        "decision": "reject_for_now",
+        "brier_delta_vs_core": 0.003325,
+        "logloss_delta_vs_core": 0.006877,
+        "accuracy_delta_vs_core": -0.032864
+      },
+      {
+        "feature": "k_pct_diff",
+        "decision": "reject_for_now",
+        "brier_delta_vs_core": 0.004838,
+        "logloss_delta_vs_core": 0.01034,
+        "accuracy_delta_vs_core": -0.037559
+      },
+      {
+        "feature": "sp_fip_diff",
+        "decision": "reject_for_now",
+        "brier_delta_vs_core": 0.004982,
+        "logloss_delta_vs_core": 0.009987,
+        "accuracy_delta_vs_core": -0.028169
+      },
+      {
+        "feature": "barrel_pa_diff",
+        "decision": "reject_for_now",
+        "brier_delta_vs_core": 0.009857,
+        "logloss_delta_vs_core": 0.025067,
+        "accuracy_delta_vs_core": -0.056338
       }
     ]
   },
