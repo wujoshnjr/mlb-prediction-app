@@ -1,53 +1,53 @@
 {
-  "generated_at": "2026-06-24T17:35:15.838166+00:00",
+  "generated_at": "2026-06-24T20:20:50.575808+00:00",
   "status": "ok",
-  "sample_count": 358,
-  "validation_count": 54,
-  "walkforward_oos_predictions": 278,
+  "sample_count": 361,
+  "validation_count": 55,
+  "walkforward_oos_predictions": 281,
   "calibration_ready": false,
   "feature_ready_for_review_count": 14,
   "model_ranking_by_brier": [
     {
       "model_name": "market_no_vig_baseline",
-      "brier": 0.2443249695661328
-    },
-    {
-      "model_name": "lightgbm_market_residual",
-      "brier": 0.2662457644702796
+      "brier": 0.2500216618094809
     },
     {
       "model_name": "logistic_baseline",
-      "brier": 0.27459739863825655
+      "brier": 0.26255840042296624
     },
     {
-      "model_name": "lightgbm_classifier",
-      "brier": 0.2772764876427379
+      "model_name": "lightgbm_market_residual",
+      "brier": 0.2647288199145785
     },
     {
       "model_name": "xgboost_classifier",
-      "brier": 0.27886131623356963
+      "brier": 0.2712209307469651
+    },
+    {
+      "model_name": "lightgbm_classifier",
+      "brier": 0.27474681100910087
     }
   ],
   "model_ranking_by_logloss": [
     {
+      "model_name": "logistic_baseline",
+      "logloss": 0.7185780549220144
+    },
+    {
       "model_name": "market_no_vig_baseline",
-      "logloss": 0.7059202123511173
+      "logloss": 0.7209939836770818
     },
     {
       "model_name": "lightgbm_market_residual",
-      "logloss": 0.7252938411310497
-    },
-    {
-      "model_name": "logistic_baseline",
-      "logloss": 0.7434538478594215
-    },
-    {
-      "model_name": "lightgbm_classifier",
-      "logloss": 0.7497075775761388
+      "logloss": 0.7233731723242053
     },
     {
       "model_name": "xgboost_classifier",
-      "logloss": 0.7532608813787811
+      "logloss": 0.7372118018090604
+    },
+    {
+      "model_name": "lightgbm_classifier",
+      "logloss": 0.7451534517992421
     }
   ],
   "model_ranking_by_accuracy": [
@@ -57,63 +57,63 @@
     },
     {
       "model_name": "logistic_baseline",
-      "accuracy": 0.4444444444444444
-    },
-    {
-      "model_name": "lightgbm_classifier",
-      "accuracy": 0.4444444444444444
+      "accuracy": 0.45454545454545453
     },
     {
       "model_name": "xgboost_classifier",
-      "accuracy": 0.4444444444444444
+      "accuracy": 0.45454545454545453
+    },
+    {
+      "model_name": "lightgbm_classifier",
+      "accuracy": 0.43636363636363634
     },
     {
       "model_name": "lightgbm_market_residual",
-      "accuracy": 0.4
+      "accuracy": 0.4222222222222222
     }
   ],
   "model_ranking_by_ece": [
     {
-      "model_name": "market_no_vig_baseline",
-      "ece": 0.1440858693895813
+      "model_name": "logistic_baseline",
+      "ece": 0.11848327528895149
     },
     {
       "model_name": "xgboost_classifier",
-      "ece": 0.15989718172285297
+      "ece": 0.11948925365101212
+    },
+    {
+      "model_name": "market_no_vig_baseline",
+      "ece": 0.13097144938259914
     },
     {
       "model_name": "lightgbm_classifier",
-      "ece": 0.1615295525334416
-    },
-    {
-      "model_name": "logistic_baseline",
-      "ece": 0.16500363624686765
+      "ece": 0.14326592323665618
     },
     {
       "model_name": "lightgbm_market_residual",
-      "ece": 0.23517299904456454
+      "ece": 0.19901819829670925
     }
   ],
   "model_ranking_by_auc": [
     {
-      "model_name": "market_no_vig_baseline",
-      "auc": 0.6523109243697479
+      "model_name": "lightgbm_market_residual",
+      "auc": 0.6378600823045267
     },
     {
-      "model_name": "lightgbm_market_residual",
-      "auc": 0.6386554621848739
+      "model_name": "market_no_vig_baseline",
+      "auc": 0.6203703703703705
     },
     {
       "model_name": "logistic_baseline",
-      "auc": 0.4805555555555555
+      "auc": 0.48666666666666664
     },
     {
       "model_name": "xgboost_classifier",
-      "auc": 0.4375
+      "auc": 0.44133333333333336
     },
     {
       "model_name": "lightgbm_classifier",
-      "auc": 0.4326388888888889
+      "auc": 0.41600000000000004
     }
   ],
   "models": [
@@ -124,7 +124,7 @@
       "skip_reason": "",
       "train_count": 0,
       "calibration_count": 0,
-      "validation_count": 54,
+      "validation_count": 55,
       "feature_count": 1,
       "features_used": [
         "market_no_vig_home_prob"
@@ -133,11 +133,11 @@
       "calibration_method": "market_baseline",
       "calibration_used": false,
       "calibration_required": false,
-      "brier": 0.2443249695661328,
-      "logloss": 0.7059202123511173,
+      "brier": 0.2500216618094809,
+      "logloss": 0.7209939836770818,
       "accuracy": 0.5555555555555556,
-      "auc": 0.6523109243697479,
-      "ece": 0.1440858693895813,
+      "auc": 0.6203703703703705,
+      "ece": 0.13097144938259914,
       "beats_market_brier": null,
       "beats_market_logloss": null,
       "beats_market_accuracy": null,
@@ -146,7 +146,7 @@
         "market baseline is not a candidate model"
       ],
       "warnings": [
-        "dropped 9 rows with invalid probability"
+        "dropped 10 rows with invalid probability"
       ],
       "errors": [],
       "model_stability_score": 73.0,
@@ -158,9 +158,9 @@
       "trained": true,
       "skipped": false,
       "skip_reason": "",
-      "train_count": 250,
+      "train_count": 252,
       "calibration_count": 54,
-      "validation_count": 54,
+      "validation_count": 55,
       "feature_count": 7,
       "features_used": [
         "elo_diff",
@@ -175,22 +175,21 @@
       "calibration_method": "sigmoid",
       "calibration_used": true,
       "calibration_required": true,
-      "brier": 0.27459739863825655,
-      "logloss": 0.7434538478594215,
-      "accuracy": 0.4444444444444444,
-      "auc": 0.4805555555555555,
-      "ece": 0.16500363624686765,
+      "brier": 0.26255840042296624,
+      "logloss": 0.7185780549220144,
+      "accuracy": 0.45454545454545453,
+      "auc": 0.48666666666666664,
+      "ece": 0.11848327528895149,
       "beats_market_brier": false,
-      "beats_market_logloss": false,
+      "beats_market_logloss": true,
       "beats_market_accuracy": false,
       "promotion_eligible": false,
       "promotion_blockers": [
-        "ece above candidate threshold: 0.1650 > 0.05",
-        "does not beat market brier or logloss"
+        "ece above candidate threshold: 0.1185 > 0.05"
       ],
       "warnings": [],
       "errors": [],
-      "model_stability_score": 69.0,
+      "model_stability_score": 77.0,
       "overfitting_warning": "",
       "small_sample_warning": ""
     },
@@ -199,9 +198,9 @@
       "trained": true,
       "skipped": false,
       "skip_reason": "",
-      "train_count": 250,
+      "train_count": 252,
       "calibration_count": 54,
-      "validation_count": 54,
+      "validation_count": 55,
       "feature_count": 7,
       "features_used": [
         "elo_diff",
@@ -216,17 +215,17 @@
       "calibration_method": "sigmoid",
       "calibration_used": true,
       "calibration_required": true,
-      "brier": 0.2772764876427379,
-      "logloss": 0.7497075775761388,
-      "accuracy": 0.4444444444444444,
-      "auc": 0.4326388888888889,
-      "ece": 0.1615295525334416,
+      "brier": 0.27474681100910087,
+      "logloss": 0.7451534517992421,
+      "accuracy": 0.43636363636363634,
+      "auc": 0.41600000000000004,
+      "ece": 0.14326592323665618,
       "beats_market_brier": false,
       "beats_market_logloss": false,
       "beats_market_accuracy": false,
       "promotion_eligible": false,
       "promotion_blockers": [
-        "ece above candidate threshold: 0.1615 > 0.05",
+        "ece above candidate threshold: 0.1433 > 0.05",
         "does not beat market brier or logloss"
       ],
       "warnings": [],
@@ -240,9 +239,9 @@
       "trained": true,
       "skipped": false,
       "skip_reason": "",
-      "train_count": 250,
+      "train_count": 252,
       "calibration_count": 54,
-      "validation_count": 54,
+      "validation_count": 55,
       "feature_count": 7,
       "features_used": [
         "elo_diff",
@@ -257,17 +256,17 @@
       "calibration_method": "sigmoid",
       "calibration_used": true,
       "calibration_required": true,
-      "brier": 0.27886131623356963,
-      "logloss": 0.7532608813787811,
-      "accuracy": 0.4444444444444444,
-      "auc": 0.4375,
-      "ece": 0.15989718172285297,
+      "brier": 0.2712209307469651,
+      "logloss": 0.7372118018090604,
+      "accuracy": 0.45454545454545453,
+      "auc": 0.44133333333333336,
+      "ece": 0.11948925365101212,
       "beats_market_brier": false,
       "beats_market_logloss": false,
       "beats_market_accuracy": false,
       "promotion_eligible": false,
       "promotion_blockers": [
-        "ece above candidate threshold: 0.1599 > 0.05",
+        "ece above candidate threshold: 0.1195 > 0.05",
         "does not beat market brier or logloss"
       ],
       "warnings": [],
@@ -281,9 +280,9 @@
       "trained": true,
       "skipped": false,
       "skip_reason": "",
-      "train_count": 250,
+      "train_count": 252,
       "calibration_count": 54,
-      "validation_count": 54,
+      "validation_count": 55,
       "feature_count": 8,
       "features_used": [
         "elo_diff",
@@ -299,28 +298,28 @@
       "calibration_method": "market_residual_uncalibrated",
       "calibration_used": false,
       "calibration_required": false,
-      "brier": 0.2662457644702796,
-      "logloss": 0.7252938411310497,
-      "accuracy": 0.4,
-      "auc": 0.6386554621848739,
-      "ece": 0.23517299904456454,
+      "brier": 0.2647288199145785,
+      "logloss": 0.7233731723242053,
+      "accuracy": 0.4222222222222222,
+      "auc": 0.6378600823045267,
+      "ece": 0.19901819829670925,
       "beats_market_brier": false,
       "beats_market_logloss": false,
       "beats_market_accuracy": false,
       "promotion_eligible": false,
       "promotion_blockers": [
-        "ece above candidate threshold: 0.2352 > 0.05",
+        "ece above candidate threshold: 0.1990 > 0.05",
         "does not beat market brier or logloss"
       ],
       "warnings": [
-        "dropped_invalid_market_prob_rows: train=38, validation=9"
+        "dropped_invalid_market_prob_rows: train=40, validation=10"
       ],
       "errors": [],
       "residual_train_count": 212,
       "residual_validation_count": 45,
       "dropped_invalid_market_prob_rows": {
-        "train": 38,
-        "validation": 9
+        "train": 40,
+        "validation": 10
       },
       "model_stability_score": 65.0,
       "overfitting_warning": "",
@@ -330,43 +329,43 @@
   "model_vs_market_comparison": {
     "lightgbm_classifier": {
       "beats_market_brier": false,
-      "beats_market_logloss": true,
+      "beats_market_logloss": false,
       "beats_market_accuracy": false,
-      "delta_brier": 0.013042707136964427,
-      "delta_logloss": -1.272363926030362e-05,
-      "delta_accuracy": -0.08225872132482692,
-      "brier_skill_score_vs_market": -0.04977204355170084
+      "delta_brier": 0.012970010205287985,
+      "delta_logloss": 0.0001706144058508663,
+      "delta_accuracy": -0.07963880666511458,
+      "brier_skill_score_vs_market": -0.04948952649175453
     },
     "logistic_baseline": {
       "beats_market_brier": true,
       "beats_market_logloss": true,
       "beats_market_accuracy": false,
-      "delta_brier": -0.0022575086251551135,
-      "delta_logloss": -0.03197040847965249,
-      "delta_accuracy": -0.028301886792452824,
-      "brier_skill_score_vs_market": 0.008614838655015
+      "delta_brier": -0.0025237623797964015,
+      "delta_logloss": -0.03226101564129058,
+      "delta_accuracy": -0.029816742608175073,
+      "brier_skill_score_vs_market": 0.00962989258889746
     },
     "market_residual_model": {
       "beats_market_brier": false,
       "beats_market_logloss": false,
       "beats_market_accuracy": false,
-      "delta_brier": 0.0058081007489506065,
-      "delta_logloss": 0.00978227671289389,
-      "delta_accuracy": -0.009433962264150941,
-      "brier_skill_score_vs_market": -0.022164190332093714
+      "delta_brier": 0.005285695972414739,
+      "delta_logloss": 0.008735561999689612,
+      "delta_accuracy": -0.004672897196261738,
+      "brier_skill_score_vs_market": -0.020168572477107904
     },
     "xgboost_classifier": {
       "beats_market_brier": false,
       "beats_market_logloss": true,
       "beats_market_accuracy": false,
-      "delta_brier": 0.004228485587844777,
-      "delta_logloss": -0.017438745155583857,
-      "delta_accuracy": -0.04269037600108594,
-      "brier_skill_score_vs_market": -0.016136248911047257
+      "delta_brier": 0.004442004877897587,
+      "delta_logloss": -0.01674564809015311,
+      "delta_accuracy": -0.04049289919180499,
+      "brier_skill_score_vs_market": -0.01694930956889973
     }
   },
   "recommended_champion": null,
-  "recommended_challenger": "lightgbm_market_residual",
+  "recommended_challenger": "logistic_baseline",
   "no_promotion_reason": [
     "no model is promotion eligible"
   ],
