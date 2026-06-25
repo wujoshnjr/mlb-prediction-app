@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-06-25T20:27:52.759933+00:00",
+  "generated_at": "2026-06-25T22:42:22.237745+00:00",
   "prediction_report": {
     "exists": true,
     "error": "",
     "scheduled_game_count": 9,
     "prediction_count": 9,
-    "generated_at": "2026-06-25T20:27:50.865383Z",
+    "generated_at": "2026-06-25T22:42:20.263895Z",
     "report_date": ""
   },
   "market_odds_history": {
     "exists": true,
     "error": "",
-    "total_rows": 49163,
-    "moneyline_rows": 19641,
-    "closing_rows": 6900,
+    "total_rows": 49263,
+    "moneyline_rows": 19679,
+    "closing_rows": 6922,
     "columns": [
       "odds_snapshot_id",
       "pipeline_version",
@@ -47,7 +47,7 @@
   "daily_context": {
     "exists": true,
     "error": "",
-    "total_rows": 3302
+    "total_rows": 3308
   },
   "prediction_snapshots": {
     "exists": true,
@@ -76,11 +76,12 @@
         "event_count": 7,
         "usable_row_count": 7,
         "quality_counts": {
-          "OK": 7
+          "SUSPICIOUS": 1,
+          "OK": 6
         },
         "request_headers": {
-          "x-requests-remaining": "212",
-          "x-requests-used": "288",
+          "x-requests-remaining": "209",
+          "x-requests-used": "291",
           "x-requests-last": "3"
         },
         "error": ""
@@ -90,8 +91,8 @@
     "error": ""
   },
   "odds_quality_counts": {
-    "OK": 7,
-    "SUSPICIOUS": 0,
+    "OK": 6,
+    "SUSPICIOUS": 1,
     "UNAVAILABLE": 2,
     "MISSING": 0
   },
@@ -104,11 +105,15 @@
   "top_likely_issues": [
     {
       "issue": "odds_ok",
-      "count": 7
+      "count": 6
     },
     {
       "issue": "matching_logic_too_strict_or_schema_mismatch",
       "count": 2
+    },
+    {
+      "issue": "unknown",
+      "count": 1
     }
   ],
   "unavailable_games_sample": [
@@ -485,13 +490,13 @@
       "away_team": "Athletics",
       "normalized_home_team": "giants",
       "normalized_away_team": "athletics",
-      "odds_quality_status": "OK",
-      "suspicious_odds_reason": "",
-      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 105,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 105,
-      "candidate_moneyline_count": 42,
+      "odds_quality_status": "SUSPICIOUS",
+      "suspicious_odds_reason": "home moneyline above 10.00; away moneyline below 1.05; total outside 5.0-14.5",
+      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
+      "candidate_count": 115,
+      "candidate_by_game_id_count": 100,
+      "candidate_by_team_name_count": 115,
+      "candidate_moneyline_count": 44,
       "candidate_closing_count": 44,
       "candidate_sportsbooks": [
         "betmgm",
@@ -505,7 +510,7 @@
       ],
       "has_home_price": true,
       "has_away_price": true,
-      "likely_issue": "odds_ok",
+      "likely_issue": "unknown",
       "sample_candidates": [
         {
           "game_id": 823208,
@@ -579,11 +584,11 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 89,
-      "candidate_by_game_id_count": 89,
-      "candidate_by_team_name_count": 89,
-      "candidate_moneyline_count": 36,
-      "candidate_closing_count": 0,
+      "candidate_count": 104,
+      "candidate_by_game_id_count": 104,
+      "candidate_by_team_name_count": 104,
+      "candidate_moneyline_count": 42,
+      "candidate_closing_count": 22,
       "candidate_sportsbooks": [
         "betmgm",
         "draftkings",
@@ -670,10 +675,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
+      "candidate_count": 105,
+      "candidate_by_game_id_count": 105,
+      "candidate_by_team_name_count": 105,
+      "candidate_moneyline_count": 42,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -761,10 +766,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
+      "candidate_count": 105,
+      "candidate_by_game_id_count": 105,
+      "candidate_by_team_name_count": 105,
+      "candidate_moneyline_count": 42,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -852,10 +857,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
+      "candidate_count": 105,
+      "candidate_by_game_id_count": 105,
+      "candidate_by_team_name_count": 105,
+      "candidate_moneyline_count": 42,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -943,10 +948,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
+      "candidate_count": 105,
+      "candidate_by_game_id_count": 105,
+      "candidate_by_team_name_count": 105,
+      "candidate_moneyline_count": 42,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -1034,10 +1039,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 90,
-      "candidate_by_game_id_count": 90,
-      "candidate_by_team_name_count": 90,
-      "candidate_moneyline_count": 36,
+      "candidate_count": 105,
+      "candidate_by_game_id_count": 105,
+      "candidate_by_team_name_count": 105,
+      "candidate_moneyline_count": 42,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",

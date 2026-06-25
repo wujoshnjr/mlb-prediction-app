@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-25T20:27:56.339154+00:00",
+  "generated_at": "2026-06-25T22:42:25.926689+00:00",
   "input_files": {
     "prediction": {
       "exists": true,
@@ -13,7 +13,7 @@
     "market_odds_history": {
       "exists": true,
       "error": "",
-      "rows": 49163
+      "rows": 49263
     },
     "finalized_games": {
       "exists": true,
@@ -26,20 +26,18 @@
     "paper_bet_count": 0,
     "live_bet_candidate_count": 0,
     "betting_readiness_status_counts": {
-      "odds_blocked": 2,
-      "model_blocked": 6,
+      "odds_blocked": 3,
+      "model_blocked": 5,
       "away_guardrail_tracking_only": 1
     },
     "risk_flag_counts": {
       "closer_high_fatigue": 9,
       "data_quality_bet_blocked": 9,
-      "edge_unavailable": 2,
+      "edge_unavailable": 3,
       "model_governance_live_locked": 9,
-      "odds_not_ok": 2,
+      "odds_not_ok": 3,
       "starter_confirmation_pending": 9,
-      "edge_below_threshold": 6,
-      "context_missing_fields": 4,
-      "lineup_not_confirmed": 4
+      "edge_below_threshold": 5
     }
   },
   "settled_performance": {
@@ -166,7 +164,6 @@
   "recommendations": [
     "Settled sample size is below 300; evaluation is useful for debugging but not production betting.",
     "Current live_bet_candidate_count is 0; risk controls are blocking all real-bet candidates, which is expected during early model validation.",
-    "Lineup confirmation remains a major blocker; projected or confirmed lineup integration should be prioritized.",
     "Closer high fatigue risk is present; keep stake_multiplier conservative or require manual review."
   ]
 }
