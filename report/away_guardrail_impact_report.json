@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-25T17:34:47.331326Z",
+  "generated_at": "2026-06-25T20:28:21.987020Z",
   "status": "ok",
   "report_type": "away_guardrail_impact_v1",
   "pipeline_version": "baseline_v2_clean",
@@ -23,42 +23,28 @@
   },
   "summary": {
     "prediction_count": 9,
-    "away_candidate_count": 2,
-    "away_guardrail_applied_count": 2,
+    "away_candidate_count": 1,
+    "away_guardrail_applied_count": 1,
     "away_guardrail_applied_rate": 1.0,
     "retained_away_paper_signal_count": 0,
-    "downgraded_away_tracking_only_count": 2,
+    "downgraded_away_tracking_only_count": 1,
     "home_candidate_count": 0
   },
   "reason_counts": {
-    "away_low_selected_probability_vs_home_market": 1,
     "away_mid_edge_underperforming_bucket": 1
   },
   "guardrail_status_counts": {
-    "tracking_only": 2
+    "tracking_only": 1
   },
   "downgraded_examples": [
-    {
-      "game_id": 823366,
-      "game_date": "2026-06-25",
-      "away_team": "Mariners",
-      "home_team": "Pirates",
-      "moneyline_selected_edge": 0.1728,
-      "away_selected_probability": 0.3833,
-      "market_no_vig_home_prob": 0.7895,
-      "away_guardrail_reasons": [
-        "away_low_selected_probability_vs_home_market"
-      ],
-      "recommendation_status": "TRACKING_ONLY"
-    },
     {
       "game_id": 824747,
       "game_date": "2026-06-25",
       "away_team": "Yankees",
       "home_team": "Red Sox",
-      "moneyline_selected_edge": 0.0527,
-      "away_selected_probability": 0.6266,
-      "market_no_vig_home_prob": 0.426,
+      "moneyline_selected_edge": 0.0571,
+      "away_selected_probability": 0.6296,
+      "market_no_vig_home_prob": 0.4275,
       "away_guardrail_reasons": [
         "away_mid_edge_underperforming_bucket"
       ],
@@ -66,10 +52,11 @@
     }
   ],
   "diagnostic_snapshot": {
-    "away_pick_accuracy": 0.4489795918367347,
-    "away_pick_sample_count": 196,
+    "away_pick_accuracy": 0.4444444444444444,
+    "away_pick_sample_count": 198,
     "away_pick_rate": 0.5231958762886598,
     "recommended_guardrails": [
+      "Away picks materially underperform home picks; raise away edge threshold.",
       "Away underdogs are weak; require stronger edge or downgrade to tracking-only.",
       "Large away edges may be market-disagreement artifacts; cap or downgrade large away edges until CLV evidence improves."
     ]

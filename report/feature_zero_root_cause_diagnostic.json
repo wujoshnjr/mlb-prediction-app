@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-25T17:34:39.595640+00:00",
+  "generated_at": "2026-06-25T20:28:14.549133+00:00",
   "prediction_count": 9,
   "feature_zero_summary": [
     {
@@ -317,22 +317,22 @@
     {
       "feature": "temp_effect",
       "missing_count": 0,
-      "zero_count": 9,
-      "non_zero_count": 0,
-      "zero_rate": 1.0,
-      "non_zero_rate": 0.0,
+      "zero_count": 7,
+      "non_zero_count": 2,
+      "zero_rate": 0.7778,
+      "non_zero_rate": 0.2222,
       "source": "weather",
       "source_status": "present",
-      "likely_root_cause": "source_present_but_not_integrated_or_no_signal",
+      "likely_root_cause": "repaired_or_active",
       "expected_neutral_zero": false
     },
     {
       "feature": "wind_effect",
       "missing_count": 0,
-      "zero_count": 6,
-      "non_zero_count": 3,
-      "zero_rate": 0.6667,
-      "non_zero_rate": 0.3333,
+      "zero_count": 7,
+      "non_zero_count": 2,
+      "zero_rate": 0.7778,
+      "non_zero_rate": 0.2222,
       "source": "weather",
       "source_status": "present",
       "likely_root_cause": "repaired_or_active",
@@ -431,9 +431,7 @@
       "bullpen_availability_diff"
     ]
   },
-  "still_zero_features": [
-    "temp_effect"
-  ],
+  "still_zero_features": [],
   "repaired_features": [
     "avg_bat_speed_diff",
     "back2back_diff",
@@ -460,10 +458,11 @@
     "statcast_hard_hit_diff",
     "statcast_launch_speed_diff",
     "statcast_woba_diff",
+    "temp_effect",
     "top3_woba_diff",
     "wind_effect"
   ],
   "recommendations": [
-    "weather source exists but these features remain all-zero: ['temp_effect']"
+    "All tracked feature sources have at least one non-zero feature."
   ]
 }
