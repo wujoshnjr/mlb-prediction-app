@@ -1,17 +1,17 @@
 {
-  "generated_at": "2026-06-25T22:26:56.419823+00:00",
+  "generated_at": "2026-06-26T00:17:53.403054+00:00",
   "status": "ok",
   "pipeline_version": "baseline_v2_clean",
   "snapshot_policy": "first_seen_pregame",
   "raw_snapshot_rows": 388,
-  "finalized_outcome_rows": 376,
-  "linked_rows": 376,
-  "clean_training_rows": 376,
+  "finalized_outcome_rows": 377,
+  "linked_rows": 377,
+  "clean_training_rows": 377,
   "dropped_empty_game_id_rows": 0,
   "dropped_post_start_rows": 0,
   "dropped_invalid_snapshot_rows": 0,
   "dropped_pipeline_mismatch_rows": 0,
-  "dropped_missing_outcome_rows": 12,
+  "dropped_missing_outcome_rows": 11,
   "leakage_columns_removed": [
     "away_score",
     "closing_away_odds",
@@ -33,13 +33,13 @@
     "finalized_snapshot_outcomes": {
       "path": "data/finalized_snapshot_outcomes.csv",
       "exists": true,
-      "rows": 376,
+      "rows": 377,
       "error": ""
     }
   },
   "errors": [],
   "warnings": [
-    "Converted 5356 structural zero-filled context feature cells to missing values with indicators."
+    "Converted 5362 structural zero-filled context feature cells to missing values with indicators."
   ],
   "recommendations": [
     "Downstream shadow models should use imputers with missing indicators and should not promote repaired features until time-ordered Brier/logloss improve."
@@ -51,7 +51,7 @@
     "enabled": true,
     "policy": "zero values in tracking-only context features are converted to missing when their availability flags are not true",
     "feature_count_checked": 26,
-    "total_repaired_cells": 5356,
+    "total_repaired_cells": 5362,
     "features": [
       {
         "feature": "sp_fip_diff",
@@ -264,8 +264,8 @@
         "available_flag_columns_present": [
           "lineup_context_available"
         ],
-        "zero_count_before_repair": 376,
-        "structural_missing_rows_repaired": 376,
+        "zero_count_before_repair": 377,
+        "structural_missing_rows_repaired": 377,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "platoon_ops_diff_missing"
       },
@@ -303,8 +303,8 @@
         "available_flag_columns_present": [
           "team_form_available"
         ],
-        "zero_count_before_repair": 354,
-        "structural_missing_rows_repaired": 354,
+        "zero_count_before_repair": 355,
+        "structural_missing_rows_repaired": 355,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "rest_diff_missing"
       },
@@ -316,8 +316,8 @@
         "available_flag_columns_present": [
           "team_form_available"
         ],
-        "zero_count_before_repair": 348,
-        "structural_missing_rows_repaired": 348,
+        "zero_count_before_repair": 349,
+        "structural_missing_rows_repaired": 349,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "back2back_diff_missing"
       },
@@ -329,8 +329,8 @@
         "available_flag_columns_present": [
           "team_form_available"
         ],
-        "zero_count_before_repair": 126,
-        "structural_missing_rows_repaired": 126,
+        "zero_count_before_repair": 127,
+        "structural_missing_rows_repaired": 127,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "games_last_3d_diff_missing"
       },
@@ -381,8 +381,8 @@
         "available_flag_columns_present": [
           "weather_available"
         ],
-        "zero_count_before_repair": 345,
-        "structural_missing_rows_repaired": 345,
+        "zero_count_before_repair": 346,
+        "structural_missing_rows_repaired": 346,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "temp_effect_missing"
       },
@@ -394,8 +394,8 @@
         "available_flag_columns_present": [
           "weather_available"
         ],
-        "zero_count_before_repair": 340,
-        "structural_missing_rows_repaired": 340,
+        "zero_count_before_repair": 341,
+        "structural_missing_rows_repaired": 341,
         "true_zero_rows_retained": 0,
         "missing_indicator_column": "precip_effect_missing"
       }
