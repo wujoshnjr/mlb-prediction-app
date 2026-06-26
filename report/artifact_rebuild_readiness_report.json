@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-06-26T00:41:56.872877+00:00",
-  "status": "blocked",
+  "generated_at": "2026-06-26T05:40:33.085666+00:00",
+  "status": "ok",
   "report_type": "artifact_rebuild_readiness_v1",
   "input_files": {
     "training_samples": {
       "path": "data/training_samples.csv",
       "exists": true,
-      "rows": 377,
+      "rows": 382,
       "error": ""
     },
     "training_status": {
@@ -46,8 +46,8 @@
       "type": "dict"
     }
   },
-  "training_samples_row_count": 377,
-  "training_status_sample_count": 377,
+  "training_samples_row_count": 382,
+  "training_status_sample_count": 382,
   "training_status_trained": true,
   "model_artifact_valid": true,
   "model_artifact_reason": "ok",
@@ -55,33 +55,27 @@
   "model_status_consistency_status": "ok",
   "model_status_consistency_sample_count_consistent": true,
   "model_status_consistency_mismatch_count": 0,
-  "model_lab_sample_count": 377,
+  "model_lab_sample_count": 382,
   "model_lab_best_by_brier": "logistic_baseline",
   "model_lab_best_by_logloss": "logistic_baseline",
   "model_lab_best_by_ece": "logistic_baseline",
-  "walk_forward_ready": false,
-  "walk_forward_total_oos_predictions": 297,
-  "walk_forward_unique_oos_games": 297,
-  "walk_forward_max_model_oos": 297,
+  "walk_forward_ready": true,
+  "walk_forward_total_oos_predictions": 302,
+  "walk_forward_unique_oos_games": 302,
+  "walk_forward_max_model_oos": 302,
   "minimum_clean_train_samples": 300,
   "minimum_promotion_samples": 500,
   "minimum_walk_forward_oos": 300,
-  "artifact_rebuild_allowed": false,
-  "artifact_rebuild_status": "blocked",
+  "artifact_rebuild_allowed": true,
+  "artifact_rebuild_status": "ready_for_rebuild",
   "artifact_quarantine_required": false,
   "promotion_candidate_allowed": false,
   "production_model_replacement_allowed": false,
   "live_betting_allowed": false,
   "automated_wagering_allowed": false,
-  "blockers": [
-    {
-      "code": "insufficient_walk_forward_oos_for_readiness",
-      "detail": "Max model OOS is 297, need at least 300."
-    }
-  ],
+  "blockers": [],
   "warnings": [],
   "recommendations": [
-    "Do not rebuild artifact until readiness blockers are resolved.",
     "Do not consider promotion until at least 500 clean finalized samples are available.",
     "Production model replacement remains disabled by policy."
   ]

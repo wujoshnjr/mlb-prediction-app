@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-06-26T00:41:56.827243+00:00",
-  "status": "insufficient_evidence",
-  "readiness_score": 71.43,
+  "generated_at": "2026-06-26T05:40:33.009091+00:00",
+  "status": "blocked",
+  "readiness_score": 78.57,
   "research_promotion_allowed": false,
   "official_model_replacement_allowed": false,
   "production_model_replacement_allowed": false,
@@ -19,16 +19,16 @@
     "max_ece": 0.05
   },
   "evidence_summary": {
-    "clean_settled_samples": 377,
-    "train_eligible_samples": 377,
-    "linked_games": 377,
-    "pending_not_final": 11,
-    "model_lab_sample_count": 377,
-    "walkforward_oos_predictions": 297,
-    "calibration_sample_count": 377,
-    "calibration_ece": 0.07979522546419095,
-    "feature_candidate_shadow_count": 14,
-    "feature_ready_for_review_count": 13,
+    "clean_settled_samples": 382,
+    "train_eligible_samples": 382,
+    "linked_games": 382,
+    "pending_not_final": 21,
+    "model_lab_sample_count": 382,
+    "walkforward_oos_predictions": 302,
+    "calibration_sample_count": 382,
+    "calibration_ece": 0.08100497382198953,
+    "feature_candidate_shadow_count": 18,
+    "feature_ready_for_review_count": 9,
     "prediction_trust": {
       "total": 0,
       "strong_A_B": 0,
@@ -37,10 +37,10 @@
       "counts": {}
     },
     "market_edge": {
-      "any_model_beats_market_brier": false,
+      "any_model_beats_market_brier": true,
       "any_model_beats_market_logloss": true,
-      "best_brier_delta": 0.0002783190021083959,
-      "best_logloss_delta": -0.024152884114967077,
+      "best_brier_delta": -0.000601640149296645,
+      "best_logloss_delta": -0.02540165867885069,
       "best_brier_model": "logistic_baseline",
       "best_logloss_model": "logistic_baseline"
     },
@@ -64,8 +64,8 @@
       "name": "finalized_linkage_gate",
       "passed": true,
       "current": {
-        "linked_games": 377,
-        "pending_not_final": 11,
+        "linked_games": 382,
+        "pending_not_final": 21,
         "api_not_found_or_failed": 0
       },
       "required": "linked_games > 0 and api_not_found_or_failed == 0",
@@ -76,7 +76,7 @@
     {
       "name": "train_sample_gate",
       "passed": true,
-      "current": 377,
+      "current": 382,
       "required": 300,
       "blocker": "",
       "warning": "",
@@ -85,9 +85,9 @@
     {
       "name": "promotion_sample_gate",
       "passed": false,
-      "current": 377,
+      "current": 382,
       "required": 500,
-      "blocker": "clean settled samples below promotion threshold: 377 < 500",
+      "blocker": "clean settled samples below promotion threshold: 382 < 500",
       "warning": "",
       "details": {}
     },
@@ -95,7 +95,7 @@
       "name": "model_lab_gate",
       "passed": true,
       "current": {
-        "sample_count": 377,
+        "sample_count": 382,
         "best_shadow_model": "logistic_baseline",
         "champion_candidate": null
       },
@@ -106,10 +106,10 @@
     },
     {
       "name": "walk_forward_oos_gate",
-      "passed": false,
-      "current": 297,
+      "passed": true,
+      "current": 302,
       "required": 300,
-      "blocker": "walk-forward OOS predictions below threshold: 297 < 300",
+      "blocker": "",
       "warning": "",
       "details": {}
     },
@@ -117,10 +117,10 @@
       "name": "market_comparison_gate",
       "passed": true,
       "current": {
-        "any_model_beats_market_brier": false,
+        "any_model_beats_market_brier": true,
         "any_model_beats_market_logloss": true,
-        "best_brier_delta": 0.0002783190021083959,
-        "best_logloss_delta": -0.024152884114967077,
+        "best_brier_delta": -0.000601640149296645,
+        "best_logloss_delta": -0.02540165867885069,
         "best_brier_model": "logistic_baseline",
         "best_logloss_model": "logistic_baseline"
       },
@@ -158,9 +158,9 @@
       "name": "calibration_gate",
       "passed": false,
       "current": {
-        "sample_count": 377,
+        "sample_count": 382,
         "calibration_ready": false,
-        "ece": 0.07979522546419095
+        "ece": 0.08100497382198953
       },
       "required": {
         "sample_count": 300,
@@ -175,8 +175,8 @@
       "name": "feature_governance_gate",
       "passed": false,
       "current": {
-        "candidate_shadow_count": 14,
-        "ready_for_review_count": 13
+        "candidate_shadow_count": 18,
+        "ready_for_review_count": 9
       },
       "required": "features remain in shadow unless reviewed",
       "blocker": "feature governance report unavailable or invalid",
@@ -202,7 +202,7 @@
       "name": "shadow_ensemble_gate",
       "passed": true,
       "current": {
-        "sample_count": 297,
+        "sample_count": 302,
         "recommended_shadow_ensemble": "logistic_stacking",
         "promotion_eligible": false
       },
@@ -244,9 +244,8 @@
   ],
   "blockers": [
     "calibration sample count, readiness, or ECE threshold not satisfied",
-    "clean settled samples below promotion threshold: 377 < 500",
-    "feature governance report unavailable or invalid",
-    "walk-forward OOS predictions below threshold: 297 < 300"
+    "clean settled samples below promotion threshold: 382 < 500",
+    "feature governance report unavailable or invalid"
   ],
   "warnings": [
     "C/D trust grades should be monitored but do not block research readiness by themselves",
@@ -337,9 +336,8 @@
     }
   },
   "next_recommended_actions": [
-    "Accumulate 123 more clean settled samples for promotion-grade review.",
-    "Accumulate 3 more walk-forward OOS predictions.",
-    "Improve calibration: ECE 0.0798 is above 0.05.",
+    "Accumulate 118 more clean settled samples for promotion-grade review.",
+    "Improve calibration: ECE 0.0810 is above 0.05.",
     "Keep official prediction on current calibrated logistic baseline until all gates pass.",
     "Keep LightGBM, XGBoost, residual, and ensemble outputs shadow-only.",
     "Do not lower sample gates to force promotion."

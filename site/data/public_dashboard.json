@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-06-26T00:41:59.991794Z",
-  "source_generated_at": "2026-06-26T00:41:34.816892Z",
+  "generated_at": "2026-06-26T05:40:37.994483Z",
+  "source_generated_at": "2026-06-26T05:39:57.100540Z",
   "pipeline_version": "baseline_v2_clean",
   "site_version": "public_dashboard_v2_paper_board",
   "public_disclaimer": "Research dashboard only. No betting advice, no automated wagering, and no live-betting enablement.",
@@ -25,58 +25,58 @@
   "metrics": {
     "scheduled_game_count": 15,
     "game_count": 15,
-    "clean_settled_sample_count": 377,
+    "clean_settled_sample_count": 382,
     "minimum_train_samples": 300,
     "avg_clv": 0.1219,
     "positive_clv_rate_pct": 56.4,
     "repo_anomaly_errors": 0,
     "data_contract_errors": 0,
-    "model_auc": 0.5062,
-    "model_brier": 0.2541,
-    "official_accuracy_pct": 48.3,
+    "model_auc": 0.5418,
+    "model_brier": 0.256,
+    "official_accuracy_pct": 48.2,
     "daily_accuracy_status": "ok"
   },
   "performance": {
     "official_accuracy": {
-      "sample_count": 377,
-      "correct": 182,
-      "accuracy": 0.4827586206896552,
-      "brier": 0.25707178164456235,
-      "logloss": 0.7079620105167423,
+      "sample_count": 382,
+      "correct": 184,
+      "accuracy": 0.4816753926701571,
+      "brier": 0.25731134641361253,
+      "logloss": 0.7084417598197985,
       "source": "trusted_finalized_snapshot_outcomes"
     },
     "rolling_windows": {
       "7d": {
-        "sample_count": 89,
-        "correct": 37,
-        "accuracy": 0.4157303370786517
+        "sample_count": 94,
+        "correct": 39,
+        "accuracy": 0.4148936170212766
       },
       "30d": {
-        "sample_count": 377,
-        "correct": 182,
-        "accuracy": 0.4827586206896552
+        "sample_count": 382,
+        "correct": 184,
+        "accuracy": 0.4816753926701571
       }
     },
     "slices": {
       "home_picks": {
-        "sample_count": 179,
+        "sample_count": 181,
         "correct": 94,
-        "accuracy": 0.5251396648044693
+        "accuracy": 0.5193370165745856
       },
       "away_picks": {
-        "sample_count": 198,
-        "correct": 88,
-        "accuracy": 0.4444444444444444
+        "sample_count": 201,
+        "correct": 90,
+        "accuracy": 0.44776119402985076
       },
       "favorites": {
-        "sample_count": 166,
-        "correct": 90,
-        "accuracy": 0.5421686746987951
+        "sample_count": 170,
+        "correct": 91,
+        "accuracy": 0.5352941176470588
       },
       "underdogs": {
-        "sample_count": 142,
-        "correct": 61,
-        "accuracy": 0.4295774647887324
+        "sample_count": 143,
+        "correct": 62,
+        "accuracy": 0.43356643356643354
       },
       "paper_signals": {
         "sample_count": 163,
@@ -84,13 +84,13 @@
         "accuracy": 0.5153374233128835
       },
       "tracking_only": {
-        "sample_count": 214,
-        "correct": 98,
-        "accuracy": 0.45794392523364486
+        "sample_count": 219,
+        "correct": 100,
+        "accuracy": 0.45662100456621
       }
     },
     "pending_predictions": {
-      "count": 26,
+      "count": 21,
       "latest_game_date": "2026-06-27",
       "invalid_scored_count": 0,
       "reason": "unsettled_or_missing_outcome"
@@ -104,13 +104,13 @@
     },
     "latest_daily": {
       "game_date": "2026-06-25",
-      "sample_count": 5,
-      "correct": 0,
-      "accuracy": 0.0,
+      "sample_count": 10,
+      "correct": 2,
+      "accuracy": 0.2,
       "paper_signal_count": 0,
       "paper_signal_correct": 0,
       "paper_signal_accuracy": null,
-      "pending_count": 6
+      "pending_count": 1
     },
     "interpretation": {
       "official_accuracy_available": true,
@@ -119,17 +119,17 @@
     }
   },
   "accuracy_root_cause": {
-    "generated_at": "2026-06-26T00:41:58.694152Z",
+    "generated_at": "2026-06-26T05:40:35.931192Z",
     "report_type": "accuracy_root_cause_report",
     "status": "blocked",
     "summary": {
-      "official_sample_count": 377,
-      "official_accuracy": 0.4828,
-      "rolling_7d_sample_count": 89,
-      "rolling_7d_accuracy": 0.4157,
-      "rolling_30d_sample_count": 377,
-      "rolling_30d_accuracy": 0.4828,
-      "recent_drop_vs_30d": -0.067,
+      "official_sample_count": 382,
+      "official_accuracy": 0.4817,
+      "rolling_7d_sample_count": 94,
+      "rolling_7d_accuracy": 0.4149,
+      "rolling_30d_sample_count": 382,
+      "rolling_30d_accuracy": 0.4817,
+      "recent_drop_vs_30d": -0.0668,
       "degraded_day_count": 6,
       "weak_slice_count": 3,
       "inactive_signal_day_count": 1,
@@ -141,9 +141,9 @@
         "severity": "high",
         "title": "近 7 日命中率低於 30 日平均",
         "evidence": [
-          "7d accuracy=0.4157",
-          "30d accuracy=0.4828",
-          "delta=-0.0670"
+          "7d accuracy=0.4149",
+          "30d accuracy=0.4817",
+          "delta=-0.0668"
         ],
         "repair": "把近期低命中日和 tracking-only 天數獨立顯示；不要用單一總命中率代表模型可用性。"
       },
@@ -152,10 +152,10 @@
         "severity": "critical",
         "title": "模型評估觸發 collapse guardrail",
         "evidence": [
-          "roc_auc=0.5061728395061729",
-          "balanced_accuracy=0.5",
-          "predicted_positive_rate=1.0",
-          "roc_auc_near_random, balanced_accuracy_near_random, single_class_positive_prediction_collapse, probability_distribution_too_narrow, brier_near_random_0_25, logloss_near_random_0_693"
+          "roc_auc=0.5418181818181819",
+          "balanced_accuracy=0.5254545454545454",
+          "predicted_positive_rate=0.9310344827586207",
+          "single_class_positive_prediction_collapse, brier_near_random_0_25, logloss_near_random_0_693"
         ],
         "repair": "正式站只顯示 tracking-only；模型不可 promotion。先修 feature coverage、再重跑 time-ordered evaluation。"
       },
@@ -176,7 +176,7 @@
           "fold_count=5",
           "collapse_fold_count=5",
           "collapse_rate=1.0",
-          "settled_oos_predictions=377"
+          "settled_oos_predictions=382"
         ],
         "repair": "把 walk-forward fold collapse 當作發布 gate；近期 fold 未恢復前，網站只做追蹤，不做正式推薦。"
       },
@@ -201,7 +201,7 @@
         "paper_signal_count": 4,
         "paper_signal_accuracy": 0.75,
         "pending_count": 0,
-        "delta_vs_30d": -0.0939
+        "delta_vs_30d": -0.0928
       },
       {
         "game_date": "2026-06-18",
@@ -211,7 +211,7 @@
         "paper_signal_count": 2,
         "paper_signal_accuracy": 0.0,
         "pending_count": 1,
-        "delta_vs_30d": -0.0828
+        "delta_vs_30d": -0.0817
       },
       {
         "game_date": "2026-06-19",
@@ -221,7 +221,7 @@
         "paper_signal_count": 1,
         "paper_signal_accuracy": 1.0,
         "pending_count": 0,
-        "delta_vs_30d": -0.0542
+        "delta_vs_30d": -0.0531
       },
       {
         "game_date": "2026-06-21",
@@ -231,7 +231,7 @@
         "paper_signal_count": 5,
         "paper_signal_accuracy": 0.2,
         "pending_count": 1,
-        "delta_vs_30d": -0.167
+        "delta_vs_30d": -0.1659
       },
       {
         "game_date": "2026-06-22",
@@ -241,51 +241,51 @@
         "paper_signal_count": 3,
         "paper_signal_accuracy": 0.3333,
         "pending_count": 0,
-        "delta_vs_30d": -0.0828
+        "delta_vs_30d": -0.0817
       },
       {
         "game_date": "2026-06-25",
-        "sample_count": 5,
-        "correct": 0,
-        "accuracy": 0.0,
+        "sample_count": 10,
+        "correct": 2,
+        "accuracy": 0.2,
         "paper_signal_count": 0,
         "paper_signal_accuracy": null,
-        "pending_count": 6,
-        "delta_vs_30d": -0.4828
+        "pending_count": 1,
+        "delta_vs_30d": -0.2817
       }
     ],
     "inactive_signal_days": [
       {
         "game_date": "2026-06-25",
-        "sample_count": 5,
-        "accuracy": 0.0,
+        "sample_count": 10,
+        "accuracy": 0.2,
         "paper_signal_count": 0,
-        "pending_count": 6
+        "pending_count": 1
       }
     ],
     "weak_slices": [
       {
         "slice": "underdogs",
-        "sample_count": 142,
-        "correct": 61,
-        "accuracy": 0.4296,
-        "delta_vs_official": -0.0532,
+        "sample_count": 143,
+        "correct": 62,
+        "accuracy": 0.4336,
+        "delta_vs_official": -0.0481,
         "weak_slice": true
       },
       {
         "slice": "away_picks",
-        "sample_count": 198,
-        "correct": 88,
-        "accuracy": 0.4444,
-        "delta_vs_official": -0.0383,
+        "sample_count": 201,
+        "correct": 90,
+        "accuracy": 0.4478,
+        "delta_vs_official": -0.0339,
         "weak_slice": true
       },
       {
         "slice": "tracking_only",
-        "sample_count": 214,
-        "correct": 98,
-        "accuracy": 0.4579,
-        "delta_vs_official": -0.0248,
+        "sample_count": 219,
+        "correct": 100,
+        "accuracy": 0.4566,
+        "delta_vs_official": -0.0251,
         "weak_slice": true
       }
     ],
@@ -294,21 +294,18 @@
       "model_has_no_discrimination_power": true,
       "do_not_promote": true,
       "collapse_reasons": [
-        "roc_auc_near_random",
-        "balanced_accuracy_near_random",
         "single_class_positive_prediction_collapse",
-        "probability_distribution_too_narrow",
         "brier_near_random_0_25",
         "logloss_near_random_0_693"
       ],
       "metrics": {
-        "accuracy": 0.4737,
-        "balanced_accuracy": 0.5,
-        "roc_auc": 0.5062,
-        "brier": 0.2541,
-        "logloss": 0.7014,
-        "predicted_positive_rate": 1.0,
-        "predicted_negative_rate": 0.0
+        "accuracy": 0.4655,
+        "balanced_accuracy": 0.5255,
+        "roc_auc": 0.5418,
+        "brier": 0.256,
+        "logloss": 0.7052,
+        "predicted_positive_rate": 0.931,
+        "predicted_negative_rate": 0.069
       }
     },
     "baseline_gate": {
@@ -323,13 +320,13 @@
     },
     "walkforward": {
       "status": "warning",
-      "settled_oos_predictions": 377,
+      "settled_oos_predictions": 382,
       "min_required_oos_predictions": 300,
       "fold_count": 5,
       "collapse_fold_count": 5,
       "collapse_rate": 1.0,
-      "median_model_brier": 0.259704,
-      "median_model_logloss": 0.712864
+      "median_model_brier": 0.262229,
+      "median_model_logloss": 0.719028
     },
     "feature_source_summary": {
       "feature_count": 62,
@@ -504,58 +501,58 @@
         {
           "feature": "lag30_winrate_diff",
           "decision": "reject_for_now",
-          "brier_delta_vs_core": 0.001278,
-          "logloss_delta_vs_core": 0.002971,
-          "accuracy_delta_vs_core": -0.053333
+          "brier_delta_vs_core": 3.9e-05,
+          "logloss_delta_vs_core": 0.000201,
+          "accuracy_delta_vs_core": -0.044445
         },
         {
           "feature": "bb_pct_diff",
           "decision": "reject_for_now",
-          "brier_delta_vs_core": 0.003894,
-          "logloss_delta_vs_core": 0.008439,
-          "accuracy_delta_vs_core": -0.044444
+          "brier_delta_vs_core": 0.00119,
+          "logloss_delta_vs_core": 0.002438,
+          "accuracy_delta_vs_core": -0.022223
         },
         {
           "feature": "sp_fip_diff",
           "decision": "reject_for_now",
-          "brier_delta_vs_core": 0.004876,
-          "logloss_delta_vs_core": 0.009892,
-          "accuracy_delta_vs_core": -0.026666
+          "brier_delta_vs_core": 0.005968,
+          "logloss_delta_vs_core": 0.012443,
+          "accuracy_delta_vs_core": -0.031112
         },
         {
           "feature": "bullpen_availability_diff",
           "decision": "reject_for_now",
-          "brier_delta_vs_core": 0.005726,
-          "logloss_delta_vs_core": 0.012325,
-          "accuracy_delta_vs_core": -0.017778
+          "brier_delta_vs_core": 0.006148,
+          "logloss_delta_vs_core": 0.013343,
+          "accuracy_delta_vs_core": -0.022223
         },
         {
           "feature": "bullpen_ip_diff",
           "decision": "reject_for_now",
-          "brier_delta_vs_core": 0.007009,
-          "logloss_delta_vs_core": 0.015498,
-          "accuracy_delta_vs_core": -0.044444
+          "brier_delta_vs_core": 0.007187,
+          "logloss_delta_vs_core": 0.015966,
+          "accuracy_delta_vs_core": -0.048889
         },
         {
           "feature": "k_pct_diff",
           "decision": "reject_for_now",
-          "brier_delta_vs_core": 0.010621,
-          "logloss_delta_vs_core": 0.024393,
-          "accuracy_delta_vs_core": -0.013333
+          "brier_delta_vs_core": 0.007869,
+          "logloss_delta_vs_core": 0.018027,
+          "accuracy_delta_vs_core": -0.004445
         },
         {
           "feature": "sp_stuff_plus_diff",
           "decision": "reject_for_now",
-          "brier_delta_vs_core": 0.011964,
-          "logloss_delta_vs_core": 0.02824,
-          "accuracy_delta_vs_core": -0.026666
+          "brier_delta_vs_core": 0.012163,
+          "logloss_delta_vs_core": 0.029319,
+          "accuracy_delta_vs_core": -0.04
         },
         {
           "feature": "barrel_pa_diff",
           "decision": "reject_for_now",
-          "brier_delta_vs_core": 0.015613,
-          "logloss_delta_vs_core": 0.044022,
-          "accuracy_delta_vs_core": -0.062222
+          "brier_delta_vs_core": 0.013536,
+          "logloss_delta_vs_core": 0.03967,
+          "accuracy_delta_vs_core": -0.053334
         }
       ]
     },
@@ -572,7 +569,7 @@
   },
   "governance_summary": {
     "block_reasons": [
-      "clean_model_sample_count_below_live_min:377<500",
+      "clean_model_sample_count_below_live_min:382<500",
       "force_paper_trading_only_enabled",
       "live_betting_locked_for_personal_research_engine"
     ],
@@ -684,10 +681,10 @@
       "status": "Preview",
       "home_team": "Tigers",
       "away_team": "Astros",
-      "home_win_probability_pct": 47.5,
-      "market_home_probability_pct": 52.5,
-      "model_edge_home_pct": -4.9,
-      "model_disagreement_pct": 4.9,
+      "home_win_probability_pct": 47.8,
+      "market_home_probability_pct": 52.2,
+      "model_edge_home_pct": -4.4,
+      "model_disagreement_pct": 4.4,
       "recommendation_label": "TRACKING ONLY",
       "recommendation_raw": "Astros ML",
       "recommendation_status": "TRACKING_ONLY",
@@ -702,7 +699,7 @@
       "away_probable_pitcher_name": "Spencer Arrighetti",
       "risk_profile": "blocked",
       "risk_flags": [
-        "closer_fatigue",
+        "closer_high_fatigue",
         "context_missing_fields",
         "data_quality_bet_blocked",
         "lineup_not_confirmed",
@@ -719,8 +716,8 @@
         "status": "OK",
         "source": "BetMGM, DraftKings, FanDuel",
         "home_moneyline_decimal": 1.83,
-        "away_moneyline_decimal": 2.02,
-        "spread_line": 0.0,
+        "away_moneyline_decimal": 2.0,
+        "spread_line": 1.5,
         "total_line": 8.5
       },
       "governance": {
@@ -728,7 +725,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -741,10 +738,10 @@
       "status": "Preview",
       "home_team": "Pirates",
       "away_team": "Reds",
-      "home_win_probability_pct": 62.1,
-      "market_home_probability_pct": 66.2,
-      "model_edge_home_pct": -4.1,
-      "model_disagreement_pct": 4.1,
+      "home_win_probability_pct": 61.4,
+      "market_home_probability_pct": 65.9,
+      "model_edge_home_pct": -4.5,
+      "model_disagreement_pct": 4.5,
       "recommendation_label": "TRACKING ONLY",
       "recommendation_raw": "Reds ML",
       "recommendation_status": "TRACKING_ONLY",
@@ -774,18 +771,18 @@
       ],
       "odds_context": {
         "status": "OK",
-        "source": "FanDuel",
+        "source": "BetMGM, DraftKings, FanDuel",
         "home_moneyline_decimal": 1.45,
-        "away_moneyline_decimal": 2.84,
+        "away_moneyline_decimal": 2.8,
         "spread_line": -1.5,
-        "total_line": 8.0
+        "total_line": 7.5
       },
       "governance": {
         "mode": "paper_trading_only",
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -798,14 +795,14 @@
       "status": "Preview",
       "home_team": "Orioles",
       "away_team": "Nationals",
-      "home_win_probability_pct": 53.1,
-      "market_home_probability_pct": 56.4,
-      "model_edge_home_pct": -3.3,
-      "model_disagreement_pct": 3.3,
+      "home_win_probability_pct": 54.9,
+      "market_home_probability_pct": 56.3,
+      "model_edge_home_pct": -1.4,
+      "model_disagreement_pct": 1.4,
       "recommendation_label": "TRACKING ONLY",
-      "recommendation_raw": "Nationals ML",
+      "recommendation_raw": "NO BET",
       "recommendation_status": "TRACKING_ONLY",
-      "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
+      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
       "data_quality_grade": "C",
       "prediction_allowed": true,
       "bet_allowed": false,
@@ -819,30 +816,31 @@
         "closer_high_fatigue",
         "context_missing_fields",
         "data_quality_bet_blocked",
+        "edge_below_threshold",
         "lineup_not_confirmed",
         "model_governance_live_locked",
         "starter_confirmation_pending"
       ],
       "public_notes": [
-        "Missing critical fields: home_lineup_confirmed, away_lineup_confirmed",
-        "Missing context: home_lineup_confirmed, away_lineup_confirmed",
-        "Context status: pitcher=high_confidence_probable, lineup=pending, bullpen=available, closer=known.",
-        "Lineup projection: missing."
+        "Best edge 1.4% is below required 3.0%.",
+        "Home edge: -1.4%; away edge: 1.4%.",
+        "Gate status: TRACKING_ONLY_EDGE_BELOW_THRESHOLD.",
+        "Model source: ml."
       ],
       "odds_context": {
         "status": "OK",
-        "source": "FanDuel",
+        "source": "BetMGM, DraftKings, FanDuel",
         "home_moneyline_decimal": 1.7,
-        "away_moneyline_decimal": 2.2,
+        "away_moneyline_decimal": 2.19,
         "spread_line": -1.5,
-        "total_line": 8.5
+        "total_line": 9.0
       },
       "governance": {
         "mode": "paper_trading_only",
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -856,9 +854,9 @@
       "home_team": "Blue Jays",
       "away_team": "Rangers",
       "home_win_probability_pct": 53.3,
-      "market_home_probability_pct": 49.2,
-      "model_edge_home_pct": 4.1,
-      "model_disagreement_pct": 4.1,
+      "market_home_probability_pct": 49.1,
+      "model_edge_home_pct": 4.2,
+      "model_disagreement_pct": 4.2,
       "recommendation_label": "TRACKING ONLY",
       "recommendation_raw": "Blue Jays ML",
       "recommendation_status": "PAPER_BET",
@@ -873,7 +871,7 @@
       "away_probable_pitcher_name": "Nathan Eovaldi",
       "risk_profile": "blocked",
       "risk_flags": [
-        "closer_fatigue",
+        "closer_high_fatigue",
         "context_missing_fields",
         "data_quality_bet_blocked",
         "lineup_not_confirmed",
@@ -882,7 +880,7 @@
         "starter_confirmation_pending"
       ],
       "public_notes": [
-        "Selected edge 4.1% passed threshold 3.0%.",
+        "Selected edge 4.2% passed threshold 3.0%.",
         "Odds quality passed.",
         "Model source: ml.",
         "Pregame context: TRACKING_ONLY_CONTEXT_NOT_READY."
@@ -891,7 +889,7 @@
         "status": "OK",
         "source": "BetMGM, DraftKings, FanDuel",
         "home_moneyline_decimal": 1.95,
-        "away_moneyline_decimal": 1.89,
+        "away_moneyline_decimal": 1.88,
         "spread_line": 1.5,
         "total_line": 8.5
       },
@@ -900,7 +898,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -913,10 +911,10 @@
       "status": "Preview",
       "home_team": "Guardians",
       "away_team": "Mariners",
-      "home_win_probability_pct": 53.7,
+      "home_win_probability_pct": 53.3,
       "market_home_probability_pct": 50.9,
-      "model_edge_home_pct": 2.7,
-      "model_disagreement_pct": 2.7,
+      "model_edge_home_pct": 2.4,
+      "model_disagreement_pct": 2.4,
       "recommendation_label": "TRACKING ONLY",
       "recommendation_raw": "NO BET",
       "recommendation_status": "TRACKING_ONLY",
@@ -940,8 +938,8 @@
         "starter_confirmation_pending"
       ],
       "public_notes": [
-        "Best edge 2.7% is below required 3.0%.",
-        "Home edge: 2.7%; away edge: -2.7%.",
+        "Best edge 2.4% is below required 3.0%.",
+        "Home edge: 2.4%; away edge: -2.4%.",
         "Gate status: TRACKING_ONLY_EDGE_BELOW_THRESHOLD.",
         "Model source: ml."
       ],
@@ -958,7 +956,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -971,51 +969,52 @@
       "status": "Preview",
       "home_team": "Rays",
       "away_team": "D-backs",
-      "home_win_probability_pct": 52.4,
-      "market_home_probability_pct": 53.3,
-      "model_edge_home_pct": -0.9,
-      "model_disagreement_pct": 0.9,
+      "home_win_probability_pct": 51.4,
+      "market_home_probability_pct": 56.2,
+      "model_edge_home_pct": -4.8,
+      "model_disagreement_pct": 4.8,
       "recommendation_label": "TRACKING ONLY",
-      "recommendation_raw": "NO BET",
+      "recommendation_raw": "D-backs ML",
       "recommendation_status": "TRACKING_ONLY",
-      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
+      "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
       "data_quality_grade": "C",
       "prediction_allowed": true,
       "bet_allowed": false,
       "lineup_status": "pending",
-      "pitcher_status": "mixed_probable",
-      "starter_confirmation_pending": false,
+      "pitcher_status": "high_confidence_probable",
+      "starter_confirmation_pending": true,
       "home_probable_pitcher_name": "Nick Martinez",
-      "away_probable_pitcher_name": null,
+      "away_probable_pitcher_name": "Zac Gallen",
       "risk_profile": "blocked",
       "risk_flags": [
+        "bullpen_not_available",
         "closer_high_fatigue",
         "context_missing_fields",
         "data_quality_bet_blocked",
-        "edge_below_threshold",
         "lineup_not_confirmed",
-        "model_governance_live_locked"
+        "model_governance_live_locked",
+        "starter_confirmation_pending"
       ],
       "public_notes": [
-        "Best edge 0.9% is below required 3.0%.",
-        "Home edge: -0.9%; away edge: 0.9%.",
-        "Gate status: TRACKING_ONLY_EDGE_BELOW_THRESHOLD.",
-        "Model source: ml."
+        "Missing critical fields: home_lineup_confirmed, away_lineup_confirmed, away_bullpen_data_available, away_closer_available_known",
+        "Missing context: home_lineup_confirmed, away_lineup_confirmed, away_bullpen_data_available, away_closer_available_known",
+        "Context status: pitcher=high_confidence_probable, lineup=pending, bullpen=partial, closer=unknown.",
+        "Lineup projection: missing."
       ],
       "odds_context": {
         "status": "OK",
-        "source": "DraftKings",
-        "home_moneyline_decimal": 1.79,
-        "away_moneyline_decimal": 2.04,
-        "spread_line": 1.5,
-        "total_line": 8.0
+        "source": "BetMGM, DraftKings, FanDuel",
+        "home_moneyline_decimal": 1.7,
+        "away_moneyline_decimal": 2.18,
+        "spread_line": -1.5,
+        "total_line": 8.5
       },
       "governance": {
         "mode": "paper_trading_only",
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -1028,10 +1027,10 @@
       "status": "Preview",
       "home_team": "Mets",
       "away_team": "Phillies",
-      "home_win_probability_pct": 38.5,
-      "market_home_probability_pct": 42.9,
-      "model_edge_home_pct": -4.3,
-      "model_disagreement_pct": 4.3,
+      "home_win_probability_pct": 36.3,
+      "market_home_probability_pct": 40.7,
+      "model_edge_home_pct": -4.4,
+      "model_disagreement_pct": 4.4,
       "recommendation_label": "TRACKING ONLY",
       "recommendation_raw": "Phillies ML",
       "recommendation_status": "TRACKING_ONLY",
@@ -1060,9 +1059,9 @@
       ],
       "odds_context": {
         "status": "OK",
-        "source": "FanDuel",
-        "home_moneyline_decimal": 2.24,
-        "away_moneyline_decimal": 1.68,
+        "source": "BetMGM, DraftKings, FanDuel",
+        "home_moneyline_decimal": 2.35,
+        "away_moneyline_decimal": 1.61,
         "spread_line": 1.5,
         "total_line": 8.0
       },
@@ -1071,7 +1070,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -1084,10 +1083,10 @@
       "status": "Preview",
       "home_team": "Red Sox",
       "away_team": "Yankees",
-      "home_win_probability_pct": 43.8,
+      "home_win_probability_pct": 44.5,
       "market_home_probability_pct": 48.3,
-      "model_edge_home_pct": -4.5,
-      "model_disagreement_pct": 4.5,
+      "model_edge_home_pct": -3.8,
+      "model_disagreement_pct": 3.8,
       "recommendation_label": "TRACKING ONLY",
       "recommendation_raw": "Yankees ML",
       "recommendation_status": "TRACKING_ONLY",
@@ -1102,6 +1101,7 @@
       "away_probable_pitcher_name": "Will Warren",
       "risk_profile": "blocked",
       "risk_flags": [
+        "closer_high_fatigue",
         "context_missing_fields",
         "data_quality_bet_blocked",
         "lineup_not_confirmed",
@@ -1127,7 +1127,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -1140,10 +1140,10 @@
       "status": "Preview",
       "home_team": "White Sox",
       "away_team": "Royals",
-      "home_win_probability_pct": 54.9,
-      "market_home_probability_pct": 55.4,
-      "model_edge_home_pct": -0.5,
-      "model_disagreement_pct": 0.5,
+      "home_win_probability_pct": 54.3,
+      "market_home_probability_pct": 55.0,
+      "model_edge_home_pct": -0.7,
+      "model_disagreement_pct": 0.7,
       "recommendation_label": "TRACKING ONLY",
       "recommendation_raw": "NO BET",
       "recommendation_status": "TRACKING_ONLY",
@@ -1166,16 +1166,16 @@
         "model_governance_live_locked"
       ],
       "public_notes": [
-        "Best edge 0.5% is below required 3.0%.",
-        "Home edge: -0.5%; away edge: 0.5%.",
+        "Best edge 0.7% is below required 3.0%.",
+        "Home edge: -0.7%; away edge: 0.7%.",
         "Gate status: TRACKING_ONLY_EDGE_BELOW_THRESHOLD.",
         "Model source: ml."
       ],
       "odds_context": {
         "status": "OK",
         "source": "FanDuel",
-        "home_moneyline_decimal": 1.74,
-        "away_moneyline_decimal": 2.16,
+        "home_moneyline_decimal": 1.75,
+        "away_moneyline_decimal": 2.14,
         "spread_line": -1.5,
         "total_line": 8.5
       },
@@ -1184,7 +1184,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -1197,8 +1197,8 @@
       "status": "Preview",
       "home_team": "Brewers",
       "away_team": "Cubs",
-      "home_win_probability_pct": 62.7,
-      "market_home_probability_pct": 68.5,
+      "home_win_probability_pct": 64.2,
+      "market_home_probability_pct": 70.0,
       "model_edge_home_pct": -5.8,
       "model_disagreement_pct": 5.8,
       "recommendation_label": "TRACKING ONLY",
@@ -1215,7 +1215,7 @@
       "away_probable_pitcher_name": "Colin Rea",
       "risk_profile": "blocked",
       "risk_flags": [
-        "closer_fatigue",
+        "closer_high_fatigue",
         "context_missing_fields",
         "data_quality_bet_blocked",
         "lineup_not_confirmed",
@@ -1230,9 +1230,9 @@
       ],
       "odds_context": {
         "status": "OK",
-        "source": "FanDuel",
-        "home_moneyline_decimal": 1.4,
-        "away_moneyline_decimal": 3.05,
+        "source": "BetMGM, DraftKings, FanDuel",
+        "home_moneyline_decimal": 1.37,
+        "away_moneyline_decimal": 3.2,
         "spread_line": -1.5,
         "total_line": 7.5
       },
@@ -1241,7 +1241,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -1254,7 +1254,7 @@
       "status": "Preview",
       "home_team": "Twins",
       "away_team": "Rockies",
-      "home_win_probability_pct": 55.0,
+      "home_win_probability_pct": 54.7,
       "market_home_probability_pct": null,
       "model_edge_home_pct": null,
       "model_disagreement_pct": null,
@@ -1285,7 +1285,7 @@
         "Odds quality status: UNAVAILABLE.",
         "No audited odds market matched this scheduled game.",
         "Betting readiness: odds_blocked, score=0.00, stake_multiplier=0.00.",
-        "Model governance: live betting locked (clean_model_sample_count_below_live_min:377<500, force_paper_trading_only_enabled, live_betting_locked_for_personal_research_engine)."
+        "Model governance: live betting locked (clean_model_sample_count_below_live_min:382<500, force_paper_trading_only_enabled, live_betting_locked_for_personal_research_engine)."
       ],
       "odds_context": {
         "status": "UNAVAILABLE",
@@ -1300,7 +1300,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -1313,7 +1313,7 @@
       "status": "Preview",
       "home_team": "Cardinals",
       "away_team": "Marlins",
-      "home_win_probability_pct": 37.4,
+      "home_win_probability_pct": 38.7,
       "market_home_probability_pct": null,
       "model_edge_home_pct": null,
       "model_disagreement_pct": null,
@@ -1327,11 +1327,11 @@
       "lineup_status": "pending",
       "pitcher_status": "high_confidence_probable",
       "starter_confirmation_pending": true,
-      "home_probable_pitcher_name": "Dustin May",
+      "home_probable_pitcher_name": "Michael McGreevy",
       "away_probable_pitcher_name": "Max Meyer",
       "risk_profile": "blocked",
       "risk_flags": [
-        "closer_fatigue",
+        "bullpen_not_available",
         "context_missing_fields",
         "data_quality_bet_blocked",
         "edge_unavailable",
@@ -1344,7 +1344,7 @@
         "Odds quality status: UNAVAILABLE.",
         "No audited odds market matched this scheduled game.",
         "Betting readiness: odds_blocked, score=0.00, stake_multiplier=0.00.",
-        "Model governance: live betting locked (clean_model_sample_count_below_live_min:377<500, force_paper_trading_only_enabled, live_betting_locked_for_personal_research_engine)."
+        "Model governance: live betting locked (clean_model_sample_count_below_live_min:382<500, force_paper_trading_only_enabled, live_betting_locked_for_personal_research_engine)."
       ],
       "odds_context": {
         "status": "UNAVAILABLE",
@@ -1359,7 +1359,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -1403,7 +1403,7 @@
         "Odds quality status: UNAVAILABLE.",
         "No audited odds market matched this scheduled game.",
         "Betting readiness: odds_blocked, score=0.00, stake_multiplier=0.00.",
-        "Model governance: live betting locked (clean_model_sample_count_below_live_min:377<500, force_paper_trading_only_enabled, live_betting_locked_for_personal_research_engine)."
+        "Model governance: live betting locked (clean_model_sample_count_below_live_min:382<500, force_paper_trading_only_enabled, live_betting_locked_for_personal_research_engine)."
       ],
       "odds_context": {
         "status": "UNAVAILABLE",
@@ -1418,7 +1418,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -1431,7 +1431,7 @@
       "status": "Preview",
       "home_team": "Padres",
       "away_team": "Dodgers",
-      "home_win_probability_pct": 44.9,
+      "home_win_probability_pct": 44.6,
       "market_home_probability_pct": null,
       "model_edge_home_pct": null,
       "model_disagreement_pct": null,
@@ -1462,7 +1462,7 @@
         "Odds quality status: UNAVAILABLE.",
         "No audited odds market matched this scheduled game.",
         "Betting readiness: odds_blocked, score=0.00, stake_multiplier=0.00.",
-        "Model governance: live betting locked (clean_model_sample_count_below_live_min:377<500, force_paper_trading_only_enabled, live_betting_locked_for_personal_research_engine)."
+        "Model governance: live betting locked (clean_model_sample_count_below_live_min:382<500, force_paper_trading_only_enabled, live_betting_locked_for_personal_research_engine)."
       ],
       "odds_context": {
         "status": "UNAVAILABLE",
@@ -1477,7 +1477,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
@@ -1490,7 +1490,7 @@
       "status": "Preview",
       "home_team": "Giants",
       "away_team": "Braves",
-      "home_win_probability_pct": 48.4,
+      "home_win_probability_pct": 48.1,
       "market_home_probability_pct": null,
       "model_edge_home_pct": null,
       "model_disagreement_pct": null,
@@ -1520,7 +1520,7 @@
         "Odds quality status: UNAVAILABLE.",
         "No audited odds market matched this scheduled game.",
         "Betting readiness: odds_blocked, score=0.00, stake_multiplier=0.00.",
-        "Model governance: live betting locked (clean_model_sample_count_below_live_min:377<500, force_paper_trading_only_enabled, live_betting_locked_for_personal_research_engine)."
+        "Model governance: live betting locked (clean_model_sample_count_below_live_min:382<500, force_paper_trading_only_enabled, live_betting_locked_for_personal_research_engine)."
       ],
       "odds_context": {
         "status": "UNAVAILABLE",
@@ -1535,7 +1535,7 @@
         "live_betting_allowed": false,
         "automated_wagering_allowed": false,
         "block_reasons": [
-          "clean_model_sample_count_below_live_min:377<500",
+          "clean_model_sample_count_below_live_min:382<500",
           "force_paper_trading_only_enabled",
           "live_betting_locked_for_personal_research_engine"
         ]
