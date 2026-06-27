@@ -1,19 +1,19 @@
 {
-  "generated_at": "2026-06-27T18:37:16.832954+00:00",
+  "generated_at": "2026-06-27T20:39:10.008329+00:00",
   "prediction_report": {
     "exists": true,
     "error": "",
     "scheduled_game_count": 15,
     "prediction_count": 15,
-    "generated_at": "2026-06-27T18:37:14.874260Z",
+    "generated_at": "2026-06-27T20:39:07.865759Z",
     "report_date": ""
   },
   "market_odds_history": {
     "exists": true,
     "error": "",
-    "total_rows": 51835,
-    "moneyline_rows": 20709,
-    "closing_rows": 7238,
+    "total_rows": 51985,
+    "moneyline_rows": 20769,
+    "closing_rows": 7312,
     "columns": [
       "odds_snapshot_id",
       "pipeline_version",
@@ -47,7 +47,7 @@
   "daily_context": {
     "exists": true,
     "error": "",
-    "total_rows": 3546
+    "total_rows": 3555
   },
   "prediction_snapshots": {
     "exists": true,
@@ -58,8 +58,8 @@
     "exists": true,
     "status": "ok",
     "selected_attempt": "configured_bookmakers_full_market_date_window",
-    "final_event_count": 12,
-    "final_usable_row_count": 12,
+    "final_event_count": 10,
+    "final_usable_row_count": 10,
     "attempts": [
       {
         "attempt_name": "configured_bookmakers_full_market_date_window",
@@ -73,14 +73,14 @@
           "commenceTimeTo": "2026-06-27T23:59:59Z"
         },
         "status_code": 200,
-        "event_count": 12,
-        "usable_row_count": 12,
+        "event_count": 10,
+        "usable_row_count": 10,
         "quality_counts": {
-          "OK": 12
+          "OK": 10
         },
         "request_headers": {
-          "x-requests-remaining": "161",
-          "x-requests-used": "339",
+          "x-requests-remaining": "158",
+          "x-requests-used": "342",
           "x-requests-last": "3"
         },
         "error": ""
@@ -90,9 +90,9 @@
     "error": ""
   },
   "odds_quality_counts": {
-    "OK": 12,
+    "OK": 10,
     "SUSPICIOUS": 0,
-    "UNAVAILABLE": 3,
+    "UNAVAILABLE": 5,
     "MISSING": 0
   },
   "candidate_match_summary": {
@@ -104,14 +104,196 @@
   "top_likely_issues": [
     {
       "issue": "odds_ok",
-      "count": 12
+      "count": 10
     },
     {
       "issue": "matching_logic_too_strict_or_schema_mismatch",
-      "count": 3
+      "count": 5
     }
   ],
   "unavailable_games_sample": [
+    {
+      "game_id": "824257",
+      "game_date": "2026-06-27",
+      "home_team": "Tigers",
+      "away_team": "Astros",
+      "normalized_home_team": "tigers",
+      "normalized_away_team": "astros",
+      "odds_quality_status": "UNAVAILABLE",
+      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
+      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
+      "candidate_count": 110,
+      "candidate_by_game_id_count": 110,
+      "candidate_by_team_name_count": 110,
+      "candidate_moneyline_count": 44,
+      "candidate_closing_count": 15,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "matching_logic_too_strict_or_schema_mismatch",
+      "sample_candidates": [
+        {
+          "game_id": 824257,
+          "game_date": "2026-06-27",
+          "captured_at": "2026-06-27T00:38:31.455106Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Tigers",
+          "away_team": "Astros",
+          "side": "home",
+          "odds": 1.82,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824257,
+          "game_date": "2026-06-27",
+          "captured_at": "2026-06-27T00:38:31.455106Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Tigers",
+          "away_team": "Astros",
+          "side": "away",
+          "odds": 2.04,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824257,
+          "game_date": "2026-06-27",
+          "captured_at": "2026-06-27T00:38:31.455106Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Tigers",
+          "away_team": "Astros",
+          "side": "home",
+          "odds": 2.68,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824257,
+          "game_date": "2026-06-27",
+          "captured_at": "2026-06-27T00:38:31.455106Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Tigers",
+          "away_team": "Astros",
+          "side": "over",
+          "odds": 1.93,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824257,
+          "game_date": "2026-06-27",
+          "captured_at": "2026-06-27T00:38:31.455106Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Tigers",
+          "away_team": "Astros",
+          "side": "under",
+          "odds": 1.89,
+          "is_closing_snapshot": false
+        }
+      ]
+    },
+    {
+      "game_id": "824745",
+      "game_date": "2026-06-27",
+      "home_team": "Red Sox",
+      "away_team": "Yankees",
+      "normalized_home_team": "red sox",
+      "normalized_away_team": "yankees",
+      "odds_quality_status": "UNAVAILABLE",
+      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
+      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
+      "candidate_count": 119,
+      "candidate_by_game_id_count": 119,
+      "candidate_by_team_name_count": 119,
+      "candidate_moneyline_count": 48,
+      "candidate_closing_count": 21,
+      "candidate_sportsbooks": [
+        "betmgm",
+        "draftkings",
+        "fanduel"
+      ],
+      "candidate_markets": [
+        "moneyline",
+        "spread",
+        "total"
+      ],
+      "has_home_price": true,
+      "has_away_price": true,
+      "likely_issue": "matching_logic_too_strict_or_schema_mismatch",
+      "sample_candidates": [
+        {
+          "game_id": 824745,
+          "game_date": "2026-06-27",
+          "captured_at": "2026-06-27T00:38:31.455106Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Red Sox",
+          "away_team": "Yankees",
+          "side": "home",
+          "odds": 2.02,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824745,
+          "game_date": "2026-06-27",
+          "captured_at": "2026-06-27T00:38:31.455106Z",
+          "market": "moneyline",
+          "bookmaker": "FanDuel",
+          "home_team": "Red Sox",
+          "away_team": "Yankees",
+          "side": "away",
+          "odds": 1.83,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824745,
+          "game_date": "2026-06-27",
+          "captured_at": "2026-06-27T00:38:31.455106Z",
+          "market": "spread",
+          "bookmaker": "FanDuel",
+          "home_team": "Red Sox",
+          "away_team": "Yankees",
+          "side": "home",
+          "odds": 1.61,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824745,
+          "game_date": "2026-06-27",
+          "captured_at": "2026-06-27T00:38:31.455106Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Red Sox",
+          "away_team": "Yankees",
+          "side": "over",
+          "odds": 1.81,
+          "is_closing_snapshot": false
+        },
+        {
+          "game_id": 824745,
+          "game_date": "2026-06-27",
+          "captured_at": "2026-06-27T00:38:31.455106Z",
+          "market": "total",
+          "bookmaker": "FanDuel",
+          "home_team": "Red Sox",
+          "away_team": "Yankees",
+          "side": "under",
+          "odds": 2.02,
+          "is_closing_snapshot": false
+        }
+      ]
+    },
     {
       "game_id": "823283",
       "game_date": "2026-06-28",
@@ -394,9 +576,9 @@
       "away_team": "Astros",
       "normalized_home_team": "tigers",
       "normalized_away_team": "astros",
-      "odds_quality_status": "OK",
-      "suspicious_odds_reason": "",
-      "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
+      "odds_quality_status": "UNAVAILABLE",
+      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
+      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
       "candidate_count": 110,
       "candidate_by_game_id_count": 110,
       "candidate_by_team_name_count": 110,
@@ -414,7 +596,7 @@
       ],
       "has_home_price": true,
       "has_away_price": true,
-      "likely_issue": "odds_ok",
+      "likely_issue": "matching_logic_too_strict_or_schema_mismatch",
       "sample_candidates": [
         {
           "game_id": 824257,
@@ -485,9 +667,9 @@
       "away_team": "Yankees",
       "normalized_home_team": "red sox",
       "normalized_away_team": "yankees",
-      "odds_quality_status": "OK",
-      "suspicious_odds_reason": "",
-      "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
+      "odds_quality_status": "UNAVAILABLE",
+      "suspicious_odds_reason": "No audited odds market matched this scheduled game.",
+      "moneyline_gate_status": "TRACKING_ONLY_ODDS_UNAVAILABLE",
       "candidate_count": 119,
       "candidate_by_game_id_count": 119,
       "candidate_by_team_name_count": 119,
@@ -505,7 +687,7 @@
       ],
       "has_home_price": true,
       "has_away_price": true,
-      "likely_issue": "odds_ok",
+      "likely_issue": "matching_logic_too_strict_or_schema_mismatch",
       "sample_candidates": [
         {
           "game_id": 824745,
@@ -578,12 +760,12 @@
       "normalized_away_team": "rangers",
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
-      "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
-      "candidate_count": 115,
-      "candidate_by_game_id_count": 115,
-      "candidate_by_team_name_count": 115,
-      "candidate_moneyline_count": 46,
-      "candidate_closing_count": 0,
+      "moneyline_gate_status": "PAPER_BET_EDGE_PASSED",
+      "candidate_count": 130,
+      "candidate_by_game_id_count": 130,
+      "candidate_by_team_name_count": 130,
+      "candidate_moneyline_count": 52,
+      "candidate_closing_count": 19,
       "candidate_sportsbooks": [
         "betmgm",
         "draftkings",
@@ -670,11 +852,11 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 120,
-      "candidate_by_game_id_count": 120,
-      "candidate_by_team_name_count": 120,
-      "candidate_moneyline_count": 48,
-      "candidate_closing_count": 0,
+      "candidate_count": 135,
+      "candidate_by_game_id_count": 135,
+      "candidate_by_team_name_count": 135,
+      "candidate_moneyline_count": 54,
+      "candidate_closing_count": 17,
       "candidate_sportsbooks": [
         "betmgm",
         "draftkings",
@@ -761,11 +943,11 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
-      "candidate_count": 110,
-      "candidate_by_game_id_count": 110,
-      "candidate_by_team_name_count": 110,
-      "candidate_moneyline_count": 44,
-      "candidate_closing_count": 0,
+      "candidate_count": 125,
+      "candidate_by_game_id_count": 125,
+      "candidate_by_team_name_count": 125,
+      "candidate_moneyline_count": 50,
+      "candidate_closing_count": 21,
       "candidate_sportsbooks": [
         "betmgm",
         "draftkings",
@@ -852,11 +1034,11 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 120,
-      "candidate_by_game_id_count": 120,
-      "candidate_by_team_name_count": 120,
-      "candidate_moneyline_count": 48,
-      "candidate_closing_count": 0,
+      "candidate_count": 135,
+      "candidate_by_game_id_count": 135,
+      "candidate_by_team_name_count": 135,
+      "candidate_moneyline_count": 54,
+      "candidate_closing_count": 17,
       "candidate_sportsbooks": [
         "betmgm",
         "draftkings",
@@ -943,10 +1125,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
-      "candidate_count": 115,
-      "candidate_by_game_id_count": 115,
-      "candidate_by_team_name_count": 115,
-      "candidate_moneyline_count": 46,
+      "candidate_count": 130,
+      "candidate_by_game_id_count": 130,
+      "candidate_by_team_name_count": 130,
+      "candidate_moneyline_count": 52,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -1034,10 +1216,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "PAPER_BET_EDGE_PASSED",
-      "candidate_count": 120,
-      "candidate_by_game_id_count": 120,
-      "candidate_by_team_name_count": 120,
-      "candidate_moneyline_count": 48,
+      "candidate_count": 135,
+      "candidate_by_game_id_count": 135,
+      "candidate_by_team_name_count": 135,
+      "candidate_moneyline_count": 54,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -1124,11 +1306,11 @@
       "normalized_away_team": "mariners",
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
-      "moneyline_gate_status": "PAPER_BET_EDGE_PASSED",
-      "candidate_count": 120,
-      "candidate_by_game_id_count": 120,
-      "candidate_by_team_name_count": 120,
-      "candidate_moneyline_count": 48,
+      "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
+      "candidate_count": 135,
+      "candidate_by_game_id_count": 135,
+      "candidate_by_team_name_count": 135,
+      "candidate_moneyline_count": 54,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -1216,10 +1398,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 120,
-      "candidate_by_game_id_count": 120,
-      "candidate_by_team_name_count": 120,
-      "candidate_moneyline_count": 48,
+      "candidate_count": 135,
+      "candidate_by_game_id_count": 135,
+      "candidate_by_team_name_count": 135,
+      "candidate_moneyline_count": 54,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -1307,10 +1489,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_EDGE_BELOW_THRESHOLD",
-      "candidate_count": 110,
-      "candidate_by_game_id_count": 110,
-      "candidate_by_team_name_count": 110,
-      "candidate_moneyline_count": 44,
+      "candidate_count": 125,
+      "candidate_by_game_id_count": 125,
+      "candidate_by_team_name_count": 125,
+      "candidate_moneyline_count": 50,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",
@@ -1398,10 +1580,10 @@
       "odds_quality_status": "OK",
       "suspicious_odds_reason": "",
       "moneyline_gate_status": "TRACKING_ONLY_AWAY_GUARDRAIL",
-      "candidate_count": 120,
-      "candidate_by_game_id_count": 120,
-      "candidate_by_team_name_count": 120,
-      "candidate_moneyline_count": 48,
+      "candidate_count": 135,
+      "candidate_by_game_id_count": 135,
+      "candidate_by_team_name_count": 135,
+      "candidate_moneyline_count": 54,
       "candidate_closing_count": 0,
       "candidate_sportsbooks": [
         "betmgm",

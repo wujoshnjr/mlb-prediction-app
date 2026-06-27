@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-27T18:37:52.047354Z",
+  "generated_at": "2026-06-27T20:39:44.711001Z",
   "report_type": "model_eval_report",
   "status": "ok",
   "training_source": "data/training_samples.csv",
@@ -19,33 +19,33 @@
     "timezone_diff"
   ],
   "label_column": "home_win",
-  "sample_count": 397,
-  "train_sample_count": 277,
+  "sample_count": 399,
+  "train_sample_count": 279,
   "calibration_sample_count": 60,
   "test_sample_count": 60,
   "metrics": {
-    "accuracy": 0.45,
-    "balanced_accuracy": 0.5,
-    "precision": 0.45,
-    "recall": 1.0,
-    "f1": 0.6206896551724138,
-    "roc_auc": 0.5544332210998877,
-    "brier": 0.25329421641478117,
-    "logloss": 0.6997401430450565,
-    "predicted_positive_rate": 1.0,
-    "predicted_negative_rate": 0.0,
-    "probability_mean": 0.5333453809939791,
-    "probability_std": 0.010183286326230733,
-    "probability_min": 0.5161759759449869,
-    "probability_max": 0.5670748396248801
+    "accuracy": 0.4666666666666667,
+    "balanced_accuracy": 0.49776785714285715,
+    "precision": 0.46551724137931033,
+    "recall": 0.9642857142857143,
+    "f1": 0.627906976744186,
+    "roc_auc": 0.4386160714285714,
+    "brier": 0.25221642608849604,
+    "logloss": 0.6975826828492987,
+    "predicted_positive_rate": 0.9666666666666667,
+    "predicted_negative_rate": 0.033333333333333326,
+    "probability_mean": 0.5161930898380682,
+    "probability_std": 0.006095163757838868,
+    "probability_min": 0.4953813722931452,
+    "probability_max": 0.5263431360588041
   },
   "baseline_metrics": {
     "constant_0_5": {
-      "accuracy": 0.45,
+      "accuracy": 0.4666666666666667,
       "balanced_accuracy": 0.5,
-      "precision": 0.45,
+      "precision": 0.4666666666666667,
       "recall": 1.0,
-      "f1": 0.6206896551724138,
+      "f1": 0.6363636363636364,
       "roc_auc": 0.5,
       "brier": 0.25,
       "logloss": 0.6931471805599454,
@@ -59,32 +59,32 @@
       "constant_probability": 0.5
     },
     "base_rate_train_calibration": {
-      "accuracy": 0.45,
+      "accuracy": 0.4666666666666667,
       "balanced_accuracy": 0.5,
-      "precision": 0.45,
+      "precision": 0.4666666666666667,
       "recall": 1.0,
-      "f1": 0.6206896551724138,
+      "f1": 0.6363636363636364,
       "roc_auc": 0.5,
-      "brier": 0.2578894768818956,
-      "logloss": 0.7089930169332128,
+      "brier": 0.25561385647531787,
+      "logloss": 0.7044181015716576,
       "predicted_positive_rate": 1.0,
       "predicted_negative_rate": 0.0,
-      "probability_mean": 0.5519287833827893,
+      "probability_mean": 0.5486725663716814,
       "probability_std": 0.0,
-      "probability_min": 0.5519287833827893,
-      "probability_max": 0.5519287833827893,
+      "probability_min": 0.5486725663716814,
+      "probability_max": 0.5486725663716814,
       "baseline_name": "base_rate_train_calibration",
-      "constant_probability": 0.5519287833827893
+      "constant_probability": 0.5486725663716814
     },
     "always_home": {
-      "accuracy": 0.45,
+      "accuracy": 0.4666666666666667,
       "balanced_accuracy": 0.5,
-      "precision": 0.45,
+      "precision": 0.4666666666666667,
       "recall": 1.0,
-      "f1": 0.6206896551724138,
+      "f1": 0.6363636363636364,
       "roc_auc": 0.5,
-      "brier": 0.5499989000009999,
-      "logloss": 7.59853125686476,
+      "brier": 0.5333322666676666,
+      "logloss": 7.36827276423251,
       "predicted_positive_rate": 1.0,
       "predicted_negative_rate": 0.0,
       "probability_mean": 0.9999990000000002,
@@ -95,14 +95,14 @@
       "constant_probability": 0.999999
     },
     "always_away": {
-      "accuracy": 0.55,
+      "accuracy": 0.5333333333333333,
       "balanced_accuracy": 0.5,
       "precision": 0.0,
       "recall": 0.0,
       "f1": 0.0,
       "roc_auc": 0.5,
-      "brier": 0.44999910000099985,
-      "logloss": 6.2169803010842,
+      "brier": 0.46666573333433325,
+      "logloss": 6.447238793716929,
       "predicted_positive_rate": 0.0,
       "predicted_negative_rate": 1.0,
       "probability_mean": 9.999999999999997e-07,
@@ -115,36 +115,36 @@
   },
   "model_vs_baselines": {
     "constant_0_5": {
-      "delta_brier": 0.0032942164147811703,
+      "delta_brier": 0.0022164260884960374,
       "beats_brier": false,
-      "delta_logloss": 0.006592962485111098,
+      "delta_logloss": 0.004435502289353299,
       "beats_logloss": false,
-      "delta_roc_auc": 0.054433221099887685,
-      "beats_roc_auc": true
+      "delta_roc_auc": -0.0613839285714286,
+      "beats_roc_auc": false
     },
     "base_rate_train_calibration": {
-      "delta_brier": -0.004595260467114448,
+      "delta_brier": -0.0033974303868218314,
       "beats_brier": true,
-      "delta_logloss": -0.009252873888156321,
+      "delta_logloss": -0.0068354187223589324,
       "beats_logloss": true,
-      "delta_roc_auc": 0.054433221099887685,
-      "beats_roc_auc": true
+      "delta_roc_auc": -0.0613839285714286,
+      "beats_roc_auc": false
     },
     "always_home": {
-      "delta_brier": -0.29670468358621876,
+      "delta_brier": -0.2811158405791706,
       "beats_brier": true,
-      "delta_logloss": -6.898791113819703,
+      "delta_logloss": -6.670690081383212,
       "beats_logloss": true,
-      "delta_roc_auc": 0.054433221099887685,
-      "beats_roc_auc": true
+      "delta_roc_auc": -0.0613839285714286,
+      "beats_roc_auc": false
     },
     "always_away": {
-      "delta_brier": -0.19670488358621868,
+      "delta_brier": -0.21444930724583722,
       "beats_brier": true,
-      "delta_logloss": -5.517240158039144,
+      "delta_logloss": -5.7496561108676305,
       "beats_logloss": true,
-      "delta_roc_auc": 0.054433221099887685,
-      "beats_roc_auc": true
+      "delta_roc_auc": -0.0613839285714286,
+      "beats_roc_auc": false
     }
   },
   "collapse_guardrail": {
@@ -170,11 +170,11 @@
     },
     "confusion_matrix": [
       [
-        0,
-        33
+        1,
+        31
       ],
       [
-        0,
+        1,
         27
       ]
     ],
@@ -184,11 +184,11 @@
   },
   "confusion_matrix": [
     [
-      0,
-      33
+      1,
+      31
     ],
     [
-      0,
+      1,
       27
     ]
   ],

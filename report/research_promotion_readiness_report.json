@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-27T18:37:50.325142+00:00",
+  "generated_at": "2026-06-27T20:39:42.945106+00:00",
   "status": "blocked",
   "readiness_score": 78.57,
   "research_promotion_allowed": false,
@@ -19,16 +19,16 @@
     "max_ece": 0.05
   },
   "evidence_summary": {
-    "clean_settled_samples": 397,
-    "train_eligible_samples": 397,
-    "linked_games": 397,
-    "pending_not_final": 21,
-    "model_lab_sample_count": 397,
-    "walkforward_oos_predictions": 317,
-    "calibration_sample_count": 397,
-    "calibration_ece": 0.07893501259445844,
-    "feature_candidate_shadow_count": 15,
-    "feature_ready_for_review_count": 12,
+    "clean_settled_samples": 399,
+    "train_eligible_samples": 399,
+    "linked_games": 399,
+    "pending_not_final": 19,
+    "model_lab_sample_count": 399,
+    "walkforward_oos_predictions": 319,
+    "calibration_sample_count": 399,
+    "calibration_ece": 0.07873533834586463,
+    "feature_candidate_shadow_count": 13,
+    "feature_ready_for_review_count": 14,
     "prediction_trust": {
       "total": 0,
       "strong_A_B": 0,
@@ -39,8 +39,8 @@
     "market_edge": {
       "any_model_beats_market_brier": false,
       "any_model_beats_market_logloss": true,
-      "best_brier_delta": 0.0006267604307667596,
-      "best_logloss_delta": -0.021929256901471628,
+      "best_brier_delta": 0.000257364965746687,
+      "best_logloss_delta": -0.02248910786347702,
       "best_brier_model": "logistic_baseline",
       "best_logloss_model": "logistic_baseline"
     },
@@ -64,8 +64,8 @@
       "name": "finalized_linkage_gate",
       "passed": true,
       "current": {
-        "linked_games": 397,
-        "pending_not_final": 21,
+        "linked_games": 399,
+        "pending_not_final": 19,
         "api_not_found_or_failed": 0
       },
       "required": "linked_games > 0 and api_not_found_or_failed == 0",
@@ -76,7 +76,7 @@
     {
       "name": "train_sample_gate",
       "passed": true,
-      "current": 397,
+      "current": 399,
       "required": 300,
       "blocker": "",
       "warning": "",
@@ -85,9 +85,9 @@
     {
       "name": "promotion_sample_gate",
       "passed": false,
-      "current": 397,
+      "current": 399,
       "required": 500,
-      "blocker": "clean settled samples below promotion threshold: 397 < 500",
+      "blocker": "clean settled samples below promotion threshold: 399 < 500",
       "warning": "",
       "details": {}
     },
@@ -95,7 +95,7 @@
       "name": "model_lab_gate",
       "passed": true,
       "current": {
-        "sample_count": 397,
+        "sample_count": 399,
         "best_shadow_model": "lightgbm_market_residual",
         "champion_candidate": null
       },
@@ -107,7 +107,7 @@
     {
       "name": "walk_forward_oos_gate",
       "passed": true,
-      "current": 317,
+      "current": 319,
       "required": 300,
       "blocker": "",
       "warning": "",
@@ -119,8 +119,8 @@
       "current": {
         "any_model_beats_market_brier": false,
         "any_model_beats_market_logloss": true,
-        "best_brier_delta": 0.0006267604307667596,
-        "best_logloss_delta": -0.021929256901471628,
+        "best_brier_delta": 0.000257364965746687,
+        "best_logloss_delta": -0.02248910786347702,
         "best_brier_model": "logistic_baseline",
         "best_logloss_model": "logistic_baseline"
       },
@@ -158,9 +158,9 @@
       "name": "calibration_gate",
       "passed": false,
       "current": {
-        "sample_count": 397,
+        "sample_count": 399,
         "calibration_ready": false,
-        "ece": 0.07893501259445844
+        "ece": 0.07873533834586463
       },
       "required": {
         "sample_count": 300,
@@ -175,8 +175,8 @@
       "name": "feature_governance_gate",
       "passed": false,
       "current": {
-        "candidate_shadow_count": 15,
-        "ready_for_review_count": 12
+        "candidate_shadow_count": 13,
+        "ready_for_review_count": 14
       },
       "required": "features remain in shadow unless reviewed",
       "blocker": "feature governance report unavailable or invalid",
@@ -202,7 +202,7 @@
       "name": "shadow_ensemble_gate",
       "passed": true,
       "current": {
-        "sample_count": 317,
+        "sample_count": 319,
         "recommended_shadow_ensemble": "logistic_stacking",
         "promotion_eligible": false
       },
@@ -244,7 +244,7 @@
   ],
   "blockers": [
     "calibration sample count, readiness, or ECE threshold not satisfied",
-    "clean settled samples below promotion threshold: 397 < 500",
+    "clean settled samples below promotion threshold: 399 < 500",
     "feature governance report unavailable or invalid"
   ],
   "warnings": [
@@ -336,8 +336,8 @@
     }
   },
   "next_recommended_actions": [
-    "Accumulate 103 more clean settled samples for promotion-grade review.",
-    "Improve calibration: ECE 0.0789 is above 0.05.",
+    "Accumulate 101 more clean settled samples for promotion-grade review.",
+    "Improve calibration: ECE 0.0787 is above 0.05.",
     "Keep official prediction on current calibrated logistic baseline until all gates pass.",
     "Keep LightGBM, XGBoost, residual, and ensemble outputs shadow-only.",
     "Do not lower sample gates to force promotion."
