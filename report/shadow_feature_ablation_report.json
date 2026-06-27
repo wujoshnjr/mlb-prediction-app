@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-06-27T00:42:17.882320Z",
+  "generated_at": "2026-06-27T05:27:16.642205Z",
   "report_type": "shadow_feature_ablation_report",
   "status": "blocked",
   "training_samples": {
     "path": "data/training_samples.csv",
     "exists": true,
-    "rows": 382,
+    "rows": 397,
     "error": "",
-    "valid_labeled_rows": 382
+    "valid_labeled_rows": 397
   },
   "candidate_source": "report/feature_promotion_candidate_report.json",
   "policy": {
@@ -30,69 +30,86 @@
       "winrate_diff",
       "timezone_diff"
     ],
-    "sample_count": 228,
-    "successful_fold_count": 3,
+    "sample_count": 317,
+    "successful_fold_count": 4,
     "metrics": {
-      "count": 228,
-      "brier": 0.260775,
-      "logloss": 0.716258,
-      "accuracy": 0.539474,
-      "balanced_accuracy": 0.543071,
-      "probability_mean": 0.491054,
-      "probability_std": 0.109546,
-      "positive_rate": 0.451754,
-      "negative_rate": 0.548246
+      "count": 317,
+      "brier": 0.25909,
+      "logloss": 0.713348,
+      "accuracy": 0.529968,
+      "balanced_accuracy": 0.532176,
+      "probability_mean": 0.484697,
+      "probability_std": 0.118973,
+      "positive_rate": 0.460568,
+      "negative_rate": 0.539432
     },
     "folds": [
       {
         "fold_id": 1,
         "status": "ok",
-        "train_rows": 154,
-        "test_rows": 76,
+        "train_rows": 80,
+        "test_rows": 80,
         "metrics": {
-          "count": 76,
-          "brier": 0.259286,
-          "logloss": 0.712624,
-          "accuracy": 0.526316,
-          "balanced_accuracy": 0.549683,
-          "probability_mean": 0.476197,
-          "probability_std": 0.130649,
-          "positive_rate": 0.328947,
-          "negative_rate": 0.671053
+          "count": 80,
+          "brier": 0.254996,
+          "logloss": 0.706101,
+          "accuracy": 0.5625,
+          "balanced_accuracy": 0.560038,
+          "probability_mean": 0.459819,
+          "probability_std": 0.15368,
+          "positive_rate": 0.4,
+          "negative_rate": 0.6
         }
       },
       {
         "fold_id": 2,
         "status": "ok",
-        "train_rows": 230,
-        "test_rows": 76,
+        "train_rows": 160,
+        "test_rows": 79,
         "metrics": {
-          "count": 76,
-          "brier": 0.259589,
-          "logloss": 0.714683,
-          "accuracy": 0.526316,
-          "balanced_accuracy": 0.529749,
-          "probability_mean": 0.498363,
-          "probability_std": 0.105042,
-          "positive_rate": 0.486842,
-          "negative_rate": 0.513158
+          "count": 79,
+          "brier": 0.260927,
+          "logloss": 0.716516,
+          "accuracy": 0.518987,
+          "balanced_accuracy": 0.545878,
+          "probability_mean": 0.478099,
+          "probability_std": 0.119281,
+          "positive_rate": 0.367089,
+          "negative_rate": 0.632911
         }
       },
       {
         "fold_id": 3,
         "status": "ok",
-        "train_rows": 306,
-        "test_rows": 76,
+        "train_rows": 239,
+        "test_rows": 79,
         "metrics": {
-          "count": 76,
-          "brier": 0.263451,
-          "logloss": 0.721468,
-          "accuracy": 0.565789,
-          "balanced_accuracy": 0.570728,
-          "probability_mean": 0.4986,
-          "probability_std": 0.08699,
-          "positive_rate": 0.539474,
-          "negative_rate": 0.460526
+          "count": 79,
+          "brier": 0.258259,
+          "logloss": 0.712172,
+          "accuracy": 0.531646,
+          "balanced_accuracy": 0.534967,
+          "probability_mean": 0.498644,
+          "probability_std": 0.104423,
+          "positive_rate": 0.481013,
+          "negative_rate": 0.518987
+        }
+      },
+      {
+        "fold_id": 4,
+        "status": "ok",
+        "train_rows": 318,
+        "test_rows": 79,
+        "metrics": {
+          "count": 79,
+          "brier": 0.262231,
+          "logloss": 0.718694,
+          "accuracy": 0.506329,
+          "balanced_accuracy": 0.514858,
+          "probability_mean": 0.50254,
+          "probability_std": 0.081032,
+          "positive_rate": 0.594937,
+          "negative_rate": 0.405063
         }
       }
     ],
@@ -108,222 +125,6 @@
   },
   "feature_ablation_results": [
     {
-      "feature": "lag30_winrate_diff",
-      "experiment": "core_plus__lag30_winrate_diff",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.261012,
-        "logloss": 0.716831,
-        "accuracy": 0.52193,
-        "balanced_accuracy": 0.523585,
-        "probability_mean": 0.497735,
-        "probability_std": 0.112156,
-        "positive_rate": 0.47807,
-        "negative_rate": 0.52193
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.000237,
-        "logloss_delta_vs_core": 0.000573,
-        "accuracy_delta_vs_core": -0.017544,
-        "balanced_accuracy_delta_vs_core": -0.019486
-      }
-    },
-    {
-      "feature": "bb_pct_diff",
-      "experiment": "core_plus__bb_pct_diff",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.261943,
-        "logloss": 0.718696,
-        "accuracy": 0.52193,
-        "balanced_accuracy": 0.522966,
-        "probability_mean": 0.492187,
-        "probability_std": 0.113565,
-        "positive_rate": 0.486842,
-        "negative_rate": 0.513158
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.001168,
-        "logloss_delta_vs_core": 0.002438,
-        "accuracy_delta_vs_core": -0.017544,
-        "balanced_accuracy_delta_vs_core": -0.020105
-      }
-    },
-    {
-      "feature": "bullpen_availability_diff",
-      "experiment": "core_plus__bullpen_availability_diff",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.266762,
-        "logloss": 0.729187,
-        "accuracy": 0.517544,
-        "balanced_accuracy": 0.520105,
-        "probability_mean": 0.4922,
-        "probability_std": 0.125013,
-        "positive_rate": 0.464912,
-        "negative_rate": 0.535088
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.005987,
-        "logloss_delta_vs_core": 0.012929,
-        "accuracy_delta_vs_core": -0.02193,
-        "balanced_accuracy_delta_vs_core": -0.022966
-      }
-    },
-    {
-      "feature": "sp_fip_diff",
-      "experiment": "core_plus__sp_fip_diff",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.267111,
-        "logloss": 0.730345,
-        "accuracy": 0.530702,
-        "balanced_accuracy": 0.528689,
-        "probability_mean": 0.508188,
-        "probability_std": 0.144745,
-        "positive_rate": 0.530702,
-        "negative_rate": 0.469298
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.006336,
-        "logloss_delta_vs_core": 0.014087,
-        "accuracy_delta_vs_core": -0.008772,
-        "balanced_accuracy_delta_vs_core": -0.014382
-      }
-    },
-    {
-      "feature": "bullpen_ip_diff",
-      "experiment": "core_plus__bullpen_ip_diff",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.267315,
-        "logloss": 0.730802,
-        "accuracy": 0.5,
-        "balanced_accuracy": 0.5,
-        "probability_mean": 0.501485,
-        "probability_std": 0.124675,
-        "positive_rate": 0.5,
-        "negative_rate": 0.5
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.00654,
-        "logloss_delta_vs_core": 0.014544,
-        "accuracy_delta_vs_core": -0.039474,
-        "balanced_accuracy_delta_vs_core": -0.043071
-      }
-    },
-    {
-      "feature": "k_pct_diff",
-      "experiment": "core_plus__k_pct_diff",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.26769,
-        "logloss": 0.732219,
-        "accuracy": 0.539474,
-        "balanced_accuracy": 0.542453,
-        "probability_mean": 0.48214,
-        "probability_std": 0.130082,
-        "positive_rate": 0.460526,
-        "negative_rate": 0.539474
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.006915,
-        "logloss_delta_vs_core": 0.015961,
-        "accuracy_delta_vs_core": 0.0,
-        "balanced_accuracy_delta_vs_core": -0.000618
-      }
-    },
-    {
-      "feature": "sp_stuff_plus_diff",
-      "experiment": "core_plus__sp_stuff_plus_diff",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.273085,
-        "logloss": 0.746647,
-        "accuracy": 0.504386,
-        "balanced_accuracy": 0.502861,
-        "probability_mean": 0.494683,
-        "probability_std": 0.156561,
-        "positive_rate": 0.52193,
-        "negative_rate": 0.47807
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.01231,
-        "logloss_delta_vs_core": 0.030389,
-        "accuracy_delta_vs_core": -0.035088,
-        "balanced_accuracy_delta_vs_core": -0.04021
-      }
-    },
-    {
-      "feature": "barrel_pa_diff",
-      "experiment": "core_plus__barrel_pa_diff",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.276829,
-        "logloss": 0.757267,
-        "accuracy": 0.482456,
-        "balanced_accuracy": 0.484844,
-        "probability_mean": 0.487445,
-        "probability_std": 0.13977,
-        "positive_rate": 0.464912,
-        "negative_rate": 0.535088
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.016054,
-        "logloss_delta_vs_core": 0.041009,
-        "accuracy_delta_vs_core": -0.057018,
-        "balanced_accuracy_delta_vs_core": -0.058227
-      }
-    },
-    {
       "feature": "hardhit_pa_diff",
       "experiment": "core_plus__hardhit_pa_diff",
       "decision": "reject_for_now",
@@ -331,77 +132,23 @@
         "brier_not_enough_improvement",
         "logloss_not_enough_improvement"
       ],
-      "sample_count": 228,
+      "sample_count": 317,
       "metrics": {
-        "count": 228,
-        "brier": 0.278562,
-        "logloss": 0.760503,
-        "accuracy": 0.482456,
-        "balanced_accuracy": 0.484844,
-        "probability_mean": 0.489514,
-        "probability_std": 0.141883,
-        "positive_rate": 0.464912,
-        "negative_rate": 0.535088
+        "count": 317,
+        "brier": 0.260407,
+        "logloss": 0.717023,
+        "accuracy": 0.526814,
+        "balanced_accuracy": 0.531218,
+        "probability_mean": 0.468809,
+        "probability_std": 0.130153,
+        "positive_rate": 0.419558,
+        "negative_rate": 0.580442
       },
       "deltas_vs_core": {
-        "brier_delta_vs_core": 0.017787,
-        "logloss_delta_vs_core": 0.044245,
-        "accuracy_delta_vs_core": -0.057018,
-        "balanced_accuracy_delta_vs_core": -0.058227
-      }
-    },
-    {
-      "feature": "top3_woba_diff",
-      "experiment": "core_plus__top3_woba_diff",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.286351,
-        "logloss": 0.777503,
-        "accuracy": 0.451754,
-        "balanced_accuracy": 0.44935,
-        "probability_mean": 0.499306,
-        "probability_std": 0.144498,
-        "positive_rate": 0.530702,
-        "negative_rate": 0.469298
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.025576,
-        "logloss_delta_vs_core": 0.061245,
-        "accuracy_delta_vs_core": -0.08772,
-        "balanced_accuracy_delta_vs_core": -0.093721
-      }
-    },
-    {
-      "feature": "statcast_woba_diff",
-      "experiment": "core_plus__statcast_woba_diff",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.28759,
-        "logloss": 0.78126,
-        "accuracy": 0.45614,
-        "balanced_accuracy": 0.455305,
-        "probability_mean": 0.498301,
-        "probability_std": 0.145955,
-        "positive_rate": 0.508772,
-        "negative_rate": 0.491228
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.026815,
-        "logloss_delta_vs_core": 0.065002,
-        "accuracy_delta_vs_core": -0.083334,
-        "balanced_accuracy_delta_vs_core": -0.087766
+        "brier_delta_vs_core": 0.001317,
+        "logloss_delta_vs_core": 0.003675,
+        "accuracy_delta_vs_core": -0.003154,
+        "balanced_accuracy_delta_vs_core": -0.000958
       }
     },
     {
@@ -412,119 +159,325 @@
         "brier_not_enough_improvement",
         "logloss_not_enough_improvement"
       ],
-      "sample_count": 228,
+      "sample_count": 317,
       "metrics": {
-        "count": 228,
-        "brier": 0.288381,
-        "logloss": 0.799102,
-        "accuracy": 0.47807,
-        "balanced_accuracy": 0.480127,
-        "probability_mean": 0.490667,
-        "probability_std": 0.156041,
-        "positive_rate": 0.469298,
-        "negative_rate": 0.530702
+        "count": 317,
+        "brier": 0.260425,
+        "logloss": 0.721947,
+        "accuracy": 0.523659,
+        "balanced_accuracy": 0.527545,
+        "probability_mean": 0.471638,
+        "probability_std": 0.141746,
+        "positive_rate": 0.429022,
+        "negative_rate": 0.570978
       },
       "deltas_vs_core": {
-        "brier_delta_vs_core": 0.027606,
-        "logloss_delta_vs_core": 0.082844,
-        "accuracy_delta_vs_core": -0.061404,
-        "balanced_accuracy_delta_vs_core": -0.062944
+        "brier_delta_vs_core": 0.001335,
+        "logloss_delta_vs_core": 0.008599,
+        "accuracy_delta_vs_core": -0.006309,
+        "balanced_accuracy_delta_vs_core": -0.004631
+      }
+    },
+    {
+      "feature": "barrel_pa_diff",
+      "experiment": "core_plus__barrel_pa_diff",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.260636,
+        "logloss": 0.717567,
+        "accuracy": 0.523659,
+        "balanced_accuracy": 0.527884,
+        "probability_mean": 0.467867,
+        "probability_std": 0.128133,
+        "positive_rate": 0.422713,
+        "negative_rate": 0.577287
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.001546,
+        "logloss_delta_vs_core": 0.004219,
+        "accuracy_delta_vs_core": -0.006309,
+        "balanced_accuracy_delta_vs_core": -0.004292
+      }
+    },
+    {
+      "feature": "statcast_woba_diff",
+      "experiment": "core_plus__statcast_woba_diff",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.261851,
+        "logloss": 0.719666,
+        "accuracy": 0.514196,
+        "balanced_accuracy": 0.518224,
+        "probability_mean": 0.475053,
+        "probability_std": 0.120832,
+        "positive_rate": 0.425868,
+        "negative_rate": 0.574132
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.002761,
+        "logloss_delta_vs_core": 0.006318,
+        "accuracy_delta_vs_core": -0.015772,
+        "balanced_accuracy_delta_vs_core": -0.013952
+      }
+    },
+    {
+      "feature": "top3_woba_diff",
+      "experiment": "core_plus__top3_woba_diff",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.26242,
+        "logloss": 0.72091,
+        "accuracy": 0.501577,
+        "balanced_accuracy": 0.50523,
+        "probability_mean": 0.476932,
+        "probability_std": 0.122272,
+        "positive_rate": 0.432177,
+        "negative_rate": 0.567823
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.00333,
+        "logloss_delta_vs_core": 0.007562,
+        "accuracy_delta_vs_core": -0.028391,
+        "balanced_accuracy_delta_vs_core": -0.026946
+      }
+    },
+    {
+      "feature": "sp_fip_diff",
+      "experiment": "core_plus__sp_fip_diff",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.263671,
+        "logloss": 0.722758,
+        "accuracy": 0.523659,
+        "balanced_accuracy": 0.524152,
+        "probability_mean": 0.492557,
+        "probability_std": 0.140343,
+        "positive_rate": 0.492114,
+        "negative_rate": 0.507886
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.004581,
+        "logloss_delta_vs_core": 0.00941,
+        "accuracy_delta_vs_core": -0.006309,
+        "balanced_accuracy_delta_vs_core": -0.008024
+      }
+    },
+    {
+      "feature": "bullpen_ip_diff",
+      "experiment": "core_plus__bullpen_ip_diff",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.265444,
+        "logloss": 0.727386,
+        "accuracy": 0.501577,
+        "balanced_accuracy": 0.502854,
+        "probability_mean": 0.487897,
+        "probability_std": 0.129031,
+        "positive_rate": 0.476341,
+        "negative_rate": 0.523659
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.006354,
+        "logloss_delta_vs_core": 0.014038,
+        "accuracy_delta_vs_core": -0.028391,
+        "balanced_accuracy_delta_vs_core": -0.029322
+      }
+    },
+    {
+      "feature": "bullpen_availability_diff",
+      "experiment": "core_plus__bullpen_availability_diff",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.265984,
+        "logloss": 0.728934,
+        "accuracy": 0.514196,
+        "balanced_accuracy": 0.517206,
+        "probability_mean": 0.480182,
+        "probability_std": 0.131814,
+        "positive_rate": 0.444795,
+        "negative_rate": 0.555205
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.006894,
+        "logloss_delta_vs_core": 0.015586,
+        "accuracy_delta_vs_core": -0.015772,
+        "balanced_accuracy_delta_vs_core": -0.01497
+      }
+    },
+    {
+      "feature": "sp_stuff_plus_diff",
+      "experiment": "core_plus__sp_stuff_plus_diff",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.268415,
+        "logloss": 0.735047,
+        "accuracy": 0.533123,
+        "balanced_accuracy": 0.533812,
+        "probability_mean": 0.483831,
+        "probability_std": 0.149759,
+        "positive_rate": 0.488959,
+        "negative_rate": 0.511041
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.009325,
+        "logloss_delta_vs_core": 0.021699,
+        "accuracy_delta_vs_core": 0.003155,
+        "balanced_accuracy_delta_vs_core": 0.001636
+      }
+    },
+    {
+      "feature": "lag30_winrate_diff",
+      "experiment": "core_plus__lag30_winrate_diff",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.270244,
+        "logloss": 1.031603,
+        "accuracy": 0.533123,
+        "balanced_accuracy": 0.532455,
+        "probability_mean": 0.508439,
+        "probability_std": 0.199908,
+        "positive_rate": 0.514196,
+        "negative_rate": 0.485804
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.011154,
+        "logloss_delta_vs_core": 0.318255,
+        "accuracy_delta_vs_core": 0.003155,
+        "balanced_accuracy_delta_vs_core": 0.000279
+      }
+    },
+    {
+      "feature": "bb_pct_diff",
+      "experiment": "core_plus__bb_pct_diff",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.287815,
+        "logloss": 2.099614,
+        "accuracy": 0.529968,
+        "balanced_accuracy": 0.533194,
+        "probability_mean": 0.439526,
+        "probability_std": 0.182985,
+        "positive_rate": 0.44164,
+        "negative_rate": 0.55836
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.028725,
+        "logloss_delta_vs_core": 1.386266,
+        "accuracy_delta_vs_core": 0.0,
+        "balanced_accuracy_delta_vs_core": 0.001018
+      }
+    },
+    {
+      "feature": "k_pct_diff",
+      "experiment": "core_plus__k_pct_diff",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.291751,
+        "logloss": 2.134256,
+        "accuracy": 0.533123,
+        "balanced_accuracy": 0.536866,
+        "probability_mean": 0.432654,
+        "probability_std": 0.187607,
+        "positive_rate": 0.432177,
+        "negative_rate": 0.567823
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.032661,
+        "logloss_delta_vs_core": 1.420908,
+        "accuracy_delta_vs_core": 0.003155,
+        "balanced_accuracy_delta_vs_core": 0.00469
       }
     }
   ],
   "group_ablation_results": [
     {
-      "feature_group": "rest_travel",
+      "feature_group": "lineup",
       "features": [
-        "lag30_winrate_diff"
+        "top3_woba_diff"
       ],
-      "experiment": "core_plus_group__rest_travel",
+      "experiment": "core_plus_group__lineup",
       "decision": "reject_for_now",
       "blockers": [
         "brier_not_enough_improvement",
         "logloss_not_enough_improvement"
       ],
-      "sample_count": 228,
+      "sample_count": 317,
       "metrics": {
-        "count": 228,
-        "brier": 0.261012,
-        "logloss": 0.716831,
-        "accuracy": 0.52193,
-        "balanced_accuracy": 0.523585,
-        "probability_mean": 0.497735,
-        "probability_std": 0.112156,
-        "positive_rate": 0.47807,
-        "negative_rate": 0.52193
+        "count": 317,
+        "brier": 0.26242,
+        "logloss": 0.72091,
+        "accuracy": 0.501577,
+        "balanced_accuracy": 0.50523,
+        "probability_mean": 0.476932,
+        "probability_std": 0.122272,
+        "positive_rate": 0.432177,
+        "negative_rate": 0.567823
       },
       "deltas_vs_core": {
-        "brier_delta_vs_core": 0.000237,
-        "logloss_delta_vs_core": 0.000573,
-        "accuracy_delta_vs_core": -0.017544,
-        "balanced_accuracy_delta_vs_core": -0.019486
-      }
-    },
-    {
-      "feature_group": "bullpen",
-      "features": [
-        "bullpen_availability_diff",
-        "bullpen_ip_diff"
-      ],
-      "experiment": "core_plus_group__bullpen",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.271948,
-        "logloss": 0.739908,
-        "accuracy": 0.495614,
-        "balanced_accuracy": 0.497758,
-        "probability_mean": 0.498016,
-        "probability_std": 0.140854,
-        "positive_rate": 0.469298,
-        "negative_rate": 0.530702
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.011173,
-        "logloss_delta_vs_core": 0.02365,
-        "accuracy_delta_vs_core": -0.04386,
-        "balanced_accuracy_delta_vs_core": -0.045313
-      }
-    },
-    {
-      "feature_group": "starting_pitcher",
-      "features": [
-        "k_pct_diff",
-        "bb_pct_diff",
-        "sp_fip_diff",
-        "sp_stuff_plus_diff"
-      ],
-      "experiment": "core_plus_group__starting_pitcher",
-      "decision": "reject_for_now",
-      "blockers": [
-        "brier_not_enough_improvement",
-        "logloss_not_enough_improvement"
-      ],
-      "sample_count": 228,
-      "metrics": {
-        "count": 228,
-        "brier": 0.279463,
-        "logloss": 0.762634,
-        "accuracy": 0.504386,
-        "balanced_accuracy": 0.504717,
-        "probability_mean": 0.489696,
-        "probability_std": 0.165646,
-        "positive_rate": 0.495614,
-        "negative_rate": 0.504386
-      },
-      "deltas_vs_core": {
-        "brier_delta_vs_core": 0.018688,
-        "logloss_delta_vs_core": 0.046376,
-        "accuracy_delta_vs_core": -0.035088,
-        "balanced_accuracy_delta_vs_core": -0.038354
+        "brier_delta_vs_core": 0.00333,
+        "logloss_delta_vs_core": 0.007562,
+        "accuracy_delta_vs_core": -0.028391,
+        "balanced_accuracy_delta_vs_core": -0.026946
       }
     },
     {
@@ -541,53 +494,117 @@
         "brier_not_enough_improvement",
         "logloss_not_enough_improvement"
       ],
-      "sample_count": 228,
+      "sample_count": 317,
       "metrics": {
-        "count": 228,
-        "brier": 0.283203,
-        "logloss": 0.775358,
-        "accuracy": 0.473684,
-        "balanced_accuracy": 0.471698,
-        "probability_mean": 0.502993,
-        "probability_std": 0.15712,
-        "positive_rate": 0.526316,
-        "negative_rate": 0.473684
+        "count": 317,
+        "brier": 0.26364,
+        "logloss": 0.728211,
+        "accuracy": 0.504732,
+        "balanced_accuracy": 0.507884,
+        "probability_mean": 0.484489,
+        "probability_std": 0.153678,
+        "positive_rate": 0.44164,
+        "negative_rate": 0.55836
       },
       "deltas_vs_core": {
-        "brier_delta_vs_core": 0.022428,
-        "logloss_delta_vs_core": 0.0591,
-        "accuracy_delta_vs_core": -0.06579,
-        "balanced_accuracy_delta_vs_core": -0.071373
+        "brier_delta_vs_core": 0.00455,
+        "logloss_delta_vs_core": 0.014863,
+        "accuracy_delta_vs_core": -0.025236,
+        "balanced_accuracy_delta_vs_core": -0.024292
       }
     },
     {
-      "feature_group": "lineup",
+      "feature_group": "rest_travel",
       "features": [
-        "top3_woba_diff"
+        "lag30_winrate_diff"
       ],
-      "experiment": "core_plus_group__lineup",
+      "experiment": "core_plus_group__rest_travel",
       "decision": "reject_for_now",
       "blockers": [
         "brier_not_enough_improvement",
         "logloss_not_enough_improvement"
       ],
-      "sample_count": 228,
+      "sample_count": 317,
       "metrics": {
-        "count": 228,
-        "brier": 0.286351,
-        "logloss": 0.777503,
-        "accuracy": 0.451754,
-        "balanced_accuracy": 0.44935,
-        "probability_mean": 0.499306,
-        "probability_std": 0.144498,
-        "positive_rate": 0.530702,
-        "negative_rate": 0.469298
+        "count": 317,
+        "brier": 0.270244,
+        "logloss": 1.031603,
+        "accuracy": 0.533123,
+        "balanced_accuracy": 0.532455,
+        "probability_mean": 0.508439,
+        "probability_std": 0.199908,
+        "positive_rate": 0.514196,
+        "negative_rate": 0.485804
       },
       "deltas_vs_core": {
-        "brier_delta_vs_core": 0.025576,
-        "logloss_delta_vs_core": 0.061245,
-        "accuracy_delta_vs_core": -0.08772,
-        "balanced_accuracy_delta_vs_core": -0.093721
+        "brier_delta_vs_core": 0.011154,
+        "logloss_delta_vs_core": 0.318255,
+        "accuracy_delta_vs_core": 0.003155,
+        "balanced_accuracy_delta_vs_core": 0.000279
+      }
+    },
+    {
+      "feature_group": "bullpen",
+      "features": [
+        "bullpen_availability_diff",
+        "bullpen_ip_diff"
+      ],
+      "experiment": "core_plus_group__bullpen",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.270529,
+        "logloss": 0.737669,
+        "accuracy": 0.504732,
+        "balanced_accuracy": 0.506866,
+        "probability_mean": 0.484303,
+        "probability_std": 0.144391,
+        "positive_rate": 0.460568,
+        "negative_rate": 0.539432
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.011439,
+        "logloss_delta_vs_core": 0.024321,
+        "accuracy_delta_vs_core": -0.025236,
+        "balanced_accuracy_delta_vs_core": -0.02531
+      }
+    },
+    {
+      "feature_group": "starting_pitcher",
+      "features": [
+        "k_pct_diff",
+        "bb_pct_diff",
+        "sp_fip_diff",
+        "sp_stuff_plus_diff"
+      ],
+      "experiment": "core_plus_group__starting_pitcher",
+      "decision": "reject_for_now",
+      "blockers": [
+        "brier_not_enough_improvement",
+        "logloss_not_enough_improvement"
+      ],
+      "sample_count": 317,
+      "metrics": {
+        "count": 317,
+        "brier": 0.299083,
+        "logloss": 2.151562,
+        "accuracy": 0.511041,
+        "balanced_accuracy": 0.513872,
+        "probability_mean": 0.434106,
+        "probability_std": 0.203686,
+        "positive_rate": 0.44795,
+        "negative_rate": 0.55205
+      },
+      "deltas_vs_core": {
+        "brier_delta_vs_core": 0.039993,
+        "logloss_delta_vs_core": 1.438214,
+        "accuracy_delta_vs_core": -0.018927,
+        "balanced_accuracy_delta_vs_core": -0.018304
       }
     }
   ],
