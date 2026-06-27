@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-26T22:45:30.098844+00:00",
+  "generated_at": "2026-06-27T00:39:18.408343+00:00",
   "input_files": {
     "prediction": {
       "exists": true,
@@ -8,12 +8,12 @@
     "snapshots": {
       "exists": true,
       "error": "",
-      "rows": 403
+      "rows": 418
     },
     "market_odds_history": {
       "exists": true,
       "error": "",
-      "rows": 50391
+      "rows": 50575
     },
     "finalized_games": {
       "exists": true,
@@ -23,27 +23,23 @@
   },
   "current_prediction_summary": {
     "prediction_count": 15,
-    "paper_bet_count": 2,
+    "paper_bet_count": 4,
     "live_bet_candidate_count": 0,
     "betting_readiness_status_counts": {
       "away_guardrail_tracking_only": 6,
-      "model_blocked": 2,
-      "practical_ready": 2,
-      "odds_blocked": 5
+      "model_blocked": 5,
+      "context_tracking_only": 4
     },
     "risk_flag_counts": {
-      "closer_high_fatigue": 11,
+      "context_missing_fields": 15,
       "data_quality_bet_blocked": 15,
+      "lineup_not_confirmed": 15,
       "model_governance_live_locked": 15,
-      "starter_confirmation_pending": 14,
-      "edge_below_threshold": 2,
-      "risk_guard_rejected": 2,
-      "closer_fatigue": 3,
-      "bullpen_not_available": 2,
-      "context_missing_fields": 4,
-      "edge_unavailable": 5,
-      "odds_not_ok": 5,
-      "lineup_not_confirmed": 2
+      "starter_confirmation_pending": 10,
+      "edge_below_threshold": 5,
+      "risk_guard_rejected": 4,
+      "closer_fatigue": 5,
+      "bullpen_not_available": 2
     }
   },
   "settled_performance": {
@@ -90,27 +86,27 @@
   },
   "clv_summary": {
     "source": "per_pick_log_decimal_clv",
-    "evaluated_picks": 165,
-    "positive_clv_count": 93,
+    "evaluated_picks": 169,
+    "positive_clv_count": 94,
     "negative_clv_count": 59,
     "neutral_clv_count": 2,
-    "avg_clv": 0.12193952257809132,
-    "positive_clv_rate": 0.5636363636363636,
+    "avg_clv": 0.12135444529374304,
+    "positive_clv_rate": 0.5562130177514792,
     "avg_clv_by_side": {
       "away": 0.10270719542667359,
-      "home": 0.14219757384425105
+      "home": 0.14073777081345965
     }
   },
   "edge_bucket_summary": {
     "3_to_5pct": {
-      "count": 37,
+      "count": 41,
       "settled_count": 34,
       "win_rate": 0.47058823529411764,
       "roi_flat": -0.09735294117647061,
       "stake_weighted_roi": -0.23317325100727332,
-      "avg_edge": 0.04036486486486486,
-      "avg_clv": 0.015187395831666506,
-      "positive_clv_rate": 0.46875
+      "avg_edge": 0.04019024390243902,
+      "avg_clv": 0.01567421848840705,
+      "positive_clv_rate": 0.48484848484848486
     },
     "5_to_8pct": {
       "count": 43,
@@ -135,14 +131,14 @@
   },
   "risk_flag_summary": {
     "none": {
-      "count": 165,
+      "count": 169,
       "settled_count": 162,
       "win_rate": 0.5123456790123457,
       "roi_flat": 0.1759567901234568,
       "stake_weighted_roi": 0.02384524220756437,
-      "avg_edge": 0.11318969696969691,
-      "avg_clv": 0.12193952257809132,
-      "positive_clv_rate": 0.6038961038961039
+      "avg_edge": 0.11142366863905319,
+      "avg_clv": 0.12135444529374304,
+      "positive_clv_rate": 0.6064516129032258
     }
   },
   "side_summary": {
@@ -157,20 +153,19 @@
       "positive_clv_rate": 0.5443037974683544
     },
     "home": {
-      "count": 80,
+      "count": 84,
       "settled_count": 77,
       "win_rate": 0.5714285714285714,
       "roi_flat": 0.2722077922077923,
       "stake_weighted_roi": 0.12157288999642052,
-      "avg_edge": 0.09625749999999997,
-      "avg_clv": 0.14219757384425105,
-      "positive_clv_rate": 0.6666666666666666
+      "avg_edge": 0.09351071428571427,
+      "avg_clv": 0.14073777081345965,
+      "positive_clv_rate": 0.6710526315789473
     }
   },
   "recommendations": [
     "Settled sample size is below 300; evaluation is useful for debugging but not production betting.",
     "Current live_bet_candidate_count is 0; risk controls are blocking all real-bet candidates, which is expected during early model validation.",
-    "Lineup confirmation remains a major blocker; projected or confirmed lineup integration should be prioritized.",
-    "Closer high fatigue risk is present; keep stake_multiplier conservative or require manual review."
+    "Lineup confirmation remains a major blocker; projected or confirmed lineup integration should be prioritized."
   ]
 }
