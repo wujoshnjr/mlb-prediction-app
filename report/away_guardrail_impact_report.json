@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-27T00:39:45.670347Z",
+  "generated_at": "2026-06-27T05:24:56.034793Z",
   "status": "ok",
   "report_type": "away_guardrail_impact_v1",
   "pipeline_version": "baseline_v2_clean",
@@ -23,20 +23,20 @@
   },
   "summary": {
     "prediction_count": 15,
-    "away_candidate_count": 6,
-    "away_guardrail_applied_count": 6,
+    "away_candidate_count": 5,
+    "away_guardrail_applied_count": 5,
     "away_guardrail_applied_rate": 1.0,
     "retained_away_paper_signal_count": 0,
-    "downgraded_away_tracking_only_count": 6,
-    "home_candidate_count": 4
+    "downgraded_away_tracking_only_count": 5,
+    "home_candidate_count": 2
   },
   "reason_counts": {
-    "away_low_selected_probability_vs_home_market": 4,
-    "away_mid_edge_underperforming_bucket": 3,
+    "away_low_selected_probability_vs_home_market": 5,
+    "away_mid_edge_underperforming_bucket": 4,
     "away_slight_home_market_underperforming_bucket": 1
   },
   "guardrail_status_counts": {
-    "tracking_only": 6
+    "tracking_only": 5
   },
   "downgraded_examples": [
     {
@@ -44,9 +44,9 @@
       "game_date": "2026-06-27",
       "away_team": "Astros",
       "home_team": "Tigers",
-      "moneyline_selected_edge": 0.0431,
-      "away_selected_probability": 0.5146,
-      "market_no_vig_home_prob": 0.5285,
+      "moneyline_selected_edge": 0.0514,
+      "away_selected_probability": 0.5073,
+      "market_no_vig_home_prob": 0.544,
       "away_guardrail_reasons": [
         "away_low_selected_probability_vs_home_market",
         "away_mid_edge_underperforming_bucket",
@@ -55,14 +55,15 @@
       "recommendation_status": "TRACKING_ONLY"
     },
     {
-      "game_id": 824745,
+      "game_id": 822794,
       "game_date": "2026-06-27",
-      "away_team": "Yankees",
-      "home_team": "Red Sox",
-      "moneyline_selected_edge": 0.0309,
-      "away_selected_probability": 0.5636,
-      "market_no_vig_home_prob": 0.4674,
+      "away_team": "Rangers",
+      "home_team": "Blue Jays",
+      "moneyline_selected_edge": 0.0491,
+      "away_selected_probability": 0.4241,
+      "market_no_vig_home_prob": 0.625,
       "away_guardrail_reasons": [
+        "away_low_selected_probability_vs_home_market",
         "away_mid_edge_underperforming_bucket"
       ],
       "recommendation_status": "TRACKING_ONLY"
@@ -72,9 +73,9 @@
       "game_date": "2026-06-27",
       "away_team": "Phillies",
       "home_team": "Mets",
-      "moneyline_selected_edge": 0.1101,
-      "away_selected_probability": 0.5563,
-      "market_no_vig_home_prob": 0.5538,
+      "moneyline_selected_edge": 0.114,
+      "away_selected_probability": 0.5587,
+      "market_no_vig_home_prob": 0.5553,
       "away_guardrail_reasons": [
         "away_low_selected_probability_vs_home_market"
       ],
@@ -85,24 +86,12 @@
       "game_date": "2026-06-27",
       "away_team": "D-backs",
       "home_team": "Rays",
-      "moneyline_selected_edge": 0.0822,
-      "away_selected_probability": 0.4662,
-      "market_no_vig_home_prob": 0.616,
+      "moneyline_selected_edge": 0.0503,
+      "away_selected_probability": 0.4645,
+      "market_no_vig_home_prob": 0.5859,
       "away_guardrail_reasons": [
-        "away_low_selected_probability_vs_home_market"
-      ],
-      "recommendation_status": "TRACKING_ONLY"
-    },
-    {
-      "game_id": 823689,
-      "game_date": "2026-06-27",
-      "away_team": "Rockies",
-      "home_team": "Twins",
-      "moneyline_selected_edge": 0.1206,
-      "away_selected_probability": 0.314,
-      "market_no_vig_home_prob": 0.8066,
-      "away_guardrail_reasons": [
-        "away_low_selected_probability_vs_home_market"
+        "away_low_selected_probability_vs_home_market",
+        "away_mid_edge_underperforming_bucket"
       ],
       "recommendation_status": "TRACKING_ONLY"
     },
@@ -111,18 +100,19 @@
       "game_date": "2026-06-27",
       "away_team": "Marlins",
       "home_team": "Cardinals",
-      "moneyline_selected_edge": 0.0414,
-      "away_selected_probability": 0.5785,
-      "market_no_vig_home_prob": 0.463,
+      "moneyline_selected_edge": 0.0735,
+      "away_selected_probability": 0.5105,
+      "market_no_vig_home_prob": 0.563,
       "away_guardrail_reasons": [
+        "away_low_selected_probability_vs_home_market",
         "away_mid_edge_underperforming_bucket"
       ],
       "recommendation_status": "TRACKING_ONLY"
     }
   ],
   "diagnostic_snapshot": {
-    "away_pick_accuracy": 0.44776119402985076,
-    "away_pick_sample_count": 201,
+    "away_pick_accuracy": 0.44761904761904764,
+    "away_pick_sample_count": 210,
     "away_pick_rate": 0.5263157894736842,
     "recommended_guardrails": [
       "Away underdogs are weak; require stronger edge or downgrade to tracking-only.",
