@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-28T14:28:37.029328+00:00",
+  "generated_at": "2026-06-28T16:42:36.370905+00:00",
   "input_files": {
     "prediction": {
       "exists": true,
@@ -8,7 +8,7 @@
     "feature_importance": {
       "exists": true,
       "error": "",
-      "row_count": 137,
+      "row_count": 138,
       "feature_count": 9
     }
   },
@@ -440,13 +440,13 @@
       "feature": "lineup_context_available",
       "group": "lineup",
       "missing_count": 0,
-      "zero_count": 15,
-      "non_zero_count": 0,
+      "zero_count": 4,
+      "non_zero_count": 11,
       "missing_rate": 0.0,
-      "zero_rate": 1.0,
-      "non_zero_rate": 0.0,
+      "zero_rate": 0.2667,
+      "non_zero_rate": 0.7333,
       "latest_importance": 0.0,
-      "status": "all_zero",
+      "status": "healthy",
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
       "non_blocking_zero_or_missing": true
@@ -845,13 +845,13 @@
       "feature": "temp_effect",
       "group": "weather",
       "missing_count": 0,
-      "zero_count": 15,
-      "non_zero_count": 0,
+      "zero_count": 14,
+      "non_zero_count": 1,
       "missing_rate": 0.0,
-      "zero_rate": 1.0,
-      "non_zero_rate": 0.0,
+      "zero_rate": 0.9333,
+      "non_zero_rate": 0.0667,
       "latest_importance": 0.0,
-      "status": "all_zero",
+      "status": "sparse",
       "training_allowed_by_schema": false,
       "tracking_only_by_schema": true,
       "non_blocking_zero_or_missing": true
@@ -1154,36 +1154,35 @@
     },
     "lineup": {
       "feature_count": 2,
-      "healthy_count": 0,
+      "healthy_count": 1,
       "sparse_count": 0,
-      "all_zero_count": 2,
+      "all_zero_count": 1,
       "missing_count": 0,
       "blocking_sparse_count": 0,
       "blocking_all_zero_count": 0,
       "blocking_missing_count": 0,
-      "non_blocking_count": 2,
-      "avg_non_zero_rate": 0.0,
+      "non_blocking_count": 1,
+      "avg_non_zero_rate": 0.3666,
       "features": [
         "lineup_context_available",
         "platoon_ops_diff"
       ],
       "blocking_features": [],
       "non_blocking_features": [
-        "lineup_context_available",
         "platoon_ops_diff"
       ]
     },
     "weather": {
       "feature_count": 4,
       "healthy_count": 1,
-      "sparse_count": 2,
-      "all_zero_count": 1,
+      "sparse_count": 3,
+      "all_zero_count": 0,
       "missing_count": 0,
       "blocking_sparse_count": 0,
       "blocking_all_zero_count": 0,
       "blocking_missing_count": 0,
       "non_blocking_count": 3,
-      "avg_non_zero_rate": 0.4,
+      "avg_non_zero_rate": 0.4167,
       "features": [
         "precip_effect",
         "temp_effect",
@@ -1228,7 +1227,6 @@
     "csw_diff",
     "injury_diff",
     "k_rate",
-    "lineup_context_available",
     "odds_change",
     "pitch_movement_diff",
     "pitch_type_matchup_score",
@@ -1236,13 +1234,13 @@
     "rest_diff",
     "sprint_speed_diff",
     "swing_miss_diff",
-    "temp_effect",
     "zone_size"
   ],
   "sparse_features": [
     "dynamic_pythag_diff",
     "timezone_diff",
     "precip_effect",
+    "temp_effect",
     "wind_effect"
   ],
   "missing_features": [],
@@ -1258,7 +1256,6 @@
     "dynamic_pythag_diff",
     "injury_diff",
     "k_rate",
-    "lineup_context_available",
     "odds_change",
     "pitch_movement_diff",
     "pitch_type_matchup_score",
