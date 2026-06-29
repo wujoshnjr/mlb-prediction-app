@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-28T22:32:15.752082Z",
+  "generated_at": "2026-06-29T00:37:08.227476Z",
   "status": "ok",
   "report_type": "away_guardrail_impact_v1",
   "pipeline_version": "baseline_v2_clean",
@@ -22,39 +22,55 @@
     }
   },
   "summary": {
-    "prediction_count": 15,
-    "away_candidate_count": 1,
-    "away_guardrail_applied_count": 1,
+    "prediction_count": 13,
+    "away_candidate_count": 2,
+    "away_guardrail_applied_count": 2,
     "away_guardrail_applied_rate": 1.0,
     "retained_away_paper_signal_count": 0,
-    "downgraded_away_tracking_only_count": 1,
-    "home_candidate_count": 0
+    "downgraded_away_tracking_only_count": 2,
+    "home_candidate_count": 1
   },
   "reason_counts": {
-    "away_low_selected_probability_vs_home_market": 1
+    "away_low_selected_probability_vs_home_market": 2,
+    "away_mid_edge_underperforming_bucket": 2
   },
   "guardrail_status_counts": {
-    "tracking_only": 1
+    "tracking_only": 2
   },
   "downgraded_examples": [
     {
-      "game_id": 823204,
-      "game_date": "2026-06-28",
-      "away_team": "Braves",
-      "home_team": "Giants",
-      "moneyline_selected_edge": 0.2063,
-      "away_selected_probability": 0.3421,
-      "market_no_vig_home_prob": 0.8642,
+      "game_id": 824822,
+      "game_date": "2026-06-29",
+      "away_team": "White Sox",
+      "home_team": "Orioles",
+      "moneyline_selected_edge": 0.0444,
+      "away_selected_probability": 0.494,
+      "market_no_vig_home_prob": 0.5504,
       "away_guardrail_reasons": [
-        "away_low_selected_probability_vs_home_market"
+        "away_low_selected_probability_vs_home_market",
+        "away_mid_edge_underperforming_bucket"
+      ],
+      "recommendation_status": "TRACKING_ONLY"
+    },
+    {
+      "game_id": 824741,
+      "game_date": "2026-06-29",
+      "away_team": "Nationals",
+      "home_team": "Red Sox",
+      "moneyline_selected_edge": 0.0546,
+      "away_selected_probability": 0.4259,
+      "market_no_vig_home_prob": 0.6286,
+      "away_guardrail_reasons": [
+        "away_low_selected_probability_vs_home_market",
+        "away_mid_edge_underperforming_bucket"
       ],
       "recommendation_status": "TRACKING_ONLY"
     }
   ],
   "diagnostic_snapshot": {
-    "away_pick_accuracy": 0.4488888888888889,
-    "away_pick_sample_count": 225,
-    "away_pick_rate": 0.5265588914549654,
+    "away_pick_accuracy": 0.4469026548672566,
+    "away_pick_sample_count": 226,
+    "away_pick_rate": 0.5246636771300448,
     "recommended_guardrails": [
       "Away underdogs are weak; require stronger edge or downgrade to tracking-only.",
       "Large away edges may be market-disagreement artifacts; cap or downgrade large away edges until CLV evidence improves."
