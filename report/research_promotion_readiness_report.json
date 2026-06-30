@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-29T23:25:56.862286+00:00",
+  "generated_at": "2026-06-30T04:37:41.916213+00:00",
   "status": "blocked",
   "readiness_score": 78.57,
   "research_promotion_allowed": false,
@@ -10,7 +10,7 @@
   "automated_wagering_allowed": false,
   "user_funds_handled": false,
   "recommended_champion": null,
-  "recommended_challenger": "lightgbm_market_residual",
+  "recommended_challenger": "xgboost_classifier",
   "recommended_shadow_ensemble": "logistic_stacking",
   "thresholds": {
     "min_train_eligible_samples": 300,
@@ -19,16 +19,16 @@
     "max_ece": 0.05
   },
   "evidence_summary": {
-    "clean_settled_samples": 427,
-    "train_eligible_samples": 427,
-    "linked_games": 427,
-    "pending_not_final": 19,
-    "model_lab_sample_count": 427,
-    "walkforward_oos_predictions": 347,
-    "calibration_sample_count": 427,
-    "calibration_ece": 0.07993840749414517,
-    "feature_candidate_shadow_count": 29,
-    "feature_ready_for_review_count": 9,
+    "clean_settled_samples": 439,
+    "train_eligible_samples": 439,
+    "linked_games": 439,
+    "pending_not_final": 7,
+    "model_lab_sample_count": 439,
+    "walkforward_oos_predictions": 359,
+    "calibration_sample_count": 439,
+    "calibration_ece": 0.07698109339407745,
+    "feature_candidate_shadow_count": 23,
+    "feature_ready_for_review_count": 15,
     "prediction_trust": {
       "total": 0,
       "strong_A_B": 0,
@@ -39,8 +39,8 @@
     "market_edge": {
       "any_model_beats_market_brier": false,
       "any_model_beats_market_logloss": true,
-      "best_brier_delta": 0.0005738508579683499,
-      "best_logloss_delta": -0.020302992558114963,
+      "best_brier_delta": 0.0012528941427780715,
+      "best_logloss_delta": -0.018457593255772897,
       "best_brier_model": "logistic_baseline",
       "best_logloss_model": "logistic_baseline"
     },
@@ -64,8 +64,8 @@
       "name": "finalized_linkage_gate",
       "passed": true,
       "current": {
-        "linked_games": 427,
-        "pending_not_final": 19,
+        "linked_games": 439,
+        "pending_not_final": 7,
         "api_not_found_or_failed": 0
       },
       "required": "linked_games > 0 and api_not_found_or_failed == 0",
@@ -76,7 +76,7 @@
     {
       "name": "train_sample_gate",
       "passed": true,
-      "current": 427,
+      "current": 439,
       "required": 300,
       "blocker": "",
       "warning": "",
@@ -85,9 +85,9 @@
     {
       "name": "promotion_sample_gate",
       "passed": false,
-      "current": 427,
+      "current": 439,
       "required": 500,
-      "blocker": "clean settled samples below promotion threshold: 427 < 500",
+      "blocker": "clean settled samples below promotion threshold: 439 < 500",
       "warning": "",
       "details": {}
     },
@@ -95,9 +95,9 @@
       "name": "model_lab_gate",
       "passed": true,
       "current": {
-        "sample_count": 427,
-        "best_shadow_model": "lightgbm_market_residual",
-        "champion_candidate": null
+        "sample_count": 439,
+        "best_shadow_model": "xgboost_classifier",
+        "champion_candidate": "lightgbm_classifier"
       },
       "required": "sample_count >= 300 and best shadow model exists",
       "blocker": "",
@@ -107,7 +107,7 @@
     {
       "name": "walk_forward_oos_gate",
       "passed": true,
-      "current": 347,
+      "current": 359,
       "required": 300,
       "blocker": "",
       "warning": "",
@@ -119,8 +119,8 @@
       "current": {
         "any_model_beats_market_brier": false,
         "any_model_beats_market_logloss": true,
-        "best_brier_delta": 0.0005738508579683499,
-        "best_logloss_delta": -0.020302992558114963,
+        "best_brier_delta": 0.0012528941427780715,
+        "best_logloss_delta": -0.018457593255772897,
         "best_brier_model": "logistic_baseline",
         "best_logloss_model": "logistic_baseline"
       },
@@ -135,7 +135,7 @@
       "current": {
         "decision": "NO_PROMOTION_SHADOW_ONLY",
         "status": "blocked",
-        "recommended_challenger": "lightgbm_market_residual",
+        "recommended_challenger": "xgboost_classifier",
         "probability_policy": {
           "official_probability_change_allowed": false,
           "shadow_probability_shrinkage_allowed": true,
@@ -158,9 +158,9 @@
       "name": "calibration_gate",
       "passed": false,
       "current": {
-        "sample_count": 427,
+        "sample_count": 439,
         "calibration_ready": false,
-        "ece": 0.07993840749414517
+        "ece": 0.07698109339407745
       },
       "required": {
         "sample_count": 300,
@@ -175,8 +175,8 @@
       "name": "feature_governance_gate",
       "passed": false,
       "current": {
-        "candidate_shadow_count": 29,
-        "ready_for_review_count": 9
+        "candidate_shadow_count": 23,
+        "ready_for_review_count": 15
       },
       "required": "features remain in shadow unless reviewed",
       "blocker": "feature governance report unavailable or invalid",
@@ -202,7 +202,7 @@
       "name": "shadow_ensemble_gate",
       "passed": true,
       "current": {
-        "sample_count": 347,
+        "sample_count": 359,
         "recommended_shadow_ensemble": "logistic_stacking",
         "promotion_eligible": false
       },
@@ -244,7 +244,7 @@
   ],
   "blockers": [
     "calibration sample count, readiness, or ECE threshold not satisfied",
-    "clean settled samples below promotion threshold: 427 < 500",
+    "clean settled samples below promotion threshold: 439 < 500",
     "feature governance report unavailable or invalid"
   ],
   "warnings": [
@@ -336,8 +336,8 @@
     }
   },
   "next_recommended_actions": [
-    "Accumulate 73 more clean settled samples for promotion-grade review.",
-    "Improve calibration: ECE 0.0799 is above 0.05.",
+    "Accumulate 61 more clean settled samples for promotion-grade review.",
+    "Improve calibration: ECE 0.0770 is above 0.05.",
     "Keep official prediction on current calibrated logistic baseline until all gates pass.",
     "Keep LightGBM, XGBoost, residual, and ensemble outputs shadow-only.",
     "Do not lower sample gates to force promotion."
