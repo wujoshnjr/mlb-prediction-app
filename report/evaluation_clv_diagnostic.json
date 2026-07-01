@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-30T22:41:57.442195+00:00",
+  "generated_at": "2026-07-01T00:36:44.172835+00:00",
   "input_files": {
     "prediction": {
       "exists": true,
@@ -8,12 +8,12 @@
     "snapshots": {
       "exists": true,
       "error": "",
-      "rows": 461
+      "rows": 475
     },
     "market_odds_history": {
       "exists": true,
       "error": "",
-      "rows": 55550
+      "rows": 55730
     },
     "finalized_games": {
       "exists": true,
@@ -22,24 +22,26 @@
     }
   },
   "current_prediction_summary": {
-    "prediction_count": 15,
-    "paper_bet_count": 0,
+    "prediction_count": 14,
+    "paper_bet_count": 1,
     "live_bet_candidate_count": 0,
     "betting_readiness_status_counts": {
-      "away_guardrail_tracking_only": 5,
-      "model_blocked": 4,
-      "odds_blocked": 6
+      "away_guardrail_tracking_only": 7,
+      "model_blocked": 5,
+      "context_tracking_only": 1,
+      "odds_blocked": 1
     },
     "risk_flag_counts": {
-      "closer_high_fatigue": 13,
-      "data_quality_bet_blocked": 15,
-      "model_governance_live_locked": 15,
-      "starter_confirmation_pending": 15,
-      "edge_below_threshold": 4,
-      "edge_unavailable": 6,
-      "odds_not_ok": 6,
-      "context_missing_fields": 1,
-      "lineup_not_confirmed": 1
+      "context_missing_fields": 14,
+      "data_quality_bet_blocked": 14,
+      "lineup_not_confirmed": 14,
+      "model_governance_live_locked": 14,
+      "closer_fatigue": 5,
+      "starter_confirmation_pending": 11,
+      "edge_below_threshold": 5,
+      "risk_guard_rejected": 1,
+      "edge_unavailable": 1,
+      "odds_not_ok": 1
     }
   },
   "settled_performance": {
@@ -86,12 +88,12 @@
   },
   "clv_summary": {
     "source": "per_pick_log_decimal_clv",
-    "evaluated_picks": 172,
+    "evaluated_picks": 173,
     "positive_clv_count": 97,
     "negative_clv_count": 63,
     "neutral_clv_count": 2,
     "avg_clv": 0.11727944315238982,
-    "positive_clv_rate": 0.563953488372093,
+    "positive_clv_rate": 0.5606936416184971,
     "avg_clv_by_side": {
       "away": 0.10270719542667359,
       "home": 0.13114941387927614
@@ -119,24 +121,24 @@
       "positive_clv_rate": 0.5121951219512195
     },
     "8pct_plus": {
-      "count": 86,
+      "count": 87,
       "settled_count": 86,
       "win_rate": 0.5348837209302325,
       "roi_flat": 0.3879651162790699,
       "stake_weighted_roi": 0.1802421024183513,
-      "avg_edge": 0.16878372093023253,
+      "avg_edge": 0.16839770114942526,
       "avg_clv": 0.21451027515775262,
       "positive_clv_rate": 0.6987951807228916
     }
   },
   "risk_flag_summary": {
     "none": {
-      "count": 172,
+      "count": 173,
       "settled_count": 170,
       "win_rate": 0.5,
       "roi_flat": 0.1453235294117647,
       "stake_weighted_roi": -0.025277329522444963,
-      "avg_edge": 0.11052674418604645,
+      "avg_edge": 0.11066936416184965,
       "avg_clv": 0.11727944315238982,
       "positive_clv_rate": 0.5987654320987654
     }
@@ -153,12 +155,12 @@
       "positive_clv_rate": 0.5443037974683544
     },
     "home": {
-      "count": 87,
+      "count": 88,
       "settled_count": 85,
       "win_rate": 0.5411764705882353,
       "roi_flat": 0.20188235294117657,
       "stake_weighted_roi": 0.02954698397456291,
-      "avg_edge": 0.09235517241379307,
+      "avg_edge": 0.09284204545454541,
       "avg_clv": 0.13114941387927614,
       "positive_clv_rate": 0.6506024096385542
     }
@@ -166,7 +168,6 @@
   "recommendations": [
     "Settled sample size is below 300; evaluation is useful for debugging but not production betting.",
     "Current live_bet_candidate_count is 0; risk controls are blocking all real-bet candidates, which is expected during early model validation.",
-    "Lineup confirmation remains a major blocker; projected or confirmed lineup integration should be prioritized.",
-    "Closer high fatigue risk is present; keep stake_multiplier conservative or require manual review."
+    "Lineup confirmation remains a major blocker; projected or confirmed lineup integration should be prioritized."
   ]
 }
