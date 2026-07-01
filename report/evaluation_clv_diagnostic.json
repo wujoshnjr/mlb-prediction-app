@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-01T00:36:44.172835+00:00",
+  "generated_at": "2026-07-01T06:10:04.531694+00:00",
   "input_files": {
     "prediction": {
       "exists": true,
@@ -13,12 +13,12 @@
     "market_odds_history": {
       "exists": true,
       "error": "",
-      "rows": 55730
+      "rows": 55855
     },
     "finalized_games": {
       "exists": true,
       "error": "",
-      "rows": 1235
+      "rows": 1250
     }
   },
   "current_prediction_summary": {
@@ -26,26 +26,26 @@
     "paper_bet_count": 1,
     "live_bet_candidate_count": 0,
     "betting_readiness_status_counts": {
-      "away_guardrail_tracking_only": 7,
-      "model_blocked": 5,
+      "away_guardrail_tracking_only": 4,
+      "model_blocked": 4,
       "context_tracking_only": 1,
-      "odds_blocked": 1
+      "odds_blocked": 5
     },
     "risk_flag_counts": {
+      "closer_high_fatigue": 14,
       "context_missing_fields": 14,
       "data_quality_bet_blocked": 14,
       "lineup_not_confirmed": 14,
       "model_governance_live_locked": 14,
-      "closer_fatigue": 5,
-      "starter_confirmation_pending": 11,
-      "edge_below_threshold": 5,
+      "starter_confirmation_pending": 12,
+      "edge_below_threshold": 4,
       "risk_guard_rejected": 1,
-      "edge_unavailable": 1,
-      "odds_not_ok": 1
+      "edge_unavailable": 5,
+      "odds_not_ok": 5
     }
   },
   "settled_performance": {
-    "settled_rows": 247,
+    "settled_rows": 253,
     "paper_bet_count": 170,
     "live_bet_candidate_count": 0,
     "paper_bet_win_rate": 0.5,
@@ -53,8 +53,8 @@
     "paper_bet_roi_flat": 0.1453235294117647,
     "live_bet_roi_flat": null,
     "stake_weighted_roi": -0.025277329522444963,
-    "brier": 0.26682979890688263,
-    "logloss": 0.7297010161674646,
+    "brier": 0.26473621928853747,
+    "logloss": 0.7253750508407512,
     "window_7d": {
       "count": 14,
       "settled_count": 14,
@@ -168,6 +168,7 @@
   "recommendations": [
     "Settled sample size is below 300; evaluation is useful for debugging but not production betting.",
     "Current live_bet_candidate_count is 0; risk controls are blocking all real-bet candidates, which is expected during early model validation.",
-    "Lineup confirmation remains a major blocker; projected or confirmed lineup integration should be prioritized."
+    "Lineup confirmation remains a major blocker; projected or confirmed lineup integration should be prioritized.",
+    "Closer high fatigue risk is present; keep stake_multiplier conservative or require manual review."
   ]
 }
