@@ -1,131 +1,131 @@
 {
-  "generated_at": "2026-07-01T23:43:51.999415Z",
+  "generated_at": "2026-07-02T04:28:48.592905Z",
   "report_type": "baseline_comparison_report",
   "status": "warning",
   "input_files": {
     "prediction": {
       "path": "report/prediction.json",
       "exists": true,
-      "rows": 14,
+      "rows": 9,
       "error": ""
     },
     "prediction_snapshots": {
       "path": "data/prediction_snapshots.csv",
       "exists": true,
-      "rows": 475,
+      "rows": 484,
       "error": ""
     },
     "finalized_games": {
       "path": "data/finalized_games.csv",
       "exists": true,
-      "rows": 1256,
+      "rows": 1263,
       "error": ""
     },
     "market_odds_history": {
       "path": "data/market_odds_history.csv",
       "exists": true,
-      "rows": 56479,
+      "rows": 56568,
       "error": ""
     }
   },
-  "settled_prediction_count": 461,
+  "settled_prediction_count": 468,
   "baselines": {
     "model": {
       "name": "model",
-      "count": 461,
-      "brier": 0.255884,
-      "logloss": 0.705451,
-      "accuracy": 0.509761,
-      "probability_mean": 0.500784,
-      "probability_std": 0.106659
+      "count": 468,
+      "brier": 0.255793,
+      "logloss": 0.705276,
+      "accuracy": 0.510684,
+      "probability_mean": 0.500108,
+      "probability_std": 0.106512
     },
     "market_no_vig": {
       "name": "market_no_vig",
-      "count": 371,
-      "brier": 0.260538,
-      "logloss": 0.736911,
-      "accuracy": 0.549865,
-      "probability_mean": 0.51859,
-      "probability_std": 0.142883
+      "count": 377,
+      "brier": 0.259929,
+      "logloss": 0.735247,
+      "accuracy": 0.551724,
+      "probability_mean": 0.517252,
+      "probability_std": 0.142787
     },
     "elo": {
       "name": "elo",
-      "count": 461,
-      "brier": 0.261677,
-      "logloss": 0.718235,
-      "accuracy": 0.494577,
-      "probability_mean": 0.523137,
-      "probability_std": 0.12022
+      "count": 468,
+      "brier": 0.262331,
+      "logloss": 0.719702,
+      "accuracy": 0.49359,
+      "probability_mean": 0.522935,
+      "probability_std": 0.121029
     },
     "constant_50": {
       "name": "constant_50",
-      "count": 461,
+      "count": 468,
       "brier": 0.25,
       "logloss": 0.693147,
-      "accuracy": 0.529284,
+      "accuracy": 0.532051,
       "probability_mean": 0.5,
       "probability_std": 0.0
     },
     "home_historical_rate": {
       "name": "home_historical_rate",
-      "count": 461,
-      "brier": 0.249142,
-      "logloss": 0.691431,
-      "accuracy": 0.529284,
-      "probability_mean": 0.529459,
+      "count": 468,
+      "brier": 0.248975,
+      "logloss": 0.691096,
+      "accuracy": 0.532051,
+      "probability_mean": 0.530483,
       "probability_std": 0.0
     },
     "log5": {
       "name": "log5",
-      "count": 461,
-      "brier": 0.358198,
-      "logloss": 5.573302,
-      "accuracy": 0.505423,
-      "probability_mean": 0.319011,
-      "probability_std": 0.24696
+      "count": 468,
+      "brier": 0.357222,
+      "logloss": 5.501703,
+      "accuracy": 0.504274,
+      "probability_mean": 0.321491,
+      "probability_std": 0.246845
     }
   },
   "comparison": {
     "status": "ok",
     "comparisons": {
       "market_no_vig": {
-        "delta_brier": -0.004654,
+        "delta_brier": -0.004136,
         "beats_brier": true,
-        "delta_logloss": -0.03146,
+        "delta_logloss": -0.029971,
         "beats_logloss": true,
-        "delta_accuracy": -0.040104,
+        "delta_accuracy": -0.04104,
         "beats_accuracy": false
       },
       "elo": {
-        "delta_brier": -0.005793,
+        "delta_brier": -0.006538,
         "beats_brier": true,
-        "delta_logloss": -0.012784,
+        "delta_logloss": -0.014426,
         "beats_logloss": true,
-        "delta_accuracy": 0.015184,
+        "delta_accuracy": 0.017094,
         "beats_accuracy": true
       },
       "constant_50": {
-        "delta_brier": 0.005884,
+        "delta_brier": 0.005793,
         "beats_brier": false,
-        "delta_logloss": 0.012304,
+        "delta_logloss": 0.012129,
         "beats_logloss": false,
-        "delta_accuracy": -0.019523,
+        "delta_accuracy": -0.021367,
         "beats_accuracy": false
       },
       "home_historical_rate": {
-        "delta_brier": 0.006742,
+        "delta_brier": 0.006818,
         "beats_brier": false,
-        "delta_logloss": 0.01402,
+        "delta_logloss": 0.01418,
         "beats_logloss": false,
-        "delta_accuracy": -0.019523,
+        "delta_accuracy": -0.021367,
         "beats_accuracy": false
       },
       "log5": {
-        "delta_brier": -0.102314,
+        "delta_brier": -0.101429,
         "beats_brier": true,
-        "delta_logloss": -4.867851,
+        "delta_logloss": -4.796427,
         "beats_logloss": true,
-        "delta_accuracy": 0.004338,
+        "delta_accuracy": 0.00641,
         "beats_accuracy": true
       }
     },
